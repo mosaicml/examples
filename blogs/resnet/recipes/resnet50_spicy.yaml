@@ -89,14 +89,14 @@ train_batch_size: 2048
 train_dataset:
   imagenet:
     crop_size: 176
-    datadir: # /path/to/imagenet
+    datadir: /tmp/ImageNet # /path/to/imagenet
     drop_last: true
     is_train: true
 train_subset_num_batches: -1
 val_dataset:
   imagenet:
     crop_size: 224
-    datadir: # /path/to/imagenet
+    datadir: /tmp/ImageNet # /path/to/imagenet
     drop_last: false
     is_train: false
     resize_size: 232

@@ -67,7 +67,7 @@ train_dataset:
     # datadir: not needed because we're using FFCV
     drop_last: true
     ffcv_dest: imagenet_train.ffcv
-    ffcv_dir: # /path/to/ffcv/data/directory
+    ffcv_dir: /tmp # /path/to/ffcv/data/directory
     ffcv_write_dataset: false
     is_train: true
     resize_size: -1
@@ -79,7 +79,7 @@ val_dataset:
     # datadir: not needed because we're using FFCV
     drop_last: false
     ffcv_dest: imagenet_val.ffcv
-    ffcv_dir: # /path/to/ffcv/data/directory
+    ffcv_dir: /tmp # /path/to/ffcv/data/directory
     ffcv_write_dataset: false
     is_train: false
     resize_size: 232
