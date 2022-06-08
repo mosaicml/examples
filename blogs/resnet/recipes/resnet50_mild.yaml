@@ -35,7 +35,7 @@ eval_interval: 1
 loggers:
   progress_bar:
     console_log_level: EPOCH
-    stream: stderr
+    stream: stdout
 model:
   resnet:
     initializers:

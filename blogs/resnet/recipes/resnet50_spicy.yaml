@@ -56,7 +56,7 @@ device:
 loggers:
   progress_bar:
     console_log_level: EPOCH
-    stream: stderr
+    stream: stdout
 model:
   resnet:
     groups: 1
