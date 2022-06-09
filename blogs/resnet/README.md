@@ -2,6 +2,8 @@
 
 The most efficient recipes for training ResNets on ImageNet.  Follow the steps below to reproduce our results.
 
+For more information on how to use Composer, please see our [docs](http://docs.mosaicml.com).
+
 The following recipes are provided:
 
    | Recipe | Training Time | Speed Up Methods | Target Accuracy Range | Optimal Training Duration |
