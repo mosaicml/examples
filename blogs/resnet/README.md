@@ -41,7 +41,7 @@ The following recipes are provided:
 
    **Note:** This tutorial assumes that the dataset is installed to the `/tmp/ImageNet` path.
 
-1. The `mild` and `medium` recipes require converting the ImageNet dataset to FFCV format.
+1. The `mild` and `medium` recipes require converting the ImageNet dataset to FFCV format.  *This conversion step is only required to be performed once, once converted files can be stashed away for reuse with subsequent runs.*
 
    1. Download the helper conversion script:
    
@@ -49,7 +49,7 @@ The following recipes are provided:
       wget -P /tmp https://raw.githubusercontent.com/mosaicml/composer/v0.7.1/scripts/ffcv/create_ffcv_datasets.py
       ```
 
-   1. Convert the training and validation datasets:
+   1. Convert the training and validation datasets.
 
       ```
       python /tmp/create_ffcv_datasets.py --dataset imagenet --split train --datadir /tmp/ImageNet/
