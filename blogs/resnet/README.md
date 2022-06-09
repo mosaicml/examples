@@ -95,7 +95,7 @@ Now that we've selected a recipe and determined the `recipe_yaml_path` and `scal
    composer -n {num_gpus} train.py -f {recipe_yaml_path} --scale_schedule_ratio {scale_schedule_ratio}
    ```
 
-   Replace `num_gpus`, `recipe_yaml_path` and `scale_schedule_ratio` with the total number of GPU's, the recipe configuration, and total duration in epochs to train with, respectively.
+   Replace `num_gpus`, `recipe_yaml_path` and `scale_schedule_ratio` with the total number of GPU's, the recipe configuration, and the scale schedule ratio we determined in the previous section for the desired run, respectively.
 
    **Note:** The `Mild` and `Medium` recipes assume the training and validation data is stored at the `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` paths while the `Hot` recipe assumes the original ImageNet dataset is stored at the `/tmp/ImageNet` path.  The default dataset paths can be overridden, please run `composer -n {num_gpus} train.py -f {recipe_yaml_path} --help` for more detailed recipe specific configuration information.
    
