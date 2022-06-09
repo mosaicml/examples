@@ -1,10 +1,31 @@
-# Mosaic ResNet 
+<br />
+<p align="center">
+   <img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a185326fcd73061ab9aaf9_Hero%20Image%20Final.svg" width="50%" height="50%"/>
+</p>
 
-The most efficient recipes for training ResNets on ImageNet.  This repository contains documentation and source files required to reproduce our results. 
+<h2><p align="center">The most efficient recipes for training ResNets on ImageNet</p></h2>
 
-For more information on how to use [Composer](https://github.com/mosaicml/composer), please see our [docs](http://docs.mosaicml.com).
+<h3><p align='center'>
+<a href="https://www.mosaicml.com">[Website]</a>
+- <a href="https://docs.mosaicml.com/">[Composer Docs]</a>
+- <a href="https://docs.mosaicml.com/en/stable/method_cards/methods_overview.html">[Methods]</a>
+- <a href="https://www.mosaicml.com/team">[We're Hiring!]</a>
+</p></h3>
 
-## Prequisites
+<p align="center">
+    <a href="https://docs.mosaicml.com/en/stable/">
+        <img alt="Documentation" src="https://readthedocs.org/projects/composer/badge/?version=stable">
+    </a>
+    <a href="https://join.slack.com/t/mosaicml-community/shared_invite/zt-w0tiddn9-WGTlRpfjcO9J5jyrMub1dg">
+        <img alt="Chat @ Slack" src="https://img.shields.io/badge/slack-chat-2eb67d.svg?logo=slack">
+    </a>
+    <a href="https://github.com/mosaicml/benchmarks/blob/main/LICENSE">
+        <img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-green.svg?logo=slack">
+    </a>
+</p>
+<br />
+
+# Prequisites
 
 * [MosaicML's Resnet50 Recipes Docker Image](https://hub.docker.com/r/mosaicml/pytorch_vision/tags)
    * Tag: `mosaicml/pytorch_vision:resnet50_recipes`
@@ -20,14 +41,14 @@ For more information on how to use [Composer](https://github.com/mosaicml/compos
 * [Imagenet Dataset](http://www.image-net.org/)
 * System with Nvidia GPUs
     
-## Selecting a Recipe
+# Selecting a Recipe
 
 As described in our [blog post](https://www.mosaicml.com/blog/mosaic-resnet):
 > We actually cooked up three Mosaic ResNet recipes – which we call Mild, Medium, and Hot – to suit a range of requirements. 
 > The Mild recipe is for shorter training runs, the Medium recipe is for longer training runs, and the Hot recipe is for the very 
 > longest training runs that maximize accuracy. 
 
-<img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%" alignt="center">
+<img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%"/>
 
 To reproduce a specific run, two pieces of information are required:
 
@@ -51,7 +72,7 @@ The table below provides the `recipe_yaml_path` for the selected recipe and a li
 
 In this tutorial we will using the `Mild` recipe and reproduce [this run](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&selected=fks-short-timing-r6z2-seed-17-ssr0.32&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_mild) which results in a Top-1 accuracy of 76.19%.  Thus, we see from the table above that the `recipe_yaml_path = recipes/resnet50_mild.yaml` and from Explorer that `scale_schedule_ratio = 0.32` for the desired run.
 
-## Running a Recipe
+# Running a Recipe
 
 Now that we've selected a recipe and determined the `recipe_yaml_path` and `scale_schedule_ratio` to specify, let's kick off a training run.
 
