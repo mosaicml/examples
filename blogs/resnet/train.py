@@ -1,18 +1,8 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Entrypoint that runs the Composer trainer on a provided YAML hparams file.
+"""Entrypoint that runs the Composer trainer on a provided YAML hparams file."""
 
-Adds a --datadir flag to conveniently set a common
-data directory for both train and validation datasets.
-
-Example that trains MNIST with label smoothing::
-
-    >>> python examples/run_composer_trainer.py
-    -f composer/yamls/models/classify_mnist_cpu.yaml
-    --algorithms label_smoothing --alpha 0.1
-    --datadir ~/datasets
-"""
 import sys
 import tempfile
 import warnings

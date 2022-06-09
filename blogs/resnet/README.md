@@ -4,11 +4,11 @@ The most efficient recipes for training ResNets on ImageNet.  Follow the steps b
 
 The following recipes are provided:
 
-   | Recipe | Training Time | Dataset Conversion | Speed Up Methods |
-   | --- | --- | --- | --- |
-   | [resnet50_mild.yaml](recipes/resnet50_mild.yaml) | Short | Yes | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing` |
-   | [resnet50_medium.yaml](recipes/resnet50_medium.yaml) | Longer | Yes | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` |
-   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest | No |`BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
+   | Recipe | Training Time | Speed Up Methods | Target Accuracy Range | Optimal Training Duration |
+   | --- | --- | --- | --- | --- |
+   | [resnet50_mild.yaml](recipes/resnet50_mild.yaml) | Short | `BCELoss`, `BlurPool`, `FFCV Dataloader`, `FixRes`, `Label Smoothing`, `Progressive Resizing` | ≤ 78.1% | ≤ 60 epochs | 
+   | [resnet50_medium.yaml](recipes/resnet50_medium.yaml) | Longer | `BCELoss`, `BlurPool`, `FFCV Dataloader`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` | 78.1%-79.5% | 60-240 epochs |
+   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest |`BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` | > 79.5% | ≥ 240 epochs |
 
 ## Prequisites
 
@@ -62,16 +62,16 @@ The following recipes are provided:
 1. Pick the recipe you would like to train with and kick off the training run.
 
    ```
-   composer -n {num_gpus} train.py -f recipes/{recipe_yaml}
+   composer -n {num_gpus} train.py -f recipes/{recipe_yaml} --max_duration {duration}
    ```
 
-   Replace `{num_gpus}` and `{recipe_yaml}` with the total number of GPU's and recipe configuration you would like to train with, respectively.
+   Replace `{num_gpus}`, `{recipe_yaml}` and `{duration}` with the total number of GPU's, the recipe configuration, and total duration in epochs to train with, respectively.
    For example:
    
    ```
-   composer -n 8 train.py -f recipes/resnet50_mild.yaml
+   composer -n 8 train.py -f recipes/resnet50_mild.yaml --max_duration 32ep
    ```
 
-   The example above will train on 8 GPU's using the `mild` recipe.
+   The example above will train on 8 GPU's using the `mild` recipe for 32 epochs.
 
    **Note:** The `mild` and `medium` recipes assume the training and validation data is stored at the `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` paths while the `hot` recipe assumes the original ImageNet dataset is stored at the `/tmp/ImageNet` path.  The default paths can be overridden by default, please run `composer -n {num_gpus} train.py -f {recipe_yaml} --help` for more recipe specific configuration information.
