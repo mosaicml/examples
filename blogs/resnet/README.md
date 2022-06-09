@@ -6,9 +6,9 @@ The following recipes are provided:
 
    | Recipe | Training Time | Speed Up Methods |
    | --- | --- | --- |
-   | [mild](recipes/resnet50_mild.yaml) | Short | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing` |
-   | [memdium](recipes/resnet50_medium.yaml) | Longer | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` |
-   | [hot](recipes/resnet50_hot.yaml) | Longest | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
+   | [resnet50_mild.yaml](recipes/resnet50_mild.yaml) | Short | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing` |
+   | [resnet50_medium.yaml](recipes/resnet50_medium.yaml) | Longer | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` |
+   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
 
 ## Prequisites
 
