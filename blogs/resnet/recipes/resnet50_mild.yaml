@@ -54,7 +54,7 @@ optimizer:
     weight_decay: 0.0005
 precision: AMP
 max_duration: 90ep
-scale_schedule_ratio: 1.0 # Fraction of 90 epochs to train for. 0-0.75 for mild recipe
+scale_schedule_ratio: 1.0 # Fraction of 90 epochs to train for. 0-0.75 for mild recipe. Leave at 1 if changing max_duration.
 schedulers:
   cosine_decay_with_warmup:
     alpha_f: 0.0
