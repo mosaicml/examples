@@ -5,10 +5,10 @@ The most efficient recipes for training ResNets on ImageNet.  Follow the steps b
 The following recipes are provided:
 
    | Recipe | Training Time | Dataset Conversion | Speed Up Methods |
-   | --- | --- | --- |
+   | --- | --- | --- | --- |
    | [resnet50_mild.yaml](recipes/resnet50_mild.yaml) | Short | Yes | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing` |
    | [resnet50_medium.yaml](recipes/resnet50_medium.yaml) | Longer | Yes | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` |
-   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest | Yes |`BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
+   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest | No |`BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
 
 ## Prequisites
 
