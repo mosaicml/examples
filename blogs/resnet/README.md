@@ -63,7 +63,7 @@ The table below provides the `recipe_yaml_path` for the selected recipe and a li
 
    | Recipe | `recipe_yaml_path` | Explorer link |
    | --- | --- | --- |
-   | Mild | `recipes/resnet50_mild.yaml` | [Mosaic Resnet Mild](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_mild) |
+   | Mild | `recipes/resnet50_mild.yaml` | [Mosaic Resnet Mild](https://explorer.mosaicml.com/imagenet?sortBy=timeSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_mosaicml&recipe=mosaicml_mild) |
    | Medium | `recipes/renset50_medium.yaml` | [Mosaic Resnet Medium](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_medium) |
    | Hot | `recipes/resnet50_hot.yaml` | [Mosaic Resnet Hot](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_hot) |
 
