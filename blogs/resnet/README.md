@@ -4,11 +4,11 @@ The most efficient recipes for training ResNets on ImageNet.  Follow the steps b
 
 The following recipes are provided:
 
-   | Recipe | Training Time | Speed Up Methods |
+   | Recipe | Training Time | Dataset Conversion | Speed Up Methods |
    | --- | --- | --- |
-   | [resnet50_mild.yaml](recipes/resnet50_mild.yaml) | Short | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing` |
-   | [resnet50_medium.yaml](recipes/resnet50_medium.yaml) | Longer | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` |
-   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
+   | [resnet50_mild.yaml](recipes/resnet50_mild.yaml) | Short | Yes | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing` |
+   | [resnet50_medium.yaml](recipes/resnet50_medium.yaml) | Longer | Yes | `BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM` |
+   | [resnet50_hot.yaml](recipes/resnet50_hot.yaml) | Longest | Yes |`BCELoss`, `BlurPool`, `FixRes`, `Label Smoothing`, `Progressive Resizing`, `MixUp`, `SAM`, `RandAugment`, `Stochastic Depth`, `MosaicML ColOut` |
 
 ## Prequisites
 
@@ -39,6 +39,26 @@ The following recipes are provided:
    The [following script](https://github.com/pytorch/examples/blob/main/imagenet/extract_ILSVRC.sh) can be used to faciliate this process.
    Be sure to note the directory path of where you extracted the dataset.
 
+   **Note:** This tutorial assumes that the dataset is installed to the `/tmp/ImageNet` path.
+
+1. The `mild` and `medium` recipes require converting the ImageNet dataset to FFCV format.
+
+   1. Download the helper conversion script:
+   
+      ```
+      wget -P /tmp https://raw.githubusercontent.com/mosaicml/composer/v0.7.1/scripts/ffcv/create_ffcv_datasets.py
+      ```
+
+   1. Convert the training and validation datasets:
+
+      ```
+      python /tmp/create_ffcv_datasets.py --dataset imagenet --split train --datadir /tmp/ImageNet/
+      python /tmp/create_ffcv_datasets.py --dataset imagenet --split val --datadir /tmp/ImageNet/
+      ```
+
+      **Note:** The helper scripts output the FFCV formatted dataset files to `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` 
+      for the training and validation data, respectively.
+
 1. Pick the recipe you would like to train with and kick off the training run.
 
    ```
@@ -50,6 +70,8 @@ The following recipes are provided:
    
    ```
    composer -n 8 train.py -f recipes/resnet50_mild.yaml
-   ``
+   ```
 
    The example above will train on 8 GPU's using the `mild` recipe.
+
+   **Note:** The `mild` and `medium` recipes assume the training and validation data is stored at the `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` paths while the `hot` recipe assumes the original ImageNet dataset is stored at the `/tmp/ImageNet` path.  The default paths can be overridden by default, please run `composer -n {num_gpus} train.py -f {recipe_yaml} --help` for more recipe specific configuration information.
