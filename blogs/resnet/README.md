@@ -89,7 +89,7 @@ Now that we've selected a recipe and determined the `recipe_yaml_path` and `scal
 
    **Note:** This tutorial assumes that the dataset is installed to the `/tmp/ImageNet` path.
 
-1. The `<ild` and `Medium` recipes require converting the ImageNet dataset to FFCV format.  *This conversion step is only required to be performed once, once converted files can be stashed away for reuse with subsequent runs.*  The `Hot` recipe uses the original ImageNet data.
+1. The `Mild` and `Medium` recipes require converting the ImageNet dataset to FFCV format.  *This conversion step is only required to be performed once, once converted files can be stashed away for reuse with subsequent runs.*  The `Hot` recipe uses the original ImageNet data.
 
    1. Download the helper conversion script:
    
