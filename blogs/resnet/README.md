@@ -55,7 +55,7 @@ In this tutorial we will using the `Mild` recipe and reproduce [this run](https:
 
 Now that we've selected a recipe and determined the `recipe_yaml_path` and `scale_schedule_ratio` to specify, let's kick off a training run.
 
-1. Launch a Docker container using the `mosaicml/pytorch_vision:resnet50_recipes` Docker Image on your training system.
+1. Launch a Docker container using the `mosaicml/pytorch_vision:resnet50_recipes` image on your training system.
    
    ```
    docker pull mosaicml/pytorch_vision:resnet50_recipes
