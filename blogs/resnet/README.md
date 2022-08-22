@@ -102,8 +102,8 @@ Now that we've selected a recipe and determined the `recipe_yaml_path` and `scal
    1. Convert the training and validation datasets.
 
       ```
-      python /tmp/create_ffcv_datasets.py --dataset imagenet --split train --datadir /tmp/ImageNet/
-      python /tmp/create_ffcv_datasets.py --dataset imagenet --split val --datadir /tmp/ImageNet/
+      python /tmp/create_ffcv_datasets.py --dataset imagenet1k --split train --datadir /tmp/ImageNet/
+      python /tmp/create_ffcv_datasets.py --dataset imagenet1k --split val --datadir /tmp/ImageNet/
       ```
 
       **Note:** The helper script output the FFCV formatted dataset files to `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` 

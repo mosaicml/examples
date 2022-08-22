@@ -40,7 +40,6 @@ algorithms:
     drop_warmup: 0.0dur
     stochastic_method: sample
     target_layer_name: ResNetBottleneck
-    use_same_gpu_seed: false
 callbacks:
   lr_monitor: {}
   speed_monitor:
@@ -71,7 +70,7 @@ model:
     num_classes: 1000
     pretrained: false
     width_per_group: 64
-optimizer:
+optimizers:
   decoupled_sgdw:
     dampening: 0.0
     lr: 2.048

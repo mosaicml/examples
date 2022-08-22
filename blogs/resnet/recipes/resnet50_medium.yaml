@@ -52,7 +52,7 @@ model:
     loss_name: binary_cross_entropy_with_logits
     model_name: resnet50
     num_classes: 1000
-optimizer:
+optimizers:
   decoupled_sgdw:
     dampening: 0.0
     lr: 2.048
