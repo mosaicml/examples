@@ -29,7 +29,7 @@
    * The image comes pre-configured with the following dependencies:
       * Mosaic ResNet Training recipes
       * Training entrypoint: `train.py`
-      * Composer Version: [0.7.1](https://github.com/mosaicml/composer/tree/v0.7.1)
+      * Composer Version: [0.9.0](https://github.com/mosaicml/composer/tree/v0.9.0)
       * PyTorch Version: 1.11.0
       * CUDA Version: 11.3
       * Python Version: 1.9
@@ -96,7 +96,7 @@ Now that we've selected a recipe and determined the `recipe_yaml_path` and `scal
    1. Download the helper conversion script:
    
       ```
-      wget -P /tmp https://raw.githubusercontent.com/mosaicml/composer/v0.7.1/scripts/ffcv/create_ffcv_datasets.py
+      wget -P /tmp https://raw.githubusercontent.com/mosaicml/composer/v0.9.0/scripts/ffcv/create_ffcv_datasets.py
       ```
 
    1. Convert the training and validation datasets.
