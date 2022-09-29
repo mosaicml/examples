@@ -1,3 +1,9 @@
+<br />
+<p align="center">
+   <img src="./loss-curve.png" width="100%" height="50%"/>
+</p>
+<br />
+
 # Mosaic Large Language Models
 
 This folder contains starter code for training LLMs with Composer + FSDP (in alpha release).
