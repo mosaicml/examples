@@ -27,7 +27,7 @@ train_loader:
     name: streaming_c4
     remote: *data_remote
     local: *data_local
-    split: val
+    split: train
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: concat
