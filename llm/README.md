@@ -1,7 +1,8 @@
 <br />
-<p align="center">
-   <img src="./loss-curve.png" width="100%" height="50%"/>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./loss-curve-dark.png">
+  <img alt="Training curves for various LLM sizes." src=".loss-curve-light.png">
+</picture>
 <br />
 
 # Mosaic Large Language Models
