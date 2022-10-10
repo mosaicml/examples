@@ -118,6 +118,10 @@ class GPT(nn.Module):
                                  bias=False,
                                  device=device)
 
+        # lm_head and embedding weights should be tied: https://aclanthology.org/E17-2025.pdf
+        # HF transformers has this in transformers/modeling_utils.py; function _tie_or_clone_weights()
+        self.lm_head.weight = self.transformer.wte.weight
+
         if device != 'meta':
             self.apply(self.param_init_fn)
 
