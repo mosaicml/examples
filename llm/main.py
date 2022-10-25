@@ -22,12 +22,6 @@ def build_logger(name, kwargs):
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
-def build_object_store(name, kwargs):
-    if name == 's3':
-        return S3ObjectStore(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build object store: {name}')
-
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
         return LRMonitor()
@@ -37,6 +31,18 @@ def build_callback(name, kwargs):
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
+
+def build_optimizer(cfg, model):
+    if cfg.name == 'decoupled_adamw':
+        return DecoupledAdamW(
+            model.parameters(),
+            lr=cfg.lr,
+            betas=cfg.betas,
+            eps=cfg.eps,
+            weight_decay=cfg.weight_decay
+        )
+    else:
+        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
 
 def build_scheduler(cfg):
@@ -100,13 +106,7 @@ def main(cfg):
     eval_loader = build_dataloader(cfg.eval_loader, device_eval_batch_size)
 
     # Optimizer
-    assert cfg.optimizer.name == 'decoupled_adamw'
-    optimizer = DecoupledAdamW(
-        model.parameters(),
-        lr=cfg.optimizer.lr,
-        betas=cfg.optimizer.betas,
-        eps=cfg.optimizer.eps,
-        weight_decay=cfg.optimizer.weight_decay)
+    optimizer = build_optimizer(cfg.optimizer, model)
 
     # Scheduler
     scheduler = build_scheduler(cfg.scheduler)
@@ -143,11 +143,10 @@ def main(cfg):
         grad_clip_norm=cfg.grad_clip_norm,
         grad_accum=device_train_grad_accum,
         fsdp_config=fsdp_config,
-        checkpoint_save_path=cfg.get('checkpoint_save_path', None),
-        checkpoint_save_interval=cfg.get('checkpoint_save_interval', '1000ba'),
-        num_checkpoints_to_keep=cfg.get('num_checkpoints_to_keep', -1),
+        save_folder=cfg.get('save_folder', None),
+        save_interval=cfg.get('save_interval', '1000ba'),
+        save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
         load_path=cfg.get('load_path', None),
-        load_object_store=load_object_store,
         load_weights_only=cfg.get('load_weights_only', False),
     )
 

@@ -92,7 +92,7 @@ fsdp_config:
   mixed_precision: default
   activation_checkpointing: false
   activation_cpu_offload: false
-  verbose: true
+  verbose: false
 
 # Logging
 progress_bar: true
@@ -104,16 +104,13 @@ callbacks:
   lr_monitor: {}
   # memory_monitor: {}
 
-loggers: {}
-  # wandb: {}
-  # s3:
-  #   bucket: my-bucket
-  #   prefix: my-folder
+loggers:
+  wandb: {}
 
-# # Checkpointing
-# checkpoint_save_path: './{run_name}/checkpoints'
-# checkpoint_save_interval: 500ba
-# num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+# Checkpointing
+save_folder: './{run_name}/checkpoints'
+save_interval: 500ba
+save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
 
 # # Load from local filesystem
 # load_path: ./gpt-125m/checkpoints/latest-rank{rank}.pt

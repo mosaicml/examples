@@ -122,11 +122,12 @@ class GPT(nn.Module):
                                  bias=False,
                                  device=cfg.device)
 
-        # FSDP rules for weight tying
-        # Ensures that WTE and LM_HEAD are in the same FSDP block
+        # Apply weight tying
+        # Ensures that wte and lm_head are in the same FSDP block
         self.transformer._fsdp_wrap = False
         self.transformer.wte._fsdp_wrap = False
         self.lm_head._fsdp_wrap = False
+        self.lm_head.weight = self.transformer.wte.weight
 
         if cfg.device != 'meta':
             self.apply(self.param_init_fn)
