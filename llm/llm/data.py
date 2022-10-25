@@ -11,13 +11,13 @@ from itertools import islice
 from typing import Any, Dict, Iterator, Mapping, Optional
 
 import transformers
-from composer.datasets.streaming import StreamingDataset
+from streaming import Dataset
 from torch.utils.data import DataLoader
 
 
-class StreamingC4(StreamingDataset):
+class StreamingC4(Dataset):
     """
-    Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using StreamingDataset V1.
+    Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using mosaicml-streaming's Dataset V2.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.
@@ -37,10 +37,11 @@ class StreamingC4(StreamingDataset):
                  local: str,
                  split: str,
                  shuffle: bool,
+                 prefetch: int,
                  tokenizer_name: str,
                  max_seq_len: int,
                  group_method: str = 'truncate',
-                 max_retries: int = 2,
+                 retry: int = 2,
                  timeout: float = 120,
                  batch_size: Optional[int] = None):
         # Validation
@@ -49,18 +50,16 @@ class StreamingC4(StreamingDataset):
         if group_method not in ['truncate', 'concat']:
             raise ValueError(f"group_method='{group_method}' must be one of ['truncate', 'concat'].")
 
-        # Build StreamingDataset
-        decoders = {
-            'text': self._decode,
-            'timestamp': self._decode,
-            'url': self._decode,
-        }
-        super().__init__(remote=os.path.join(remote, split),
-                         local=os.path.join(local, split),
+        # Build Dataset
+        super().__init__(remote=remote,
+                         local=local,
+                         split=split,
                          shuffle=shuffle,
-                         decoders=decoders,
-                         max_retries=max_retries,
+                         prefetch=prefetch,
+                         keep_zip=False,
+                         retry=retry,
                          timeout=timeout,
+                         hash=None,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
@@ -73,10 +72,6 @@ class StreamingC4(StreamingDataset):
             self.tokenizer.pad_token = self.tokenizer.eos_token
         # suppress warnings when using group_method='concat' and no truncation
         self.tokenizer.model_max_length = int(1e30)
-
-    # How to decode binary data from .mds files to python strings
-    def _decode(self, data: bytes) -> str:
-        return data.decode('utf-8')
 
     # How to tokenize a text sample to a token sample
     def _tokenize(self, text_sample):
@@ -125,7 +120,7 @@ class StreamingC4(StreamingDataset):
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
 
     # Define length
-    # Usually this can be left alone and inherited directly from super() class StreamingDataset, but concatenating samples is custom behavior.
+    # Usually this can be left alone and inherited directly from super() class Dataset, but concatenating samples is custom behavior.
     # If group_method=='truncate', we simply return the # samples.
     # If group_method=='concat', we repeat forever, and we don't have a defined length.
     def __len__(self) -> int:
@@ -144,6 +139,7 @@ def build_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
                               remote=cfg.dataset.remote,
                               local=cfg.dataset.local,
                               shuffle=cfg.dataset.shuffle,
+                              prefetch=cfg.dataset.prefetch,
                               tokenizer_name=cfg.dataset.tokenizer_name,
                               max_seq_len=cfg.dataset.max_seq_len,
                               group_method=cfg.dataset.group_method,
@@ -181,6 +177,7 @@ if __name__ == '__main__':
                             remote=remote,
                             local=local,
                             shuffle=False,
+                            prefetch=1000,
                             tokenizer_name='gpt2',
                             max_seq_len=32,
                             group_method='concat',

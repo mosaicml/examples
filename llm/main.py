@@ -4,34 +4,21 @@
 import os
 import sys
 
-import wandb
 from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import ObjectStoreLogger, ProgressBarLogger, WandBLogger
+from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
-from composer.utils import S3ObjectStore, dist, reproducibility
-from omegaconf import OmegaConf as om
-
+from composer.utils import dist, reproducibility
 from llm.data import build_dataloader
-from llm.gpt import ComposerGPT
+from llm.model import build_composer_model
+from omegaconf import OmegaConf as om
 
 
 def build_logger(name, kwargs):
-    if name == 'progress_bar':
-        return ProgressBarLogger(
-            progress_bar=kwargs.get('progress_bar', True),
-            log_to_console=kwargs.get('log_to_console', True),
-        )
-    elif name == 'wandb':
+    if name == 'wandb':
         return WandBLogger(**kwargs)
-    elif name == 's3':
-        object_store_logger = ObjectStoreLogger(
-            object_store_cls=S3ObjectStore,
-            object_store_kwargs=kwargs,
-        )
-        return object_store_logger
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
@@ -99,8 +86,7 @@ def main(cfg):
     # Build Model
     # For fast initialization, use `meta` device
     print('Initializing model...')
-    device = 'meta' if fsdp_config else 'cuda'
-    model = ComposerGPT(cfg=cfg.model, device=device)
+    model = build_composer_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
@@ -149,6 +135,8 @@ def main(cfg):
         schedulers=scheduler,
         max_duration=cfg.max_duration,
         eval_interval=cfg.eval_interval,
+        progress_bar=cfg.progress_bar,
+        log_to_console=cfg.log_to_console,
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
@@ -172,7 +160,11 @@ def main(cfg):
         'device_eval_batch_size': device_eval_batch_size,
         'device_eval_microbatch_size': device_eval_microbatch_size,
     })
-    if wandb.run is not None:
+    if 'wandb' in cfg.callbacks:
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
         wandb.config.update(config_dict)
 
     print("Starting training...")

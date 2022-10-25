@@ -14,7 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
-from flash_attn.flash_attention import FlashMHA
 
 
 class TorchCausalAttention(nn.Module):
@@ -39,6 +38,11 @@ class TorchCausalAttention(nn.Module):
 class FlashCausalAttention(nn.Module):
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
+        try:
+            from flash_attn.flash_attention import FlashMHA
+        except ImportError as e:
+            raise e
+
         self.mha = FlashMHA(
             embed_dim=cfg.d_model,
             num_heads=cfg.n_heads,
@@ -100,25 +104,31 @@ class GPTBlock(nn.Module):
 
 
 class GPT(nn.Module):
-    def __init__(self, cfg: Mapping[str, Any], device: str = 'meta'):
+    def __init__(self, cfg: Mapping[str, Any]):
         super().__init__()
         self.cfg = cfg
         self.transformer = nn.ModuleDict(
             dict(
-                wte=nn.Embedding(cfg.vocab_size, cfg.d_model, device=device),
-                wpe=nn.Embedding(cfg.max_seq_len, cfg.d_model, device=device),
+                wte=nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device),
+                wpe=nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device),
                 emb_drop=nn.Dropout(cfg.emb_pdrop),
                 blocks=nn.ModuleList([
-                    GPTBlock(cfg, device=device) for _ in range(cfg.n_layers)
+                    GPTBlock(cfg, device=cfg.device) for _ in range(cfg.n_layers)
                 ]),
-                ln_f=nn.LayerNorm(cfg.d_model, device=device),
+                ln_f=nn.LayerNorm(cfg.d_model, device=cfg.device),
             ))
         self.lm_head = nn.Linear(cfg.d_model,
                                  cfg.vocab_size,
                                  bias=False,
-                                 device=device)
+                                 device=cfg.device)
 
-        if device != 'meta':
+        # FSDP rules for weight tying
+        # Ensures that WTE and LM_HEAD are in the same FSDP block
+        self.transformer._fsdp_wrap = False
+        self.transformer.wte._fsdp_wrap = False
+        self.lm_head._fsdp_wrap = False
+
+        if cfg.device != 'meta':
             self.apply(self.param_init_fn)
 
     def forward(self,
@@ -177,9 +187,9 @@ class GPT(nn.Module):
 
 class ComposerGPT(ComposerModel):
 
-    def __init__(self, cfg, device='meta'):
+    def __init__(self, cfg):
         super().__init__()
-        self.model = GPT(cfg, device=device)
+        self.model = GPT(cfg)
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),

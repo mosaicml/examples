@@ -8,6 +8,8 @@ run_name: gpt-125m
 
 # Model
 model:
+  name: gpt
+  device: meta
   tokenizer_name: *tokenizer_name
   d_model: 768
   n_heads: 12
@@ -27,11 +29,12 @@ train_loader:
     name: streaming_c4
     remote: *data_remote
     local: *data_local
-    split: train
+    split: val
+    shuffle: true
+    prefetch: 100_000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: concat
-    shuffle: true
   drop_last: true
   num_workers: 8
   pin_memory: true
@@ -45,10 +48,11 @@ eval_loader:
     remote: *data_remote
     local: *data_local
     split: val
+    shuffle: false
+    prefetch: 100_000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: truncate
-    shuffle: false
   drop_last: false
   num_workers: 8
   pin_memory: true
@@ -91,14 +95,16 @@ fsdp_config:
   verbose: true
 
 # Logging
+progress_bar: true
+log_to_console: true
+
 callbacks:
   speed_monitor:
     window_size: 10
   lr_monitor: {}
   # memory_monitor: {}
 
-loggers:
-  progress_bar: {}
+loggers: {}
   # wandb: {}
   # s3:
   #   bucket: my-bucket
