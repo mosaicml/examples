@@ -103,7 +103,7 @@ class GPTBlock(nn.Module):
         return x
 
 
-class GPT(nn.Module):
+class MosaicGPT(nn.Module):
     def __init__(self, cfg: Mapping[str, Any]):
         super().__init__()
         self.cfg = cfg
@@ -186,11 +186,11 @@ class GPT(nn.Module):
         return isinstance(module, GPTBlock)
 
 
-class ComposerGPT(ComposerModel):
+class ComposerMosaicGPT(ComposerModel):
 
     def __init__(self, cfg):
         super().__init__()
-        self.model = GPT(cfg)
+        self.model = MosaicGPT(cfg)
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),

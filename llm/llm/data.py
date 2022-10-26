@@ -66,6 +66,7 @@ class StreamingC4(Dataset):
         self.group_method = group_method
 
         # Build tokenizer
+        os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name)
         if self.tokenizer.pad_token is None:
             # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs

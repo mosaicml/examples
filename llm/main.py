@@ -112,17 +112,10 @@ def main(cfg):
     scheduler = build_scheduler(cfg.scheduler)
 
     # Loggers
-    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.loggers.items()]
+    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.loggers.items()] if cfg.loggers else []
 
     # Callbacks
-    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.callbacks.items()]
-
-    # (Optional) Load object store
-    load_object_store = cfg.get('load_object_store', None)
-    if load_object_store is not None:
-        name = list(load_object_store.keys())[0]
-        kwargs = load_object_store[name]
-        load_object_store = build_object_store(name, kwargs)
+    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.callbacks.items()] if cfg.callbacks else []
 
     # Build the Trainer
     trainer = Trainer(
