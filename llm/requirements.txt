@@ -4,4 +4,4 @@ flash_attn @ git+https://github.com/HazyResearch/flash-attention.git@main
 transformers<5
 datasets<3
 omegaconf<3
-wandb<0.14
+wandb<1

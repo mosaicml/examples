@@ -107,7 +107,7 @@ def main(cfg):
     fsdp_config = om.to_container(fsdp_config, resolve=True) if fsdp_config else None
 
     # Build Model
-    # For fast initialization, use `meta` device
+    # For fast initialization of MosaicGPT, use cfg.model.device='meta'
     print('Initializing model...')
     model = build_composer_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
@@ -129,10 +129,10 @@ def main(cfg):
     scheduler = build_scheduler(cfg.scheduler)
 
     # Loggers
-    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.loggers.items()] if cfg.loggers else []
+    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.get('loggers', {}).items()]
 
     # Callbacks
-    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.callbacks.items()] if cfg.callbacks else []
+    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
 
     # Build the Trainer
     trainer = Trainer(

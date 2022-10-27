@@ -1,10 +1,10 @@
-data_remote: &data_remote s3://mosaicml-internal-dataset-c4/mds/2
-data_local: &data_local /tmp/c4
+data_remote: &data_remote ./my-copy-c4
+data_local: &data_local ./my-copy-c4
 max_seq_len: &max_seq_len 2048
 tokenizer_name: &tokenizer_name gpt2
 
 # Run Name
-run_name: gpt-125m
+run_name: gpt-1b
 
 # Model
 model:
@@ -31,7 +31,7 @@ train_loader:
     local: *data_local
     split: train
     shuffle: true
-    prefetch: 100_000
+    prefetch: 1_000_000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: concat
@@ -75,7 +75,7 @@ optimizer:
   eps: 1.0e-08
   weight_decay: 0.0
 
-max_duration: 24800ba
+max_duration: 24800ba # ~ 26B tokens
 eval_interval: 2000ba
 global_train_batch_size: 512
 grad_clip_norm: 1.0
@@ -105,14 +105,18 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
 
-loggers:
+# loggers:
   # wandb: {}
 
-# Checkpointing
-save_folder: './{run_name}/checkpoints'
-save_interval: 2000ba
-save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+# Checkpoint to local filesystem or remote object store
+# save_interval: 2000ba
+# save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+# save_folder: ./{run_name}/checkpoints
+# save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
-# # Load from local filesystem or remote object store
+# Load from local filesystem or remote object store
 # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
+# load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
+
+
 

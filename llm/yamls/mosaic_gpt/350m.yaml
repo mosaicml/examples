@@ -31,7 +31,7 @@ train_loader:
     local: *data_local
     split: train
     shuffle: true
-    prefetch: 100_000
+    prefetch: 1_000_000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: concat
@@ -75,8 +75,8 @@ optimizer:
   eps: 1.0e-08
   weight_decay: 0.0
 
-max_duration: 4800ba # ~ 2.5B tokens
-eval_interval: 500ba
+max_duration: 13400ba # ~ 7B tokens
+eval_interval: 1000ba
 global_train_batch_size: 256
 grad_clip_norm: 1.0
 
@@ -105,14 +105,18 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
 
-loggers:
-  wandb: {}
+# loggers:
+  # wandb: {}
 
-# Checkpointing
-save_folder: './{run_name}/checkpoints'
-save_interval: 500ba
-save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+# Checkpoint to local filesystem or remote object store
+# save_interval: 1000ba
+# save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+# save_folder: ./{run_name}/checkpoints
+# save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
-# # Load from local filesystem or remote object store
-# load_path: ./gpt-125m/checkpoints/latest-rank{rank}.pt
+# Load from local filesystem or remote object store
+# load_path: ./gpt-350m/checkpoints/latest-rank{rank}.pt
+# load_path: s3://my-bucket/my-folder/gpt-350m/checkpoints/latest-rank{rank}.pt
+
+
 
