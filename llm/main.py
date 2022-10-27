@@ -167,7 +167,7 @@ def main(cfg):
     cfg.device_eval_batch_size = device_eval_batch_size
     cfg.device_eval_microbatch_size = device_eval_microbatch_size
     print(om.to_yaml(cfg))
-    if 'wandb' in cfg.callbacks:
+    if 'wandb' in cfg.loggers:
         try:
             import wandb
         except ImportError as e:
