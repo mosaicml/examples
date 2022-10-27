@@ -59,7 +59,7 @@ def build_scheduler(cfg):
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 # Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
-def get_batch_size_info(cfg):
+def update_batch_size_info(cfg):
     global_train_batch_size = cfg.global_train_batch_size
     device_train_batch_size = global_train_batch_size // dist.get_world_size()
     device_train_microbatch_size = cfg.device_train_microbatch_size
@@ -79,8 +79,22 @@ def get_batch_size_info(cfg):
         raise ValueError(
             f'Not sure how to parse {device_train_microbatch_size=}')
 
-    return device_train_batch_size, device_train_grad_accum, device_eval_batch_size, device_eval_microbatch_size
+    cfg.n_gpus = dist.get_world_size()
+    cfg.device_train_batch_size = device_train_batch_size
+    cfg.device_train_grad_accum = device_train_grad_accum
+    cfg.device_eval_batch_size = device_eval_batch_size
+    cfg.device_eval_microbatch_size = device_eval_microbatch_size
+    return cfg
 
+def log_config(cfg):
+    print(om.to_yaml(cfg))
+    if 'wandb' in cfg.loggers:
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(om.to_container(cfg, resolve=True))
 
 def build_composer_model(cfg):
     warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
@@ -102,6 +116,9 @@ def main(cfg):
     # Run Name
     cfg.run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME', 'llm'))
 
+    # Get batch size info
+    cfg = update_batch_size_info(cfg)
+
     # Read FSDP Config as a dict
     fsdp_config = cfg.get('fsdp_config', None)
     fsdp_config = om.to_container(fsdp_config, resolve=True) if fsdp_config else None
@@ -110,17 +127,14 @@ def main(cfg):
     # For fast initialization of MosaicGPT, use cfg.model.device='meta'
     print('Initializing model...')
     model = build_composer_model(cfg.model)
-    n_params = sum(p.numel() for p in model.parameters())
-    print(f'{n_params=:.2e}')
-
-    # Get batch size info
-    device_train_batch_size, device_train_grad_accum, device_eval_batch_size, device_eval_microbatch_size = get_batch_size_info(cfg)
+    cfg.n_params = sum(p.numel() for p in model.parameters())
+    print(f'{cfg.n_params=:.2e}')
 
     # Dataloaders
     print("Building train loader...")
-    train_loader = build_dataloader(cfg.train_loader, device_train_batch_size)
+    train_loader = build_dataloader(cfg.train_loader, cfg.device_train_batch_size)
     print("Building eval loader...")
-    eval_loader = build_dataloader(cfg.eval_loader, device_eval_batch_size)
+    eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
 
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)
@@ -151,7 +165,7 @@ def main(cfg):
         callbacks=callbacks,
         precision=cfg.precision,
         grad_clip_norm=cfg.grad_clip_norm,
-        grad_accum=device_train_grad_accum,
+        grad_accum=cfg.device_train_grad_accum,
         fsdp_config=fsdp_config,
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
@@ -161,18 +175,7 @@ def main(cfg):
     )
 
     print("Logging config...")
-    cfg.n_gpus = dist.get_world_size()
-    cfg.n_params = n_params
-    cfg.device_train_batch_size = device_train_batch_size
-    cfg.device_eval_batch_size = device_eval_batch_size
-    cfg.device_eval_microbatch_size = device_eval_microbatch_size
-    print(om.to_yaml(cfg))
-    if 'wandb' in cfg.loggers:
-        try:
-            import wandb
-        except ImportError as e:
-            raise e
-        wandb.config.update(om.to_container(cfg, resolve=True))
+    log_config(cfg)
 
     print("Starting training...")
     trainer.fit()
