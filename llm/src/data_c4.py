@@ -25,10 +25,11 @@ class StreamingC4(Dataset):
         local (str): Local filesystem directory where dataset is cached during operation.
         split (str): The dataset split to use, either 'train' or 'val'.
         shuffle (bool): Whether to shuffle the samples in this dataset.
+        prefetch (int): Target number of samples remaining to prefetch while iterating.
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to tokenize samples.
         max_seq_len (int): The max sequence length of each token sample.
         group_method (str): How to group text samples into token samples. Supports 'truncate' or 'concat'.
-        max_retries (int): Number of download re-attempts before giving up. Default: 2.
+        retry (int): Number of download re-attempts before giving up. Default: 2.
         timeout (float): How long to wait for shard to download before raising an exception. Default: 120 sec.
         batch_size (Optional[int]): Hint batch_size that will be used on each device's DataLoader. Default: ``None``.
     """

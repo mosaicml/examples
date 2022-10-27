@@ -14,7 +14,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 
-from src.data import build_c4_dataloader
+from src.data_c4 import build_c4_dataloader
 from src.mosaic_gpt import ComposerMosaicGPT
 
 
