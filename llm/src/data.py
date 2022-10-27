@@ -11,6 +11,7 @@ from itertools import islice
 from typing import Any, Dict, Iterator, Mapping, Optional
 
 import transformers
+from omegaconf import OmegaConf as om
 from streaming import Dataset
 from torch.utils.data import DataLoader
 
@@ -133,20 +134,18 @@ class StreamingC4(Dataset):
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
 
 
-def build_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
+def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
 
-    if cfg.dataset.name == 'streaming_c4':
-        dataset = StreamingC4(split=cfg.dataset.split,
-                              remote=cfg.dataset.remote,
-                              local=cfg.dataset.local,
-                              shuffle=cfg.dataset.shuffle,
-                              prefetch=cfg.dataset.prefetch,
-                              tokenizer_name=cfg.dataset.tokenizer_name,
-                              max_seq_len=cfg.dataset.max_seq_len,
-                              group_method=cfg.dataset.group_method,
-                              batch_size=device_batch_size)
-    else:
-        raise ValueError(f'Not sure how to build dataset={cfg.dataset.name}')
+    assert cfg.name == 'c4', f'Tried to build c4 dataloader with cfg.name={cfg.name}'
+    dataset = StreamingC4(split=cfg.dataset.split,
+                            remote=cfg.dataset.remote,
+                            local=cfg.dataset.local,
+                            shuffle=cfg.dataset.shuffle,
+                            prefetch=cfg.dataset.prefetch,
+                            tokenizer_name=cfg.dataset.tokenizer_name,
+                            max_seq_len=cfg.dataset.max_seq_len,
+                            group_method=cfg.dataset.group_method,
+                            batch_size=device_batch_size)
 
     collate_fn = transformers.DataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer, mlm=False)
@@ -173,28 +172,30 @@ if __name__ == '__main__':
         local = remote
     print (f'Reading val split from {remote} -> {local}')
 
-    batch_size = 2
-    dataset  = StreamingC4(split='val',
-                            remote=remote,
-                            local=local,
-                            shuffle=False,
-                            prefetch=1000,
-                            tokenizer_name='gpt2',
-                            max_seq_len=32,
-                            group_method='concat',
-                            batch_size=batch_size)
+    cfg = {
+        'name': 'c4',
+        'dataset': {
+            'remote': remote,
+            'local': local,
+            'split': 'val',
+            'shuffle': True,
+            'prefetch': 1000,
+            'tokenizer_name': 'gpt2',
+            'max_seq_len': 32,
+            'group_method': 'concat'
+        },
+        'drop_last': False,
+        'num_workers': 4,
+        'pin_memory': True,
+        'prefetch_factor': 2,
+        'persistent_workers': True,
+        'timeout': 30,
+    }
+    cfg = om.create(cfg)
+    device_batch_size = 2
 
-    collate_fn = transformers.DataCollatorForLanguageModeling(
-        tokenizer=dataset.tokenizer, mlm=False)
-
-    loader = DataLoader(
-        dataset,
-        collate_fn=collate_fn,
-        batch_size=batch_size,
-        drop_last=False,
-        num_workers=4,
-    )
-
+    loader = build_c4_dataloader(cfg, device_batch_size)
+    tokenizer = loader.dataset.tokenizer
     for batch_ix, batch in enumerate(islice(loader, 5)):
         print('\n')
         print ('#'*20, f'Batch {batch_ix}', '#'*20)
@@ -202,5 +203,5 @@ if __name__ == '__main__':
             print (k, v.shape, v.dtype)
         for sample_ix, token_sample in enumerate(batch['input_ids']):
             print ('-'*20, f' Sample {sample_ix} ', '-'*20)
-            print (dataset.tokenizer.decode(token_sample))
+            print (tokenizer.decode(token_sample))
 

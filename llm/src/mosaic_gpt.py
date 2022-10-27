@@ -106,6 +106,7 @@ class GPTBlock(nn.Module):
 class MosaicGPT(nn.Module):
     def __init__(self, cfg: Mapping[str, Any]):
         super().__init__()
+        assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
         self.transformer = nn.ModuleDict(
             dict(

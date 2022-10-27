@@ -4,7 +4,7 @@ max_seq_len: &max_seq_len 2048
 tokenizer_name: &tokenizer_name gpt2
 
 # Run Name
-run_name: gpt-1b
+run_name: gpt-125m
 
 # Model
 model:
@@ -25,13 +25,13 @@ model:
 
 # Dataloaders
 train_loader:
+  name: c4
   dataset:
-    name: streaming_c4
     remote: *data_remote
     local: *data_local
     split: train
     shuffle: true
-    prefetch: 1_000_000
+    prefetch: 100_000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: concat
@@ -43,8 +43,8 @@ train_loader:
   timeout: 0
 
 eval_loader:
+  name: c4
   dataset:
-    name: streaming_c4
     remote: *data_remote
     local: *data_local
     split: val
@@ -83,13 +83,14 @@ grad_clip_norm: 1.0
 # System
 seed: 17
 device_train_microbatch_size: 16
+# device_train_microbatch_size: auto
 precision: bf16
 
 # FSDP
 fsdp_config:
   sharding_strategy: FULL_SHARD
   min_params: 2e8
-  mixed_precision: full
+  mixed_precision: DEFAULT
   activation_checkpointing: true
   activation_cpu_offload: false
   verbose: true
@@ -105,12 +106,13 @@ callbacks:
   memory_monitor: {}
 
 loggers:
-  wandb: {}
+  # wandb: {}
 
 # Checkpointing
 save_folder: './{run_name}/checkpoints'
-save_interval: 500ba
+save_interval: 2000ba
 save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
 
 # # Load from local filesystem or remote object store
-# load_path: ./gpt-125m/checkpoints/latest-rank{rank}.pt
+# load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
+

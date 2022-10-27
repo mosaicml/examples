@@ -3,6 +3,7 @@
 
 import os
 import sys
+import warnings
 
 from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
@@ -11,9 +12,10 @@ from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
-from llm.data import build_dataloader
-from llm.model import build_composer_model
 from omegaconf import OmegaConf as om
+
+from src.data import build_c4_dataloader
+from src.mosaic_gpt import ComposerMosaicGPT
 
 
 def build_logger(name, kwargs):
@@ -80,10 +82,25 @@ def get_batch_size_info(cfg):
     return device_train_batch_size, device_train_grad_accum, device_eval_batch_size, device_eval_microbatch_size
 
 
+def build_composer_model(cfg):
+    warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
+
+    if cfg.name == 'mosaic_gpt':
+        return ComposerMosaicGPT(cfg)
+    else:
+        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+
+def build_dataloader(cfg, device_batch_size):
+    if cfg.name == 'c4':
+        return build_c4_dataloader(cfg, device_batch_size)
+    else:
+        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+
 def main(cfg):
-    print("Training using config: ")
-    print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
+
+    # Run Name
+    cfg.run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME', 'llm'))
 
     # Read FSDP Config as a dict
     fsdp_config = cfg.get('fsdp_config', None)
@@ -119,7 +136,7 @@ def main(cfg):
 
     # Build the Trainer
     trainer = Trainer(
-        run_name=cfg.get('run_name', os.environ['COMPOSER_RUN_NAME']),
+        run_name=cfg.run_name,
         seed=cfg.seed,
         model=model,
         train_dataloader=train_loader,
@@ -144,27 +161,27 @@ def main(cfg):
     )
 
     print("Logging config...")
-    config_dict = om.to_container(cfg, resolve=True)
-    config_dict.update({
-        'n_gpus': dist.get_world_size(),
-        'n_params': n_params,
-        'device_train_batch_size': device_train_batch_size,
-        'device_eval_batch_size': device_eval_batch_size,
-        'device_eval_microbatch_size': device_eval_microbatch_size,
-    })
+    cfg.n_gpus = dist.get_world_size()
+    cfg.n_params = n_params
+    cfg.device_train_batch_size = device_train_batch_size
+    cfg.device_eval_batch_size = device_eval_batch_size
+    cfg.device_eval_microbatch_size = device_eval_microbatch_size
+    print(om.to_yaml(cfg))
     if 'wandb' in cfg.callbacks:
         try:
             import wandb
         except ImportError as e:
             raise e
-        wandb.config.update(config_dict)
+        wandb.config.update(om.to_container(cfg, resolve=True))
 
     print("Starting training...")
     trainer.fit()
 
 
 if __name__ == '__main__':
-    conf_path = sys.argv[1]
-    with open(conf_path) as f:
-        cfg = om.load(f)
+    yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    with open(yaml_path) as f:
+        yaml_cfg = om.load(f)
+    cli_cfg = om.from_cli(args_list)
+    cfg = om.merge(yaml_cfg, cli_cfg)
     main(cfg)
