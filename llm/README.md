@@ -15,8 +15,8 @@ that you should feel free to download, fork, and customize for your application.
 We even packed in a few tricks (e.g. [FlashAttention](https://github.com/HazyResearch/flash-attention)) to make training efficient, and there will be more to come!
 
 You'll find in this folder:
-* `src/mosaic_gpt.py` - a simple PyTorch model, wrapped in `ComposerModel`, that can scale up to 70B parameters
-* `src/data_c4.py` - a `StreamingDataset` that can be used with a vanilla PyTorch dataloader.
+* `src/mosaic_gpt.py` - a simple PyTorch GPT model, wrapped in `ComposerModel`, that can scale up to 70B parameters
+* `src/data_c4.py` - a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader.
 * `main.py` - a script that builds a [Composer](https://github.com/mosaicml/composer) Trainer and calls `trainer.fit()`.
 * `yamls/` - pre-baked configs for training compute-optimal LLMs from 125M up to 70B parameters.
 

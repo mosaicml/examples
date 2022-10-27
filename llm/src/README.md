@@ -47,20 +47,20 @@ All values come with defaults and can be optionally defined in the `fsdp_config`
 One Composer-specific pattern is that if `mixed_precision` is provided as a `str`, then we automatically infer the settings to use from the Trainer's `precision`, which is already being used for autocast, and we construct an associated MixedPrecision object for FSDP:
 
 ```python
-# If mixed_precision = 'full'
+# If mixed_precision = 'FULL'
 mixed_precision = MixedPrecision(
   param_dtype=torch.float32,
   reduce_dtype=torch.float32,
   buffer_dtype=torch.float32,
 )
-# If mixed_precision = 'default'
+# If mixed_precision = 'DEFAULT'
 mixed_precision = MixedPrecision(
   param_dtype=torch.float32,
   reduce_dtype=autocast_precision, # Low precision gradient communication
   buffer_dtype=torch.float32,
 )
 
-# If mixed_precision = 'pure'
+# If mixed_precision = 'PURE'
 mixed_precision = MixedPrecision(
   param_dtype=autocast_precision, # Low precision master weights
   reduce_dtype=autocast_precision, # Low precision gradient communication
