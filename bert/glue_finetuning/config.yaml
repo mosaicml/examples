@@ -10,7 +10,7 @@ precision: bf16
 pretrained_model_name: 'bert-base-uncased'
 starting_checkpoint_load_path: https://storage.googleapis.com/alex_bert_checkpoints/bert/dc-2022-07-v2/bert-dc-2022-07-baseline--seed9407/checkpoints/ep0-ba68796-rank0-36826.074846wct
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
-save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/g
+save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
 # for s3 logging
 # save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints
 save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
