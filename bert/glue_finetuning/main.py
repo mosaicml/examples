@@ -101,7 +101,7 @@ def _setup_gpu_queue(num_gpus: int, manager: SyncManager):
 
 def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretrained_checkpoint_path: str):
     configs = []
-    for task_name, task_config in main_config.tasks:
+    for task_name, task_config in main_config.tasks.items():
         if task_name not in tasks_to_run:
             continue
         for task_seed in task_config.get('seeds', [main_config.default_seed]):
@@ -112,6 +112,8 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretr
                     logger_config['group'] = main_config.base_run_name
                     logger_config['name'] = run_name
             task_seed_config = om.OmegaConf.create({
+                'task':
+                    task_name,
                 'job_name':
                     run_name,
                 'seed':
@@ -132,6 +134,8 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretr
                     main_config.get('callbacks', {}),
                 'precision':
                     main_config.get('precision', None),
+                'trainer_kwargs':
+                    task_config.trainer_kwargs,
             })
             configs.append(task_seed_config)
 
@@ -148,9 +152,10 @@ def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) 
         scheduler=build_scheduler(config.scheduler),
         load_path=config.load_path,
         save_folder=config.save_folder,
-        loggers=[build_logger(name, logger_config) for name, logger_config in config.loggers],
-        callbacks=[build_callback(name, callback_config) for name, callback_config in config.callbacks],
+        loggers=[build_logger(name, logger_config) for name, logger_config in config.loggers.items()],
+        callbacks=[build_callback(name, callback_config) for name, callback_config in config.callbacks.items()],
         precision=config.precision,
+        **config.trainer_kwargs,
     )
     return instantiated_job.run(gpu_queue)
 
@@ -235,9 +240,9 @@ def _print_averaged_glue_results(glue_results: List[Tuple[Tuple[str, str], float
     print('-' * hyphen_count)
     print(header.format(job_name='Task'))
     print('-' * hyphen_count)
-    for (task_name, ckpt_idx), result in glue_results:
+    for task_name, result in glue_results:
         print(row_format.format(
-            job_name=f'{task_name.upper()}(ckpt-idx={ckpt_idx})',
+            job_name=f'{task_name.upper()}',
             value=result,
         ))
     print('-' * hyphen_count)
@@ -247,7 +252,7 @@ def _print_averaged_glue_results(glue_results: List[Tuple[Tuple[str, str], float
 def train(config: om.DictConfig) -> None:
     """
     Args:
-        config (DictConfig): Configuration composed by Hydra
+        config (DictConfig): Configuration composed by OmegaConf
     """
     start_time = time.time()
 
@@ -292,8 +297,7 @@ def train(config: om.DictConfig) -> None:
     # Builds round 2 configs and runs them
     round_2_task_names = {'rte', 'mrpc', 'stsb'}
     round_2_starting_checkpoint_path = mnli_checkpoint_path if mnli_checkpoint_path is not None else local_pretrain_checkpoint_path
-    round_2_job_configs = create_job_configs(config, round_2_task_names, round_2_starting_checkpoint_path
-    )
+    round_2_job_configs = create_job_configs(config, round_2_task_names, round_2_starting_checkpoint_path)
 
     round_2_results = {}
     if len(round_2_job_configs) > 0:
@@ -318,16 +322,16 @@ def train(config: om.DictConfig) -> None:
         job_values = get_values_from_path(job_name, separator='_')
         for _, eval_results in result['result']['metrics'].items():
             for _, metric in eval_results.items():
-                glue_results[(job_values['task'], job_values['ckpt-idx'])].append(metric * 100)
+                glue_results[job_values['task']].append(metric * 100)
     glue_results = {key: np.mean(values) for key, values in glue_results.items()}
 
-    overall_glue = defaultdict(list)
-    for (_, ckpt_idx), average_metric in glue_results.items():
-        overall_glue[('glue', ckpt_idx)].append(average_metric)
-    overall_glue = {key: np.mean(values) for key, values in overall_glue.items()}
+    overall_glue = []
+    for _, average_metric in glue_results.items():
+        overall_glue.append(average_metric)
+    overall_glue = np.mean(overall_glue)
 
     _print_averaged_glue_results([(key, value) for key, value in glue_results.items()] +
-                                 [(key, value) for key, value in overall_glue.items()])
+                                 [('glue', overall_glue)])
 
 
 if __name__ == '__main__':

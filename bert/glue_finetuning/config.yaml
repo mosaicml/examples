@@ -2,7 +2,7 @@
 parallel: true
 
 # Basic run configuration, additionall details will be added to this name for each GLUE task, and each random seed
-base_run_name: glue-finetuning-benchmark-test
+base_run_name: glue-finetuning-benchmark-test-7
 default_seed: 1111
 precision: bf16
 
@@ -14,7 +14,7 @@ save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
 save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
 
 # Loggers
-logger:
+loggers:
   wandb:
     project: daniel-debug
     entity: mosaic-ml
