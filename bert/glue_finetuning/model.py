@@ -11,18 +11,18 @@ from composer.metrics.nlp import BinaryF1Score
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
-def create_bert_classification(num_labels: Optional[int] = 2,
-                               use_pretrained: Optional[bool] = False,
-                               pretrained_model_name: Optional[str] = None,
-                               model_config: Optional[dict] = None,
-                               tokenizer_name: Optional[str] = None,
-                               gradient_checkpointing: Optional[bool] = False):
-    """BERT classification model based on |:hugging_face:| Transformers.
+def create_bert_for_glue(num_labels: Optional[int] = 2,
+                         use_pretrained: Optional[bool] = False,
+                         pretrained_model_name: Optional[str] = None,
+                         model_config: Optional[dict] = None,
+                         tokenizer_name: Optional[str] = None,
+                         gradient_checkpointing: Optional[bool] = False):
+    """BERT model based on |:hugging_face:| Transformers.
 
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
 
     Args:
-        num_labels (int, optional): The number of classes in the classification task. Default: ``2``.
+        num_labels (int, optional): The number of classes in the task (``1`` indicates regression). Default: ``2``.
         gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
         use_pretrained (bool, optional): Whether to initialize the model with the pretrained weights. Default: ``False``.
         model_config (dict): The settings used to create a Hugging Face BertConfig. BertConfig is used to specify the

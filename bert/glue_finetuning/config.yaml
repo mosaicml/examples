@@ -8,8 +8,7 @@ precision: bf16
 
 # Saving and loading
 pretrained_model_name: 'bert-base-uncased'
-starting_checkpoint_load_paths: 
-    - https://storage.googleapis.com/alex_bert_checkpoints/bert/dc-2022-07-v2/bert-dc-2022-07-baseline--seed9407/checkpoints/ep0-ba68796-rank0-36826.074846wct
+starting_checkpoint_load_path: https://storage.googleapis.com/alex_bert_checkpoints/bert/dc-2022-07-v2/bert-dc-2022-07-baseline--seed9407/checkpoints/ep0-ba68796-rank0-36826.074846wct
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
 save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
 save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
@@ -29,30 +28,22 @@ callbacks:
 # Any arguments specified under a task will get passed along as trainer kwargs for that task
 tasks:
   mnli:
-    _target_: src.tasks.glue_jobs.MNLIJob
     # We keep one MNLI checkpoint locally so that we can start finetuning of 
     # RTE, MRPC and STS-B from the MNLI checkpoint
     save_num_checkpoints_to_keep: 1
   rte:
-    _target_: src.tasks.glue_jobs.RTEJob
     save_num_checkpoints_to_keep: 0
   qqp:
-    _target_: src.tasks.glue_jobs.QQPJob
     save_num_checkpoints_to_keep: 0
   qnli:
-    _target_: src.tasks.glue_jobs.QNLIJob
     save_num_checkpoints_to_keep: 0
   sst2:
-    _target_: src.tasks.glue_jobs.SST2Job
     save_num_checkpoints_to_keep: 0
   stsb:
-    _target_: src.tasks.glue_jobs.STSBJob
     save_num_checkpoints_to_keep: 0
   mrpc:
-    _target_: src.tasks.glue_jobs.MRPCJob
     save_num_checkpoints_to_keep: 0
   cola:
-    _target_: src.tasks.glue_jobs.COLAJob
     save_num_checkpoints_to_keep: 0
 
 # Seeds to run for each task
