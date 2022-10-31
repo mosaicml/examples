@@ -34,31 +34,34 @@ scheduler:
 # Task configuration
 tasks:
   mnli:
-    seeds: [1]
     # Specify any extra task-specific arguments for the trainer here
     trainer_kwargs:
       # We keep one MNLI checkpoint locally so that we can start finetuning of 
       # RTE, MRPC and STS-B from the MNLI checkpoint
       save_num_checkpoints_to_keep: 1
   rte:
+    seeds: [19, 8364, 717, 10536, 90166]
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
   qqp:
-    seeds: [3]
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
   qnli:
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
   sst2:
+    seeds: [19, 8364, 717]
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
   stsb:
+    seeds: [19, 8364, 717, 10536, 90166]
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
   mrpc:
+    seeds: [19, 8364, 717, 10536, 90166]
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
   cola:
+    seeds: [19, 8364, 717, 10536]
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
