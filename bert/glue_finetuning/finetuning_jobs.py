@@ -2,11 +2,11 @@
 # # SPDX-License-Identifier: Apache-2.0
 
 # """Contains GLUE job objects for the simple_glue_trainer."""
-import composer # type: ignore
+import composer  # type: ignore
 import multiprocessing as mp
 from typing import Any, Dict, List, Optional, Union, cast
 
-import torch # type: ignore
+import torch  # type: ignore
 from torch.utils.data import DataLoader
 
 from composer.core import Callback
@@ -242,13 +242,11 @@ class MNLIJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=5.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=5.0e-06
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=5.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=5.0e-06)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -315,13 +313,11 @@ class RTEJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=1.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=1.0e-5
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=1.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=1.0e-5)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -385,14 +381,12 @@ class QQPJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=3.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=3.0e-6
-        )
-                         
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=3.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=3.0e-6)
+
         dataset_kwargs = {
             'task': self.task_name,
             'tokenizer_name': tokenizer_name,
@@ -455,13 +449,11 @@ class COLAJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=5.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=5.0e-6
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=5.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=5.0e-6)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -523,13 +515,11 @@ class MRPCJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=8.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=8.0e-6
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=8.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=8.0e-6)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -591,13 +581,11 @@ class QNLIJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=1.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=1.0e-6
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=1.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=1.0e-6)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -659,13 +647,11 @@ class SST2Job(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=3.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=3.0e-6
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=3.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=3.0e-6)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -727,13 +713,11 @@ class STSBJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
-        self.optimizer = DecoupledAdamW(
-            self.model.parameters(),
-            lr=3.0e-5,
-            betas=[0.9, 0.98],
-            eps=1.0e-06,
-            weight_decay=3.0e-6
-        )
+        self.optimizer = DecoupledAdamW(self.model.parameters(),
+                                        lr=3.0e-5,
+                                        betas=[0.9, 0.98],
+                                        eps=1.0e-06,
+                                        weight_decay=3.0e-6)
 
         dataset_kwargs = {
             'task': self.task_name,

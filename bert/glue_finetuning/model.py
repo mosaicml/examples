@@ -11,6 +11,7 @@ from composer.metrics.nlp import BinaryF1Score
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
+
 def create_bert_for_glue(num_labels: Optional[int] = 2,
                          use_pretrained: Optional[bool] = False,
                          pretrained_model_name: Optional[str] = None,
@@ -119,10 +120,7 @@ def create_bert_for_glue(num_labels: Optional[int] = 2,
         metrics = [MeanSquaredError(), SpearmanCorrCoef()]
     else:
         # Metrics for a classification model
-        metrics = [
-            Accuracy(),
-            MatthewsCorrCoef(num_classes=model.config.num_labels)
-        ]
+        metrics = [Accuracy(), MatthewsCorrCoef(num_classes=model.config.num_labels)]
         if num_labels == 2:
             metrics.append(BinaryF1Score())
 
