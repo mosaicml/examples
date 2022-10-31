@@ -1,6 +1,8 @@
-from typing import List, Tuple, Optional, Any, Sequence, Dict
+from typing import List, Tuple, Optional, Any, Sequence, Dict, Set
 
 import multiprocessing as mp
+
+import copy
 import numpy as np
 import omegaconf as om
 import os
@@ -13,9 +15,47 @@ from urllib.parse import urlparse
 from concurrent.futures import ProcessPoolExecutor as Pool
 from multiprocessing.managers import SyncManager
 
+from composer.callbacks import LRMonitor, SpeedMonitor
+from composer.loggers import WandBLogger
+from composer.optim import LinearWithWarmupScheduler
 from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
+
+from finetuning_jobs import MNLIJob, RTEJob, QNLIJob, QQPJob, SST2Job, STSBJob, COLAJob, MRPCJob
+
+TASK_NAME_TO_CLASS = {
+    'mnli': MNLIJob,
+    'rte': RTEJob,
+    'mrpc': MRPCJob,
+    'qnli': QNLIJob,
+    'qqp': QQPJob,
+    'sst2': SST2Job,
+    'stsb': STSBJob,
+    'cola': COLAJob
+}
+
+def build_logger(name, kwargs):
+    if name == 'wandb':
+        return WandBLogger(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build logger: {name}')
+
+def build_callback(name, kwargs):
+    if name == 'lr_monitor':
+        return LRMonitor()
+    elif name == 'speed_monitor':
+        return SpeedMonitor()
+    else:
+        raise ValueError(f'Not sure how to build callback: {name}')
+
+
+def build_scheduler(cfg):
+    if cfg.name == 'linear_with_warmup':
+        return LinearWithWarmupScheduler(
+            t_warmup=cfg.t_warmup)
+    else:
+        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 def get_values_from_path(path: str, separator: str = '/') -> Dict[str, str]:
     """Parses out information from a path/string that looks like ...<separator>key=value<separator..."""
@@ -58,9 +98,49 @@ def _setup_gpu_queue(num_gpus: int, manager: SyncManager):
         gpu_queue.put(gpu_id)
     return gpu_queue
 
+def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretrained_checkpoint_path: str):
+    configs = []
+    for task_name, task_config in main_config.tasks:
+        if task_name not in tasks_to_run:
+            continue
+        for task_seed in task_config.get('seeds', [main_config.default_seed]):
+            run_name = f'{main_config.base_run_name}_task={task_name}_seed={str(task_seed)}'
+            logger_configs = copy.deepcopy(main_config.get('loggers', {}))
+            for logger_name, logger_config in logger_configs.items():
+                if logger_name == 'wandb':
+                    logger_config['group'] = main_config.base_run_name
+                    logger_config['name'] = run_name
+            task_seed_config = om.OmegaConf.create({
+                'job_name': run_name,
+                'seed': task_seed,
+                'pretrained_model_name': main_config.pretrained_model_name,
+                'tokenizer_name': main_config.pretrained_model_name,
+                'scheduler': main_config.scheduler,
+                'load_path': pretrained_checkpoint_path,
+                'save_folder': os.path.join(main_config.save_finetune_checkpoint_folder, f'task={task_name}', f'seed={task_seed}'),
+                'loggers': logger_configs,
+                'callbacks': main_config.get('callbacks', {}),
+                'precision': main_config.get('precision', None),
+            })
+            configs.append(task_seed_config)
+    
+    return configs
+
+
 def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) -> Any:
     """Instantiates the job object and runs it"""
-    instantiated_job = ...
+    instantiated_job = TASK_NAME_TO_CLASS[config.task](
+        job_name=config.job_name,
+        seed=config.seed,
+        pretrained_model_name=config.pretrained_model_name,
+        tokenizer_name=config.tokenizer_name,
+        scheduler=build_scheduler(config.scheduler),
+        load_path=config.load_path,
+        save_folder=config.save_folder,
+        loggers=[build_logger(name, logger_config) for name, logger_config in config.loggers],
+        callbacks=[build_callback(name, callback_config) for name, callback_config in config.callbacks],
+        precision=config.precision,
+    )
     return instantiated_job.run(gpu_queue)
 
 def run_jobs_parallel(configs: Sequence[om.DictConfig]):
@@ -100,8 +180,7 @@ def run_jobs_serial(configs):
     """Runs the jobs serially, rather than in parallel. Useful for debugging"""
     results = {}
     for config in configs:
-        instantiated_job = ...
-        result = instantiated_job.run()
+        result = run_job_worker(config)
         results[config.job_name] = {'result': result, 'config': config}
     return results
 
@@ -177,7 +256,7 @@ def train(config: om.DictConfig) -> None:
 
     # Builds round 1 configs and runs them
     round_1_task_names = {'cola', 'sst2', 'qqp', 'qnli', 'mnli'}
-    round_1_job_configs = create_job_configs(config, round_1_task_names, local_pretrain_checkpoint_path, task_seeds)
+    round_1_job_configs = create_job_configs(config, round_1_task_names, local_pretrain_checkpoint_path)
 
     round_1_results = {}
     if len(round_1_job_configs) > 0:
@@ -201,7 +280,7 @@ def train(config: om.DictConfig) -> None:
 
     # Builds round 2 configs and runs them
     round_2_task_names = {'rte', 'mrpc', 'stsb'}
-    round_2_job_configs = create_job_configs(config, round_2_task_names, mnli_checkpoint_path, task_seeds)
+    round_2_job_configs = create_job_configs(config, round_2_task_names, mnli_checkpoint_path)
     
     round_2_results = {}
     if len(round_2_job_configs) > 0:

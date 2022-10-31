@@ -24,29 +24,39 @@ callbacks:
   lr_monitor: {}
   speed_monitor: {}
 
+# Scheduler
+scheduler:
+  name: linear_with_warmup
+  t_warmup: 0.06dur
+
 # Task configuration
-# Any arguments specified under a task will get passed along as trainer kwargs for that task
 tasks:
   mnli:
-    # We keep one MNLI checkpoint locally so that we can start finetuning of 
-    # RTE, MRPC and STS-B from the MNLI checkpoint
-    save_num_checkpoints_to_keep: 1
+    seeds: [1]
+    # Specify any extra task-specific arguments for the trainer here
+    trainer_kwargs:
+      # We keep one MNLI checkpoint locally so that we can start finetuning of 
+      # RTE, MRPC and STS-B from the MNLI checkpoint
+      save_num_checkpoints_to_keep: 1
   rte:
-    save_num_checkpoints_to_keep: 0
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
   qqp:
-    save_num_checkpoints_to_keep: 0
+    seeds: [3]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
   qnli:
-    save_num_checkpoints_to_keep: 0
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
   sst2:
-    save_num_checkpoints_to_keep: 0
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
   stsb:
-    save_num_checkpoints_to_keep: 0
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
   mrpc:
-    save_num_checkpoints_to_keep: 0
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
   cola:
-    save_num_checkpoints_to_keep: 0
-
-# Seeds to run for each task
-task_seeds:
-  mnli_seeds: [1]
-  qqp_seeds: [3]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
