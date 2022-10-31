@@ -1,19 +1,18 @@
-from typing import List, Tuple, Optional, Any, Sequence, Dict, Set
-
-import multiprocessing as mp
-
 import copy
-import numpy as np
-import omegaconf as om
+import multiprocessing as mp
 import os
 import sys
 import time
-import torch
-
 from collections import defaultdict
-from urllib.parse import urlparse
 from concurrent.futures import ProcessPoolExecutor as Pool
 from multiprocessing.managers import SyncManager
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from urllib.parse import urlparse
+
+import numpy as np
+import omegaconf as om
+import torch
+from finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob
 
 from composer.callbacks import LRMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
@@ -21,8 +20,6 @@ from composer.optim import LinearWithWarmupScheduler
 from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
-
-from finetuning_jobs import MNLIJob, RTEJob, QNLIJob, QQPJob, SST2Job, STSBJob, COLAJob, MRPCJob
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,

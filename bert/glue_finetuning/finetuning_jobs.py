@@ -2,25 +2,24 @@
 # # SPDX-License-Identifier: Apache-2.0
 
 # """Contains GLUE job objects for the simple_glue_trainer."""
-import composer  # type: ignore
 import multiprocessing as mp
 from typing import Any, Dict, List, Optional, Union, cast
 
 import torch  # type: ignore
+from model import create_bert_for_glue
 from torch.utils.data import DataLoader
 
+import composer  # type: ignore
 from composer.core import Callback
 from composer.core.evaluator import Evaluator
 from composer.core.types import Dataset
 from composer.loggers import LoggerDestination
 from composer.models.bert.model import create_bert_classification
-from composer.optim import ComposerScheduler, LinearWithWarmupScheduler, DecoupledAdamW
+from composer.optim import ComposerScheduler, DecoupledAdamW, LinearWithWarmupScheduler
 from composer.trainer.devices import Device, DeviceGPU
 from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
-
 from data import create_glue_dataset
-from model import create_bert_for_glue
 
 
 def _build_dataloader(dataset, **kwargs):
