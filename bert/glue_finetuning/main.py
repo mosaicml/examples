@@ -74,23 +74,21 @@ def get_checkpoint_name_from_path(path: str) -> str:
     return path.lstrip('/').replace('/', '|')
 
 
-def download_starting_checkpoint(starting_checkpoint_load_path: List[str],
-                                 local_pretrain_checkpoints_folder: str) -> Tuple[List[str], List[str]]:
+def download_starting_checkpoint(starting_checkpoint_load_path: str,
+                                 local_pretrain_checkpoints_folder: str) -> str:
     """Downloads the pretrained checkpoints to start from. Currently only supports S3 and URLs"""
     load_object_store = None
     parsed_path = urlparse(starting_checkpoint_load_path)
     if parsed_path.scheme == "s3":
         load_object_store = S3ObjectStore(bucket=parsed_path.netloc)
-    local_checkpoint_paths = []
 
     download_path = parsed_path.path if parsed_path.scheme == "s3" else starting_checkpoint_load_path
     os.makedirs(local_pretrain_checkpoints_folder, exist_ok=True)
     local_path = os.path.join(local_pretrain_checkpoints_folder, get_checkpoint_name_from_path(parsed_path.path))
     if not os.path.exists(local_path):
         get_file(destination=local_path, path=download_path, object_store=load_object_store, progress_bar=True)
-    local_checkpoint_paths.append(local_path)
 
-    return local_checkpoint_paths
+    return local_path
 
 
 def _setup_gpu_queue(num_gpus: int, manager: SyncManager):
@@ -267,9 +265,6 @@ def train(config: om.DictConfig) -> None:
     local_pretrain_checkpoint_path = download_starting_checkpoint(config.starting_checkpoint_load_path,
                                                                   config.local_pretrain_checkpoint_folder)
 
-    # Gets the dictionary mapping task name to random seeds to run it over
-    task_seeds = config.get('task_seeds', {})
-
     # Builds round 1 configs and runs them
     round_1_task_names = {'cola', 'sst2', 'qqp', 'qnli', 'mnli'}
     round_1_job_configs = create_job_configs(config, round_1_task_names, local_pretrain_checkpoint_path)
@@ -296,7 +291,9 @@ def train(config: om.DictConfig) -> None:
 
     # Builds round 2 configs and runs them
     round_2_task_names = {'rte', 'mrpc', 'stsb'}
-    round_2_job_configs = create_job_configs(config, round_2_task_names, mnli_checkpoint_path)
+    round_2_starting_checkpoint_path = mnli_checkpoint_path if mnli_checkpoint_path is not None else local_pretrain_checkpoint_path
+    round_2_job_configs = create_job_configs(config, round_2_task_names, round_2_starting_checkpoint_path
+    )
 
     round_2_results = {}
     if len(round_2_job_configs) > 0:
@@ -336,7 +333,8 @@ def train(config: om.DictConfig) -> None:
 if __name__ == '__main__':
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
     with open(yaml_path) as f:
-        yaml_cfg = om.load(f)
-    cli_cfg = om.from_cli(args_list)
-    cfg = om.merge(yaml_cfg, cli_cfg)
+        yaml_cfg = om.OmegaConf.load(f)
+    cli_cfg = om.OmegaConf.from_cli(args_list)
+    cfg = om.OmegaConf.merge(yaml_cfg, cli_cfg)
+    assert isinstance(cfg, om.DictConfig)
     train(cfg)

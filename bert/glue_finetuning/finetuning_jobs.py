@@ -5,21 +5,19 @@
 import multiprocessing as mp
 from typing import Any, Dict, List, Optional, Union, cast
 
-import torch  # type: ignore
-from model import create_bert_for_glue
 from torch.utils.data import DataLoader
 
-import composer  # type: ignore
 from composer.core import Callback
 from composer.core.evaluator import Evaluator
 from composer.core.types import Dataset
 from composer.loggers import LoggerDestination
-from composer.models.bert.model import create_bert_classification
-from composer.optim import ComposerScheduler, DecoupledAdamW, LinearWithWarmupScheduler
+from composer.optim import ComposerScheduler, DecoupledAdamW
 from composer.trainer.devices import Device, DeviceGPU
 from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
+
 from data import create_glue_dataset
+from model import create_bert_for_glue
 
 
 def _build_dataloader(dataset, **kwargs):
@@ -243,7 +241,7 @@ class MNLIJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=5.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=5.0e-06)
 
@@ -314,7 +312,7 @@ class RTEJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=1.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=1.0e-5)
 
@@ -360,8 +358,6 @@ class QQPJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        if optimizer_kwargs is None:
-            optimizer_kwargs = {'lr': 3.0e-5, 'betas': [0.9, 0.98], 'eps': 1.0e-06, 'weight_decay': 3.0e-6}
         super().__init__(job_name=job_name,
                          seed=seed,
                          task_name='qqp',
@@ -382,7 +378,7 @@ class QQPJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=3.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=3.0e-6)
 
@@ -428,8 +424,6 @@ class COLAJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        if optimizer_kwargs is None:
-            optimizer_kwargs = {'lr': 5.0e-5, 'betas': [0.9, 0.98], 'eps': 1.0e-06, 'weight_decay': 5.0e-6}
         super().__init__(job_name=job_name,
                          seed=seed,
                          task_name='cola',
@@ -450,7 +444,7 @@ class COLAJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=5.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=5.0e-6)
 
@@ -516,7 +510,7 @@ class MRPCJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=8.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=8.0e-6)
 
@@ -582,7 +576,7 @@ class QNLIJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=1.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=1.0e-6)
 
@@ -648,7 +642,7 @@ class SST2Job(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=3.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=3.0e-6)
 
@@ -714,7 +708,7 @@ class STSBJob(GlueClassificationJob):
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
                                         lr=3.0e-5,
-                                        betas=[0.9, 0.98],
+                                        betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=3.0e-6)
 
