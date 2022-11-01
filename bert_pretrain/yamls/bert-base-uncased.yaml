@@ -1,0 +1,84 @@
+data_remote: &data_remote ./my-copy-c4
+data_local: &data_local ./my-copy-c4
+max_seq_len: &max_seq_len 128
+tokenizer_name: &tokenizer_name bert-base-uncased
+
+# Run Name
+run_name: bert-base-uncased
+
+# Model
+model:
+  use_pretrained: false # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
+  pretrained_model_name: *tokenizer_name
+  tokenizer_name: *tokenizer_name
+
+# Dataloaders
+train_loader:
+  dataset:
+    name: streaming_c4
+    remote: *data_remote
+    local: *data_local
+    split: train
+    tokenizer_name: *tokenizer_name
+    max_seq_len: *max_seq_len
+    group_method: truncate
+    shuffle: true
+    mlm_probability: 0.15
+  drop_last: true
+  num_workers: 8
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: true
+  timeout: 0
+
+eval_loader:
+  dataset:
+    name: streaming_c4
+    remote: *data_remote
+    local: *data_local
+    split: val
+    tokenizer_name: *tokenizer_name
+    max_seq_len: *max_seq_len
+    group_method: truncate
+    shuffle: false
+    mlm_probability: 0.15
+  drop_last: false
+  num_workers: 8
+  pin_memory: true
+  prefetch_factor: 2
+  persistent_workers: true
+  timeout: 0
+
+# Optimization
+scheduler:
+  name: linear_decay_with_warmup
+  t_warmup: 0.06dur # Warmup to the full LR for 6% of the training duration
+  alpha_f: 0.02 # Linearly decay to 0.02x the full LR by the end of the training duration
+
+optimizer:
+  name: decoupled_adamw
+  lr: 5.0e-4 # Peak learning rate
+  betas:
+    - 0.9
+    - 0.98
+  eps: 1.0e-06
+  weight_decay: 1.0e-5 # Amount of weight decay regularization
+
+max_duration: 286720000sp # Subsample the training data for ~275M samples
+eval_interval: 2000ba
+global_train_batch_size: 4096
+grad_clip_norm: -1.0
+
+# System
+seed: 17
+grad_accum: auto
+precision: bf16
+
+# Logging
+callbacks:
+  speed_monitor:
+    window_size: 500
+  lr_monitor: {}
+
+loggers:
+  progress_bar: {}

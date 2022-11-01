@@ -1,0 +1,5 @@
+mosaicml[nlp,streaming]
+transformers==4.21.3
+datasets==2.4.0
+omegaconf
+wandb
