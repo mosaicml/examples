@@ -247,12 +247,12 @@ class MNLIJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -318,12 +318,12 @@ class RTEJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -384,12 +384,12 @@ class QQPJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -450,12 +450,12 @@ class COLAJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -516,12 +516,12 @@ class MRPCJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -582,12 +582,12 @@ class QNLIJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -648,12 +648,12 @@ class SST2Job(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
@@ -714,12 +714,12 @@ class STSBJob(GlueClassificationJob):
 
         dataset_kwargs = {
             'task': self.task_name,
-            'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_sequence_length,
+            'tokenizer_name': self.tokenizer_name,
+            'max_seq_length': self.max_sequence_length,
         }
 
         dataloader_kwargs = {
-            'batch_size': batch_size,
+            'batch_size': self.batch_size,
             'num_workers': 0,
             'shuffle': False,
             'drop_last': False,
