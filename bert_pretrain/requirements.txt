@@ -1,5 +1,9 @@
-mosaicml[nlp,streaming]
-transformers==4.21.3
-datasets==2.4.0
-omegaconf
-wandb
+torchvision<0.14
+torchtext<0.14
+torch<1.13
+mosaicml==0.11.0
+mosaicml-streaming<1
+transformers<5
+datasets<3
+omegaconf<3
+wandb<1

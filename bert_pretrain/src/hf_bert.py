@@ -13,12 +13,6 @@ from composer.utils.import_helpers import MissingConditionalImportError
 
 __all__ = ['create_bert_mlm']
 
-class LanguageCrossEntropy(LanguageCrossEntropy):
-    full_state_update = False
-
-class MaskedAccuracy(MaskedAccuracy):
-    full_state_update = False
-
 def create_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                     use_pretrained: Optional[bool] = False,
                     model_config: Optional[dict] = None,

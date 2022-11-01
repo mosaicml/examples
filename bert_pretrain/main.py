@@ -3,6 +3,7 @@
 
 import os
 import sys
+import warnings
 
 import wandb
 from composer import Trainer
@@ -15,8 +16,8 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 from composer.utils import S3ObjectStore, dist, reproducibility
 from omegaconf import OmegaConf as om
 
-from mlm.data import build_dataloader
-from mlm.bert import create_bert_mlm
+from src.data_c4 import build_c4_dataloader
+from src.hf_bert import create_bert_mlm
 
 
 def build_logger(name, kwargs):
@@ -68,6 +69,26 @@ def build_scheduler(cfg):
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
+def build_model(cfg):
+    warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
+
+    if cfg.name == 'hf_bert':
+        return create_bert_mlm(
+            pretrained_model_name=cfg.pretrained_model_name,
+            use_pretrained=cfg.get('use_pretrained', None),
+            model_config=cfg.get('model_config', None),
+            tokenizer_name=cfg.get('tokenizer_name', None),
+            gradient_checkpointing=cfg.get('gradient_checkpointing', None)
+        )
+    else:
+        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+
+def build_dataloader(cfg, device_batch_size):
+    if cfg.name == 'c4':
+        return build_c4_dataloader(cfg, device_batch_size)
+    else:
+        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+
 # Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
 def get_batch_size_info(cfg):
     global_train_batch_size = cfg.global_train_batch_size
@@ -104,7 +125,7 @@ def main(cfg):
     # Build Model
     # For fast initialization, use `meta` device
     print('Initializing model...')
-    model = create_bert_mlm(**cfg.model)
+    model = build_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
@@ -197,7 +218,9 @@ def main(cfg):
 
 
 if __name__ == '__main__':
-    conf_path = sys.argv[1]
-    with open(conf_path) as f:
-        cfg = om.load(f)
+    yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    with open(yaml_path) as f:
+        yaml_cfg = om.load(f)
+    cli_cfg = om.from_cli(args_list)
+    cfg = om.merge(yaml_cfg, cli_cfg)
     main(cfg)

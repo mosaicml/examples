@@ -8,14 +8,15 @@ run_name: bert-base-uncased
 
 # Model
 model:
+  name: hf_bert
   use_pretrained: false # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
   pretrained_model_name: *tokenizer_name
   tokenizer_name: *tokenizer_name
 
 # Dataloaders
 train_loader:
+  name: c4
   dataset:
-    name: streaming_c4
     remote: *data_remote
     local: *data_local
     split: train
@@ -32,8 +33,8 @@ train_loader:
   timeout: 0
 
 eval_loader:
+  name: c4
   dataset:
-    name: streaming_c4
     remote: *data_remote
     local: *data_local
     split: val
