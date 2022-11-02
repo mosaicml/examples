@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 import numpy as np
 import omegaconf as om
 import torch
-from finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob
+import warnings
 
 from composer.callbacks import LRMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
@@ -20,6 +20,9 @@ from composer.optim import LinearWithWarmupScheduler
 from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
+
+from model import create_bert_for_glue
+from finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob, TASK_NAME_TO_NUM_LABELS
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,
@@ -54,6 +57,21 @@ def build_scheduler(cfg):
         return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup)
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+
+def build_model(cfg, num_labels: int):
+    warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
+
+    if cfg.name == 'huggingface_auto_for_sequence_classification':
+        return create_bert_for_glue(
+            num_labels=num_labels,
+            pretrained_model_name=cfg.pretrained_model_name,
+            use_pretrained=cfg.get('use_pretrained', False),
+            model_config=cfg.get('model_config', None),
+            tokenizer_name=cfg.get('tokenizer_name', None),
+            gradient_checkpointing=cfg.get('gradient_checkpointing', None)
+        )
+    else:
+        raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
 def get_values_from_path(path: str, separator: str = '/') -> Dict[str, str]:
@@ -118,10 +136,10 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretr
                     run_name,
                 'seed':
                     task_seed,
-                'pretrained_model_name':
-                    main_config.pretrained_model_name,
+                'model':
+                    main_config.model,
                 'tokenizer_name':
-                    main_config.pretrained_model_name,
+                    main_config.tokenizer_name,
                 'scheduler':
                     main_config.scheduler,
                 'load_path':
@@ -147,7 +165,7 @@ def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) 
     instantiated_job = TASK_NAME_TO_CLASS[config.task](
         job_name=config.job_name,
         seed=config.seed,
-        pretrained_model_name=config.pretrained_model_name,
+        model=build_model(config.model, TASK_NAME_TO_NUM_LABELS[config.task]),
         tokenizer_name=config.tokenizer_name,
         scheduler=build_scheduler(config.scheduler),
         load_path=config.load_path,

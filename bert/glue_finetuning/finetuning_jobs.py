@@ -5,6 +5,7 @@
 import multiprocessing as mp
 from typing import Any, Dict, List, Optional, Union, cast
 
+import torch
 from torch.utils.data import DataLoader
 
 from composer.core import Callback
@@ -17,7 +18,6 @@ from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
 
 from data import create_glue_dataset
-from model import create_bert_for_glue
 
 
 def _build_dataloader(dataset, **kwargs):
@@ -34,6 +34,16 @@ def _build_dataloader(dataset, **kwargs):
 
 Metrics = Dict[str, Dict[str, Any]]
 
+TASK_NAME_TO_NUM_LABELS = {
+    'mnli': 3,
+    'rte': 2,
+    'mrpc': 2,
+    'qnli': 2,
+    'qqp': 2,
+    'sst2': 2,
+    'stsb': 1,
+    'cola': 2
+}
 
 class FineTuneJob:
     """Encapsulates a fine-tuning job.
@@ -125,13 +135,13 @@ class GlueClassificationJob(FineTuneJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         task_name: Optional[str] = None,
         num_labels: Optional[int] = -1,
         eval_interval: str = '1000ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
@@ -153,12 +163,8 @@ class GlueClassificationJob(FineTuneJob):
 
         self.num_labels = num_labels
         self.eval_interval = eval_interval
-        self.pretrained_model_name = pretrained_model_name
-        self.tokenizer_name = tokenizer_name if tokenizer_name is not None else pretrained_model_name
-
-        self.model = create_bert_for_glue(num_labels=self.num_labels,
-                                          pretrained_model_name=self.pretrained_model_name,
-                                          use_pretrained=True)
+        self.tokenizer_name = tokenizer_name
+        self.model = model
 
         self.scheduler = scheduler
 
@@ -197,6 +203,8 @@ class GlueClassificationJob(FineTuneJob):
                        device=device,
                        progress_bar=True,
                        log_to_console=False,
+                       train_subset_num_batches=10,
+                       eval_subset_num_batches=10,
                        **self.kwargs)
 
 
@@ -205,11 +213,11 @@ class MNLIJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '2300ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
@@ -221,13 +229,13 @@ class MNLIJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='mnli',
                          num_labels=3,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -276,11 +284,11 @@ class RTEJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '1000ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
@@ -292,13 +300,13 @@ class RTEJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='rte',
                          num_labels=2,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -342,11 +350,11 @@ class QQPJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '2000ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '5ep',
@@ -358,13 +366,13 @@ class QQPJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='qqp',
                          num_labels=2,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -408,11 +416,11 @@ class COLAJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '250ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
@@ -424,13 +432,13 @@ class COLAJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='cola',
                          num_labels=2,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -474,11 +482,11 @@ class MRPCJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '100ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
@@ -490,13 +498,13 @@ class MRPCJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='mrpc',
                          num_labels=2,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -540,11 +548,11 @@ class QNLIJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '1000ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
@@ -556,13 +564,13 @@ class QNLIJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='qnli',
                          num_labels=2,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -606,11 +614,11 @@ class SST2Job(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '500ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
@@ -622,13 +630,13 @@ class SST2Job(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='sst2',
                          num_labels=2,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,
@@ -672,11 +680,11 @@ class STSBJob(GlueClassificationJob):
 
     def __init__(
         self,
+        model: torch.nn.Module,
+        tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '2000ba',
-        pretrained_model_name: str = 'bert-base-uncased',
-        tokenizer_name: Optional[str] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
@@ -688,13 +696,13 @@ class STSBJob(GlueClassificationJob):
         precision: Optional[str] = None,
         **kwargs,
     ):
-        super().__init__(job_name=job_name,
+        super().__init__(model=model,
+                         tokenizer_name=tokenizer_name,
+                         job_name=job_name,
                          seed=seed,
                          task_name='stsb',
                          num_labels=1,
                          eval_interval=eval_interval,
-                         pretrained_model_name=pretrained_model_name,
-                         tokenizer_name=tokenizer_name,
                          scheduler=scheduler,
                          max_sequence_length=max_sequence_length,
                          max_duration=max_duration,

@@ -6,8 +6,15 @@ base_run_name: glue-finetuning-benchmark
 default_seed: 1111
 precision: bf16
 
+# Base model config
+model:
+  name: huggingface_auto_for_sequence_classification
+  pretrained_model_name: bert-base-uncased
+
+# Tokenizer for dataset creation
+tokenizer_name: bert-base-uncased
+
 # Saving and loading
-pretrained_model_name: 'bert-base-uncased'
 starting_checkpoint_load_path: https://storage.googleapis.com/alex_bert_checkpoints/bert/dc-2022-07-v2/bert-dc-2022-07-baseline--seed9407/checkpoints/ep0-ba68796-rank0-36826.074846wct
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
 save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
