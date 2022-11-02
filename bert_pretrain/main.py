@@ -8,12 +8,12 @@ import warnings
 import wandb
 from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import ProgressBarLogger, WandBLogger
+from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
-from composer.utils import S3ObjectStore, dist, reproducibility
+from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 
 from src.data_c4 import build_c4_dataloader
@@ -84,41 +84,13 @@ def build_dataloader(cfg, device_batch_size):
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
-# Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
-def get_batch_size_info(cfg):
-    global_train_batch_size = cfg.global_train_batch_size
-    device_train_batch_size = global_train_batch_size // dist.get_world_size()
-    device_train_microbatch_size = cfg.device_train_microbatch_size
-    if device_train_microbatch_size == 'auto':
-        device_train_grad_accum = 'auto'
-        device_eval_microbatch_size = 'auto'
-        device_eval_batch_size = device_train_batch_size
-    elif isinstance(device_train_microbatch_size, int):
-        if device_train_microbatch_size > device_train_batch_size:
-            print (f"WARNING: device_train_microbatch_size > device_train_batch_size, will be reduced from {device_train_microbatch_size} -> {device_train_batch_size}.")
-            cfg.device_train_microbatch_size = device_train_batch_size
-            device_train_microbatch_size = device_train_batch_size
-        device_train_grad_accum = device_train_batch_size // device_train_microbatch_size
-        device_eval_microbatch_size = device_train_microbatch_size
-        device_eval_batch_size = device_eval_microbatch_size
-    else:
-        raise ValueError(
-            f'Not sure how to parse {device_train_microbatch_size=}')
-
-    return device_train_batch_size, device_train_grad_accum, device_eval_batch_size, device_eval_microbatch_size
-
 
 def main(cfg):
     print("Training using config: ")
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
 
-    # # Read FSDP Config as a dict
-    # fsdp_config = cfg.get('fsdp_config', None)
-    # fsdp_config = om.to_container(fsdp_config, resolve=True) if fsdp_config else None
-
     # Build Model
-    # For fast initialization, use `meta` device
     print('Initializing model...')
     model = build_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
@@ -128,7 +100,6 @@ def main(cfg):
     global_train_batch_size = cfg.global_train_batch_size
     device_train_batch_size = global_train_batch_size // dist.get_world_size()
     device_eval_batch_size = device_train_batch_size
-    # device_train_batch_size, device_train_grad_accum, device_eval_batch_size, device_eval_microbatch_size = get_batch_size_info(cfg)
 
     # Dataloaders
     print("Building train loader...")
@@ -174,7 +145,6 @@ def main(cfg):
         device=cfg.get('device', None),
         grad_clip_norm=cfg.grad_clip_norm,
         grad_accum=cfg.get('grad_accum', 'auto'),
-        # fsdp_config=fsdp_config,
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
@@ -189,7 +159,6 @@ def main(cfg):
         'n_params': n_params,
         'device_train_batch_size': device_train_batch_size,
         'device_eval_batch_size': device_eval_batch_size,
-        # 'device_eval_microbatch_size': device_eval_microbatch_size,
     })
     if wandb.run is not None:
         wandb.config.update(config_dict)
