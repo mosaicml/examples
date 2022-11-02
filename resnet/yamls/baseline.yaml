@@ -7,6 +7,7 @@ model:
   name: resnet50           # Name of the ResNet model to train either resnet{18, 34, 50, 101, 152}
   loss_name: cross_entropy # Name of the loss function either 'cross_entropy' or 'binary_cross_entropy'
 
+# Training Dataset Parameters
 train_dataset:
   type: 'streaming'                     # Type must be either ['streaming', 'local', 'synthetic']
   path: s3://my-bucket/my-imagenet      # Path to S3 bucket if streaming, otherwise path to local data directory
@@ -15,6 +16,7 @@ train_dataset:
   crop_size: 224                        # Training image crop size
   batch_size: 2048                      # Training dataloader batch size per device
 
+# Validation Dataset Parameters
 eval_dataset:
   type: 'streaming'                     # Type must be either ['streaming', 'local', 'synthetic']
   path: s3://my-bucket/my-imagenet      # S3 bucket if streaming, otherwise path to local data
@@ -32,16 +34,16 @@ optimizer:
 # LR Scheduler Parameters
 scheduler:
   t_warmup: 8ep # Duration of learning rate warmup specified as a Time string
-  alpha_f: 0.0 # Base learning rate multiplier to decay to
+  alpha_f: 0.0  # Base learning rate multiplier to decay to
 
 loggers:
   progress_bar: {}
-  # wandb: # Uncomment and fill below arguments to use WandB logger
-    # entity:
-    # project:
-    # group:
+  # wandb:     # Uncomment and fill below arguments to use WandB logger
+    # entity:  # Name of WandB entity, usually username or organization name
+    # project: # Name of WandB project
+    # group:   # Name of WandB group
 
-# Set to null for baseline or either "mild", "medium", or "spicy" in order of increasing training time and accuracy
+# Set to null for baseline or either ["mild", "medium", "spicy"] in order of increasing training time and accuracy
 recipe_name: null
 
 # Updated parameters for mild recipe
