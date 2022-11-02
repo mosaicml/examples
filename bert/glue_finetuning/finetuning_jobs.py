@@ -203,8 +203,6 @@ class GlueClassificationJob(FineTuneJob):
                        device=device,
                        progress_bar=True,
                        log_to_console=False,
-                       train_subset_num_batches=10,
-                       eval_subset_num_batches=10,
                        **self.kwargs)
 
 
