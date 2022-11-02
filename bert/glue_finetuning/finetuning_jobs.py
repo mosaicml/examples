@@ -198,7 +198,11 @@ class GlueClassificationJob(FineTuneJob):
                        callbacks=self.callbacks,
                        python_log_level='ERROR',
                        run_name=self.job_name,
-                       load_ignore_keys=['state/model/model.classifier*'],
+                       load_ignore_keys=[
+                        'state/model/model.classifier*',
+                        'state/model/model.bert.encoder.layer.*.attention.self.alibi',
+                        'state/model/model.bert.embeddings.position_ids',
+                        'state/model/model.bert.embeddings.position_embeddings.weight'],
                        precision=self.precision,
                        device=device,
                        progress_bar=True,

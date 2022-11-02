@@ -15,7 +15,7 @@ model:
 tokenizer_name: bert-base-uncased
 
 # Saving and loading
-starting_checkpoint_load_path: https://storage.googleapis.com/alex_bert_checkpoints/bert/dc-2022-07-v2/bert-dc-2022-07-baseline--seed9407/checkpoints/ep0-ba68796-rank0-36826.074846wct
+starting_checkpoint_load_path: s3://mosaicml-internal-checkpoints-shared/alex/bert/dc-2022-07-v2/bert-dc-2022-07-baseline-alibi-glu--seed1654/checkpoints/ep0-ba68796-rank0-43383.486282wct
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
 save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
 # for s3 logging
@@ -37,6 +37,13 @@ callbacks:
 scheduler:
   name: linear_with_warmup
   t_warmup: 0.06dur
+
+# Algorithms
+algorithms:
+  gated_linear_units: {}
+  alibi:
+    max_sequence_length: 256
+    train_sequence_length_scaling: 1.0
 
 # Task configuration
 tasks:

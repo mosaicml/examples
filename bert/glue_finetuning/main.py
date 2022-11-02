@@ -14,6 +14,8 @@ import omegaconf as om
 import torch
 import warnings
 
+from composer.algorithms.gated_linear_units import GatedLinearUnits
+from composer.algorithms.alibi import Alibi
 from composer.callbacks import LRMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import LinearWithWarmupScheduler
@@ -57,6 +59,15 @@ def build_scheduler(cfg):
         return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup)
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+
+def build_algorithm(name, cfg):
+    if name == 'gated_linear_units':
+        return GatedLinearUnits(**cfg)
+    elif name == 'alibi':
+        return Alibi(**cfg)
+    else:
+        raise ValueError(f'Not sure how to build algorithm: {cfg.name}')
+
 
 def build_model(cfg, num_labels: int):
     warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
@@ -104,7 +115,7 @@ def download_starting_checkpoint(starting_checkpoint_load_path: str,
     os.makedirs(local_pretrain_checkpoints_folder, exist_ok=True)
     local_path = os.path.join(local_pretrain_checkpoints_folder, get_checkpoint_name_from_path(parsed_path.path))
     if not os.path.exists(local_path):
-        get_file(destination=local_path, path=download_path, object_store=load_object_store, progress_bar=True)
+        get_file(destination=local_path, path=download_path.lstrip('/'), object_store=load_object_store, progress_bar=True)
 
     return local_path
 
@@ -150,6 +161,8 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretr
                     logger_configs,
                 'callbacks':
                     main_config.get('callbacks', {}),
+                'algorithms':
+                    main_config.get('algorithms', {}),
                 'precision':
                     main_config.get('precision', None),
                 'trainer_kwargs':
@@ -172,6 +185,7 @@ def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) 
         save_folder=config.save_folder,
         loggers=[build_logger(name, logger_config) for name, logger_config in config.loggers.items()],
         callbacks=[build_callback(name, callback_config) for name, callback_config in config.callbacks.items()],
+        algorithms=[build_algorithm(name, algorithm_config) for name, algorithm_config in config.algorithms.items()],
         precision=config.precision,
         **config.trainer_kwargs,
     )
