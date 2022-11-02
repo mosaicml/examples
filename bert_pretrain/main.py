@@ -21,27 +21,10 @@ from src.hf_bert import create_bert_mlm
 
 
 def build_logger(name, kwargs):
-    if name == 'progress_bar':
-        return ProgressBarLogger(
-            progress_bar=kwargs.get('progress_bar', True),
-            log_to_console=kwargs.get('log_to_console', True),
-        )
-    elif name == 'wandb':
+    if name == 'wandb':
         return WandBLogger(**kwargs)
-    elif name == 's3':
-        object_store_logger = ObjectStoreLogger(
-            object_store_cls=S3ObjectStore,
-            object_store_kwargs=kwargs,
-        )
-        return object_store_logger
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
-
-def build_object_store(name, kwargs):
-    if name == 's3':
-        return S3ObjectStore(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build object store: {name}')
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -52,6 +35,18 @@ def build_callback(name, kwargs):
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
+
+def build_optimizer(cfg, model):
+    if cfg.name == 'decoupled_adamw':
+        return DecoupledAdamW(
+            model.parameters(),
+            lr=cfg.lr,
+            betas=cfg.betas,
+            eps=cfg.eps,
+            weight_decay=cfg.weight_decay
+        )
+    else:
+        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
 def build_scheduler(cfg):
     if cfg.name == 'constant_with_warmup':
@@ -142,29 +137,16 @@ def main(cfg):
     eval_loader = build_dataloader(cfg.eval_loader, device_eval_batch_size)
 
     # Optimizer
-    assert cfg.optimizer.name == 'decoupled_adamw'
-    optimizer = DecoupledAdamW(
-        model.parameters(),
-        lr=cfg.optimizer.lr,
-        betas=cfg.optimizer.betas,
-        eps=cfg.optimizer.eps,
-        weight_decay=cfg.optimizer.weight_decay)
-
+    optimizer = build_optimizer(cfg.optimizer, model)
+    
     # Scheduler
     scheduler = build_scheduler(cfg.scheduler)
 
     # Loggers
-    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.loggers.items()]
+    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.get('loggers', {}).items()]
 
     # Callbacks
-    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.callbacks.items()]
-
-    # (Optional) Load object store
-    load_object_store = cfg.get('load_object_store', None)
-    if load_object_store is not None:
-        name = list(load_object_store.keys())[0]
-        kwargs = load_object_store[name]
-        load_object_store = build_object_store(name, kwargs)
+    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
 
     if 'run_name' in cfg:
         run_name = cfg['run_name']
@@ -184,6 +166,8 @@ def main(cfg):
         schedulers=scheduler,
         max_duration=cfg.max_duration,
         eval_interval=cfg.eval_interval,
+        progress_bar=cfg.progress_bar,
+        log_to_console=cfg.log_to_console,
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
@@ -192,12 +176,9 @@ def main(cfg):
         grad_accum=cfg.get('grad_accum', 'auto'),
         # fsdp_config=fsdp_config,
         save_folder=cfg.get('save_folder', None),
-        save_filename=cfg.get('save_filename', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
-        save_overwrite=cfg.get('save_overwrite', None),
         load_path=cfg.get('load_path', None),
-        load_object_store=load_object_store,
         load_weights_only=cfg.get('load_weights_only', False),
     )
 
