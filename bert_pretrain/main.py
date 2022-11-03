@@ -114,7 +114,7 @@ def main(cfg):
     print('Initializing model...')
     model = build_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f'{n_params=:.2e}')
+    print(f'{n_params=:.4e}')
 
     # Get batch size info
     global_train_batch_size = cfg.global_train_batch_size
