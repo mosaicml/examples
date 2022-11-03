@@ -6,6 +6,7 @@ import sys
 import warnings
 
 import wandb
+from composer import algorithms
 from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
@@ -36,6 +37,16 @@ def build_callback(name, kwargs):
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
+
+def build_algorithm(name, kwargs):
+    if name == 'alibi':
+        return algorithms.Alibi(**kwargs)
+    elif name == 'fused_layernorm':
+        return algorithms.FusedLayerNorm(**kwargs)
+    elif name == 'gated_linear_units':
+        return algorithms.GatedLinearUnits(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build algorithm: {name}')
 
 def build_optimizer(cfg, model):
     if cfg.name == 'decoupled_adamw':
@@ -128,6 +139,9 @@ def main(cfg):
     # Callbacks
     callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
 
+    # Algorithms
+    algorithms = [build_algorithm(name, algorithm_cfg) for name, algorithm_cfg in cfg.get('algorithms', {}).items()]
+
     if 'run_name' in cfg:
         run_name = cfg['run_name']
     else:
@@ -138,6 +152,7 @@ def main(cfg):
         run_name=run_name,
         seed=cfg.seed,
         model=model,
+        algorithms=algorithms,
         train_dataloader=train_loader,
         eval_dataloader=eval_loader,
         train_subset_num_batches=cfg.get('train_subset_num_batches', -1),
