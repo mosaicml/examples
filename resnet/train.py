@@ -31,6 +31,15 @@ def build_logger(name, kwargs):
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
+def log_config(cfg):
+    print(OmegaConf.to_yaml(cfg))
+    if 'wandb' in cfg.loggers:
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
 
 def main(config):
 
@@ -200,13 +209,20 @@ def main(config):
                       seed=config.seed)
     print('Built Trainer\n')
 
-    # Start training!
-    print('Train!')
-    trainer.fit()
+    print('Logging config')
+    log_config(config)
+
+    print('Run evaluation')
+    trainer.eval()
+    if config.is_train:
+        print('Train!')
+        trainer.fit()
 
 
 if __name__ == '__main__':
-    config_path = sys.argv[1]
-    with open(config_path) as f:
-        config = OmegaConf.load(f)
-    main(OmegaConf)
+    yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    with open(yaml_path) as f:
+        yaml_config = OmegaConf.load(f)
+    cli_config = OmegaConf.from_cli(args_list)
+    config = OmegaConf.merge(yaml_config, cli_config)
+    main(config)

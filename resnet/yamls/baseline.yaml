@@ -1,4 +1,5 @@
 run_name: r50_i1k_baseline # Name of the  training run used for checkpointing and other logging
+is_train: true             # Trains the model if true, otherwise runs evaluation
 seed: 17                   # Random seed
 max_duration: 90ep         # Duration to train specified as a Time string
 
