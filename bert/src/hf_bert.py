@@ -70,3 +70,13 @@ def create_bert_unpadded_mlm(use_pretrained: Optional[bool] = False,
     hf_model.model.resize_token_embeddings(config.vocab_size)
 
     return hf_model
+
+if __name__ == "__main__":
+    model = create_bert_unpadded_mlm()
+
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
+    model.model.eval()
+    model.model(**tokenizer(["hello", "this is definitely going to work it is"], return_tensors="pt", padding=True))

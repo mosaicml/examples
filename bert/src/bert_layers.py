@@ -182,7 +182,8 @@ class BertUnpadSelfAttention(nn.Module):
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
         attention_probs = self.dropout(attention_probs)
         attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
-        attention, _, __, ___ = unpad_input(attention, torch.squeeze(attn_mask) == 0)
+        # attn_mask is nonstandard and uses 1 for attend, 0 for ignore
+        attention, _, __, ___ = unpad_input(attention, torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
 
 
@@ -257,7 +258,7 @@ class BertEncoder(nn.Module):
         hidden_states, indices, cu_seqlens, max_seqlen_in_batch = unpad_input(hidden_states, attention_mask_bool)
         if subset_mask is None:
             for layer_module in self.layer:
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, indices, attention_mask, alibi_attn_mask)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attention_mask, alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             # Pad inputs and mask. It will insert back zero-padded tokens. Assume ntokens is total number of tokens (padded and non-padded)
@@ -267,11 +268,11 @@ class BertEncoder(nn.Module):
         else:
             for i in range(len(self.layer) - 1):
                 layer_module = self.layer[i]
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, indices, attention_mask, alibi_attn_mask)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attention_mask, alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             subset_idx = torch.nonzero(subset_mask[attention_mask_bool], as_tuple=False).flatten()
-            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx)
+            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, indices=indices, attention_mask=attention_mask, alibi_attn_mask=alibi_attn_mask)
 
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
