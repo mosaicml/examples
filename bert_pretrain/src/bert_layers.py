@@ -25,10 +25,12 @@ from typing import Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
+from flash_attn.bert_padding import pad_input, unpad_input
+from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
-from src.bert_padding import pad_input, unpad_input
+# from src.bert_padding import pad_input, unpad_input
 
 
 logger = logging.getLogger(__name__)
@@ -162,29 +164,25 @@ class BertUnpadSelfAttention(nn.Module):
 
         self.Wqkv = nn.Linear(self.all_head_size, 3 * config.hidden_size)
 
-    def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, indices=None, attn_mask=None, alibi_attn_mask=None):
+    def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, alibi=None):
         """
         Arguments:
             hidden_states: (total_nnz, dim)
             cu_seqlens: (batch + 1,), torch.int32
             max_seqlen_in_batch: int
+            alibi: (?) attention bias
         Return:
             context: (total_nnz, dim)
         """
         qkv = self.Wqkv(hidden_states)
-        qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
-        qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
-        q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
-        k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
-        v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
-        attention_scores = torch.matmul(q, k) / math.sqrt(self.attention_head_size)
-        attention_scores = attention_scores + alibi_attn_mask
-        attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-        attention_probs = self.dropout(attention_probs)
-        attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
-        # attn_mask is nonstandard and uses 1 for attend, 0 for ignore
-        attention, _, __, ___ = unpad_input(attention, torch.squeeze(attn_mask) == 1)
-        return rearrange(attention, 'nnz h d -> nnz (h d)')
+        qkv = rearrange(qkv, 'nnz (t h d) -> nnz t h d', t=3, h=self.num_attention_heads)
+        orig_dtype = qkv.dtype
+        qkv = qkv.to(torch.float16)
+        context = flash_attn_unpadded_qkvpacked_func(qkv, cu_seqlens, max_seqlen_in_batch,
+                                                     self.p_dropout if self.training else 0.0,
+                                                    attn_bias=alibi)
+        context = context.to(orig_dtype)
+        return rearrange(context, 'nnz h d -> nnz (h d)'), hidden_states
 
 
 class BertUnpadAttention(nn.Module):
@@ -194,11 +192,11 @@ class BertUnpadAttention(nn.Module):
         self.self = BertUnpadSelfAttention(config)
         self.output = BertSelfOutput(config)
 
-    def forward(self, input_tensor, cu_seqlens, max_s, subset_idx=None, indices=None, attn_mask=None, alibi_attn_mask=None):
+    def forward(self, input_tensor, cu_seqlens, max_s, subset_idx=None, alibi=None):
         """subset_idx: set of indices whose values we care about at the end of the layer
         (e.g., the masked tokens, if this is the final layer).
         """
-        self_output = self.self(input_tensor, cu_seqlens, max_s, indices, attn_mask, alibi_attn_mask)
+        self_output = self.self(input_tensor, cu_seqlens, max_s, alibi)
         if subset_idx is not None:
             return self.output(index_first_axis(self_output, subset_idx), index_first_axis(input_tensor, subset_idx))
         else:
@@ -239,11 +237,11 @@ class BertLayer(nn.Module):
         self.attention = BertUnpadAttention(config)
         self.mlp = BertGatedLinearUnitMLP(config)
 
-    def forward(self, hidden_states, cu_seqlens, seqlen, subset_idx=None, indices=None, attn_mask=None, alibi_attn_mask=None):
+    def forward(self, hidden_states, cu_seqlens, seqlen, subset_idx=None, alibi=None):
         """subset_idx: set of indices whose values we care about at the end of the layer
         (e.g., the masked tokens, if this is the final layer).
         """
-        attention_output = self.attention(hidden_states, cu_seqlens, seqlen, subset_idx, indices, attn_mask, alibi_attn_mask)
+        attention_output = self.attention(hidden_states, cu_seqlens, seqlen, subset_idx, alibi)
         layer_output = self.mlp(attention_output)
         return layer_output
 
@@ -309,11 +307,11 @@ class BertEncoder(nn.Module):
         hidden_states, indices, cu_seqlens, max_seqlen_in_batch = unpad_input(hidden_states, attention_mask_bool)
         # Add alibi matrix to extended_attention_mask
         alibi_bias = self.alibi[:,:,:max_seqlen_in_batch, :max_seqlen_in_batch]
-        alibi_attn_mask = extended_attention_mask[:,:,:,:max_seqlen_in_batch] + alibi_bias
+        # alibi_attn_mask = extended_attention_mask[:,:,:,:max_seqlen_in_batch] + alibi_bias
 
         if subset_mask is None:
             for layer_module in self.layer:
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attention_mask, alibi_attn_mask)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, alibi_bias)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             # Pad inputs and mask. It will insert back zero-padded tokens. Assume ntokens is total number of tokens (padded and non-padded)
@@ -323,11 +321,11 @@ class BertEncoder(nn.Module):
         else:
             for i in range(len(self.layer) - 1):
                 layer_module = self.layer[i]
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attention_mask, alibi_attn_mask)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, alibi_bias)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             subset_idx = torch.nonzero(subset_mask[attention_mask_bool], as_tuple=False).flatten()
-            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, indices=indices, attn_mask=attention_mask, alibi_attn_mask=alibi_attn_mask)
+            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, alibi=alibi_bias)
 
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
