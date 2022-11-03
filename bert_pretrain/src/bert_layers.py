@@ -212,7 +212,7 @@ class BertGatedLinearUnitMLP(nn.Module):
         self.act = nn.GELU(approximate='none')
         self.wo = nn.Linear(config.intermediate_size, config.hidden_size)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.layernorm = nn.LayerNorm(config.hidden_size)
+        self.layernorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
     def forward(self, hidden_states: torch.Tensor):
         """
