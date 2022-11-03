@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Implements a BERT wrapper around a :class:`.ComposerTransformer`."""
+"""Implements a Hugging Face BERT wrapped inside a :class:`.ComposerModel`."""
 
 from __future__ import annotations
 
@@ -11,13 +11,13 @@ from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
-__all__ = ['create_bert_mlm']
+__all__ = ['create_hf_bert_mlm']
 
-def create_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
-                    use_pretrained: Optional[bool] = False,
-                    model_config: Optional[dict] = None,
-                    tokenizer_name: Optional[str] = None,
-                    gradient_checkpointing: Optional[bool] = False):
+def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
+                       use_pretrained: Optional[bool] = False,
+                       model_config: Optional[dict] = None,
+                       tokenizer_name: Optional[str] = None,
+                       gradient_checkpointing: Optional[bool] = False):
     """BERT model based on |:hugging_face:| Transformers.
 
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
@@ -60,7 +60,7 @@ def create_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
 
     .. testcode::
 
-        from composer.models import create_bert_mlm
+        from src.hf_bert import create_hf_bert_mlm
         model = create_bert_mlm()
 
     """
