@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Implements a BERT wrapper around a :class:`.ComposerTransformer`."""
+"""Implements a Hugging Face BERT wrapped inside a :class:`.ComposerModel`."""
 
 from __future__ import annotations
 
