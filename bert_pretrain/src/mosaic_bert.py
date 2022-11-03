@@ -11,15 +11,16 @@ import transformers
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 
-from bert_layers import BertForMaskedLM
+from src.bert_layers import BertForMaskedLM
+
+all = ['create_mosaic_bert_mlm']
 
 
-def create_bert_unpadded_mlm(use_pretrained: Optional[bool] = False,
-                             pretrained_model_name: Optional[str] = None,
-                             model_config: Optional[dict] = None,
-                             tokenizer_name: Optional[str] = None,
-                             gradient_checkpointing: Optional[bool] = False,
-                             pretrained_checkpoint: Optional[str] = None):
+def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
+                           use_pretrained: Optional[bool] = False,
+                           model_config: Optional[dict] = None,
+                           tokenizer_name: Optional[str] = None,
+                           gradient_checkpointing: Optional[bool] = False):
     """BERT model based on HazyResearch's MLPerf 2.0 submission and HuggingFace transformer"""
     if not model_config:
         model_config = {}
@@ -35,11 +36,9 @@ def create_bert_unpadded_mlm(use_pretrained: Optional[bool] = False,
     # Padding for divisibility by 8
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
+
     if use_pretrained:
-        model = BertForMaskedLM.from_pretrained(
-                    pretrained_checkpoint=pretrained_checkpoint,
-                    config=config,
-                    from_tf=False)
+        raise NotImplementedError('The `use_pretrained` option is not currently supported for mosaic_bert. Please set `use_pretrained=False`.')
     else:
         model = BertForMaskedLM(config)
 
@@ -66,13 +65,3 @@ def create_bert_unpadded_mlm(use_pretrained: Optional[bool] = False,
     hf_model.model.resize_token_embeddings(config.vocab_size)
 
     return hf_model
-
-if __name__ == "__main__":
-    model = create_bert_unpadded_mlm()
-
-    from transformers import AutoTokenizer
-
-    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-
-    model.model.eval()
-    model.model(**tokenizer(["hello hello hello", "this is definitely going to work it is"], return_tensors="pt", padding=True))

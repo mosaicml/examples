@@ -18,6 +18,7 @@ from omegaconf import OmegaConf as om
 
 from src.data_c4 import build_c4_dataloader
 from src.hf_bert import create_hf_bert_mlm
+from src.mosaic_bert import create_mosaic_bert_mlm
 
 
 def build_logger(name, kwargs):
@@ -69,6 +70,14 @@ def build_model(cfg):
 
     if cfg.name == 'hf_bert':
         return create_hf_bert_mlm(
+            pretrained_model_name=cfg.pretrained_model_name,
+            use_pretrained=cfg.get('use_pretrained', None),
+            model_config=cfg.get('model_config', None),
+            tokenizer_name=cfg.get('tokenizer_name', None),
+            gradient_checkpointing=cfg.get('gradient_checkpointing', None)
+        )
+    elif cfg.name == 'mosaic_bert':
+        return create_mosaic_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,
             use_pretrained=cfg.get('use_pretrained', None),
             model_config=cfg.get('model_config', None),
