@@ -8,3 +8,4 @@ transformers<5
 datasets<3
 omegaconf<3
 wandb<1
+lm-eval @ git+https://github.com/bmosaicml/lm-evaluation-harness-composergpt-integration.git@master

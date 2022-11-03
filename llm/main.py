@@ -58,32 +58,40 @@ def build_scheduler(cfg):
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
-# Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
-def update_batch_size_info(cfg):
-    global_train_batch_size = cfg.global_train_batch_size
-    device_train_batch_size = global_train_batch_size // dist.get_world_size()
-    device_train_microbatch_size = cfg.device_train_microbatch_size
-    if device_train_microbatch_size == 'auto':
-        device_train_grad_accum = 'auto'
-        device_eval_microbatch_size = 'auto'
-        device_eval_batch_size = device_train_batch_size
-    elif isinstance(device_train_microbatch_size, int):
-        if device_train_microbatch_size > device_train_batch_size:
-            print (f"WARNING: device_train_microbatch_size > device_train_batch_size, will be reduced from {device_train_microbatch_size} -> {device_train_batch_size}.")
-            cfg.device_train_microbatch_size = device_train_batch_size
-            device_train_microbatch_size = device_train_batch_size
-        device_train_grad_accum = device_train_batch_size // device_train_microbatch_size
-        device_eval_microbatch_size = device_train_microbatch_size
-        device_eval_batch_size = device_eval_microbatch_size
+def calculate_batch_size_info(global_batch_size, device_microbatch_size):
+    device_batch_size = global_batch_size // dist.get_world_size()
+    device_microbatch_size = device_microbatch_size
+    if device_microbatch_size == 'auto':
+        device_grad_accum = 'auto'
+    elif isinstance(device_microbatch_size, int):
+        if device_microbatch_size > device_batch_size:
+            print (f"WARNING: device_microbatch_size > device_batch_size, will be reduced from {device_microbatch_size} -> {device_batch_size}.")
+            device_microbatch_size = device_batch_size
+            device_microbatch_size = device_batch_size
+        device_grad_accum = device_batch_size // device_microbatch_size
     else:
         raise ValueError(
-            f'Not sure how to parse {device_train_microbatch_size=}')
+            f'Not sure how to parse {device_microbatch_size=}')
+    
+    return device_batch_size, device_grad_accum
+
+
+# Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
+def update_batch_size_info(cfg):
+
+    device_train_batch_size, device_train_grad_accum = calculate_batch_size_info(
+        cfg.global_train_batch_size, cfg.device_train_microbatch_size
+    )
+    
+    device_eval_batch_size, _ = calculate_batch_size_info(
+        cfg.global_eval_batch_size, cfg.device_eval_microbatch_size
+    )
 
     cfg.n_gpus = dist.get_world_size()
     cfg.device_train_batch_size = device_train_batch_size
     cfg.device_train_grad_accum = device_train_grad_accum
     cfg.device_eval_batch_size = device_eval_batch_size
-    cfg.device_eval_microbatch_size = device_eval_microbatch_size
+    cfg.device_eval_microbatch_size = device_eval_batch_size
     return cfg
 
 def log_config(cfg):
