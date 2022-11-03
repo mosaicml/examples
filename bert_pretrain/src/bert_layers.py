@@ -19,14 +19,14 @@
 import copy
 import warnings
 import logging
+import math
 from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
 from transformers.modeling_outputs import MaskedLMOutput
-from transformers.models.bert.modeling_bert import (BertIntermediate, BertOutput,
-                                                    BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
+from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
 from bert_padding import pad_input, unpad_input
 
@@ -192,8 +192,6 @@ class BertUnpadAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.self = BertUnpadSelfAttention(config)
-        # TODO: Use custom BertSelfOutput instead of HuggingFace version
-        # to use FusedDenseTD
         self.output = BertSelfOutput(config)
 
     def forward(self, input_tensor, cu_seqlens, max_s, subset_idx=None, indices=None, attn_mask=None, alibi_attn_mask=None):
@@ -206,22 +204,47 @@ class BertUnpadAttention(nn.Module):
         else:
             return self.output(self_output, input_tensor)
 
+class BertGatedLinearUnitMLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.gated_layers = nn.Linear(config.hidden_size, config.intermediate_size*2, bias=False)
+        self.act = nn.GELU(approximate='none')
+        self.wo = nn.Linear(config.intermediate_size, config.hidden_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.layernorm = nn.LayerNorm(config.hidden_size)
+
+    def forward(self, hidden_states: torch.Tensor):
+        """
+        Args:
+            hidden_states (torch.Tensor): The (unpadded) hidden states from the attention layer [nnz, dim].
+        """
+        residual_connection = hidden_states
+        # compute the activation
+        hidden_states = self.gated_layers(hidden_states)
+        gated = hidden_states[:, :self.config.intermediate_size]
+        non_gated = hidden_states[:, self.config.intermediate_size:]
+        hidden_states = self.act(gated) * non_gated
+        hidden_states = self.dropout(hidden_states)
+        # multiply by the second matrix
+        hidden_states = self.wo(hidden_states)
+        # add the residual connection and post-LN
+        hidden_states = self.layernorm(hidden_states + residual_connection)
+        return hidden_states
 
 class BertLayer(nn.Module):
 
     def __init__(self, config):
         super(BertLayer, self).__init__()
         self.attention = BertUnpadAttention(config)
-        self.intermediate = BertIntermediate(config)
-        self.output = BertOutput(config)
+        self.mlp = BertGatedLinearUnitMLP(config)
 
     def forward(self, hidden_states, cu_seqlens, seqlen, subset_idx=None, indices=None, attn_mask=None, alibi_attn_mask=None):
         """subset_idx: set of indices whose values we care about at the end of the layer
         (e.g., the masked tokens, if this is the final layer).
         """
         attention_output = self.attention(hidden_states, cu_seqlens, seqlen, subset_idx, indices, attn_mask, alibi_attn_mask)
-        intermediate_output = self.intermediate(attention_output)
-        layer_output = self.output(intermediate_output, attention_output)
+        layer_output = self.mlp(attention_output)
         return layer_output
 
 
@@ -233,8 +256,39 @@ class BertEncoder(nn.Module):
         self.layer = nn.ModuleList([copy.deepcopy(layer) for _ in range(config.num_hidden_layers)])
 
         self.num_attention_heads = config.num_attention_heads
-        self.unpad = config.unpad
-        self.unpad_flash_attn = config.unpad_flash_attn
+
+        # Alibi
+        # Following https://github.com/ofirpress/attention_with_linear_biases/issues/5 (Implementation 1)
+        # In the causal case, you can exploit the fact that softmax is invariant to a uniform translation
+        # of the logits, which makes the math work out *after* applying causal masking. If no causal masking
+        # will be applied, it is necessary to construct the diagonal mask.
+        def _get_alibi_head_slopes(n_heads: int):
+            def get_slopes_power_of_2(n_heads):
+                start = (2**(-2**-(math.log2(n_heads) - 3)))
+                ratio = start
+                return [start * ratio**i for i in range(n_heads)]
+            # In the paper, they only train models that have 2^a heads for some a. This function
+            # has some good properties that only occur when the input is a power of 2. To
+            # maintain that even when the number of heads is not a power of 2, we use a
+            # workaround.
+            if math.log2(n_heads).is_integer():
+                return get_slopes_power_of_2(n_heads)
+            else:
+                closest_power_of_2 = 2**math.floor(math.log2(n_heads))
+                return get_slopes_power_of_2(closest_power_of_2) + _get_alibi_head_slopes(
+                    2 * closest_power_of_2)[0::2][:n_heads - closest_power_of_2]
+        max_token_length = config.max_position_embeddings
+        context_position = torch.arange(max_token_length)[:, None]
+        memory_position = torch.arange(max_token_length)[None, :]
+        relative_position = torch.abs(memory_position - context_position)
+        # [n_heads, max_token_length, max_token_length]
+        relative_position = relative_position.unsqueeze(0).expand(config.num_attention_heads, -1, -1)
+        slopes = torch.Tensor(_get_alibi_head_slopes(config.num_attention_heads))
+        alibi = slopes.unsqueeze(1).unsqueeze(1) * -relative_position
+        # [1, n_heads, max_token_length, max_token_length]
+        alibi = alibi.unsqueeze(0)
+        assert alibi.shape == torch.Size([1, config.num_attention_heads, max_token_length, max_token_length])
+        self.register_buffer('alibi', alibi)
 
     def forward(self, hidden_states, attention_mask, output_all_encoded_layers=True, subset_mask=None):
         all_encoder_layers = []
@@ -246,9 +300,6 @@ class BertEncoder(nn.Module):
             self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
 
-        # @TODO add alibi matrix to extended_attention_mask
-        alibi_attn_mask = extended_attention_mask #+ self.alibi # actually do this
-
         # attention_mask_bool = rearrange(attention_mask, 'b 1 1 s -> b s') == 0.0
         attention_mask_bool = attention_mask.bool()
         batch, seqlen = hidden_states.shape[:2]
@@ -256,6 +307,10 @@ class BertEncoder(nn.Module):
         # and ntokens_unpad is total number of non-padded tokens. Then unpadding performs the following compression of the inputs:
         #        hidden_states[ntokens,hidden] -> hidden_states[ntokens_unpad,hidden]
         hidden_states, indices, cu_seqlens, max_seqlen_in_batch = unpad_input(hidden_states, attention_mask_bool)
+        # Add alibi matrix to extended_attention_mask
+        alibi_bias = self.alibi[:,:,:max_seqlen_in_batch, :max_seqlen_in_batch]
+        alibi_attn_mask = extended_attention_mask[:,:,:,:max_seqlen_in_batch] + alibi_bias
+
         if subset_mask is None:
             for layer_module in self.layer:
                 hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attention_mask, alibi_attn_mask)
@@ -326,7 +381,6 @@ class BertModel(BertPreTrainedModel):
         self.pooler = None
         self.post_init()
         #self.apply(self.init_weights)
-        self.unpad = config.unpad
 
     def get_input_embeddings(self):
         return self.embeddings.word_embeddings

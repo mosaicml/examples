@@ -11,9 +11,9 @@ from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
-__all__ = ['create_bert_mlm']
+__all__ = ['create_hf_bert_mlm']
 
-def create_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
+def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                     use_pretrained: Optional[bool] = False,
                     model_config: Optional[dict] = None,
                     tokenizer_name: Optional[str] = None,
@@ -60,7 +60,7 @@ def create_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
 
     .. testcode::
 
-        from composer.models import create_bert_mlm
+        from src.hf_bert import create_hf_bert_mlm
         model = create_bert_mlm()
 
     """

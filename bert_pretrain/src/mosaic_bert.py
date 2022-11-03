@@ -29,11 +29,7 @@ def create_bert_unpadded_mlm(use_pretrained: Optional[bool] = False,
 
     config = transformers.AutoConfig.from_pretrained(pretrained_model_name, **model_config)
     assert transformers.AutoModelForMaskedLM.from_config is not None, 'AutoModelForMaskedLM has from_config method'
-    config.unpad = True
-    config.unpad_flash_attn = True
     config.return_dict = False
-    config.fused_bias_fc_loss_head = True
-    config.fused_bias_mha = True
     config.dense_seq_output = True  # Required BertForMaskedLM
     config.last_layer_subset = True
     # Padding for divisibility by 8
@@ -79,4 +75,4 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
     model.model.eval()
-    model.model(**tokenizer(["hello", "this is definitely going to work it is"], return_tensors="pt", padding=True))
+    model.model(**tokenizer(["hello hello hello", "this is definitely going to work it is"], return_tensors="pt", padding=True))
