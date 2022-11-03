@@ -180,7 +180,7 @@ class BertUnpadSelfAttention(nn.Module):
         qkv = qkv.to(torch.float16)
         context = flash_attn_unpadded_qkvpacked_func(qkv, cu_seqlens, max_seqlen_in_batch,
                                                      self.p_dropout if self.training else 0.0,
-                                                    attn_bias=alibi)
+                                                     attn_bias=alibi)
         context = context.to(orig_dtype)
         return rearrange(context, 'nnz h d -> nnz (h d)'), hidden_states
 

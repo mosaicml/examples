@@ -13,7 +13,6 @@ from composer.models.huggingface import HuggingFaceModel
 
 from src.bert_layers import BertForMaskedLM
 
-
 all = ['create_mosaic_bert_mlm']
 
 
