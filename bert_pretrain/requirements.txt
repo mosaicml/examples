@@ -2,10 +2,13 @@ datasets<3
 einops==0.5.0
 mosaicml==0.11.0
 mosaicml-streaming<1
-# flash_attn @ git+https://github.com/HazyResearch/flash-attention.git@main
 omegaconf<3
 transformers<5
 torchvision<0.14
 torchtext<0.14
 torch<1.13
 wandb<1
+
+# fork of flash attention which supports attention bias
+# will not install if no CUDA device
+flash_attn @ git+https://github.com/dptech-corp/flash-attention.git@a80a9632941458596f2e0531f029ff658bdfedfd
