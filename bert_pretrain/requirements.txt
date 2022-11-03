@@ -11,4 +11,5 @@ wandb<1
 
 # fork of flash attention which supports attention bias
 # will not install if no CUDA device
-flash_attn @ git+https://github.com/dptech-corp/flash-attention.git@a80a9632941458596f2e0531f029ff658bdfedfd
+# this branch seems to have important fixes for multi-gpu
+flash_attn @ git+https://github.com/dptech-corp/flash-attention.git@fix-conflict

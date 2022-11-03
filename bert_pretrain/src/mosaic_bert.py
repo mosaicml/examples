@@ -11,7 +11,8 @@ import transformers
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 
-from src.bert_layers import BertForMaskedLM
+# from src.bert_layers import BertForMaskedLM
+from src.bert_flash_layers import BertForMaskedLM
 
 all = ['create_mosaic_bert_mlm']
 
