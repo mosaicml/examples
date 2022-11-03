@@ -52,7 +52,7 @@ def main(config):
 
     # Train dataset
     print('Building train dataloader')
-    if config.train_dataloader.streaming:
+    if config.train_dataset.is_streaming:
         train_dataspec = build_streaming_imagenet_dataspec(
             remote=config.train_dataset.path,
             local=config.train_dataset.local,
@@ -82,7 +82,7 @@ def main(config):
 
     # Validation dataset
     print('Building evaluation dataloader')
-    if config.eval_dataset.streaming:
+    if config.eval_dataset.is_streaming:
         eval_dataspec = build_streaming_imagenet_dataspec(
             remote=config.eval_dataset.path,
             local=config.eval_dataset.local,
@@ -90,7 +90,7 @@ def main(config):
             is_train=False,
             drop_last=False,
             shuffle=False,
-            resize_size=config.eval_dataset_resize_size,
+            resize_size=config.eval_dataset.resize_size,
             crop_size=config.eval_dataset.crop_size,
             num_workers=8,
             pin_memory=True,
@@ -102,7 +102,7 @@ def main(config):
             is_train=False,
             drop_last=False,
             shuffle=False,
-            resize_size=config.eval_dataset_resize_size,
+            resize_size=config.eval_dataset.resize_size,
             crop_size=config.eval_dataset.crop_size,
             num_workers=8,
             pin_memory=True,
@@ -220,6 +220,10 @@ def main(config):
 
 
 if __name__ == '__main__':
+    #print(sys.argv[1], os.path.exists(sys.argv[1]))
+    if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
+        raise ValueError('Path to a yaml file must be provided as the first argument.')
+
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
     with open(yaml_path) as f:
         yaml_config = OmegaConf.load(f)

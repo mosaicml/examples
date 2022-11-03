@@ -10,7 +10,7 @@ model:
 
 # Training Dataset Parameters
 train_dataset:
-  type: 'streaming'                     # Type must be either ['streaming', 'local', 'synthetic']
+  is_streaming: true                    # Type must be either ['streaming', 'local', 'synthetic']
   path: s3://my-bucket/my-imagenet      # Path to S3 bucket if streaming, otherwise path to local data directory
   local: /tmp/mds-cache/mds-imagenet1k/ # Local cache when streaming data
   resize_size: -1                       # Training image resize size before crop, -1 means no resize
@@ -19,9 +19,9 @@ train_dataset:
 
 # Validation Dataset Parameters
 eval_dataset:
-  type: 'streaming'                     # Type must be either ['streaming', 'local', 'synthetic']
+  is_streaming: true                     # Type must be either ['streaming', 'local', 'synthetic']
   path: s3://my-bucket/my-imagenet      # S3 bucket if streaming, otherwise path to local data
-  local: /tmp/mds-cache/mds-imagenet1k  # Local cache when streaming data
+  local: /tmp/mds-cache/mds-imagenet1k/ # Local cache when streaming data
   resize_size: 256                      # Evaluation image resize size before crop
   crop_size: 224                        # Evaluation image crop size
   batch_size: 2048                      # Evaluation dataloader batch size per device
