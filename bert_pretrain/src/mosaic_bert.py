@@ -19,7 +19,7 @@ from composer.metrics.nlp import BinaryF1Score, LanguageCrossEntropy, MaskedAccu
 
 from src.bert_layers import BertForMaskedLM, BertForSequenceClassification
 
-all = ['create_mosaic_bert_mlm']
+all = ['create_mosaic_bert_mlm', 'create_mosaic_bert_classification']
 
 
 def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
@@ -174,7 +174,6 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
         if num_labels == 2:
             metrics.append(BinaryF1Score())
 
-
     hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics)
 
     # Padding for divisibility by 8
@@ -182,5 +181,7 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
     hf_model.model.resize_token_embeddings(config.vocab_size)
-
+    
     return hf_model
+
+

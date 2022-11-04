@@ -27,8 +27,7 @@ import torch.nn as nn
 from einops import rearrange, repeat
 from transformers.modeling_outputs import MaskedLMOutput, SequenceClassifierOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
-from transformers.models.activations import ACT2FN
-
+from transformers.activations import ACT2FN
 from src.bert_padding import pad_input, unpad_input
 
 
@@ -257,7 +256,6 @@ class BertEncoder(nn.Module):
         self.layer = nn.ModuleList([copy.deepcopy(layer) for _ in range(config.num_hidden_layers)])
 
         self.num_attention_heads = config.num_attention_heads
-
         # Alibi
         # Following https://github.com/ofirpress/attention_with_linear_biases/issues/5 (Implementation 1)
         # In the causal case, you can exploit the fact that softmax is invariant to a uniform translation
@@ -715,8 +713,6 @@ class BertForSequenceClassification(BertPreTrainedModel):
         if labels is None:
             raise ValueError('Mosaic BertForSequenceClassification requires a labels tensor.')
 
-        masked_tokens_mask = labels > 0
-
         outputs = self.bert(
             input_ids,
             attention_mask=attention_mask,
@@ -727,7 +723,6 @@ class BertForSequenceClassification(BertPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
-            masked_tokens_mask=masked_tokens_mask,
         )
 
         pooled_output = outputs[1]
@@ -757,6 +752,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         elif self.config.problem_type == "multi_label_classification":
             loss_fct = nn.BCEWithLogitsLoss()
             loss = loss_fct(logits, labels)
+
         if not return_dict:
             output = (logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
@@ -767,6 +763,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+
 
 
 class BertForMultipleChoice(BertPreTrainedModel):
