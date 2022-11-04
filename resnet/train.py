@@ -222,7 +222,7 @@ def main(config):
 if __name__ == '__main__':
     #print(sys.argv[1], os.path.exists(sys.argv[1]))
     if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
-        raise ValueError('Path to a yaml file must be provided as the first argument.')
+        raise ValueError('The first argument must be a path to a yaml config.')
 
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
     with open(yaml_path) as f:

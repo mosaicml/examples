@@ -8,7 +8,6 @@ from torchvision.datasets import ImageFolder, VisionDataset
 
 from composer.core import DataSpec
 from composer.datasets.utils import NormalizationFn, pil_image_collate
-from composer.datasets.synthetic import SyntheticBatchPairDataset
 from composer.utils import dist
 from streaming import Dataset
 
@@ -17,7 +16,6 @@ from streaming import Dataset
 # If using ToTensor() and the default collate, remove the scaling by 255
 IMAGENET_CHANNEL_MEAN = (0.485 * 255, 0.456 * 255, 0.406 * 255)
 IMAGENET_CHANNEL_STD = (0.229 * 255, 0.224 * 255, 0.225 * 255)
-
 
 class StreamingImageNet(Dataset, VisionDataset):
     """ ImageNet streaming dataset based on PyTorch's Vision dataset.
@@ -69,6 +67,8 @@ class StreamingImageNet(Dataset, VisionDataset):
     def __getitem__(self, idx: int) -> Any:
         sample = super().__getitem__(idx)
         image = sample['x']
+        if image.mode == "CMYK":
+            image = image.convert('RGB')
         if self.transform:
             image = self.transform(image)
         target = sample['y']
