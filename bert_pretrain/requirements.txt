@@ -8,4 +8,5 @@ transformers<5
 torchvision<0.14
 torchtext<0.14
 torch<1.13
+torchmetrics
 wandb<1
