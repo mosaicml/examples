@@ -23,10 +23,10 @@ all = ['create_mosaic_bert_mlm', 'create_mosaic_bert_classification']
 
 
 def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
-                           use_pretrained: Optional[bool] = False,
                            model_config: Optional[dict] = None,
                            tokenizer_name: Optional[str] = None,
-                           gradient_checkpointing: Optional[bool] = False):
+                           gradient_checkpointing: Optional[bool] = False,
+                           pretrained_checkpoint: Optional[str] = None):
     """BERT model based on HazyResearch's MLPerf 2.0 submission and HuggingFace transformer"""
     if not model_config:
         model_config = {}
@@ -41,8 +41,8 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
 
-    if use_pretrained:
-        raise NotImplementedError('The `use_pretrained` option is not currently supported for mosaic_bert_mlm. Please set `use_pretrained=False`.')
+    if pretrained_checkpoint is not None:
+        raise NotImplementedError('Pretraining from a checkpoint is not currently supported for mosaic_bert_mlm. Please set `pretrained_checkpoint=None`.')
     else:
         model = BertForMaskedLM(config)
 
@@ -59,7 +59,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         LanguageCrossEntropy(ignore_index=-100, vocab_size=model.config.vocab_size),
         MaskedAccuracy(ignore_index=-100)
     ]
-q
+
     hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics)
 
     # Padding for divisibility by 8
@@ -73,7 +73,6 @@ q
 
 def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
                            pretrained_model_name: str = 'bert-base-uncased',
-                           use_pretrained: Optional[bool] = False,
                            model_config: Optional[dict] = None,
                            tokenizer_name: Optional[str] = None,
                            gradient_checkpointing: Optional[bool] = False,
@@ -89,6 +88,7 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
         architecture of a Hugging Face model.
         tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset
         and validate the models inputs.
+        pretrained_checkpoint (str, optional): The pretrained checkpoint to initialize the model weights. Default: ``None``.
         .. code-block::
             {
               "_name_or_path": "bert-base-uncased",
@@ -153,8 +153,7 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
      
-    if use_pretrained:
-        assert pretrained_checkpoint is not None, "If use_pretrained=True, pretrained_checkpoint cannot be None."
+    if pretrained_checkpoint is not None:
         model = BertForSequenceClassification(pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
         model = BertForSequenceClassification(config)
