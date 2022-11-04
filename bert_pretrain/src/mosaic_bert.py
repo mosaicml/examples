@@ -11,7 +11,7 @@ import transformers
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 
-from bert_layers import BertForMaskedLM
+from src.bert_layers import BertForMaskedLM
 
 all = ['create_mosaic_bert_mlm']
 
@@ -67,11 +67,11 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     return hf_model
 
 
-from transformers import AutoTokenizer
+# from transformers import AutoTokenizer
 
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-tokens = tokenizer(["yooooooooo", f"friendship ended with cuda, now triton is my {tokenizer.mask_token} friend"], return_tensors="pt", padding=True).to("cuda")
+# tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+# tokens = tokenizer(["yooooooooo", f"friendship ended with cuda, now triton is my {tokenizer.mask_token} friend"], return_tensors="pt", padding=True).to("cuda")
 
-model = create_mosaic_bert_mlm()
-model = model.to("cuda")
-print(model.model(**tokens))
+# model = create_mosaic_bert_mlm()
+# model = model.to("cuda")
+# print(model.model(**tokens))

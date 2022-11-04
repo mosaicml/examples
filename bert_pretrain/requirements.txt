@@ -9,7 +9,5 @@ torchtext<0.14
 torch<1.13
 wandb<1
 
-# fork of flash attention which supports attention bias
-# will not install if no CUDA device
-# this branch seems to have important fixes for multi-gpu
-flash_attn @ git+https://github.com/dptech-corp/flash-attention.git@fix-conflict
+# need a newer version of triton
+triton==2.0.0.dev20221103
