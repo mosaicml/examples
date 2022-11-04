@@ -160,7 +160,7 @@ class BertUnpadSelfAttention(nn.Module):
         self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-        self.p_dropout = 0.0 # for flashibi
+        self.p_dropout = config.attention_probs_dropout_prob # for flashibi to work this must be 0 for now
         self.Wqkv = nn.Linear(self.all_head_size, 3 * config.hidden_size)
 
     def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, indices=None, attn_mask=None, alibi=None):
@@ -352,7 +352,7 @@ class BertModel(BertPreTrainedModel):
             a batch has varying length sentences.
         `output_all_encoded_layers`: boolean which controls the content of the `encoded_layers` output as described below. Default: `True`.
     Outputs: Tuple of (encoded_layers, pooled_output)
-        `encoded_layers`: controled by `output_all_encoded_layers` argument:
+        `encoded_layers`: controlled by `output_all_encoded_layers` argument:
             - `output_all_encoded_layers=True`: outputs a list of the full sequences of encoded-hidden-states at the end
                 of each attention block (i.e. 12 full sequences for BERT-base, 24 for BERT-large), each
                 encoded-hidden-state is a torch.FloatTensor of size [batch_size, sequence_length, hidden_size],
