@@ -42,7 +42,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         config.vocab_size += 8 - (config.vocab_size % 8)
 
     if use_pretrained:
-        raise NotImplementedError('The `use_pretrained` option is not currently supported for mosaic_bert. Please set `use_pretrained=False`.')
+        raise NotImplementedError('The `use_pretrained` option is not currently supported for mosaic_bert_mlm. Please set `use_pretrained=False`.')
     else:
         model = BertForMaskedLM(config)
 
@@ -59,7 +59,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         LanguageCrossEntropy(ignore_index=-100, vocab_size=model.config.vocab_size),
         MaskedAccuracy(ignore_index=-100)
     ]
-
+q
     hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics)
 
     # Padding for divisibility by 8
@@ -76,7 +76,8 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
                            use_pretrained: Optional[bool] = False,
                            model_config: Optional[dict] = None,
                            tokenizer_name: Optional[str] = None,
-                           gradient_checkpointing: Optional[bool] = False):
+                           gradient_checkpointing: Optional[bool] = False,
+                           pretrained_checkpoint: Optional[str] = None):
     """
     BERT classification model based on |:hugging_face:| Transformers.
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
@@ -143,18 +144,22 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     if not pretrained_model_name:
         pretrained_model_name = 'bert-base-uncased'
 
+
     config = transformers.AutoConfig.from_pretrained(pretrained_model_name, **model_config)
     assert transformers.AutoModelForSequenceClassification.from_config is not None, 'AutoModelForSequenceClassification has from_config method'
-    
+
     config.return_dict = False
     # Padding for divisibility by 8
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
-
+     
     if use_pretrained:
-        raise NotImplementedError('The `use_pretrained` option is not currently supported for mosaic_bert. Please set `use_pretrained=False`.')
+        assert pretrained_checkpoint is not None, "If use_pretrained=True, pretrained_checkpoint cannot be None."
+        model = BertForSequenceClassification(pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
         model = BertForSequenceClassification(config)
+
+
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore

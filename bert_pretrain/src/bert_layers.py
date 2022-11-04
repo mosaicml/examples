@@ -689,6 +689,29 @@ class BertForSequenceClassification(BertPreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
+
+    @classmethod
+    def from_pretrained(cls, pretrained_checkpoint, state_dict=None, cache_dir=None,
+                        from_tf=False, config=None, *inputs, **kwargs):
+        """
+            Load from pre-trained.
+        """
+        model = cls(config, *inputs, **kwargs)
+        if from_tf:
+            raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
+
+        checkpoint = torch.load(pretrained_checkpoint)
+        model_weights = checkpoint['model']
+        missing_keys, unexpected_keys = model.load_state_dict(model_weights, strict=False)
+
+        if len(missing_keys) > 0:
+            logger.warning(f"Found these missing keys in the checkpoint: {', '.join(missing_keys)}")
+        if len(unexpected_keys) > 0:
+            logger.warning(f"Found these unexpected keys in the checkpoint: {', '.join(unexpected_keys)}")
+
+        return model
+
+
     def forward(
         self,
         input_ids: Optional[torch.Tensor] = None,
