@@ -28,9 +28,11 @@ from einops import rearrange, repeat
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
-from src.bert_padding import pad_input, unpad_input
-from src.flash_attn_triton import flash_attn_qkvpacked_func
+# from src.bert_padding import pad_input, unpad_input
+# from src.flash_attn_triton import flash_attn_qkvpacked_func
 
+from bert_padding import pad_input, unpad_input
+from flash_attn_triton import flash_attn_qkvpacked_func
 
 logger = logging.getLogger(__name__)
 
@@ -176,15 +178,17 @@ class BertUnpadSelfAttention(nn.Module):
         qkv = self.Wqkv(hidden_states)
         qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
-        orig_dtype = qkv.dtype
-        qkv = qkv.to(torch.float16).to("cuda") # only supports fp16 and bf16
-        bias_dtype = alibi.dtype
-        alibi = alibi.to(torch.float16).to("cuda")
+        if qkv.dtype not in [torch.float16, torch.bfloat16]:
+            orig_dtype = qkv.dtype
+            qkv = qkv.to(torch.float16) # only supports fp16 and bf16
+            bias_dtype = alibi.dtype
+            alibi = alibi.to(torch.float16)
         context = flash_attn_qkvpacked_func(qkv, alibi)
         # attn_mask is 0 for attend -10000 for don't
         context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 0)
-        context = context.to(orig_dtype)
-        alibi = alibi.to(bias_dtype)
+        if qkv.dtype not in [torch.float16, torch.bfloat16]:
+            context = context.to(orig_dtype)
+            alibi = alibi.to(bias_dtype)
         return rearrange(context, 'nnz h d -> nnz (h d)')
 
 
