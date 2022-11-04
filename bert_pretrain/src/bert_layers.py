@@ -25,11 +25,12 @@ from typing import Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
-from flash_attn.bert_padding import pad_input, unpad_input
-from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
+from bert_padding import pad_input, unpad_input
+# from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
+from flash_attn_triton import flash_attn_qkvpacked_func
 # from src.bert_padding import pad_input, unpad_input
 
 
@@ -161,10 +162,10 @@ class BertUnpadSelfAttention(nn.Module):
         self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-
+        self.p_dropout = 0.0 # for flashibi
         self.Wqkv = nn.Linear(self.all_head_size, 3 * config.hidden_size)
 
-    def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, alibi=None):
+    def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, indices=None, attn_mask=None, alibi=None):
         """
         Arguments:
             hidden_states: (total_nnz, dim)
@@ -175,14 +176,17 @@ class BertUnpadSelfAttention(nn.Module):
             context: (total_nnz, dim)
         """
         qkv = self.Wqkv(hidden_states)
-        qkv = rearrange(qkv, 'nnz (t h d) -> nnz t h d', t=3, h=self.num_attention_heads)
+        qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
+        qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
         orig_dtype = qkv.dtype
-        qkv = qkv.to(torch.float16)
-        context = flash_attn_unpadded_qkvpacked_func(qkv, cu_seqlens, max_seqlen_in_batch,
-                                                     self.p_dropout if self.training else 0.0,
-                                                     attn_bias=alibi)
+        qkv = qkv.to(torch.float16).to("cuda") # only supports fp16 and bf16
+        bias_dtype = alibi.dtype
+        alibi = alibi.to(torch.float16).to("cuda")
+        context = flash_attn_qkvpacked_func(qkv, alibi)
+        context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 1)
         context = context.to(orig_dtype)
-        return rearrange(context, 'nnz h d -> nnz (h d)'), hidden_states
+        alibi = alibi.to(bias_dtype)
+        return rearrange(context, 'nnz h d -> nnz (h d)')
 
 
 class BertUnpadAttention(nn.Module):
@@ -192,11 +196,11 @@ class BertUnpadAttention(nn.Module):
         self.self = BertUnpadSelfAttention(config)
         self.output = BertSelfOutput(config)
 
-    def forward(self, input_tensor, cu_seqlens, max_s, subset_idx=None, alibi=None):
+    def forward(self, input_tensor, cu_seqlens, max_s, subset_idx=None, indices=None, attn_mask=None, alibi=None):
         """subset_idx: set of indices whose values we care about at the end of the layer
         (e.g., the masked tokens, if this is the final layer).
         """
-        self_output = self.self(input_tensor, cu_seqlens, max_s, alibi)
+        self_output = self.self(input_tensor, cu_seqlens, max_s, indices, attn_mask, alibi)
         if subset_idx is not None:
             return self.output(index_first_axis(self_output, subset_idx), index_first_axis(input_tensor, subset_idx))
         else:
@@ -237,11 +241,11 @@ class BertLayer(nn.Module):
         self.attention = BertUnpadAttention(config)
         self.mlp = BertGatedLinearUnitMLP(config)
 
-    def forward(self, hidden_states, cu_seqlens, seqlen, subset_idx=None, alibi=None):
+    def forward(self, hidden_states, cu_seqlens, seqlen, subset_idx=None, indices=None, attn_mask=None, alibi=None):
         """subset_idx: set of indices whose values we care about at the end of the layer
         (e.g., the masked tokens, if this is the final layer).
         """
-        attention_output = self.attention(hidden_states, cu_seqlens, seqlen, subset_idx, alibi)
+        attention_output = self.attention(hidden_states, cu_seqlens, seqlen, subset_idx, indices, attn_mask, alibi)
         layer_output = self.mlp(attention_output)
         return layer_output
 
@@ -311,7 +315,7 @@ class BertEncoder(nn.Module):
 
         if subset_mask is None:
             for layer_module in self.layer:
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, alibi_bias)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attn_mask=extended_attention_mask, alibi=alibi_bias)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             # Pad inputs and mask. It will insert back zero-padded tokens. Assume ntokens is total number of tokens (padded and non-padded)
@@ -321,11 +325,11 @@ class BertEncoder(nn.Module):
         else:
             for i in range(len(self.layer) - 1):
                 layer_module = self.layer[i]
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, alibi_bias)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attn_mask=extended_attention_mask, alibi=alibi_bias)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             subset_idx = torch.nonzero(subset_mask[attention_mask_bool], as_tuple=False).flatten()
-            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, alibi=alibi_bias)
+            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, indices=indices, attn_mask=extended_attention_mask, alibi=alibi_bias)
 
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
