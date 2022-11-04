@@ -183,7 +183,8 @@ class BertUnpadSelfAttention(nn.Module):
         bias_dtype = alibi.dtype
         alibi = alibi.to(torch.float16).to("cuda")
         context = flash_attn_qkvpacked_func(qkv, alibi)
-        context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 1)
+        # attn_mask is 0 for attend -10000 for don't
+        context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 0)
         context = context.to(orig_dtype)
         alibi = alibi.to(bias_dtype)
         return rearrange(context, 'nnz h d -> nnz (h d)')
