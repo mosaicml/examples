@@ -31,8 +31,6 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     config = transformers.AutoConfig.from_pretrained(pretrained_model_name, **model_config)
     assert transformers.AutoModelForMaskedLM.from_config is not None, 'AutoModelForMaskedLM has from_config method'
     config.return_dict = False
-    config.dense_seq_output = True  # Required BertForMaskedLM
-    config.last_layer_subset = True
     # Padding for divisibility by 8
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
