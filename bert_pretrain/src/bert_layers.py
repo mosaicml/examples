@@ -28,10 +28,8 @@ from einops import rearrange, repeat
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
-from bert_padding import pad_input, unpad_input
-# from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
-from flash_attn_triton import flash_attn_qkvpacked_func
-# from src.bert_padding import pad_input, unpad_input
+from src.bert_padding import pad_input, unpad_input
+from src.flash_attn_triton import flash_attn_qkvpacked_func
 
 
 logger = logging.getLogger(__name__)
@@ -354,7 +352,7 @@ class BertModel(BertPreTrainedModel):
             a batch has varying length sentences.
         `output_all_encoded_layers`: boolean which controls the content of the `encoded_layers` output as described below. Default: `True`.
     Outputs: Tuple of (encoded_layers, pooled_output)
-        `encoded_layers`: controled by `output_all_encoded_layers` argument:
+        `encoded_layers`: controlled by `output_all_encoded_layers` argument:
             - `output_all_encoded_layers=True`: outputs a list of the full sequences of encoded-hidden-states at the end
                 of each attention block (i.e. 12 full sequences for BERT-base, 24 for BERT-large), each
                 encoded-hidden-state is a torch.FloatTensor of size [batch_size, sequence_length, hidden_size],
