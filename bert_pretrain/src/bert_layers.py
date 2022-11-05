@@ -169,22 +169,26 @@ class BertUnpadSelfAttention(nn.Module):
             hidden_states: (total_nnz, dim)
             cu_seqlens: (batch + 1,), torch.int32
             max_seqlen_in_batch: int
-            alibi: (?) attention bias
+            indices: ()
+            attn_mask: ()original attention mask used for padding/unpadding
+            alibi: (?) attention bias and mask summed which tells triton attention what to ignore since it doesn't have a separate mask
         Return:
             context: (total_nnz, dim)
         """
         qkv = self.Wqkv(hidden_states)
         qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
-        orig_dtype = qkv.dtype
-        qkv = qkv.to(torch.float16).to("cuda") # only supports fp16 and bf16
-        bias_dtype = alibi.dtype
-        alibi = alibi.to(torch.float16).to("cuda")
+        if qkv.dtype not in [torch.float16, torch.bfloat16]:
+            orig_dtype = qkv.dtype
+            qkv = qkv.to(torch.float16) # only supports fp16 and bf16
+            bias_dtype = alibi.dtype
+            alibi = alibi.to(torch.float16)
         context = flash_attn_qkvpacked_func(qkv, alibi)
-        # attn_mask is 0 for attend -10000 for don't
-        context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 0)
-        context = context.to(orig_dtype)
-        alibi = alibi.to(bias_dtype)
+        # attn_mask is 1 for attend and 0 for don't
+        context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 1)
+        if qkv.dtype not in [torch.float16, torch.bfloat16]:
+            context = context.to(orig_dtype)
+            alibi = alibi.to(bias_dtype)
         return rearrange(context, 'nnz h d -> nnz (h d)')
 
 
@@ -310,11 +314,11 @@ class BertEncoder(nn.Module):
         hidden_states, indices, cu_seqlens, max_seqlen_in_batch = unpad_input(hidden_states, attention_mask_bool)
         # Add alibi matrix to extended_attention_mask
         alibi_bias = self.alibi[:,:,:max_seqlen_in_batch, :max_seqlen_in_batch]
-        # alibi_attn_mask = extended_attention_mask[:,:,:,:max_seqlen_in_batch] + alibi_bias
+        alibi_attn_mask = extended_attention_mask[:,:,:,:max_seqlen_in_batch] + alibi_bias
 
         if subset_mask is None:
             for layer_module in self.layer:
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attn_mask=extended_attention_mask, alibi=alibi_bias)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attn_mask=attention_mask, alibi=alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             # Pad inputs and mask. It will insert back zero-padded tokens. Assume ntokens is total number of tokens (padded and non-padded)
@@ -324,11 +328,11 @@ class BertEncoder(nn.Module):
         else:
             for i in range(len(self.layer) - 1):
                 layer_module = self.layer[i]
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attn_mask=extended_attention_mask, alibi=alibi_bias)
+                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices, attn_mask=attention_mask, alibi=alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             subset_idx = torch.nonzero(subset_mask[attention_mask_bool], as_tuple=False).flatten()
-            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, indices=indices, attn_mask=extended_attention_mask, alibi=alibi_bias)
+            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx, indices=indices, attn_mask=attention_mask, alibi=alibi_attn_mask)
 
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
