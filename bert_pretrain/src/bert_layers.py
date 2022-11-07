@@ -172,26 +172,40 @@ class BertUnpadSelfAttention(nn.Module):
             cu_seqlens: (batch + 1,), torch.int32
             max_seqlen_in_batch: int
             indices: ()
-            attn_mask: ()original attention mask used for padding/unpadding
+            attn_mask: () original attention mask used for padding/unpadding
             alibi: (?) attention bias and mask summed which tells triton attention what to ignore since it doesn't have a separate mask
         Return:
-            context: (total_nnz, dim)
+            attention: (total_nnz, dim)
         """
         qkv = self.Wqkv(hidden_states)
         qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
-        if qkv.dtype not in [torch.float16, torch.bfloat16]:
-            orig_dtype = qkv.dtype
-            qkv = qkv.to(torch.float16) # only supports fp16 and bf16
-            bias_dtype = alibi.dtype
-            alibi = alibi.to(torch.float16)
-        context = flash_attn_qkvpacked_func(qkv, alibi)
+        if not self.p_dropout:
+            # Triton implementation only supports 0 attention dropout
+            convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
+            if convert_dtype:
+                # Triton implementation only supports fp16 and bf16
+                orig_dtype = qkv.dtype
+                qkv = qkv.to(torch.float16)
+                bias_dtype = alibi.dtype
+                alibi = alibi.to(torch.float16)
+            attention = flash_attn_qkvpacked_func(qkv, alibi)
+            if convert_dtype:
+                attention = attention.to(orig_dtype)
+                alibi = alibi.to(bias_dtype)
+        else:
+            # if we have nonzero attention dropout, (e.g. during fine-tuning) compute attention in PyTorch
+            q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
+            k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
+            v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
+            attention_scores = torch.matmul(q, k) / math.sqrt(self.attention_head_size)
+            attention_scores = attention_scores + alibi
+            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+            attention_probs = self.dropout(attention_probs)
+            attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
         # attn_mask is 1 for attend and 0 for don't
-        context, _, __, ___ = unpad_input(context, torch.squeeze(attn_mask) == 1)
-        if qkv.dtype not in [torch.float16, torch.bfloat16]:
-            context = context.to(orig_dtype)
-            alibi = alibi.to(bias_dtype)
-        return rearrange(context, 'nnz h d -> nnz (h d)')
+        attention, _, __, ___ = unpad_input(attention, torch.squeeze(attn_mask) == 1)
+        return rearrange(attention, 'nnz h d -> nnz (h d)')
 
 
 class BertUnpadAttention(nn.Module):
