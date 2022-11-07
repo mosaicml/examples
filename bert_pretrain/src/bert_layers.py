@@ -28,11 +28,11 @@ from einops import rearrange, repeat
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
-# from src.bert_padding import pad_input, unpad_input
-# from src.flash_attn_triton import flash_attn_qkvpacked_func
+from src.bert_padding import pad_input, unpad_input
+from src.flash_attn_triton import flash_attn_qkvpacked_func
 
-from bert_padding import pad_input, unpad_input
-from flash_attn_triton import flash_attn_qkvpacked_func
+# from bert_padding import pad_input, unpad_input
+# from flash_attn_triton import flash_attn_qkvpacked_func
 
 logger = logging.getLogger(__name__)
 
