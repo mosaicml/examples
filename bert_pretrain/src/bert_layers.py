@@ -28,68 +28,11 @@ from einops import rearrange, repeat
 from transformers.modeling_outputs import MaskedLMOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
-from src.bert_padding import pad_input, unpad_input
+from src.bert_padding import pad_input, unpad_input, index_first_axis, index_put_first_axis
 from src.flash_attn_triton import flash_attn_qkvpacked_func
 
-# from bert_padding import pad_input, unpad_input
-# from flash_attn_triton import flash_attn_qkvpacked_func
 
 logger = logging.getLogger(__name__)
-
-
-# TODO If it works, try moving these to bert_padding.py
-class IndexFirstAxis(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, input, indices):
-        ctx.save_for_backward(indices)
-        ctx.first_axis_dim = input.shape[0]
-        assert input.ndim == 2
-        # TD [2022-03-04] For some reason torch.gather is a bit faster than indexing.
-        # return input[indices]
-        return torch.gather(input, 0, repeat(indices, 'z -> z d', d=input.shape[1]))
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        indices, = ctx.saved_tensors
-        grad_input = torch.zeros([ctx.first_axis_dim, *grad_output.shape[1:]],
-                                 device=grad_output.device,
-                                 dtype=grad_output.dtype)
-        # TD [2022-03-04] For some reason torch.scatter is a bit faster than indexing.
-        # grad_input[indices] = grad_output
-        grad_input.scatter_(0, repeat(indices, 'z -> z d', d=grad_output.shape[1]), grad_output)
-        return grad_input, None
-
-
-index_first_axis = IndexFirstAxis.apply
-
-class IndexPutFirstAxis(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, values, indices, first_axis_dim):
-        ctx.save_for_backward(indices)
-        assert indices.ndim == 1
-        assert values.ndim == 2
-        output = torch.zeros(first_axis_dim, values.shape[1], device=values.device,
-                             dtype=values.dtype)
-        # TD [2022-03-04] For some reason torch.scatter is a bit faster than indexing.
-        # output[indices] = values
-        output.scatter_(0, repeat(indices, 'z -> z d', d=values.shape[1]), values)
-        return output
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        indices, = ctx.saved_tensors
-        # TD [2022-03-04] For some reason torch.gather is a bit faster than indexing.
-        # grad_values = grad_output[indices]
-        grad_values = torch.gather(grad_output, 0, repeat(indices, 'z -> z d', d=grad_output.shape[1]))
-        return grad_values, None, None
-
-
-index_put_first_axis = IndexPutFirstAxis.apply
-
-def load_tf_weights_in_bert(model, tf_checkpoint_path, use_fast_mha=False):
-    pass
 
 
 class BertEmbeddings(nn.Module):
@@ -165,7 +108,7 @@ class BertUnpadSelfAttention(nn.Module):
         self.p_dropout = config.attention_probs_dropout_prob # for flashibi to work this must be 0 for now
         self.Wqkv = nn.Linear(self.all_head_size, 3 * config.hidden_size)
 
-    def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, indices=None, attn_mask=None, alibi=None):
+    def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, indices, attn_mask, alibi):
         """
         Arguments:
             hidden_states: (total_nnz, dim)
@@ -189,10 +132,11 @@ class BertUnpadSelfAttention(nn.Module):
                 qkv = qkv.to(torch.float16)
                 bias_dtype = alibi.dtype
                 alibi = alibi.to(torch.float16)
-            attention = flash_attn_qkvpacked_func(qkv, alibi)
-            if convert_dtype:
+                attention = flash_attn_qkvpacked_func(qkv, alibi)
                 attention = attention.to(orig_dtype)
                 alibi = alibi.to(bias_dtype)
+            else:
+                attention = flash_attn_qkvpacked_func(qkv, alibi)
         else:
             # if we have nonzero attention dropout, (e.g. during fine-tuning) compute attention in PyTorch
             q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
@@ -510,7 +454,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         """
         model = cls(config, *inputs, **kwargs)
         if from_tf:
-            load_tf_weights_in_bert(model, pretrained_checkpoint)
+            raise ValueError("Mosaic BertForMaskedLM does not support TensorFlow; set from_tf=False")
         checkpoint = torch.load(pretrained_checkpoint)
         model_weights = checkpoint['model']
         hidden_size = config.hidden_size
