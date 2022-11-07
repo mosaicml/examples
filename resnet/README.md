@@ -22,107 +22,140 @@
 </p>
 <br />
 
+# Mosaic ResNet
+This folder contains starter code for training [torchvision ResNet architectures](https://pytorch.org/vision/stable/models.html) using our most efficient training recipes, see our [short blog](https://www.mosaicml.com/blog/mosaic-resnet) or [long blog](https://www.mosaicml.com/blog/mosaic-resnet-deep-dive) for details. These recipes were developed to hit baseline accuracy on [ImageNet](https://www.image-net.org/) 7x faster or to maximize ImageNet accuracy over long training durations. Although these recipes were developed for training ResNet on ImageNet, they could be used to train other image classification models on other datasets. Give it a try!
+
+The specific files in this folder are:
+* `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
+* `data.py` - A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
+* `main.py` - A script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
+* `yamls/`
+  * `resnet50.yaml` - Configuration for a ResNet50 training run to be used as the first argument to `main.py`
+  * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
+
+Now that you've had a chance to explore the code, let's jump into the prerequisites for training:
+
 # Prequisites
 
-* [MosaicML's Resnet50 Recipes Docker Image](https://hub.docker.com/r/mosaicml/pytorch_vision/tags)
-   * Tag: `mosaicml/pytorch_vision:resnet50_recipes`
-   * The image comes pre-configured with the following dependencies:
-      * Mosaic ResNet Training recipes
-      * Training entrypoint: `train.py`
-      * Composer Version: [0.7.1](https://github.com/mosaicml/composer/tree/v0.7.1)
-      * PyTorch Version: 1.11.0
-      * CUDA Version: 11.3
-      * Python Version: 1.9
-      * Ubuntu Version: 20.04
-* [Docker](https://www.docker.com/) or your container orchestration framework of choice
-* [Imagenet Dataset](http://www.image-net.org/)
-* System with Nvidia GPUs
-    
-# Selecting a Recipe
+Here's what you need to train:
 
-As described in our [blog post](https://www.mosaicml.com/blog/mosaic-resnet):
-> We actually cooked up three Mosaic ResNet recipes – which we call Mild, Medium, and Hot – to suit a range of requirements. 
-> The Mild recipe is for shorter training runs, the Medium recipe is for longer training runs, and the Hot recipe is for the very 
-> longest training runs that maximize accuracy. 
+* Docker image with PyTorch 1.12+, e.g. [MosaicML's PyTorch image](https://hub.docker.com/r/mosaicml/pytorch/tags)
+   * Recommended tag: `mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04`
+   * The image comes pre-configured with the following dependencies:
+      * PyTorch Version: 1.12.1
+      * CUDA Version: 11.6
+      * Python Version: 3.9
+      * Ubuntu Version: 20.04
+* [Imagenet Dataset](http://www.image-net.org/) must be stored either locally or uploaded to an S3 bucket after converting to a streaming format using [this script](https://github.com/mosaicml/streaming/blob/86a9b95189e8b292a8c7880a1c49dc55d1895544/streaming/vision/convert/imagenet.py)
+* System with NVIDIA GPUs
+* Install requirements via `pip install -r requirements.txt` which installs:
+  * `composer`
+  * `streaming` - MosaicML's streaming dataset
+  * `wandb` - Weights and Biases for experiment tracking
+  * `omegaconf` - Configuration management
+
+# Test Dataloader
+
+This benchmark assumes that ImageNet is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. Information on downloading ImageNet can be found [here](https://www.image-net.org/download.php). Alternatively, you can train on other image classification datasets. The local dataset code assumes your data is in the [torchvision ImageFolder](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html) format.
+
+The below command will test if your data is setup appropriately:
+```bash
+# Test locally stored dataset
+python data.py path/to/data
+
+# Test remote storage dataset
+python data.py s3://my-bucket/my-dir/data /tmp/path/to/local
+```
+
+# How to start training
+
+Now that you've installed dependencies and tested your dataset, let's start training!
+
+**Please remember** to edit the `path` and (if streaming) `local` paths in the yaml to point to your data.
+
+### Single-Node training
+We run the `main.py` script using our `composer` launcher, which generates a process for each device.
+
+If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is :
+
+```bash
+composer main.py yamls/resnet50.yaml
+```
+
+To train with high performance on multi-node clusters, the easiest way is with MosaicML Cloud ;)
+
+But if you really must try this manually on your own cluster, then just provide a few variables to `composer`
+either directly via CLI, or via environment variables that can be read. Then launch the appropriate command on each node:
+
+### Multi-Node via CLI args
+```bash
+# Using 2 nodes with 8 devices each
+# Total world size is 16
+# IP Address for Node 0 = [0.0.0.0]
+
+# Node 0
+composer --world_size 16 --node_rank 0 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/resnet50.yaml
+
+# Node 1
+composer --world_size 16 --node_rank 1 --master_addr 0.0.0.0 --master_port 7501 main.py main.py yamls/resnet50.yaml
+```
+
+### Multi-Node via environment variables
+```bash
+# Using 2 nodes with 8 devices each
+# Total world size is 16
+# IP Address for Node 0 = [0.0.0.0]
+
+# Node 0
+# export WORLD_SIZE=16
+# export NODE_RANK=0
+# export MASTER_ADDR=0.0.0.0
+# export MASTER_PORT=7501
+composer main.py yamls/resnet50.yaml
+
+# Node 1
+# export WORLD_SIZE=16
+# export NODE_RANK=1
+# export MASTER_ADDR=0.0.0.0
+# export MASTER_PORT=7501
+composer main.py yamls/resnet50.yaml
+```
+
+### Results
+You should see logs being printed to your terminal like so.
+You can also easily enable other experiment trackers like Weights and Biases or CometML,
+by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.10.0/trainer/logging.html).
+
+```bash
+logggggssssss
+```
+# Using Mosaic Recipes
+
+As described in our [ResNet blog post](https://www.mosaicml.com/blog/mosaic-resnet), we cooked up three recipes to train ResNet faster and with higher accuracy:
+- **Mild** recipe is for shorter training runs
+- **Medium** recipe is for longer training runs
+- **Hot** recipe is for the very longest training runs that maximize accuracy
 
 <img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%"/>
 
-To reproduce a specific run, two pieces of information are required:
+To use a recipe, use the `recipe_name` argument to specify the recipe. Specifying a recipe will change several aspects of the training run:
+1. Set the loss function to binary cross entropy instead of standard cross entropy since this has been shown to improve acurracy.
+2. Set the train crop size to 176 instead of 224 and evaluation resize size to 232 from 256. This has been show to improve accuracy and the smaller train crop size increases throughput.
+3.  Set the number of training epochs to the optimal value for each training recipe. Feel free to change these in `resnet50.yaml` to better suite your task.
+4.  Specifies unique sets of speedup methods for model training.
 
-1. `recipe_yaml_path`: Path to the configuration file specifying the model and training parameters unique to each recipe.
+Here is an example command to run the mild recipe on a single-node:
+```bash
+composer main.py yamls/resnet50.yaml recipe_name=mild
+```
 
-1. `scale_schedule_ratio`: Factor which scales the duration of a particular run.
+# Saving and Loading checkpoints
 
-**Note:** The `scale_schedule_ratio` is a scaling factor for `max_duration`, each recipe sets a default `max_duration = 90ep`(epochs).  Thus a run with `scale_schedule_ratio = 0.3` will run for `90 * 0.3 = 27` epochs.
+At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please uncomment and specify the arugments if you need to save or load weights!
 
-First, choose a recipe you would like to work with: [`Mild`, `Medium`, `Hot`].  This will determine which configuration file, `recipe_yaml_path`, you will need to specify. 
+# On memory constraints
+In previous blogs ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
+we demonstrated Auto Grad Accum, which allows Composer to determine `grad_accum` on its own. This means the same configuration can be run on different hardware or on a fewer number of devices without having to manually adjust the gradient accumulation! We have done extensive testing on this feature, but if there are any issues you can manually set `grad_accum` to your desired value.
 
-Next, determine the proper `scale_schedule_ratio` to specify to reproduce the desired run by using MosaicML's [Explorer](https://explorer.mosaicml.com).  Explorer enables users to identify the most cost effective way to run training workloads across clouds and on different types of hardware backends for a variety of models and datasets.  For this tutorial, we will focus on the [Mosaic ResNet run data](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_hot&recipe=mosaicml_medium&recipe=mosaicml_mild).
-
-The table below provides the `recipe_yaml_path` for the selected recipe and a link to the corresponding Explorer page which can be used to select a specific run and obtain the corresponding value for `scale_schedule_ratio`:
-
-   | Recipe | `recipe_yaml_path` | Explorer link |
-   | --- | --- | --- |
-   | Mild | `recipes/resnet50_mild.yaml` | [Mosaic Resnet Mild](https://explorer.mosaicml.com/imagenet?sortBy=timeSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_mosaicml&recipe=mosaicml_mild) |
-   | Medium | `recipes/renset50_medium.yaml` | [Mosaic Resnet Medium](https://explorer.mosaicml.com/imagenet?sortBy=timeSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_mosaicml&recipe=mosaicml_medium) |
-   | Hot | `recipes/resnet50_hot.yaml` | [Mosaic Resnet Hot](https://explorer.mosaicml.com/imagenet?sortBy=timeSameQuality&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_mosaicml&recipe=mosaicml_hot) |
-
-You can also compare all three recipes [here](https://explorer.mosaicml.com/imagenet?compare=recipe&sortBy=timeSameQuality&model=resnet50&cloud=mosaicml&hardware=all&algorithms=all&baseline=r50_optimized_mosaicml&recipe=mosaicml_hot&recipe=mosaicml_medium&recipe=mosaicml_mild&recipe=mosaicml_baseline).
-
-In this tutorial we will using the `Mild` recipe and reproduce [this run](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&selected=fks-short-timing-r6z2-seed-17-ssr0.32&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_mild) which results in a Top-1 accuracy of 76.19%.  Thus, we see from the table above that the `recipe_yaml_path = recipes/resnet50_mild.yaml` and from Explorer that `scale_schedule_ratio = 0.32` for the desired run.
-
-# Running a Recipe
-
-Now that we've selected a recipe and determined the `recipe_yaml_path` and `scale_schedule_ratio` to specify, let's kick off a training run.
-
-1. Launch a Docker container using the `mosaicml/pytorch_vision:resnet50_recipes` image on your training system.
-   
-   ```
-   docker pull mosaicml/pytorch_vision:resnet50_recipes
-   docker run -it mosaicml/pytorch_vision:resnet50_recipes
-   ``` 
-   **Note:** The `mosaicml/resnet50_recipes` Docker image can also be used with your container orchestration framework of choice.
-
-1. Download the ImageNet dataset from http://www.image-net.org/.
-
-1. Create the dataset folder and extract training and validation images to the appropriate subfolders.
-   The [following script](https://github.com/pytorch/examples/blob/main/imagenet/extract_ILSVRC.sh) can be used to faciliate this process.
-   Be sure to note the directory path of where you extracted the dataset.
-
-   **Note:** This tutorial assumes that the dataset is installed to the `/tmp/ImageNet` path.
-
-1. The `Mild` and `Medium` recipes require converting the ImageNet dataset to FFCV format.  *This conversion step is only required to be performed once, once converted files can be stashed away for reuse with subsequent runs.*  The `Hot` recipe uses the original ImageNet data.
-
-   1. Download the helper conversion script:
-   
-      ```
-      wget -P /tmp https://raw.githubusercontent.com/mosaicml/composer/v0.7.1/scripts/ffcv/create_ffcv_datasets.py
-      ```
-
-   1. Convert the training and validation datasets.
-
-      ```
-      python /tmp/create_ffcv_datasets.py --dataset imagenet --split train --datadir /tmp/ImageNet/
-      python /tmp/create_ffcv_datasets.py --dataset imagenet --split val --datadir /tmp/ImageNet/
-      ```
-
-      **Note:** The helper script output the FFCV formatted dataset files to `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` 
-      for the training and validation data, respectively.
-
-1. Launch the training run.
-
-   ```
-   composer -n {num_gpus} train.py -f {recipe_yaml_path} --scale_schedule_ratio {scale_schedule_ratio}
-   ```
-
-   Replace `num_gpus`, `recipe_yaml_path` and `scale_schedule_ratio` with the total number of GPU's, the recipe configuration, and the scale schedule ratio we determined in the previous section for the desired run, respectively.
-
-   **Note:** The `Mild` and `Medium` recipes assume the training and validation data is stored at the `/tmp/imagenet_train.ffcv` and `/tmp/imagenet_val.ffcv` paths while the `Hot` recipe assumes the original ImageNet dataset is stored at the `/tmp/ImageNet` path.  The default dataset paths can be overridden, please run `composer -n {num_gpus} train.py -f {recipe_yaml_path} --help` for more detailed recipe specific configuration information.
-   
-   Example:
-   
-   ```
-   composer -n 8 train.py -f recipes/resnet50_mild.yaml --scale_schedule_ratio 0.32
-   ```
-
-   The example above will train on 8 GPU's using the `Mild` recipe with a scale schedule ratio of 0.32.  You can compare your run's final Top-1 accuracy and time to train to [our result](https://explorer.mosaicml.com/imagenet?sortBy=costSameQuality&selected=fks-short-timing-r6z2-seed-17-ssr0.32&model=resnet50&cloud=all&hardware=all&algorithms=all&baseline=r50_optimized_p4d&recipe=mosaicml_mild). 
+# Contact Us
+If you run into any problems with the code, please file Github issues directly to this repo.

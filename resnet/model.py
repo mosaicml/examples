@@ -1,14 +1,14 @@
 from typing import Optional
 
 import torch
-from torchmetrics import MetricCollection, Accuracy
+from torchmetrics import Accuracy, MetricCollection
 from torchvision.models import resnet
 
 from composer.loss import binary_cross_entropy_with_logits, soft_cross_entropy
 from composer.metrics import CrossEntropy
 from composer.models import ComposerClassifier
 
-def build_composer_resnet(model_name: Optional[str] = 'resnet50', loss_name: Optional[str] = 'cross_entropy'):
+def build_composer_resnet(model_name: Optional[str] = 'resnet50', loss_name: Optional[str] = 'cross_entropy', num_classes: Optional[int] = 1000):
     """
     Helper function to build a Composer ResNet model.
 
@@ -17,9 +17,10 @@ def build_composer_resnet(model_name: Optional[str] = 'resnet50', loss_name: Opt
             ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet151']. Default: ``'resnet50'``.
         loss_name (str, optional): Name of the loss function to use, either ['cross_entropy', 'binary_cross_entropy'].
             Default: ``'cross_entropy'``.
+        num_classes (int, optional): Number of classes in the classification task. Default: ``1000``.
     """
     model_fn = getattr(resnet, model_name)
-    model = model_fn(num_classes=1000, groups=1, width_per_group=64)
+    model = model_fn(num_classes=num_classes, groups=1, width_per_group=64)
 
     # Specify model initialization
     def weight_init(w: torch.nn.Module):

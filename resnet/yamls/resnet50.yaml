@@ -2,11 +2,13 @@ run_name: r50_i1k_baseline # Name of the  training run used for checkpointing an
 is_train: true             # Trains the model if true, otherwise runs evaluation
 seed: 17                   # Random seed
 max_duration: 90ep         # Duration to train specified as a Time string
+grad_accum: 'auto'         # Amount of gradient accumulation, 'auto' means Composer will choose the optimal value
 
 # Model
 model:
   name: resnet50           # Name of the ResNet model to train either resnet{18, 34, 50, 101, 152}
   loss_name: cross_entropy # Name of the loss function either 'cross_entropy' or 'binary_cross_entropy'
+  num_classes: 1000        # Number of classes in the classification task
 
 # Training Dataset Parameters
 train_dataset:
@@ -19,7 +21,7 @@ train_dataset:
 
 # Validation Dataset Parameters
 eval_dataset:
-  is_streaming: true                     # Type must be either ['streaming', 'local', 'synthetic']
+  is_streaming: true                    # Type must be either ['streaming', 'local', 'synthetic']
   path: s3://my-bucket/my-imagenet      # S3 bucket if streaming, otherwise path to local data
   local: /tmp/mds-cache/mds-imagenet1k/ # Local cache when streaming data
   resize_size: 256                      # Evaluation image resize size before crop
@@ -44,7 +46,7 @@ loggers:
     # project: # Name of WandB project
     # group:   # Name of WandB group
 
-# Set to null for baseline or either ["mild", "medium", "spicy"] in order of increasing training time and accuracy
+# null for baseline or for recipe, either ["mild", "medium", "spicy"] in order of increasing training time and accuracy
 recipe_name: null
 
 # Updated parameters for mild recipe
@@ -69,9 +71,9 @@ hot:
   max_duration: 270ep
 
 # Save checkpoint parameters
-save_folder: null # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-save_interval: 10ep # Interval to checkpoint based on time string
-save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
+# save_folder: null               # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+# save_interval: 10ep             # Interval to checkpoint based on time string
+# save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
 
 # Load checkpoint parameters
-load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)
+# load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)

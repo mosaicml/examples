@@ -198,3 +198,22 @@ def build_imagenet_dataspec(
         ),
         device_transforms=device_transform_fn,
     )
+
+# Helpful to test if your dataloader is working locally
+# Run `python data.py datadir` to test local
+# Run `python data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming dataset
+if __name__ == '__main__':
+    import sys
+    from itertools import islice
+    path = sys.argv[1]
+
+    batch_size = 2
+    if len(sys.argv) > 2:
+        local = sys.argv[2]
+        dataspec = build_streaming_imagenet_dataspec(remote=path, local=local, batch_size=batch_size)
+    else:
+        dataspec = build_imagenet_dataspec(datadir=path, batch_size=batch_size)
+
+    print('Running 5 batchs of dataloader')
+    for batch_ix, batch in enumerate(islice(dataspec.dataloader, 5)):
+        print(batch_ix, ': Image batch shape:', batch[0].shape, 'Target batch shape:')

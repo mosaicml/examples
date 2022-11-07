@@ -9,6 +9,7 @@ integrations:
     git_branch: landan/resnet_benchmark
 command: |
   cd benchmarks/resnet
+  pip install -r requirments.txt
   composer train.py /mnt/config/parameters.yaml
 
 # Configuration copied from baseline.yaml
@@ -17,6 +18,7 @@ parameters:
   is_train: true             # Trains the model if true, otherwise runs evaluation
   seed: 17                   # Random seed
   max_duration: 90ep         # Duration to train specified as a Time string
+  grad_accum: 'auto'         # Amount of gradient accumulation, 'auto' means Composer will choose the optimal value
 
   # Model
   model:
@@ -59,7 +61,7 @@ parameters:
       # project: # Name of WandB project
       # group:   # Name of WandB group
 
-  # Set to null for baseline or either ["mild", "medium", "spicy"] in order of increasing training time and accuracy
+  # Set to null for baseline or for recipe, either ["mild", "medium", "spicy"] for increasing training time and accuracy
   recipe_name: null
 
   # Updated parameters for mild recipe
@@ -84,9 +86,9 @@ parameters:
     max_duration: 270ep
 
   # Save checkpoint parameters
-  save_folder: null # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-  save_interval: 10ep # Interval to checkpoint based on time string
-  save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
+  # save_folder: null # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+  # save_interval: 10ep # Interval to checkpoint based on time string
+  # save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
 
   # Load checkpoint parameters
-  load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)
+  # load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)

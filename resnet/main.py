@@ -111,7 +111,9 @@ def main(config):
 
     # Instantiate torchvision ResNet model
     print('Building Composer model')
-    composer_model = build_composer_resnet(model_name=config.model.name, loss_name=config.model.loss_name)
+    composer_model = build_composer_resnet(model_name=config.model.name,
+                                           loss_name=config.model.loss_name,
+                                           num_classes=config.num_classes)
     print('Built Composer model\n')
 
     # Optimizer
@@ -205,7 +207,7 @@ def main(config):
                       load_path=config.load_path,
                       device=device,
                       precision=precision,
-                      grad_accum='auto',
+                      grad_accum=config.grad_accum,
                       seed=config.seed)
     print('Built Trainer\n')
 
