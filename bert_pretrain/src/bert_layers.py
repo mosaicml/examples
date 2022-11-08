@@ -168,6 +168,9 @@ class BertUnpadSelfAttention(nn.Module):
             hidden_states: (total_nnz, dim)
             cu_seqlens: (batch + 1,), torch.int32
             max_seqlen_in_batch: int
+            indices: (total_nnz,), torch.int32
+            attn_mask: (batch, max_seqlen_in_batch), torch.int32
+            alibi_attn_mask: (batch, heads, max_seqlen_in_batch, max_seqlen_in_batch), torch tensor
         Return:
             context: (total_nnz, dim)
         """
@@ -182,7 +185,7 @@ class BertUnpadSelfAttention(nn.Module):
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
         attention_probs = self.dropout(attention_probs)
         attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
-        # attn_mask is nonstandard and uses 1 for attend, 0 for ignore
+        # attn_mask uses 1 for attend, 0 for ignore
         attention, _, __, ___ = unpad_input(attention, torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
 
