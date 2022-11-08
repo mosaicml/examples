@@ -7,16 +7,24 @@
 
 # Mosaic BERT
 
-This folder contains starter code for training BERT with Composer. Our goal was to apply a combination of tricks to seriously improve training time, and to package it a way that's easy for you to use on your own problems. We apply [ALiBi](source), [Gated Linear Units](source), ["The Unpadding Trick"](source), and [FusedLayerNorm](source) and get them to play nicely.
+This folder contains starter code for training various BERT models: **(TBD FILL IN)**. Our goal was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems. We apply [ALiBi (Press et al, 2021)](https://arxiv.org/abs/2108.12409v1), [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202), ["The Unpadding Trick" (does anyone have a source/name for this? HazyResearch's 2021 MLPerf submission?)](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py), [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html), and [FlashAttention (Tri Dao, 2022)](https://arxiv.org/abs/2205.14135)... and get them to work together. To our knowledge, many of these methods have never been combined before.
 
-Though we achieve a (TBD) speedup over (reference), we have even more tricks up our sleeve which you can only get access to on the [MosaicML Cloud](https://www.mosaicml.com/)!
+Though we achieve a **(TBD FILL IN)** speedup over **(TBD FILL IN)**, there are further speedups which you can only get access to on the [MosaicML Cloud](https://www.mosaicml.com/)!
 
 You'll find in this folder:
-* `src/hf_bert.py` - a modified HuggingFace BERT model, wrapped in `ComposerModel`
-* more stuff
+* This `README.md`
+* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off a training job, locally or on Mosaic's cloud
+* `convert_c4.py` — Code for creating a streaming C4 dataset. See [Dataset preparation](#Dataset-preparation)
+* `src/data_c4.py` — a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
+* `src/hf_bert.py` — a modified HuggingFace BERT model, wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.0/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.0/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/bert_padding.py` — Code for reshaping tensors in order to use BERT without padding to the longest sequence length
+* `src/bert_layers.py` — BERT re-implementation with the speed up methods mentioned above, with an eye towards HuggingFace API compatibility
+* `src/mosaic_bert.py` — Our re-implementation of BERT, wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.0/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.0/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `yamls/` - pre-baked configs for training both our sped-up `MosaicBERT` as well as the reference `HuggingFace BERT`
+* `requirements.txt` — All needed Python dependencies
+
 
 # (LLM readme below, need to update)
-
 
 You'll find in this folder:
 * `src/mosaic_gpt.py` - a simple PyTorch GPT model, wrapped in `ComposerModel`, that can scale up to 70B parameters
