@@ -25,7 +25,8 @@ from typing import Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
-from transformers.modeling_outputs import MaskedLMOutput
+from transformers.activations import ACT2FN
+from transformers.modeling_outputs import MaskedLMOutput, SequenceClassifierOutput
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
 from src.bert_padding import pad_input, unpad_input, index_first_axis, index_put_first_axis
@@ -169,7 +170,9 @@ class BertUnpadAttention(nn.Module):
         else:
             return self.output(self_output, input_tensor)
 
+
 class BertGatedLinearUnitMLP(nn.Module):
+
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -197,6 +200,7 @@ class BertGatedLinearUnitMLP(nn.Module):
         hidden_states = self.layernorm(hidden_states + residual_connection)
         return hidden_states
 
+
 class BertLayer(nn.Module):
 
     def __init__(self, config):
@@ -221,7 +225,6 @@ class BertEncoder(nn.Module):
         self.layer = nn.ModuleList([copy.deepcopy(layer) for _ in range(config.num_hidden_layers)])
 
         self.num_attention_heads = config.num_attention_heads
-
         # Alibi
         # Following https://github.com/ofirpress/attention_with_linear_biases/issues/5 (Implementation 1)
         # In the causal case, you can exploit the fact that softmax is invariant to a uniform translation
@@ -299,6 +302,38 @@ class BertEncoder(nn.Module):
         return all_encoder_layers
 
 
+class BertPooler(nn.Module):
+    def __init__(self, config):
+        super(BertPooler, self).__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states, pool=True):
+        # We "pool" the model by simply taking the hidden state corresponding
+        # to the first token.
+        first_token_tensor = hidden_states[:, 0] if pool else hidden_states
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
+
+
+class BertPredictionHeadTransform(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        if isinstance(config.hidden_act, str):
+            self.transform_act_fn = ACT2FN[config.hidden_act]
+        else:
+            self.transform_act_fn = config.hidden_act
+        self.LayerNorm = torch.nn.LayerNorm(config.hidden_size, eps=1e-12)
+
+    def forward(self, hidden_states):
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.transform_act_fn(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states)
+        return hidden_states
+        
+
 class BertModel(BertPreTrainedModel):
     """BERT model ("Bidirectional Embedding Representations from a Transformer").
     Params:
@@ -342,8 +377,7 @@ class BertModel(BertPreTrainedModel):
         super(BertModel, self).__init__(config)
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
-        #self.pooler = BertPooler(config)
-        self.pooler = None
+        self.pooler = BertPooler(config)
         self.post_init()
         #self.apply(self.init_weights)
 
@@ -382,20 +416,30 @@ class BertModel(BertPreTrainedModel):
                                        attention_mask,
                                        output_all_encoded_layers=output_all_encoded_layers,
                                        subset_mask=subset_mask)
-
+                                       
         if masked_tokens_mask is None:
             sequence_output = encoder_outputs[-1]
+            pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
         else:
             # TD [2022-03-01]: the indexing here is very tricky.
             attention_mask_bool = attention_mask.bool()
             subset_idx = subset_mask[attention_mask_bool]  # type: ignore
             sequence_output = encoder_outputs[-1][masked_tokens_mask[attention_mask_bool][subset_idx]]
-
+            if self.pooler is not None:
+                pool_input = encoder_outputs[-1][first_col_mask[attention_mask_bool][subset_idx]]
+                pooled_output = self.pooler(pool_input, pool=False)
+        
         if not output_all_encoded_layers:
             encoder_outputs = sequence_output
+        
+        if self.pooler is not None:
+            return encoder_outputs, pooled_output
+        
         return encoder_outputs, None
 
-
+###################
+# Bert Heads
+###################
 class BertLMPredictionHead(nn.Module):
 
     def __init__(self, config, bert_model_embedding_weights):
@@ -423,9 +467,40 @@ class BertOnlyMLMHead(nn.Module):
         return prediction_scores
 
 
+class BertOnlyNSPHead(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.seq_relationship = nn.Linear(config.hidden_size, 2)
+
+    def forward(self, pooled_output):
+        seq_relationship_score = self.seq_relationship(pooled_output)
+        return seq_relationship_score
+
+
+class BertPreTrainingHeads(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.predictions = BertLMPredictionHead(config)
+        self.seq_relationship = nn.Linear(config.hidden_size, 2)
+
+    def forward(self, sequence_output, pooled_output):
+        prediction_scores = self.predictions(sequence_output)
+        seq_relationship_score = self.seq_relationship(pooled_output)
+        return prediction_scores, seq_relationship_score
+
 #####################
-# Model class
+# Various Bert models
 #####################
+
+class BertForPreTraining(BertPreTrainedModel):
+    #TBD: Coming in Future Commit
+    pass
+
+
+class BertLMHeadModel(BertPreTrainedModel):
+    #TBD: Coming in Future Commit
+    pass
+
 class BertForMaskedLM(BertPreTrainedModel):
 
     def __init__(self, config):
@@ -438,11 +513,6 @@ class BertForMaskedLM(BertPreTrainedModel):
         self.bert = BertModel(config)
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
 
-        # if dense_seq_output, prediction scores are only computed for masked tokens,
-        # and the (bs, seqlen) dimensions are flattened
-        self.dense_seq_output = getattr(config, 'dense_seq_output', False)
-        self.last_layer_subset = getattr(config, 'last_layer_subset', False)
-
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -454,29 +524,17 @@ class BertForMaskedLM(BertPreTrainedModel):
         """
         model = cls(config, *inputs, **kwargs)
         if from_tf:
-            raise ValueError("Mosaic BertForMaskedLM does not support TensorFlow; set from_tf=False")
+            raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
+
         checkpoint = torch.load(pretrained_checkpoint)
         model_weights = checkpoint['model']
-        hidden_size = config.hidden_size
-
-        # Take care of flashAttn weights
-        for i in range(config.num_hidden_layers):
-            for param in ['weight', 'bias']:
-                Wqkv = f'bert.encoder.layer.{i}.attention.self.Wqkv.{param}'
-                query = f'bert.encoder.layer.{i}.attention.self.query.{param}'
-                key = f'bert.encoder.layer.{i}.attention.self.key.{param}'
-                value = f'bert.encoder.layer.{i}.attention.self.value.{param}'
-                model_weights[Wqkv] = torch.cat(
-                        (model_weights[query], model_weights[key], model_weights[value]),
-                        dim=0)
-                model_weights.pop(query)
-                model_weights.pop(key)
-                model_weights.pop(value)
         missing_keys, unexpected_keys = model.load_state_dict(model_weights, strict=False)
+
         if len(missing_keys) > 0:
             logger.warning(f"Found these missing keys in the checkpoint: {', '.join(missing_keys)}")
         if len(unexpected_keys) > 0:
             logger.warning(f"Found these unexpected keys in the checkpoint: {', '.join(unexpected_keys)}")
+
         return model
 
     def get_output_embeddings(self):
@@ -505,12 +563,18 @@ class BertForMaskedLM(BertPreTrainedModel):
             Labels for computing the masked language modeling loss. Indices should be in `[-100, 0, ...,
             config.vocab_size]` (see `input_ids` docstring) Tokens with indices set to `-100` are ignored (masked), the
             loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`
+        
+        Prediction scores are only computed for masked tokens and the (bs, seqlen) dimensions are flattened
         """
         masked_lm_labels = labels
+        
+        if masked_lm_labels is None:
+            raise ValueError('Mosaic BertForMaskedLM requires a labels tensor.')
 
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        return_dict = return_dict if return_dict is not None else self.config.return_dict
 
-        masked_tokens_mask = masked_lm_labels > 0 if (self.last_layer_subset and masked_lm_labels is not None) else None
+        masked_tokens_mask = masked_lm_labels > 0
+
         outputs = self.bert(
             input_ids,
             attention_mask=attention_mask,
@@ -525,25 +589,14 @@ class BertForMaskedLM(BertPreTrainedModel):
             return_dict=return_dict,
             masked_tokens_mask=masked_tokens_mask,
         )
+
         sequence_output = outputs[0]
-
-        masked_token_idx = None
-        if self.dense_seq_output and masked_lm_labels is not None:
-            masked_token_idx = torch.nonzero(masked_lm_labels.flatten() > 0, as_tuple=False).flatten()
-            if not self.last_layer_subset:
-                sequence_output = index_first_axis(rearrange(sequence_output, 'b s d -> (b s) d'), masked_token_idx)
-
         prediction_scores = self.cls(sequence_output)
 
-        # Compute loss in dense_seq_output case and non-dense
-        masked_lm_loss = None
-        if masked_lm_labels is not None:
-            loss_fct = nn.CrossEntropyLoss()  # CrossEntropyLossApex(ignore_index=0)
-            if masked_token_idx is not None:  # prediction_scores are already flattened
-                masked_lm_loss = loss_fct(prediction_scores, masked_lm_labels.flatten()[masked_token_idx])
-            else:
-                # Standard HuggingFace model loss computation
-                masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), masked_lm_labels.view(-1))
+        # Compute loss
+        loss_fct = nn.CrossEntropyLoss()
+        masked_token_idx = torch.nonzero(masked_lm_labels.flatten() > 0, as_tuple=False).flatten()
+        masked_lm_loss = loss_fct(prediction_scores, masked_lm_labels.flatten()[masked_token_idx])
 
         batch, seqlen = input_ids.shape[:2]
         prediction_scores = rearrange(
@@ -553,7 +606,7 @@ class BertForMaskedLM(BertPreTrainedModel):
 
         if not return_dict:
             output = (prediction_scores,) + outputs[2:]
-            return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
+            return ((masked_lm_loss,) + output)
 
         return MaskedLMOutput(
             loss=masked_lm_loss,
@@ -578,3 +631,146 @@ class BertForMaskedLM(BertPreTrainedModel):
         input_ids = torch.cat([input_ids, dummy_token], dim=1)
 
         return {'input_ids': input_ids, 'attention_mask': attention_mask}
+
+
+class BertForNextSentencePrediction(BertPreTrainedModel):
+    #TBD: Push in future commit
+    pass
+
+
+class BertForSequenceClassification(BertPreTrainedModel):
+    """
+    Bert Model transformer with a sequence classification/regression head on top (a linear layer on top of the pooled
+    output) e.g. for GLUE tasks.
+    """
+    def __init__(self, config):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+        self.config = config
+
+        self.bert = BertModel(config)
+        classifier_dropout = (
+            config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
+        )
+        self.dropout = nn.Dropout(classifier_dropout)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+
+        # Initialize weights and apply final processing
+        self.post_init()
+
+
+    @classmethod
+    def from_pretrained(cls, pretrained_checkpoint, state_dict=None, cache_dir=None,
+                        from_tf=False, config=None, *inputs, **kwargs):
+        """
+            Load from pre-trained.
+        """
+        model = cls(config, *inputs, **kwargs)
+        if from_tf:
+            raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
+
+        checkpoint = torch.load(pretrained_checkpoint)
+        model_weights = checkpoint['model']
+        missing_keys, unexpected_keys = model.load_state_dict(model_weights, strict=False)
+
+        if len(missing_keys) > 0:
+            logger.warning(f"Found these missing keys in the checkpoint: {', '.join(missing_keys)}")
+        if len(unexpected_keys) > 0:
+            logger.warning(f"Found these unexpected keys in the checkpoint: {', '.join(unexpected_keys)}")
+
+        return model
+
+
+    def forward(
+        self,
+        input_ids: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        token_type_ids: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.Tensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+    ) -> Union[Tuple[torch.Tensor], SequenceClassifierOutput]:
+        r"""
+        labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
+            Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
+            config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss), If
+            `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
+        """
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+
+        if labels is None:
+            raise ValueError('Mosaic BertForSequenceClassification requires a labels tensor.')
+
+        outputs = self.bert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+
+        pooled_output = outputs[1]
+
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
+
+        # Compute loss
+        loss = None
+        if self.config.problem_type is None:
+            if self.num_labels == 1:
+                self.config.problem_type = "regression"
+            elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                self.config.problem_type = "single_label_classification"
+            else:
+                self.config.problem_type = "multi_label_classification"
+
+        if self.config.problem_type == "regression":
+            loss_fct = nn.MSELoss()
+            if self.num_labels == 1:
+                loss = loss_fct(logits.squeeze(), labels.squeeze())
+            else:
+                loss = loss_fct(logits, labels)
+        elif self.config.problem_type == "single_label_classification":
+            loss_fct = nn.CrossEntropyLoss()
+            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        elif self.config.problem_type == "multi_label_classification":
+            loss_fct = nn.BCEWithLogitsLoss()
+            loss = loss_fct(logits, labels)
+
+        if not return_dict:
+            output = (logits,) + outputs[2:]
+            return ((loss,) + output) if loss is not None else output
+
+        return SequenceClassifierOutput(
+            loss=loss,
+            logits=logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
+        )
+
+
+
+class BertForMultipleChoice(BertPreTrainedModel):
+    #TBD: Push in future commit
+    pass
+
+
+class BertForTokenClassification(BertPreTrainedModel):
+    #TBD: Push in future commit
+    pass
+
+
+class BertForQuestionAnswering(BertPreTrainedModel):
+    """
+    Bert Model with a span classification head on top for extractive question-answering tasks like SQuAD (a linear
+    layers on top of the hidden-states output to compute `span start logits` and `span end logits`).
+    """
+    #TBD: Push in future commit
