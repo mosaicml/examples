@@ -17,7 +17,6 @@ from torchmetrics.regression.spearman import SpearmanCorrCoef
 
 from composer.metrics.nlp import BinaryF1Score, LanguageCrossEntropy, MaskedAccuracy
 
-
 from src.bert_layers import BertForMaskedLM, BertForSequenceClassification
 
 all = ['create_mosaic_bert_mlm', 'create_mosaic_bert_classification']
