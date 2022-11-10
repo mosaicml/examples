@@ -1,0 +1,5 @@
+mosaicml==0.11.0
+mosaicml-streaming<1
+omegaconf<3
+transformers<5
+datasets<3
