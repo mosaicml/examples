@@ -1,7 +1,13 @@
+
+# Copyright 2022 MosaicML Composer authors
+# Copyright (c) 2019-2021 NVIDIA CORPORATION. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Adapted from https://github.com/HazyResearch/flash-attention/blob/main/flash_attn/bert_padding.py
 # Which was adapted from https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/padding.py
 
-from types import NoneType
+"""Helper functions for padding and unpadding batches"""
+
 from typing import Tuple
 import torch
 import torch.nn.functional as F
@@ -25,7 +31,6 @@ class IndexFirstAxis(torch.autograd.Function):
         ctx.first_axis_dim, other_shape = input.shape[0], input.shape[1:]  # type: ignore
         second_dim = other_shape.numel() # product of sizes of all but first dimension
         # TD [2022-03-04] For some reason torch.gather is a bit faster than indexing.
-        # return input[indices]
         return torch.gather(
             rearrange(input, 'b ... -> b (...)'),  # (b, ...) -> (b, second_dim)
             0,
@@ -58,17 +63,13 @@ class IndexPutFirstAxis(torch.autograd.Function):
         assert values.ndim >= 2
         output = torch.zeros(first_axis_dim, *values.shape[1:], device=values.device,
                              dtype=values.dtype)
-        # TD [2022-03-04] For some reason torch.scatter is a bit faster than indexing.
         output[indices] = values
-        # output.scatter_(0, repeat(indices, 'z -> z d', d=values.shape[1]), values)
         return output
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor) -> Tuple[torch.Tensor, None, None]:
         indices, = ctx.saved_tensors
-        # TD [2022-03-04] For some reason torch.gather is a bit faster than indexing.
         grad_values = grad_output[indices]
-        # grad_values = torch.gather(grad_output, 0, repeat(indices, 'z -> z d', d=grad_output.shape[1]))
         return grad_values, None, None
 
 
@@ -99,7 +100,6 @@ def unpad_input(
     # times larger than it needs to be, wasting memory. It's faster and more memory-efficient to
     # index with integer indices. Moreover, torch's index is a bit slower than it needs to be,
     # so we write custom forward and backward to make it a bit faster.
-    # ignore types because linter doesn't know max_seqlen_in_batch will always be an int
     return (
         index_first_axis(rearrange(hidden_states, 'b s ... -> (b s) ...'), indices),
         indices,
@@ -134,8 +134,5 @@ def pad_input(hidden_states: torch.Tensor, indices: torch.Tensor, batch: int, se
     Return:
         hidden_states: (batch, seqlen, ...)
     """
-    # dim = hidden_states.shape[-1]
-    # output = torch.zeros((batch * seqlen), dim, device=hidden_states.device, dtype=hidden_states.dtype)
-    # output[indices] = hidden_states
     output = index_put_first_axis(hidden_states, indices, batch * seqlen)
     return rearrange(output, '(b s) ... -> b s ...', b=batch)

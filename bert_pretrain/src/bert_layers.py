@@ -1,20 +1,9 @@
 # coding=utf-8
 # Copyright 2022 MosaicML Composer authors
-# Copyright 2018 The Google AI Language Team Authors and The HugginFace Inc. team.
+# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
 # Copyright (c) 2018-2021, NVIDIA CORPORATION.  All rights reserved.
 # Copyright (c) 2022, Tri Dao.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 import copy
 import warnings
@@ -330,7 +319,6 @@ class BertEncoder(nn.Module):
             self.parameters()).dtype)  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
 
-        # attention_mask_bool = rearrange(attention_mask, 'b 1 1 s -> b s') == 0.0
         attention_mask_bool = attention_mask.bool()
         batch, seqlen = hidden_states.shape[:2]
         # Unpad inputs and mask. It will remove tokens that are padded. Assume ntokens is total number of tokens 
@@ -446,7 +434,6 @@ class BertModel(BertPreTrainedModel):
         self.encoder = BertEncoder(config)
         self.pooler = BertPooler(config)
         self.post_init()
-        #self.apply(self.init_weights)
 
     def get_input_embeddings(self):
         return self.embeddings.word_embeddings
