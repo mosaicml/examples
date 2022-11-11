@@ -90,7 +90,7 @@ def build_model(cfg):
     elif cfg.name == 'mosaic_bert':
         return create_mosaic_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,
-            use_pretrained=cfg.get('use_pretrained', None),
+            pretrained_checkpoint=cfg.get('pretrained_checkpoint', None),
             model_config=cfg.get('model_config', None),
             tokenizer_name=cfg.get('tokenizer_name', None),
             gradient_checkpointing=cfg.get('gradient_checkpointing', None)
@@ -192,7 +192,9 @@ def main(cfg):
 
 
 if __name__ == '__main__':
-    yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    # yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    yaml_path = 'yamls/test-cpu.yaml'
+    args_list = ['model.name=mosaic_bert']
     with open(yaml_path) as f:
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)

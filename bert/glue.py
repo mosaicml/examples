@@ -23,9 +23,9 @@ from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 
-from ..src.hf_bert import create_hf_bert_classification
-from ..src.mosaic_bert import create_mosaic_bert_classification
-from src.finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob, TASK_NAME_TO_NUM_LABELS
+from src.hf_bert import create_hf_bert_classification
+from src.mosaic_bert import create_mosaic_bert_classification
+from glue_finetuning.src.finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob, TASK_NAME_TO_NUM_LABELS
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,
@@ -358,7 +358,9 @@ def train(config: om.DictConfig) -> None:
     print('-' * 30)
 
     # Join the results and pretty print them
-    all_results = round_1_results | round_2_results
+    all_results = {}
+    all_results.update(round_1_results)
+    all_results.update(round_2_results)
     _print_table(all_results)
 
     # Average the GLUE results across seeds and pretty print them
@@ -380,7 +382,9 @@ def train(config: om.DictConfig) -> None:
 
 
 if __name__ == '__main__':
-    yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    # yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    yaml_path = 'glue_finetuning/yamls/local.yaml'
+    args_list = []
     with open(yaml_path) as f:
         yaml_cfg = om.OmegaConf.load(f)
     cli_cfg = om.OmegaConf.from_cli(args_list)

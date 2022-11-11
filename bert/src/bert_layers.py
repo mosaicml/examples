@@ -30,7 +30,11 @@ from transformers.modeling_outputs import MaskedLMOutput, SequenceClassifierOutp
 from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput)
 
 from src.bert_padding import pad_input, unpad_input, index_first_axis, index_put_first_axis
-from src.flash_attn_triton import flash_attn_qkvpacked_func
+try:
+    from src.flash_attn_triton import flash_attn_qkvpacked_func
+except ImportError as e:
+    flash_attn_qkvpacked_func = None
+
 
 
 logger = logging.getLogger(__name__)
@@ -109,6 +113,10 @@ class BertUnpadSelfAttention(nn.Module):
         self.p_dropout = config.attention_probs_dropout_prob # for flashibi to work this must be 0 for now
         self.Wqkv = nn.Linear(self.all_head_size, 3 * config.hidden_size)
 
+        # Warn if defaulting to pytorch because of import issues
+        if flash_attn_qkvpacked_func is None:
+            warnings.warn('Unable to import Triton; defaulting MosaicBERT attention implementation to pytorch (this will reduce throughput when using this model).')
+
     def forward(self, hidden_states, cu_seqlens, max_seqlen_in_batch, indices, attn_mask, bias):
         """
         Arguments:
@@ -125,7 +133,17 @@ class BertUnpadSelfAttention(nn.Module):
         qkv = self.Wqkv(hidden_states)
         qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
-        if not self.p_dropout:
+        if self.p_dropout or flash_attn_qkvpacked_func is None:
+            # if we have nonzero attention dropout (e.g. during fine-tuning) or no Triton, compute attention in PyTorch
+            q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
+            k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
+            v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
+            attention_scores = torch.matmul(q, k) / math.sqrt(self.attention_head_size)
+            attention_scores = attention_scores + bias
+            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+            attention_probs = self.dropout(attention_probs)
+            attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
+        else:
             # Triton implementation only supports 0 attention dropout
             convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
             if convert_dtype:
@@ -139,16 +157,7 @@ class BertUnpadSelfAttention(nn.Module):
                 bias = bias.to(bias_dtype)
             else:
                 attention = flash_attn_qkvpacked_func(qkv, bias)
-        else:
-            # if we have nonzero attention dropout, (e.g. during fine-tuning) compute attention in PyTorch
-            q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
-            k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
-            v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
-            attention_scores = torch.matmul(q, k) / math.sqrt(self.attention_head_size)
-            attention_scores = attention_scores + bias
-            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-            attention_probs = self.dropout(attention_probs)
-            attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
+            
         # attn_mask is 1 for attend and 0 for don't
         attention, _, __, ___ = unpad_input(attention, torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
@@ -670,9 +679,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
         if from_tf:
             raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
 
-        checkpoint = torch.load(pretrained_checkpoint)
-        model_weights = checkpoint['model']
-        missing_keys, unexpected_keys = model.load_state_dict(model_weights, strict=False)
+        state_dict = torch.load(pretrained_checkpoint)
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
 
         if len(missing_keys) > 0:
             logger.warning(f"Found these missing keys in the checkpoint: {', '.join(missing_keys)}")

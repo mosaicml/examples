@@ -20,7 +20,7 @@ except:
 from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
 
-from data import create_glue_dataset
+from glue_finetuning.src.data import create_glue_dataset
 
 
 def _build_dataloader(dataset, **kwargs):
@@ -112,7 +112,7 @@ class FineTuneJob:
         print(f'Running {self.job_name} on GPU {gpu_id}')
 
         try:
-            gpu = DeviceGPU(gpu_id)
+            gpu = 'cpu' #DeviceGPU(gpu_id)
             trainer = self.get_trainer(device=gpu)
 
             trainer.fit()
@@ -194,7 +194,7 @@ class GlueClassificationJob(FineTuneJob):
                        save_folder=self.save_folder,
                        max_duration=self.max_duration,
                        seed=self.seed,
-                       grad_accum='auto',
+                    #    grad_accum='auto',
                        load_weights_only=True,
                        load_strict_model_weights=False,
                        loggers=self.loggers,

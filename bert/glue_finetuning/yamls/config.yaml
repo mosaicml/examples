@@ -1,7 +1,7 @@
 # Whether to run the various GLUE jobs serially or in parallel
 parallel: true
 
-# Basic run configuration, additionall details will be added to this name for each GLUE task, and each random seed
+# Basic run configuration, additional details will be added to this name for each GLUE task, and each random seed
 base_run_name: glue-finetuning-benchmark
 default_seed: 1111
 precision: bf16
