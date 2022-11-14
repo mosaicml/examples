@@ -14,7 +14,7 @@ Though we achieve a **(TBD FILL IN)** improvement over **(TBD FILL IN)**, there 
 
 ## Motivation
 
-The modal reader of this README likely does not train BERT-style models from scratch, but instead starts with pre-trained weights, likely using code like `model = AutoModel.from_pretrained('bert-base-uncased')`. Such a reader may wonder: why would you train from scratch? See a detailed of the rationale [here](@TODO DO WE HAVE THIS? I FEEL LIKE WE SHOULD) — but in summary, the answer is "better accuracy for a given model size, for reasonable cost."
+The model reader of this README likely does not train BERT-style models from scratch, but instead starts with pre-trained weights, likely using code like `model = AutoModel.from_pretrained('bert-base-uncased')`. Such a reader may wonder: why would you train from scratch? See a detailed of the rationale [here](@TODO DO WE HAVE THIS? I FEEL LIKE WE SHOULD) — but in summary, the answer is "better accuracy for a given model size, for reasonable cost."
 
 There is mounting evidence that pretraining on domain specific data improves downstream evaluation accuracy:
 
