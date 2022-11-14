@@ -178,7 +178,7 @@ def build_imagenet_dataspec(
     else:
         transformations.append(transforms.CenterCrop(crop_size))
 
-    transformations = transforms.Composer(transformations)
+    transformations = transforms.Compose(transformations)
 
     device_transform_fn = NormalizationFn(mean=IMAGENET_CHANNEL_MEAN,
                                           std=IMAGENET_CHANNEL_STD)

@@ -42,6 +42,8 @@ def log_config(cfg):
             wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
 
 def main(config):
+    if config.grad_accum == 'auto' and not torch.cuda.is_available():
+        raise ValueError('grad_accum="auto" requires training with a GPU, please specify grad_accum as an integer')
 
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
@@ -113,7 +115,7 @@ def main(config):
     print('Building Composer model')
     composer_model = build_composer_resnet(model_name=config.model.name,
                                            loss_name=config.model.loss_name,
-                                           num_classes=config.num_classes)
+                                           num_classes=config.model.num_classes)
     print('Built Composer model\n')
 
     # Optimizer
@@ -220,9 +222,11 @@ def main(config):
         print('Train!')
         trainer.fit()
 
+    # Return trainer for testing purposes
+    return trainer
+
 
 if __name__ == '__main__':
-    #print(sys.argv[1], os.path.exists(sys.argv[1]))
     if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
         raise ValueError('The first argument must be a path to a yaml config.')
 

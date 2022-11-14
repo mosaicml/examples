@@ -14,7 +14,7 @@ def build_composer_resnet(model_name: Optional[str] = 'resnet50', loss_name: Opt
 
     Args:
         model_name (str, optional): Name of the ResNet model to use, either
-            ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet151']. Default: ``'resnet50'``.
+            ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']. Default: ``'resnet50'``.
         loss_name (str, optional): Name of the loss function to use, either ['cross_entropy', 'binary_cross_entropy'].
             Default: ``'cross_entropy'``.
         num_classes (int, optional): Number of classes in the classification task. Default: ``1000``.
