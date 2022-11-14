@@ -20,7 +20,7 @@ except:
 from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
 
-from glue_finetuning.src.data import create_glue_dataset
+from src.glue.data import create_glue_dataset
 
 
 def _build_dataloader(dataset, **kwargs):

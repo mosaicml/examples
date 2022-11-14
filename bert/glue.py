@@ -25,7 +25,7 @@ from composer.utils.object_store import S3ObjectStore
 
 from src.hf_bert import create_hf_bert_classification
 from src.mosaic_bert import create_mosaic_bert_classification
-from glue_finetuning.src.finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob, TASK_NAME_TO_NUM_LABELS
+from src.glue.finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob, TASK_NAME_TO_NUM_LABELS
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,
