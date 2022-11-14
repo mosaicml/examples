@@ -29,11 +29,12 @@ The specific files in this folder are:
 * `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
 * `data.py` - A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
 * `main.py` - A script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
+* `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `resnet50.yaml` - Configuration for a ResNet50 training run to be used as the first argument to `main.py`
   * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
 
-Now that you've had a chance to explore the code, let's jump into the prerequisites for training:
+Now that you have explored the code, let's jump into the prerequisites for training.
 
 # Prequisites
 
