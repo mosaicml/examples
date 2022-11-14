@@ -382,9 +382,7 @@ def train(config: om.DictConfig) -> None:
 
 
 if __name__ == '__main__':
-    # yaml_path, args_list = sys.argv[1], sys.argv[2:]
-    yaml_path = 'glue_finetuning/yamls/local.yaml'
-    args_list = []
+    yaml_path, args_list = sys.argv[1], sys.argv[2:]
     with open(yaml_path) as f:
         yaml_cfg = om.OmegaConf.load(f)
     cli_cfg = om.OmegaConf.from_cli(args_list)
