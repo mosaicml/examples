@@ -45,8 +45,7 @@ It is slightly slower when headdim=128 and batch * nheads is large.
 import math
 
 import torch
-
-from einops import rearrange, repeat
+from einops import repeat
 
 import triton
 import triton.language as tl

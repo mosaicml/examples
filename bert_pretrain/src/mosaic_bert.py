@@ -187,5 +187,3 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     hf_model.model.resize_token_embeddings(config.vocab_size)
     
     return hf_model
-
-
