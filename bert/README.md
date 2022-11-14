@@ -79,7 +79,7 @@ We first convert the dataset from its native format (a collection of zipped JSON
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
 and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all ~ just works ~ .
-You can read more about [the benefits of using mosaicml-streaming here](https://docs.mosaicml.com/projects/streaming/en/latest/):
+You can read more about the benefits of using mosaicml-streaming [here](https://docs.mosaicml.com/projects/streaming/en/latest/).
 
 ### Converting C4 to streaming dataset `.mds` format
 
