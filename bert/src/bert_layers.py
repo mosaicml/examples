@@ -16,14 +16,14 @@ import torch.nn as nn
 from einops import rearrange
 from transformers.activations import ACT2FN
 from transformers.modeling_outputs import MaskedLMOutput, SequenceClassifierOutput
-from transformers.models.bert.modeling_bert import BertPredictionHeadTransform, BertPreTrainedModel, BertSelfOutput
+from transformers.models.bert.modeling_bert import BertPredictionHeadTransform, BertPreTrainedModel
 
 from src.bert_padding import pad_input, unpad_input, unpad_input_only, index_first_axis, index_put_first_axis
 try:
     from src.flash_attn_triton import flash_attn_qkvpacked_func
-except (NameError, ImportError):
-    # for CPU testing
-    print("\n\nWARNING: Triton not installed. Flash Attention will not work.\n\n")
+except ImportError as e:
+    flash_attn_qkvpacked_func = None
+
 
 
 logger = logging.getLogger(__name__)
@@ -102,6 +102,10 @@ class BertUnpadSelfAttention(nn.Module):
         self.p_dropout = config.attention_probs_dropout_prob
         self.Wqkv = nn.Linear(self.all_head_size, 3 * config.hidden_size)
 
+        # Warn if defaulting to pytorch because of import issues
+        if flash_attn_qkvpacked_func is None:
+            warnings.warn('Unable to import Triton; defaulting MosaicBERT attention implementation to pytorch (this will reduce throughput when using this model).')
+
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -135,7 +139,17 @@ class BertUnpadSelfAttention(nn.Module):
         qkv = self.Wqkv(hidden_states)
         qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1, max_seqlen_in_batch) # batch, max_seqlen_in_batch, thd
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_attention_heads)
-        if not self.p_dropout:
+        if self.p_dropout or flash_attn_qkvpacked_func is None:
+            # if we have nonzero attention dropout (e.g. during fine-tuning) or no Triton, compute attention in PyTorch
+            q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
+            k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
+            v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
+            attention_scores = torch.matmul(q, k) / math.sqrt(self.attention_head_size)
+            attention_scores = attention_scores + bias
+            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+            attention_probs = self.dropout(attention_probs)
+            attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
+        else:
             # Triton implementation only supports 0 attention dropout
             convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
             if convert_dtype:
@@ -149,20 +163,24 @@ class BertUnpadSelfAttention(nn.Module):
                 bias = bias.to(bias_dtype)
             else:
                 attention = flash_attn_qkvpacked_func(qkv, bias)
-        else:
-            # if we have nonzero attention dropout, (e.g. during fine-tuning) compute attention in PyTorch
-            q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
-            k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
-            v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
-            attention_scores = torch.matmul(q, k) / math.sqrt(self.attention_head_size)
-            attention_scores = attention_scores + bias
-            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-            attention_probs = self.dropout(attention_probs)
-            attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)  # b s h d
+            
         # attn_mask is 1 for attend and 0 for don't
         attention = unpad_input_only(attention, torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
 
+# Copy of transformer's library BertSelfOutput that will not be caught by surgery methods looking for HF BERT modules.
+class BertSelfOutput(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+    def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.dropout(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states + input_tensor)
+        return hidden_states
 
 class BertUnpadAttention(nn.Module):
 
@@ -325,14 +343,14 @@ class BertEncoder(nn.Module):
         # (padded and non-padded) and ntokens_unpad is total number of non-padded tokens.
         # Then unpadding performs the following compression of the inputs:
         #        hidden_states[ntokens,hidden] -> hidden_states[ntokens_unpad,hidden]
-        hidden_states, indices, cu_seqlens, max_seqlen_in_batch = unpad_input(hidden_states, attention_mask_bool)
+        hidden_states, indices, cu_seqlens, _ = unpad_input(hidden_states, attention_mask_bool)
         # Add alibi matrix to extended_attention_mask
-        alibi_bias = self.alibi[:,:,:max_seqlen_in_batch, :max_seqlen_in_batch]  # type: ignore
-        alibi_attn_mask = extended_attention_mask[:,:,:,:max_seqlen_in_batch] + alibi_bias
+        alibi_bias = self.alibi[:,:,:seqlen, :seqlen]  # type: ignore
+        alibi_attn_mask = extended_attention_mask[:,:,:,:seqlen] + alibi_bias
 
         if subset_mask is None:
             for layer_module in self.layer:
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices,
+                hidden_states = layer_module(hidden_states, cu_seqlens, seqlen, None, indices,
                                              attn_mask=attention_mask, bias=alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
@@ -344,12 +362,12 @@ class BertEncoder(nn.Module):
         else:
             for i in range(len(self.layer) - 1):
                 layer_module = self.layer[i]
-                hidden_states = layer_module(hidden_states, cu_seqlens, max_seqlen_in_batch, None, indices,
+                hidden_states = layer_module(hidden_states, cu_seqlens, seqlen, None, indices,
                                              attn_mask=attention_mask, bias=alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             subset_idx = torch.nonzero(subset_mask[attention_mask_bool], as_tuple=False).flatten()
-            hidden_states = self.layer[-1](hidden_states, cu_seqlens, max_seqlen_in_batch, subset_idx=subset_idx,
+            hidden_states = self.layer[-1](hidden_states, cu_seqlens, seqlen, subset_idx=subset_idx,
                                            indices=indices, attn_mask=attention_mask, bias=alibi_attn_mask)
 
         if not output_all_encoded_layers:
@@ -731,9 +749,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
         if from_tf:
             raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
 
-        checkpoint = torch.load(pretrained_checkpoint)
-        model_weights = checkpoint['model']
-        missing_keys, unexpected_keys = model.load_state_dict(model_weights, strict=False)
+        state_dict = torch.load(pretrained_checkpoint)
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
 
         if len(missing_keys) > 0:
             logger.warning(f"Found these missing keys in the checkpoint: {', '.join(missing_keys)}")

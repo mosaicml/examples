@@ -1,0 +1,81 @@
+# Whether to run the various GLUE jobs serially or in parallel
+parallel: true
+
+# Basic run configuration, additional details will be added to this name for each GLUE task, and each random seed
+base_run_name: glue-finetuning-benchmark
+default_seed: 1111
+precision: bf16
+
+# Base model config
+model:
+  name: huggingface_auto_for_sequence_classification
+  pretrained_model_name: bert-base-uncased
+
+# Tokenizer for dataset creation
+tokenizer_name: bert-base-uncased
+
+# Saving and loading
+starting_checkpoint_load_path: s3://mosaicml-internal-checkpoints-shared/alex/bert/dc-2022-07-v2/bert-dc-2022-07-baseline-alibi-glu--seed1654/checkpoints/ep0-ba68796-rank0-43383.486282wct
+local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
+save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
+# for s3 logging
+# save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints
+save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
+
+# Loggers
+# loggers:
+#   wandb:
+#     project: <project>
+#     entity: <entity>
+
+# Callbacks
+callbacks:
+  lr_monitor: {}
+  speed_monitor: {}
+
+# Scheduler
+scheduler:
+  name: linear_with_warmup
+  t_warmup: 0.06dur
+
+# Algorithms
+algorithms:
+  gated_linear_units: {}
+  alibi:
+    max_sequence_length: 256
+    train_sequence_length_scaling: 1.0
+
+# Task configuration
+tasks:
+  mnli:
+    # Specify any extra task-specific arguments for the trainer here
+    trainer_kwargs:
+      # We keep one MNLI checkpoint locally so that we can start finetuning of 
+      # RTE, MRPC and STS-B from the MNLI checkpoint
+      save_num_checkpoints_to_keep: 1
+  rte:
+    seeds: [19, 8364, 717, 10536, 90166]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
+  qqp:
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
+  qnli:
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
+  sst2:
+    seeds: [19, 8364, 717]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
+  stsb:
+    seeds: [19, 8364, 717, 10536, 90166]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
+  mrpc:
+    seeds: [19, 8364, 717, 10536, 90166]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0
+  cola:
+    seeds: [19, 8364, 717, 10536]
+    trainer_kwargs:
+      save_num_checkpoints_to_keep: 0

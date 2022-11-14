@@ -27,7 +27,56 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                            tokenizer_name: Optional[str] = None,
                            gradient_checkpointing: Optional[bool] = False,
                            pretrained_checkpoint: Optional[str] = None):
-    """BERT model based on HazyResearch's MLPerf 2.0 submission and HuggingFace transformer"""
+    """
+    BERT masked language modelbased on |:hugging_face:| Transformers.
+    For more information, see `Transformers <https://huggingface.co/transformers/>`_.
+
+    This function creates a Mosaic BERT, which includes several throughput optimizations not available in |:hugging_face:| BERT as well
+        as architecture changes based on ALiBi and Gated Linear Units.
+
+    Args:
+        pretrained_model_name (str): Name of the Hugging Face model to instantiate. This will determine the default model configuration.
+            Default: ``bert-base-uncased``.
+        model_config (dict): A dictionary of user-specified configurations to update/add to the default model configuration.
+        tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset and validate the models inputs.
+        gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
+        pretrained_checkpoint (str, optional): The pretrained checkpoint to initialize the model weights. If provided, 
+            the state dictionary stored at `pretrained_checkpoint` will be loaded into the model after initialization. Default: ``None``.
+
+    .. code-block::
+
+            {
+              "_name_or_path": "bert-base-uncased",
+              "architectures": ["BertForMaskedLM"],
+              "attention_probs_dropout_prob": 0.1,
+              "classifier_dropout": null,
+              "gradient_checkpointing": false,
+              "hidden_act": "gelu",
+              "hidden_dropout_prob": 0.1,
+              "hidden_size": 768,
+              "initializer_range": 0.02,
+              "intermediate_size": 3072,
+              "layer_norm_eps": 1e-12,
+              "max_position_embeddings": 512,
+              "model_type": "bert",
+              "num_attention_heads": 12,
+              "num_hidden_layers": 12,
+              "pad_token_id": 0,
+              "position_embedding_type": "absolute",
+              "transformers_version": "4.16.0",
+              "type_vocab_size": 2,
+              "use_cache": true,
+              "vocab_size": 30522
+            }
+
+   To create a Mosaic BERT model for Masked Language Model pretraining:
+
+    .. testcode::
+
+        from src.mosaic import create_mosaic_bert_mlm
+        model = create_mosaic_bert_mlm()
+
+    """
     if not model_config:
         model_config = {}
 
@@ -35,14 +84,13 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         pretrained_model_name = 'bert-base-uncased'
 
     config = transformers.AutoConfig.from_pretrained(pretrained_model_name, **model_config)
-    assert transformers.AutoModelForMaskedLM.from_config is not None, 'AutoModelForMaskedLM has from_config method'
     config.return_dict = False
     # Padding for divisibility by 8
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
 
     if pretrained_checkpoint is not None:
-        raise NotImplementedError('Pretraining from a checkpoint is not currently supported for mosaic_bert_mlm. Please set `pretrained_checkpoint=None`.')
+        model = BertForMaskedLM.from_pretrained(pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
         model = BertForMaskedLM(config)
 
@@ -53,7 +101,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     if tokenizer_name:
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
     else:
-        tokenizer = None
+        tokenizer = transformers.AutoTokenizer.from_pretrained(pretrained_model_name)
 
     metrics = [
         LanguageCrossEntropy(ignore_index=-100, vocab_size=model.config.vocab_size),
@@ -71,7 +119,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     return hf_model
 
 
-def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
+def create_mosaic_bert_classification(num_labels: int,
                            pretrained_model_name: str = 'bert-base-uncased',
                            model_config: Optional[dict] = None,
                            tokenizer_name: Optional[str] = None,
@@ -80,15 +128,19 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     """
     BERT classification model based on |:hugging_face:| Transformers.
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
+
+    This function creates a Mosaic BERT, which includes several throughput optimizations not available in |:hugging_face:| BERT as well
+        as architecture changes based on ALiBi and Gated Linear Units.
+
     Args:
-        num_labels (int, optional): The number of classes in the classification task. Default: ``2``.
+        num_labels (int): The number of classes in the classification task.
+        pretrained_model_name (str): Name of the Hugging Face model to instantiate. This will determine the default model configuration.
+            Default: ``bert-base-uncased``.
+        model_config (dict): A dictionary of user-specified configurations to update/add to the default model configuration.
+        tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset and validate the models inputs.
         gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
-        use_pretrained (bool, optional): Whether to initialize the model with the pretrained weights. Default: ``False``.
-        model_config (dict): The settings used to create a Hugging Face BertConfig. BertConfig is used to specify the
-        architecture of a Hugging Face model.
-        tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset
-        and validate the models inputs.
-        pretrained_checkpoint (str, optional): The pretrained checkpoint to initialize the model weights. Default: ``None``.
+        pretrained_checkpoint (str, optional): The pretrained checkpoint to initialize the model weights. If provided, 
+            the state dictionary stored at `pretrained_checkpoint` will be loaded into the model after initialization. Default: ``None``.
         .. code-block::
             {
               "_name_or_path": "bert-base-uncased",
@@ -125,10 +177,10 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
               "use_cache": true,
               "vocab_size": 30522
             }
-   To create a BERT model for classification:
+   To create a Mosaic BERT model for classification:
     .. testcode::
-        from composer.models import create_bert_classification
-        model = create_bert_classification(num_labels=3) # if the task has three classes.
+        from mosaic_bert import create_mosaic_bert_classification
+        model = create_mosaic_bert_classification(num_labels=3) # if the task has three classes.
     Note:
         This function can be used to construct a BERT model for regression by setting ``num_labels == 1``.
         This will have two noteworthy effects. First, it will switch the training loss to :class:`~torch.nn.MSELoss`.
@@ -144,7 +196,6 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     if not pretrained_model_name:
         pretrained_model_name = 'bert-base-uncased'
 
-
     config = transformers.AutoConfig.from_pretrained(pretrained_model_name, **model_config)
     assert transformers.AutoModelForSequenceClassification.from_config is not None, 'AutoModelForSequenceClassification has from_config method'
 
@@ -154,11 +205,9 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
         config.vocab_size += 8 - (config.vocab_size % 8)
      
     if pretrained_checkpoint is not None:
-        model = BertForSequenceClassification(pretrained_checkpoint=pretrained_checkpoint, config=config)
+        model = BertForSequenceClassification.from_pretrained(pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
         model = BertForSequenceClassification(config)
-
-
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore
@@ -167,11 +216,11 @@ def create_mosaic_bert_classification(num_labels: Optional[int] = 2,
     if tokenizer_name:
         tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
     else:
-        tokenizer = None
+        tokenizer = transformers.AutoTokenizer.from_pretrained(pretrained_model_name)
 
     if num_labels == 1:
-            # Metrics for a regression model
-            metrics = [MeanSquaredError(), SpearmanCorrCoef()]
+        # Metrics for a regression model
+        metrics = [MeanSquaredError(), SpearmanCorrCoef()]
     else:
         # Metrics for a classification model
         metrics = [Accuracy(), MatthewsCorrCoef(num_classes=model.config.num_labels)]
