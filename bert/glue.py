@@ -194,9 +194,9 @@ def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) 
         scheduler=build_scheduler(config.scheduler),
         load_path=config.load_path,
         save_folder=config.save_folder,
-        loggers=[build_logger(name, logger_config) for name, logger_config in config.loggers.items()],
-        callbacks=[build_callback(name, callback_config) for name, callback_config in config.callbacks.items()],
-        algorithms=[build_algorithm(name, algorithm_config) for name, algorithm_config in config.algorithms.items()],
+        loggers=[build_logger(name, logger_config) for name, logger_config in config.get('loggers', {}).items()],
+        callbacks=[build_callback(name, callback_config) for name, callback_config in config.get('callbacks', {}).items()],
+        algorithms=[build_algorithm(name, algorithm_config) for name, algorithm_config in config.get('algorithms', {}).items()],
         precision=config.precision,
         **config.trainer_kwargs,
     )
