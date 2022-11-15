@@ -67,7 +67,7 @@ class StreamingImageNet(Dataset, VisionDataset):
     def __getitem__(self, idx: int) -> Any:
         sample = super().__getitem__(idx)
         image = sample['x']
-        if image.mode == "CMYK":
+        if image.mode != "RGB":
             image = image.convert('RGB')
         if self.transform:
             image = self.transform(image)
