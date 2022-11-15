@@ -9,7 +9,7 @@ integrations:
     git_branch: landan/resnet_benchmark
 command: |
   cd benchmarks/resnet
-  pip install -r requirments.txt
+  pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 
 # Configuration copied from baseline.yaml
