@@ -1,16 +1,16 @@
 run_name: resnet_example
 cluster: null  # Name of the cluster to use for this run
 gpu_type: null # Type of GPU to use
-gpu_num: null # Number of GPUs to use specified as an integer
-image: mosaicml/composer:0.11.0
+gpu_num: null  # Number of GPUs to use specified as an integer
+image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
   - integration_type: "git_repo"
     git_repo: mosaicml/benchmarks
     git_branch: landan/resnet_benchmark
 command: |
   cd benchmarks/resnet
-  pip install -r requirments.txt
-  composer train.py /mnt/config/parameters.yaml
+  pip install -r requirements.txt
+  composer main.py /mnt/config/parameters.yaml
 
 # Configuration copied from baseline.yaml
 parameters:
@@ -24,6 +24,7 @@ parameters:
   model:
     name: resnet50           # Name of the ResNet model to train either resnet{18, 34, 50, 101, 152}
     loss_name: cross_entropy # Name of the loss function either 'cross_entropy' or 'binary_cross_entropy'
+    num_classes: 1000        # Number of classes in the classification task
 
   # Training Dataset Parameters
   train_dataset:
