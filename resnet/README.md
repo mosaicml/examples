@@ -57,7 +57,7 @@ Here's what you need to train:
 
 # Test Dataloader
 
-This benchmark assumes that ImageNet is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. Information on downloading ImageNet can be found [here](https://www.image-net.org/download.php). Alternatively, you can train on other image classification datasets. The local dataset code assumes your data is in the [torchvision ImageFolder](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html) format.
+This benchmark assumes that ImageNet is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. Instructions to download ImageNet can be found [here](https://www.image-net.org/download.php). Alternatively, you can train on other image classification datasets. The local dataset code assumes your data is in the [torchvision ImageFolder](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html) format.
 
 The below command will test if your data is setup appropriately:
 ```bash
@@ -72,10 +72,10 @@ python data.py s3://my-bucket/my-dir/data /tmp/path/to/local
 
 Now that you've installed dependencies and tested your dataset, let's start training!
 
-**Please remember** to edit the `path` and (if streaming) `local` paths in the yaml to point to your data.
+**Please remember**: edit the `path` and (if streaming) `local` paths in `resnet50.yaml` to point to your data.
 
 ### Single-Node training
-We run the `main.py` script using our `composer` launcher, which generates a process for each device.
+We run the `main.py` script using our `composer` launcher, which generates a process for each device in a node.
 
 If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is :
 
@@ -123,27 +123,58 @@ composer main.py yamls/resnet50.yaml
 ```
 
 ### Results
-You should see logs being printed to your terminal like so.
-You can also easily enable other experiment trackers like Weights and Biases or CometML,
-by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.10.0/trainer/logging.html).
+You should see logs being printed to your terminal like below. You can also easily enable other experiment trackers like Weights and Biases or CometML,
+by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.0/trainer/logging.html).
 
 ```bash
-logggggssssss
+[epoch=0][batch=16/625]: wall_clock/train: 17.1607
+[epoch=0][batch=16/625]: wall_clock/val: 10.9666
+[epoch=0][batch=16/625]: wall_clock/total: 28.1273
+[epoch=0][batch=16/625]: lr-DecoupledSGDW/group0: 0.0061
+[epoch=0][batch=16/625]: trainer/global_step: 16
+[epoch=0][batch=16/625]: trainer/batch_idx: 16
+[epoch=0][batch=16/625]: memory/alloc_requests: 38424
+[epoch=0][batch=16/625]: memory/free_requests: 37690
+[epoch=0][batch=16/625]: memory/allocated_mem: 6059054353408
+[epoch=0][batch=16/625]: memory/active_mem: 1030876672
+[epoch=0][batch=16/625]: memory/inactive_mem: 663622144
+[epoch=0][batch=16/625]: memory/reserved_mem: 28137488384
+[epoch=0][batch=16/625]: memory/alloc_retries: 3
+[epoch=0][batch=16/625]: trainer/grad_accum: 2
+[epoch=0][batch=16/625]: loss/train/total: 7.1292
+[epoch=0][batch=16/625]: metrics/train/Accuracy: 0.0005
+[epoch=0][batch=17/625]: wall_clock/train: 17.8836
+[epoch=0][batch=17/625]: wall_clock/val: 10.9666
+[epoch=0][batch=17/625]: wall_clock/total: 28.8502
+[epoch=0][batch=17/625]: lr-DecoupledSGDW/group0: 0.0066
+[epoch=0][batch=17/625]: trainer/global_step: 17
+[epoch=0][batch=17/625]: trainer/batch_idx: 17
+[epoch=0][batch=17/625]: memory/alloc_requests: 40239
+[epoch=0][batch=17/625]: memory/free_requests: 39497
+[epoch=0][batch=17/625]: memory/allocated_mem: 6278452575744
+[epoch=0][batch=17/625]: memory/active_mem: 1030880768
+[epoch=0][batch=17/625]: memory/inactive_mem: 663618048
+[epoch=0][batch=17/625]: memory/reserved_mem: 28137488384
+[epoch=0][batch=17/625]: memory/alloc_retries: 3
+[epoch=0][batch=17/625]: trainer/grad_accum: 2
+[epoch=0][batch=17/625]: loss/train/total: 7.1243
+[epoch=0][batch=17/625]: metrics/train/Accuracy: 0.0010
+train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23,  1.37ba/s, loss/train/total=7.1292]
 ```
 # Using Mosaic Recipes
 
-As described in our [ResNet blog post](https://www.mosaicml.com/blog/mosaic-resnet), we cooked up three recipes to train ResNet faster and with higher accuracy:
+As described in our [ResNet blog post](https://www.mosaicml.com/blog/mosaic-resnet), we cooked up three recipes to train ResNets faster and with higher accuracy:
 - **Mild** recipe is for shorter training runs
 - **Medium** recipe is for longer training runs
 - **Hot** recipe is for the very longest training runs that maximize accuracy
 
 <img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%"/>
 
-To use a recipe, use the `recipe_name` argument to specify the recipe. Specifying a recipe will change several aspects of the training run:
-1. Set the loss function to binary cross entropy instead of standard cross entropy since this has been shown to improve acurracy.
-2. Set the train crop size to 176 instead of 224 and evaluation resize size to 232 from 256. This has been show to improve accuracy and the smaller train crop size increases throughput.
-3.  Set the number of training epochs to the optimal value for each training recipe. Feel free to change these in `resnet50.yaml` to better suite your task.
-4.  Specifies unique sets of speedup methods for model training.
+To use a recipe, specify the name using the the `recipe_name` argument. Specifying a recipe will change several aspects of the training run such as:
+1. Changes the loss function to binary cross entropy instead of standard cross entropy since this has been shown to improve acurracy.
+2. Changes the train crop size to 176 (instead of 224) and the evaluation resize size to 232 (instead of 256). The smaller train crop size increases throughput and has been show to improve accuracy as well.
+3. Changes the number of training epochs to the optimal value for each training recipe. Feel free to change these in `resnet50.yaml` to better suite your model and/or dataset.
+4. Specifies unique sets of speedup methods for model training.
 
 Here is an example command to run the mild recipe on a single-node:
 ```bash
@@ -152,7 +183,7 @@ composer main.py yamls/resnet50.yaml recipe_name=mild
 
 # Saving and Loading checkpoints
 
-At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please uncomment and specify the arugments if you need to save or load weights!
+At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path`arugments if you need to save or load checkpoints!
 
 # On memory constraints
 In previous blogs ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))

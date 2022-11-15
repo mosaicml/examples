@@ -71,9 +71,9 @@ hot:
   max_duration: 270ep
 
 # Save checkpoint parameters
-# save_folder: null               # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-# save_interval: 10ep             # Interval to checkpoint based on time string
-# save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
+save_folder: null               # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+save_interval: 10ep             # Interval to checkpoint based on time string
+save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
 
 # Load checkpoint parameters
-# load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)
+load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)

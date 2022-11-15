@@ -216,4 +216,4 @@ if __name__ == '__main__':
 
     print('Running 5 batchs of dataloader')
     for batch_ix, batch in enumerate(islice(dataspec.dataloader, 5)):
-        print(batch_ix, ': Image batch shape:', batch[0].shape, 'Target batch shape:')
+        print(f'Batch id: {batch_ix}; Image batch shape: {batch[0].shape}; Target batch shape: {batch[1].shape}')
