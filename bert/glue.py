@@ -14,8 +14,7 @@ import omegaconf as om
 import torch
 import warnings
 
-from composer.algorithms.gated_linear_units import GatedLinearUnits
-from composer.algorithms.alibi import Alibi
+from composer.algorithms import Alibi, GatedLinearUnits, FusedLayerNorm
 from composer.callbacks import LRMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import LinearWithWarmupScheduler
@@ -66,6 +65,8 @@ def build_algorithm(name, cfg):
         return GatedLinearUnits(**cfg)
     elif name == 'alibi':
         return Alibi(**cfg)
+    elif name == 'fused_layernorm':
+        return FusedLayerNorm(**cfg)
     else:
         raise ValueError(f'Not sure how to build algorithm: {cfg.name}')
 
