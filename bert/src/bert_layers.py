@@ -446,11 +446,11 @@ class BertModel(BertPreTrainedModel):
     ```
     """
 
-    def __init__(self, config):
+    def __init__(self, config, add_pooling_layer=True):
         super(BertModel, self).__init__(config)
         self.embeddings = BertEmbeddings(config)
         self.encoder = BertEncoder(config)
-        self.pooler = BertPooler(config)
+        self.pooler = BertPooler(config) if add_pooling_layer else None
         self.post_init()
 
     def get_input_embeddings(self):
@@ -590,7 +590,7 @@ class BertForMaskedLM(BertPreTrainedModel):
             warnings.warn('If you want to use `BertForMaskedLM` make sure `config.is_decoder=False` for '
                           'bi-directional self-attention.')
 
-        self.bert = BertModel(config)
+        self.bert = BertModel(config, add_pooling_layer=False)
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
 
         # Initialize weights and apply final processing
