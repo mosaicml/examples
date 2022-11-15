@@ -43,16 +43,3 @@ def test_trainer():
 
         for param1, param2 in zip(model1.parameters(), model2.parameters()):
             torch.testing.assert_close(param1, param2)
-
-
-
-
-
-
-
-
-
-
-
-
-

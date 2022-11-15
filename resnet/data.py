@@ -18,7 +18,7 @@ IMAGENET_CHANNEL_MEAN = (0.485 * 255, 0.456 * 255, 0.406 * 255)
 IMAGENET_CHANNEL_STD = (0.229 * 255, 0.224 * 255, 0.225 * 255)
 
 class StreamingImageNet(Dataset, VisionDataset):
-    """ ImageNet streaming dataset based on PyTorch's Vision dataset.
+    """ ImageNet streaming dataset based on PyTorch's VisionDataset.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.
@@ -32,7 +32,7 @@ class StreamingImageNet(Dataset, VisionDataset):
         retry (int, optional): Number of download re-attempts before giving up. Defaults to ``2``.
         timeout (float, optional): Number of seconds to wait for a shard to download before raising
             an exception. Default: 120 seconds.
-        batch_size (int, optional): Hint the batch size that will be used on each device's DataLoader.
+        batch_size (int, optional): The batch size that will be used on each device's DataLoader.
             Default: ``None``.
     """
 
