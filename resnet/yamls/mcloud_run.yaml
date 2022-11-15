@@ -1,8 +1,8 @@
 run_name: resnet_example
 cluster: null  # Name of the cluster to use for this run
 gpu_type: null # Type of GPU to use
-gpu_num: null # Number of GPUs to use specified as an integer
-image: mosaicml/composer:0.11.0
+gpu_num: null  # Number of GPUs to use specified as an integer
+image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
   - integration_type: "git_repo"
     git_repo: mosaicml/benchmarks
@@ -10,7 +10,7 @@ integrations:
 command: |
   cd benchmarks/resnet
   pip install -r requirments.txt
-  composer train.py /mnt/config/parameters.yaml
+  composer main.py /mnt/config/parameters.yaml
 
 # Configuration copied from baseline.yaml
 parameters:
