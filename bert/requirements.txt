@@ -5,7 +5,7 @@ mosaicml-streaming<1
 omegaconf<3
 transformers<5
 # need a newer version of triton
-# triton==2.0.0.dev20221103
+triton==2.0.0.dev20221103
 torch>=1.13
 torchmetrics
 wandb<1
