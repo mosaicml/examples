@@ -112,7 +112,7 @@ class FineTuneJob:
         print(f'Running {self.job_name} on GPU {gpu_id}')
 
         try:
-            gpu = 'cpu' #DeviceGPU(gpu_id)
+            gpu = DeviceGPU(gpu_id)
             trainer = self.get_trainer(device=gpu)
 
             trainer.fit()
