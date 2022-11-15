@@ -19,4 +19,3 @@ def test_dataloader_builder(is_train, batch_size=2, crop_size=16):
             # Check the image and label shapes
             assert batch[0].shape == torch.Size([batch_size, 3, crop_size, crop_size])
             assert batch[1].shape == torch.Size([batch_size])
-

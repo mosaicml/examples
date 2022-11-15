@@ -32,4 +32,3 @@ def create_synthetic_imagenet():
             img.save(os.path.join(dirpath, f'img{i}.jpeg'))
 
     return tmp_dirname
-
