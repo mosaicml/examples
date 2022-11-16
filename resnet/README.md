@@ -36,7 +36,7 @@ The specific files in this folder are:
 
 Now that you have explored the code, let's jump into the prerequisites for training.
 
-# Prequisites
+# Prerequisites
 
 Here's what you need to train:
 
