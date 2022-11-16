@@ -9,7 +9,7 @@ from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
-from torch_optimizer import AdaFactor
+from torch_optimizer import Adafactor
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
@@ -44,8 +44,8 @@ def build_optimizer(cfg, model):
             eps=cfg.eps,
             weight_decay=cfg.weight_decay
         )
-    elif cfg.name == "adafactor":
-        return Adafactor(model.parameters(), lr=cfg.lr, betas=cfg.betas, eps=cfg.eps, weight_decay=cfg.weight_decay)
+    elif cfg.name == "Adafactor":
+        return Adafactor(model.parameters(), lr=cfg.lr)
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
