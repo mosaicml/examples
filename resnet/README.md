@@ -51,9 +51,9 @@ Here's what you need to train:
 * System with NVIDIA GPUs
 * Install requirements via `pip install -r requirements.txt` which installs:
   * `composer`
-  * `streaming` - MosaicML's streaming dataset
-  * `wandb` - Weights and Biases for experiment tracking
-  * `omegaconf` - Configuration management
+  * [`streaming`](https://github.com/mosaicml/streaming) - MosaicML's streaming dataset
+  * [`wandb`](https://github.com/wandb/wandb) - Weights and Biases for experiment tracking
+  * [`omegaconf`](https://github.com/omry/omegaconf) - Configuration management
 
 # Test Dataloader
 
