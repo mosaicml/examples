@@ -72,7 +72,7 @@ python data.py s3://my-bucket/my-dir/data /tmp/path/to/local
 
 Now that you've installed dependencies and tested your dataset, let's start training!
 
-**Please remember**: edit the `path` and (if streaming) `local` paths in `resnet50.yaml` to point to your data.
+**Please remember**: for both `train_dataset` and `eval_dataset`, edit the `path` and (if streaming) `local` arguments in `resnet50.yaml` to point to your data.
 
 ### Single-Node training
 We run the `main.py` script using our `composer` launcher, which generates a process for each device in a node.
@@ -98,7 +98,7 @@ either directly via CLI, or via environment variables that can be read. Then lau
 composer --world_size 16 --node_rank 0 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/resnet50.yaml
 
 # Node 1
-composer --world_size 16 --node_rank 1 --master_addr 0.0.0.0 --master_port 7501 main.py main.py yamls/resnet50.yaml
+composer --world_size 16 --node_rank 1 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/resnet50.yaml
 ```
 
 ### Multi-Node via environment variables
@@ -181,6 +181,14 @@ Here is an example command to run the mild recipe on a single-node:
 composer main.py yamls/resnet50.yaml recipe_name=mild
 ```
 
+---
+**NOTE**
+
+The throughput of ResNet50 and smaller models are dataloader bottlenecked when training with our recipes on 8x NVIDIA A100s. This means the model's throughput is limited to the speed the data can be loaded. One way to alleviate this bottleneck is to use the [FFCV dataloader format](https://github.com/libffcv/ffcv). This [tutorial](https://docs.mosaicml.com/en/v0.11.0/examples/ffcv_dataloaders.html) walks you through creating your FFCV dataloader. We also have example code for an ImageNet FFCV dataloader [here](https://github.com/mosaicml/composer/blob/a0f441537008a1ef2678f1474f3cd5519deb80fa/composer/datasets/imagenet.py#L179).
+
+Our best results use FFCV, so an FFCV version of ImageNet is required to duplicate our results.
+
+---
 # Saving and Loading checkpoints
 
 At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path`arugments if you need to save or load checkpoints!
