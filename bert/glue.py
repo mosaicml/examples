@@ -23,7 +23,7 @@ from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 
 from src.hf_bert import create_hf_bert_classification
-from src.mosaic_bert import create_mosaic_bert_classification
+# from src.mosaic_bert import create_mosaic_bert_classification
 from src.glue.finetuning_jobs import COLAJob, MNLIJob, MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job, STSBJob, TASK_NAME_TO_NUM_LABELS
 
 TASK_NAME_TO_CLASS = {
@@ -312,7 +312,7 @@ def train(config: om.DictConfig) -> None:
     # the different tasks don't all try to download it at the same time
     if config.get('starting_checkpoint_load_path', None):
         local_pretrain_checkpoint_path = download_starting_checkpoint(config.starting_checkpoint_load_path,
-                                                                    config.local_pretrain_checkpoint_folder)
+                                                                      config.local_pretrain_checkpoint_folder)
     else:
         local_pretrain_checkpoint_path = None
 
