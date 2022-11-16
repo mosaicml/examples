@@ -9,7 +9,7 @@ integrations:
     git_branch: landan/resnet_benchmark
 command: |
   cd benchmarks/resnet
-  pip install -r requirments.txt
+  pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 
 # Configuration copied from baseline.yaml
@@ -24,6 +24,7 @@ parameters:
   model:
     name: resnet50           # Name of the ResNet model to train either resnet{18, 34, 50, 101, 152}
     loss_name: cross_entropy # Name of the loss function either 'cross_entropy' or 'binary_cross_entropy'
+    num_classes: 1000        # Number of classes in the classification task
 
   # Training Dataset Parameters
   train_dataset:
