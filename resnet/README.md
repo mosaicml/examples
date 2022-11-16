@@ -47,7 +47,7 @@ Here's what you need to train:
       * CUDA Version: 11.6
       * Python Version: 3.9
       * Ubuntu Version: 20.04
-* [Imagenet Dataset](http://www.image-net.org/) must be stored either locally or uploaded to an S3 bucket after converting to a streaming format using [this script](https://github.com/mosaicml/streaming/blob/86a9b95189e8b292a8c7880a1c49dc55d1895544/streaming/vision/convert/imagenet.py)
+* [Imagenet Dataset](http://www.image-net.org/) must be stored either locally (see download instructions [here](https://www.image-net.org/download.php)) or uploaded to an S3 bucket after converting to a [streaming format](https://github.com/mosaicml/streaming) using [this script](https://github.com/mosaicml/streaming/blob/86a9b95189e8b292a8c7880a1c49dc55d1895544/streaming/vision/convert/imagenet.py)
 * System with NVIDIA GPUs
 * Install requirements via `pip install -r requirements.txt` which installs:
   * [`composer`](https://github.com/mosaicml/composer) - MosaicML's PyTorch training framework
