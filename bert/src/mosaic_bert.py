@@ -48,7 +48,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
             {
               "_name_or_path": "bert-base-uncased",
               "architectures": ["BertForMaskedLM"],
-              "attention_probs_dropout_prob": 0.1,
+              "attention_probs_dropout_prob": 0.0,
               "classifier_dropout": null,
               "gradient_checkpointing": false,
               "hidden_act": "gelu",
@@ -79,6 +79,10 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     """
     if not model_config:
         model_config = {}
+
+    # By default, turn off attention dropout in Mosaic BERT (otherwise, Flash Attention will be off by default)
+    if 'attention_probs_dropout_prob' not in model_config:
+        model_config['attention_probs_dropout_prob'] = 0.0
 
     if not pretrained_model_name:
         pretrained_model_name = 'bert-base-uncased'
@@ -147,7 +151,7 @@ def create_mosaic_bert_classification(num_labels: int,
               "architectures": [
                 "BertForSequenceClassification
               ],
-              "attention_probs_dropout_prob": 0.1,
+              "attention_probs_dropout_prob": 0.0,
               "classifier_dropout": null,
               "gradient_checkpointing": false,
               "hidden_act": "gelu",
@@ -190,6 +194,10 @@ def create_mosaic_bert_classification(num_labels: int,
     """
     if not model_config:
         model_config = {}
+
+    # By default, turn off attention dropout in Mosaic BERT (otherwise, Flash Attention will be off by default)
+    if 'attention_probs_dropout_prob' not in model_config:
+        model_config['attention_probs_dropout_prob'] = 0.0
 
     model_config['num_labels'] = num_labels
 
