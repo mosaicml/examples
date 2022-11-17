@@ -9,6 +9,7 @@ from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
+from composer.algorithms import SelectiveBackprop
 from torch_optimizer import Adafactor
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
@@ -49,6 +50,11 @@ def build_optimizer(cfg, model):
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
+def build_algorithm(cfg):
+    if cfg.name == "selective_backprop":
+        return SelectiveBackprop(start=cfg.start, end=cfg.end, interrupt=cfg.interrupt, keep=cfg.keep)
+    else:
+        raise ValueError(f"Not sure how to build algorithm: {cfg.name}")
 
 def build_scheduler(cfg):
     if cfg.name == 'constant_with_warmup':
@@ -151,11 +157,14 @@ def main(cfg):
     # Callbacks
     callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
 
+    algorithms = [build_algorithm(name, algorithm_cfg) for name, algorithm_cfg in cfg.get("algorithms", {}).items()]
+
     # Build the Trainer
     trainer = Trainer(
         run_name=cfg.run_name,
         seed=cfg.seed,
         model=model,
+        algorithms=algorithms,
         train_dataloader=train_loader,
         eval_dataloader=eval_loader,
         optimizers=optimizer,
