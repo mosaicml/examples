@@ -23,7 +23,7 @@
 <br />
 
 # Mosaic ResNet
-This folder contains starter code for training [torchvision ResNet architectures](https://pytorch.org/vision/stable/models.html) using our most efficient training recipes (see our [short blog](https://www.mosaicml.com/blog/mosaic-resnet) or [long blog](https://www.mosaicml.com/blog/mosaic-resnet-deep-dive) for details). These recipes were developed to hit baseline accuracy on [ImageNet](https://www.image-net.org/) 7x faster or to maximize ImageNet accuracy over long training durations. Although these recipes were developed for training ResNet on ImageNet, they could be used to train other image classification models on other datasets. Give it a try!
+This folder contains starter code for training [torchvision ResNet architectures](https://pytorch.org/vision/stable/models.html) using our most efficient training recipes (see our [short blog](https://www.mosaicml.com/blog/mosaic-resnet) or [detailed blog](https://www.mosaicml.com/blog/mosaic-resnet-deep-dive) for details). These recipes were developed to hit baseline accuracy on [ImageNet](https://www.image-net.org/) 7x faster or to maximize ImageNet accuracy over long training durations. Although these recipes were developed for training ResNet on ImageNet, they could be used to train other image classification models on other datasets. Give it a try!
 
 The specific files in this folder are:
 * `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
@@ -47,7 +47,8 @@ Here's what you need to train:
       * CUDA Version: 11.6
       * Python Version: 3.9
       * Ubuntu Version: 20.04
-* [Imagenet Dataset](http://www.image-net.org/) must be stored either locally (see download instructions [here](https://www.image-net.org/download.php)) or uploaded to an S3 bucket after converting to a [streaming format](https://github.com/mosaicml/streaming) using [this script](https://github.com/mosaicml/streaming/blob/86a9b95189e8b292a8c7880a1c49dc55d1895544/streaming/vision/convert/imagenet.py)
+* [Imagenet Dataset](http://www.image-net.org/)
+    * Must be stored either locally (see download instructions [here](https://www.image-net.org/download.php)) or uploaded to an S3 bucket after converting to a [streaming format](https://github.com/mosaicml/streaming) using [this script](https://github.com/mosaicml/streaming/blob/86a9b95189e8b292a8c7880a1c49dc55d1895544/streaming/vision/convert/imagenet.py)
 * System with NVIDIA GPUs
 * Install requirements via `pip install -r requirements.txt` which installs:
   * [`composer`](https://github.com/mosaicml/composer) - MosaicML's PyTorch training framework
