@@ -186,7 +186,7 @@ composer main.py yamls/resnet50.yaml recipe_name=mild
 
 The throughput of ResNet50 and smaller models are dataloader bottlenecked when training with our recipes on 8x NVIDIA A100s. This means the model's throughput is limited to the speed the data can be loaded. One way to alleviate this bottleneck is to use the [FFCV dataloader format](https://github.com/libffcv/ffcv). This [tutorial](https://docs.mosaicml.com/en/v0.11.0/examples/ffcv_dataloaders.html) walks you through creating your FFCV dataloader. We also have example code for an ImageNet FFCV dataloader [here](https://github.com/mosaicml/composer/blob/a0f441537008a1ef2678f1474f3cd5519deb80fa/composer/datasets/imagenet.py#L179).
 
-Our best results use FFCV, so an FFCV version of ImageNet is required to duplicate our results.
+Our best results use FFCV, so an FFCV version of ImageNet is required to exactly match our best results.
 
 ---
 # Saving and Loading checkpoints
