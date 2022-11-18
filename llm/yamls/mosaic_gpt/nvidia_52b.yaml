@@ -12,7 +12,7 @@ model:
   device: meta
   tokenizer_name: *tokenizer_name
   d_model: 10240
-  n_heads: 56
+  n_heads: 64
   n_layers: 40
   mlp_ratio: 4
   max_seq_len: *max_seq_len
