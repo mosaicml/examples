@@ -27,13 +27,26 @@ class TorchCausalAttention(nn.Module):
             batch_first=True,
             device=device,
         )
+        
         self.register_buffer(
-            "mask", torch.tril(torch.ones(cfg.max_seq_len, cfg.max_seq_len)))
+            "mask", nn.Transformer.generate_square_subsequent_mask(cfg.max_seq_len))
         self.mha.out_proj._is_residual = True
 
     def forward(self, x, key_padding_mask):
-        return self.mha(x, x, x, attn_mask=self.mask, need_weights=False)
-
+        # Two important disclaimers
+        # 1. Torch uses additive attention. If your attn_mask/key_padding mask is a float tensor, it will add the floats
+        #   directly to your attention matrix. If they are boolean masks, True will be converted to -inf before adding the
+        #   mask to your attentions. See https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html#torch.nn.MultiheadAttention.forward
+        #   Basically True/-inf indicates tokens we do not want to attend to.
+        #
+        # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
+        #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
+        #   
+        return self.mha(x, x, x,
+            attn_mask=self.mask,
+            key_padding_mask=~key_padding_mask,
+            need_weights=True
+        )
 
 class FlashCausalAttention(nn.Module):
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
