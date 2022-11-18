@@ -50,11 +50,11 @@ def build_optimizer(cfg, model):
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
-def build_algorithm(cfg):
-    if cfg.name == "selective_backprop":
+def build_algorithm(name, cfg):
+    if name == "selective_backprop":
         return SelectiveBackprop(start=cfg.start, end=cfg.end, interrupt=cfg.interrupt, keep=cfg.keep)
     else:
-        raise ValueError(f"Not sure how to build algorithm: {cfg.name}")
+        raise ValueError(f"Not sure how to build algorithm: {name}")
 
 def build_scheduler(cfg):
     if cfg.name == 'constant_with_warmup':
