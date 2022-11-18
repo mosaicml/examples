@@ -22,8 +22,7 @@ from src.mosaic_gpt import ComposerMosaicGPT
 
 def build_logger(name, kwargs):
     if name == 'wandb':
-        logger = WandBLogger(**{key: value for key, value in kwargs.items() if key != "key"})
-        logger.login(key=[kwargs['key']])
+        logger = WandBLogger(kwargs)
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
