@@ -156,6 +156,9 @@ def main(cfg):
 
     # Callbacks
     callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
+    print("callbacks are", callbacks)
+    callbacks = []
+    print("callbacks are now", callbacks)
 
     algorithms = [build_algorithm(name, algorithm_cfg) for name, algorithm_cfg in cfg.get("algorithms", {}).items()]
 
