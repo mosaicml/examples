@@ -2,7 +2,11 @@
 # # SPDX-License-Identifier: Apache-2.0
 
 # """Contains GLUE job objects for the simple_glue_trainer."""
+import atexit
+import copy
+import gc
 import multiprocessing as mp
+import os
 from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
@@ -44,6 +48,24 @@ TASK_NAME_TO_NUM_LABELS = {
     'stsb': 1,
     'cola': 2
 }
+
+def reset_trainer(trainer: Trainer, garbage_collect: bool = False):
+    """Cleans up memory usage left by trainer"""
+    trainer.close()
+    # Unregister engine from atexit to remove ref
+    atexit.unregister(trainer.engine._close)
+    # Close potentially persistent dataloader workers
+    if trainer.state.train_dataloader and trainer.state.train_dataloader._iterator is not None:  # type: ignore [reportGeneralTypeIssues]
+        trainer.state.train_dataloader._iterator._shutdown_workers()  # type: ignore [reportGeneralTypeIssues]
+    # Explicitly delete attributes of state as otherwise gc.collect() doesn't free memory
+    for key in list(trainer.state.__dict__.keys()):
+        delattr(trainer.state, key)
+    # Delete the rest of trainer attributes
+    for key in list(trainer.__dict__.keys()):
+        delattr(trainer, key)
+    if garbage_collect:
+        gc.collect()
+        torch.cuda.empty_cache()
 
 class FineTuneJob:
     """Encapsulates a fine-tuning job.
@@ -95,48 +117,54 @@ class FineTuneJob:
             return self._job_name
         return self.__class__.__name__
 
-    def run(self, gpu_queue: Optional[mp.Queue] = None) -> Dict[str, Any]:
+    def run(
+        self,
+        gpu_queue: Optional[mp.Queue] = None,
+        process_to_gpu: Optional[mp.managers.DictProxy] = None
+    ) -> Dict[str, Any]:
         """Trains the model, optionally pulling a GPU id from the queue.
-
         Returns a dict with keys:
         * 'checkpoints': list of saved_checkpoints, if any,
         * 'metrics': nested dict of results, accessed by
                      dataset and metric name, e.g.
                      ``metrics['glue_mnli']['Accuracy']``.
         """
-        if gpu_queue is not None:
-            gpu_id = gpu_queue.get()
-            device = DeviceGPU(gpu_id)
-        elif torch.cuda.device_count() > 0:
-            gpu_id = 0
-            device = DeviceGPU(gpu_id)
+        if gpu_queue is None:
+            if torch.cuda.device_count() > 0:
+                gpu_id = 0
+                device = DeviceGPU(gpu_id)
+            else:
+                gpu_id = None
+                device = 'cpu'
         else:
-            gpu_id = None
-            device = 'cpu'
+            current_pid = os.getpid()
+            if current_pid in process_to_gpu:
+                gpu_id = process_to_gpu[current_pid]
+            else:
+                gpu_id = gpu_queue.get()
+                process_to_gpu[current_pid] = gpu_id
+            device = DeviceGPU(gpu_id)
 
         print(f'Running {self.job_name} on GPU {gpu_id}')
 
-        try:
-            trainer = self.get_trainer(device=device)
+        trainer = self.get_trainer(device=device)
 
-            trainer.fit()
+        trainer.fit()
 
-            collected_metrics: Dict[str, Dict[str, Any]] = {}
-            for eval_name, metrics in trainer.state.eval_metrics.items():
-                collected_metrics[eval_name] = {
-                    name: metric.compute().cpu().numpy() for name, metric in metrics.items()
-                }
+        collected_metrics: Dict[str, Dict[str, Any]] = {}
+        for eval_name, metrics in trainer.state.eval_metrics.items():
+            collected_metrics[eval_name] = {
+                name: metric.compute().cpu().numpy() for name, metric in metrics.items()
+            }
 
-            trainer.close()
-            self.print_metrics(collected_metrics)
-        finally:
-            # release the GPU for other jobs
-            if gpu_queue:
-                assert gpu_id is not None
-                print(f'Releasing GPU {gpu_id}')
-                gpu_queue.put(gpu_id)
+        saved_checkpoints = copy.copy(trainer.saved_checkpoints)
+        reset_trainer(trainer, garbage_collect=True)
 
-        return {'checkpoints': trainer.saved_checkpoints, 'metrics': collected_metrics, 'job_name': self.job_name}
+        self.print_metrics(collected_metrics)
+
+        output = {'checkpoints': saved_checkpoints, 'metrics': collected_metrics, 'job_name': self.job_name}
+
+        return output
 
 
 class GlueClassificationJob(FineTuneJob):

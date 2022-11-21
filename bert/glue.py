@@ -1,4 +1,5 @@
 import copy
+import gc
 import multiprocessing as mp
 import os
 import sys
@@ -180,8 +181,11 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str], pretr
 
     return configs
 
-
-def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) -> Any:
+def run_job_worker(
+    config: om.DictConfig,
+    gpu_queue: Optional[mp.Queue] = None,
+    process_to_gpu: Optional[mp.managers.DictProxy] = None
+) -> Any:
     """Instantiates the job object and runs it"""
     instantiated_job = TASK_NAME_TO_CLASS[config.task](
         job_name=config.job_name,
@@ -197,7 +201,13 @@ def run_job_worker(config: om.DictConfig, gpu_queue: Optional[mp.Queue] = None) 
         precision=config.precision,
         **config.trainer_kwargs,
     )
-    return instantiated_job.run(gpu_queue)
+    results = instantiated_job.run(gpu_queue, process_to_gpu)
+
+    # delete the job so that the optimizer and anything else on the gpu gets deleted
+    del instantiated_job
+    torch.cuda.empty_cache()
+    gc.collect()
+    return results
 
 
 def run_jobs_parallel(configs: Sequence[om.DictConfig]):
@@ -219,10 +229,16 @@ def run_jobs_parallel(configs: Sequence[om.DictConfig]):
         # workers get gpu ids from this queue
         # to set the GPU to run on
         gpu_queue = _setup_gpu_queue(num_gpus, manager)
+        process_to_gpu = manager.dict()
 
         ctx = mp.get_context('spawn')
         with Pool(max_workers=min(num_gpus, len(configs)), mp_context=ctx) as pool:
-            results = pool.map(run_job_worker, [config for config in configs], [gpu_queue for _ in configs])
+            results = pool.map(
+                run_job_worker,
+                [config for config in configs],
+                [gpu_queue for _ in configs],
+                [process_to_gpu for _ in configs]
+            )
 
     job_name_to_config = {config.job_name: config for config in configs}
     finished_results = {}
@@ -304,6 +320,10 @@ def train(config: om.DictConfig) -> None:
 
     # Set tokenizer parallelism
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+    # Confirm GPUs if parallel=True
+    if config.parallel:
+        assert torch.cuda.device_count() > 0, "Can only use parallel mode if GPUs are available. Please set parallel=False."
 
     # Downloads the starting checkpoint ahead of time so that
     # the different tasks don't all try to download it at the same time

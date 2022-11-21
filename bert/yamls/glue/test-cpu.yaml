@@ -50,30 +50,9 @@ tasks:
       # RTE, MRPC and STS-B from the MNLI checkpoint
       save_num_checkpoints_to_keep: 1
       max_duration: 10ba
-  # rte:
-  #   seeds: [19, 8364, 717, 10536, 90166]
-  #   trainer_kwargs:
-  #     save_num_checkpoints_to_keep: 0
-  # qqp:
-  #   trainer_kwargs:
-  #     save_num_checkpoints_to_keep: 0
-  qnli:
+      eval_subset_num_batches: 10
+  rte:
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
       max_duration: 10ba
-  # sst2:
-  #   seeds: [19, 8364, 717]
-  #   trainer_kwargs:
-  #     save_num_checkpoints_to_keep: 0
-  # stsb:
-  #   seeds: [19, 8364, 717, 10536, 90166]
-  #   trainer_kwargs:
-  #     save_num_checkpoints_to_keep: 0
-  # mrpc:
-  #   seeds: [19, 8364, 717, 10536, 90166]
-  #   trainer_kwargs:
-  #     save_num_checkpoints_to_keep: 0
-  # cola:
-  #   seeds: [19, 8364, 717, 10536]
-  #   trainer_kwargs:
-  #     save_num_checkpoints_to_keep: 0
+      eval_subset_num_batches: 10
