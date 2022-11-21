@@ -26,9 +26,9 @@
 This folder contains starter code for training [torchvision ResNet architectures](https://pytorch.org/vision/stable/models.html) using our most efficient training recipes (see our [short blog post](https://www.mosaicml.com/blog/mosaic-resnet) or [detailed blog post](https://www.mosaicml.com/blog/mosaic-resnet-deep-dive) for details). These recipes were developed to hit baseline accuracy on [ImageNet](https://www.image-net.org/) 7x faster or to maximize ImageNet accuracy over long training durations. Although these recipes were developed for training ResNet on ImageNet, they could be used to train other image classification models on other datasets. Give it a try!
 
 The specific files in this folder are:
-* `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
-* `data.py` - A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
-* `main.py` - A script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
+* `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
+* `data.py` - Provides a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
+* `main.py` - Trains a ResNet on ImagNet using the [Composer](https://github.com/mosaicml/composer) [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer). 
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `resnet50.yaml` - Configuration for a ResNet50 training run to be used as the first argument to `main.py`
