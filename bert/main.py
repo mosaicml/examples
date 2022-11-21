@@ -117,9 +117,8 @@ def main(cfg):
     print(f'{n_params=:.4e}')
 
     # Get batch size info
-    global_train_batch_size = cfg.global_train_batch_size
-    device_train_batch_size = global_train_batch_size // dist.get_world_size()
-    device_eval_batch_size = device_train_batch_size
+    device_train_batch_size = cfg.global_train_batch_size // dist.get_world_size()
+    device_eval_batch_size = cfg.get('global_eval_batch_size', cfg.global_train_batch_size) // dist.get_world_size()
 
     # Dataloaders
     print("Building train loader...")

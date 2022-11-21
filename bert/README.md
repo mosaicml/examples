@@ -121,12 +121,12 @@ Now that you've installed dependencies and built a local copy of the C4 dataset,
 Our streaming dataloader always streams from `data_remote` -> `data_local`, and if both paths are the same,
 then no extra copying is done.
 
-**Also remember** that if you only downloaded the `val` split, you need to make sure your train_dataloader is pointed that split.
+**Also remember** that if you only downloaded the `val` split, you need to make sure your train_dataloader is pointed at that split.
 Just change `split: train` to `split: val` in your YAML.
 
 ### Single-Node training
 
-We run the `main.py` script using our `composer` launcher, which generates N processes (1 per device).
+We run the `main.py` script using our `composer` launcher, which generates N processes (1 process per device).
 
 If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is:
 
