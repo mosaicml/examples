@@ -1,6 +1,6 @@
 <br />
 <p align="center">
-   <img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a185326fcd73061ab9aaf9_Hero%20Image%20Final.svg" width="50%" height="50%"/>
+   <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/6375dfb52e6aae05f4ceacc2_Screen%20Shot%202022-11-17%20at%202.13.48%20AM.png" width="50%" height="50%"/>
 </p>
 
 <h2><p align="center">The most efficient recipes for training DeepLabV3 on ADE20K</p></h2>
@@ -187,7 +187,7 @@ As described in our [Segmentation blog post](https://www.mosaicml.com/blog/mosai
 - **Medium** recipe is for longer training runs
 - **Hot** recipe is for the very longest training runs that maximize accuracy
 
-<img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%"/>
+<img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/6375c40a1de1101f791bc2d7_Recipe%20Final%20(18).png" width="50%" height="50%"/>
 
 To use a recipe, specify the name using the the `recipe_name` argument. Specifying a recipe will change the duration of training run to the optimal value for that recipe. Feel free to change these in `deeplabv3.yaml` to better suite your model and/or dataset.
 
