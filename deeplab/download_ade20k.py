@@ -11,7 +11,7 @@ import torchvision
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
-    'data_dir',
+    'path',
     help='ADE20k Download directory.',
     type=str)
 
@@ -24,7 +24,7 @@ ADE20K_FILE = 'ADEChallengeData2016.zip'
 def main():
     torchvision.datasets.utils.download_and_extract_archive(
         url=ADE20K_URL,
-        download_root=args.data_dir,
+        download_root=args.path,
         filename=ADE20K_FILE,
         remove_finished=True)
 

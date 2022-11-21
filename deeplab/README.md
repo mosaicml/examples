@@ -28,8 +28,8 @@ This folder contains starter code for training [mmsegmentation DeepLabV3 archite
 The specific files in this folder are:
 * `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from an mmsegmentation DeepLabV3 model
 * `data.py` - A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ADE20K and a PyTorch dataset for a local copy of ADE20K
-* `download_ade20k.py` - A helper script for downloading ADE20K locally. 
-* `main.py` - The trainng script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
+* `download_ade20k.py` - A helper script for downloading ADE20K locally
+* `main.py` - The training script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `deeplabv3.yaml` - Configuration for a DeepLabV3 training run to be used as the first argument to `main.py`
