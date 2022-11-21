@@ -43,7 +43,7 @@ def log_config(cfg):
 
 def main(config):
     if config.grad_accum == 'auto' and not torch.cuda.is_available():
-        raise ValueError('grad_accum="auto" requires training with a GPU, please specify grad_accum as an integer')
+        raise ValueError('grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer')
 
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size

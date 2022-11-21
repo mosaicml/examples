@@ -18,7 +18,7 @@ IMAGENET_CHANNEL_MEAN = (0.485 * 255, 0.456 * 255, 0.406 * 255)
 IMAGENET_CHANNEL_STD = (0.229 * 255, 0.224 * 255, 0.225 * 255)
 
 class StreamingImageNet(Dataset, VisionDataset):
-    """ ImageNet streaming dataset based on PyTorch's VisionDataset.
+    """ImageNet streaming dataset based on PyTorch's VisionDataset.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.
