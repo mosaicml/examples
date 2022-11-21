@@ -10,7 +10,6 @@ from ..main import main
 from ..tests.utils import SynthClassificationDirectory
 
 
-
 def test_trainer():
     with open('yamls/resnet50.yaml') as f:
         base_config = OmegaConf.load(f)
