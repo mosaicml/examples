@@ -27,14 +27,7 @@ local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
 
 # Saving
 save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/ # (local)
-# save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints # (remote)
 save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
-
-# Loggers (disable for testing)
-# loggers:
-#   wandb:
-#     project: <project>
-#     entity: <entity>
 
 # Callbacks
 callbacks:
@@ -47,7 +40,7 @@ scheduler:
   t_warmup: 0.06dur
 
 # Task configuration
-tasks:
+tasks: # Only run MNLI and RTE for the sake of testing
   mnli:
     # Specify any extra task-specific arguments for the trainer here
     trainer_kwargs:
