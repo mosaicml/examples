@@ -13,6 +13,7 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from einops import rearrange
 from transformers.activations import ACT2FN
 from transformers.modeling_outputs import MaskedLMOutput, SequenceClassifierOutput
@@ -606,9 +607,10 @@ class BertForMaskedLM(BertPreTrainedModel):
         if from_tf:
             raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
 
-        checkpoint = torch.load(pretrained_checkpoint)
-        model_weights = checkpoint['model']
-        missing_keys, unexpected_keys = model.load_state_dict(model_weights, strict=False)
+        state_dict = torch.load(pretrained_checkpoint)
+        # If the state_dict was saved after wrapping with `composer.HuggingFaceModel`, it takes on the `model` prefix
+        consume_prefix_in_state_dict_if_present(state_dict, prefix='model.')
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
 
         if len(missing_keys) > 0:
             logger.warning(f"Found these missing keys in the checkpoint: {', '.join(missing_keys)}")
@@ -750,6 +752,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
             raise ValueError("Mosaic BERT does not support loading TensorFlow weights.")
 
         state_dict = torch.load(pretrained_checkpoint)
+        # If the state_dict was saved after wrapping with `composer.HuggingFaceModel`, it takes on the `model` prefix
+        consume_prefix_in_state_dict_if_present(state_dict, prefix='model.')
         missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
 
         if len(missing_keys) > 0:
