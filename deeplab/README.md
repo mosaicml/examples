@@ -95,7 +95,7 @@ But if you really must try this manually on your own cluster, then just provide 
 either directly via CLI, or via environment variables that can be read. Then launch the appropriate command on each node:
 
 ### Overriding Arguments
-Composer benchmarks used [`omegaconf`](https://github.com/omry/omegaconf) to manage configs. OmegaConf allows us to override YAML configs from the command line for quick experimentation.
+Composer benchmarks uses [`omegaconf`](https://github.com/omry/omegaconf) to manage configs. OmegaConf allows us to override YAML configs from the command line for quick experimentation.
 
 Common examples include:
 
