@@ -15,7 +15,7 @@ from composer.callbacks import MemoryMonitor, LRMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingWithWarmupScheduler, DecoupledSGDW
 from composer.utils import dist
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 from data import build_imagenet_dataspec
 from model import build_composer_resnet
@@ -32,7 +32,7 @@ def build_logger(name: str, kwargs: Dict):
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
-def log_config(cfg: OmegaConf.DictConfig):
+def log_config(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     if 'wandb' in cfg.loggers:
         try:
