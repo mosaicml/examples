@@ -5,7 +5,7 @@
 import functools
 import textwrap
 import warnings
-from typing import Dict, Optional, Sequence, Callable
+from typing import Dict, Optional, Callable
 
 import torch
 import torch.distributed as torch_dist
@@ -48,7 +48,7 @@ def deeplabv3(num_classes: int,
               backbone_weights: Optional[str] = None,
               sync_bn: bool = True,
               use_plus: bool = True,
-              init_fn: Optional[Callable] = ()):
+              init_fn: Optional[Callable] = None):
     """Helper function to build a mmsegmentation DeepLabV3 model.
     Args:
         num_classes (int): Number of classes in the segmentation task.
@@ -157,10 +157,11 @@ def deeplabv3(num_classes: int,
     model = SimpleSegmentationModel(backbone, head)
 
     # Only apply initialization to classifier head if pre-trained weights are used
-    if backbone_weights is None:
-        model.apply(init_fn)
-    else:
-        model.classifier.apply(init_fn)
+    if init_fn:
+        if backbone_weights is None:
+            model.apply(init_fn)
+        else:
+            model.classifier.apply(init_fn)
 
     if sync_bn and world_size > 1:
         local_world_size = dist.get_local_world_size()
@@ -194,7 +195,7 @@ def build_composer_deeplabv3(num_classes: int,
                              ignore_index: int = -1,
                              cross_entropy_weight: float = 1.0,
                              dice_weight: float = 0.0,
-                             init_fn: Optional[Callable] = ()):
+                             init_fn: Optional[Callable] = None):
     """Helper function to create a :class:`.ComposerClassifier` with a DeepLabv3(+) model. Logs
         Mean Intersection over Union (MIoU) and Cross Entropy during training and validation.
     From `Rethinking Atrous Convolution for Semantic Image Segmentation <https://arxiv.org/abs/1706.05587>`_
@@ -211,8 +212,8 @@ def build_composer_deeplabv3(num_classes: int,
         ignore_index (int): Class label to ignore when calculating the loss and other metrics. Default: ``-1``.
         cross_entropy_weight (float): Weight to scale the cross entropy loss. Default: ``1.0``.
         dice_weight (float): Weight to scale the dice loss. Default: ``0.0``.
-        init_fn (Callable, optional): initialization function for the model. ``()`` for no initialization.
-            Default: ``()``.
+        init_fn (Callable, optional): initialization function for the model. ``None`` for no initialization.
+            Default: ``None``.
     Returns:
         ComposerModel: instance of :class:`.ComposerClassifier` with a DeepLabv3(+) model.
     Example:

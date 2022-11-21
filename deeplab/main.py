@@ -12,7 +12,7 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist
-from data import build_ade20k_dataloader, build_streaming_ade20k_dataloader
+from data import build_ade20k_dataspec, build_streaming_ade20k_dataspec
 from model import build_composer_deeplabv3
 from omegaconf import OmegaConf
 
@@ -41,18 +41,24 @@ def log_config(cfg):
 
 
 def main(config):
-
+    # update trainer settings based on selected recipe
+    if config.recipe_name:
+        recipe_settings = config[config.recipe]
+        config.update(recipe_settings)
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
     eval_batch_size = config.eval_dataset.batch_size
+    
+
     if dist.get_world_size():
         train_batch_size //= dist.get_world_size()
         eval_batch_size //= dist.get_world_size()
 
+
     # Train dataset
     print('Building train dataloader')
     if config.train_dataset.is_streaming:
-        train_dataspec = build_streaming_ade20k_dataloader(
+        train_dataspec = build_streaming_ade20k_dataspec(
             remote=config.train_dataset.path,
             local=config.train_dataset.local,
             batch_size=train_batch_size,
@@ -68,7 +74,7 @@ def main(config):
             pin_memory=True,
             persistent_workers=True)
     else:
-        train_dataspec = build_ade20k_dataloader(
+        train_dataspec = build_ade20k_dataspec(
             datadir=config.train_dataset.path,
             batch_size=train_batch_size,
             split='train',
@@ -88,7 +94,7 @@ def main(config):
     # Validation dataset
     print('Building evaluation dataloader')
     if config.eval_dataset.is_streaming:
-        eval_dataspec = build_streaming_ade20k_dataloader(
+        eval_dataspec = build_streaming_ade20k_dataspec(
             remote=config.eval_dataset.path,
             local=config.eval_dataset.local,
             batch_size=eval_batch_size,
@@ -104,7 +110,7 @@ def main(config):
             pin_memory=True,
             persistent_workers=True)
     else:
-        eval_dataspec = build_ade20k_dataloader(
+        eval_dataspec = build_ade20k_dataspec(
             datadir=config.eval_dataset.path,
             batch_size=eval_batch_size,
             split='val',
@@ -131,13 +137,13 @@ def main(config):
             torch.nn.init.zeros_(module.bias)
 
     composer_model = build_composer_deeplabv3(
-        num_classes=config.num_classes,
-        backbone_arch=config.backbone_arch,
-        backbone_weights=config.backbone_weights,
-        sync_bn=config.sync_bn,
+        num_classes=config.model.num_classes,
+        backbone_arch=config.model.backbone_arch,
+        backbone_weights=config.model.backbone_weights,
+        sync_bn=config.model.sync_bn,
         use_plus=True,
-        cross_entropy_weight=config.cross_entropy_weight,
-        dice_weight=config.dice_weight,
+        cross_entropy_weight=config.model.cross_entropy_weight,
+        dice_weight=config.model.dice_weight,
         init_fn=weight_init)
 
     print('Built Composer model\n')
@@ -176,6 +182,7 @@ def main(config):
             ChannelsLast(),
             EMA(half_life='1000ba', update_interval='10ba'),
         ]
+
     elif config.recipe_name == 'medium':
         algorithms = [
             ChannelsLast(),
@@ -183,6 +190,7 @@ def main(config):
             SAM(rho=0.3, interval=2),
             MixUp(alpha=0.2),
         ]
+
     elif config.recipe_name == 'hot':
         algorithms = [
             ChannelsLast(),
@@ -190,6 +198,7 @@ def main(config):
             SAM(rho=0.3, interval=1),
             MixUp(alpha=0.5),
         ]
+
     else:
         algorithms = None
 

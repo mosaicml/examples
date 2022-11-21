@@ -70,25 +70,16 @@ parameters:
   recipe_name: null
 
   # Updated parameters for mild recipe
-  # mild:
-  #   model.loss_name: binary_cross_entropy
-  #   train_dataset.crop_size: 176
-  #   eval_dataset.resize_size: 232
-  #   max_duration: 36ep
+  mild:
+    max_duration: 25ep
 
-  # # Updated parameters for medium recipe
-  # medium:
-  #   model.loss_name: binary_cross_entropy
-  #   train_dataset.crop_size: 176
-  #   eval_dataset.resize_size: 232
-  #   max_duration: 135ep
+  # Updated parameters for medium recipe
+  medium:
+    max_duration: 90ep
 
-  # # Updated parameters for hot recipe
-  # hot:
-  #   model.loss_name: binary_cross_entropy
-  #   train_dataset.crop_size: 176
-  #   eval_dataset.resize_size: 232
-  #   max_duration: 270ep
+  # Updated parameters for hot recipe
+  hot:
+    max_duration: 240ep
 
   # Save checkpoint parameters
   save_folder: null               # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)

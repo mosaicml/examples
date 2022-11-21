@@ -37,6 +37,7 @@ def build_ade20k_transformations(split,
                                  final_size: int = 512):
     """Builds the transformations for the ADE20k dataset.
        Args:
+           split (str): The dataset split to use either 'train', 'val', or 'test'. Default: ``'train```.
            base_size (int): Initial size of the image and target before other augmentations. Default: ``512``.
            min_resize_scale (float): The minimum value the samples can be rescaled. Default: ``0.5``.
            max_resize_scale (float): The maximum value the samples can be rescaled. Default: ``2.0``.
@@ -85,7 +86,7 @@ def build_ade20k_transformations(split,
     return both_transforms, image_transforms, target_transforms
 
 
-def build_ade20k_dataloader(
+def build_ade20k_dataspec(
     batch_size: int,
     datadir: str,
     *,
@@ -143,7 +144,7 @@ def build_ade20k_dataloader(
     )
 
 
-def build_streaming_ade20k_dataloader(
+def build_streaming_ade20k_dataspec(
     batch_size: int,
     remote: str,
     *,
@@ -166,7 +167,7 @@ def build_streaming_ade20k_dataloader(
         version (int): Which version of streaming to use. Default: ``2``.
         local (str): Local filesystem directory where dataset is cached during operation.
             Default: ``'/tmp/mds-cache/mds-ade20k/```.
-        split (str): The dataset split to use, either 'train' or 'val'. Default: ``'train```.
+        split (str): The dataset split to use either 'train', 'val', or 'test'. Default: ``'train```.
         base_size (int): Initial size of the image and target before other augmentations. Default: ``512``.
         min_resize_scale (float): The minimum value the samples can be rescaled. Default: ``0.5``.
         max_resize_scale (float): The maximum value the samples can be rescaled. Default: ``2.0``.
@@ -228,7 +229,7 @@ def build_streaming_ade20k_dataloader(
                     device_transforms=device_transform_fn)
 
 
-def build_synthetic_ade20k_dataloader(
+def build_synthetic_ade20k_dataspec(
     batch_size: int,
     *,
     split: str = 'train',
@@ -252,9 +253,9 @@ def build_synthetic_ade20k_dataloader(
         memory_format (:class:`composer.core.MemoryFormat`): Memory format of the tensors. Default: ``CONTIGUOUS_FORMAT``.
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the dataloader (e.g. num_workers, etc.)
     """
-    if split == 'train':
+    if split == 'training':
         total_dataset_size = 20_206
-    elif split == 'val':
+    elif split == 'validation':
         total_dataset_size = 2_000
     else:
         total_dataset_size = 3_352
@@ -485,8 +486,8 @@ class PhotometricDistoration(torch.nn.Module):
 class ADE20k(Dataset):
     """PyTorch Dataset for ADE20k.
     Args:
-        datadir (str): the path to the ADE20k folder.
-        split (str): the dataset split to use, either 'training', 'validation', or 'test'. Default: ``'training'``.
+        datadir (str): the path to the ADE20k folder. Dataset should be in the format <datadir>/ADEChallengeData2016/images
+        split (str): The dataset split to use either 'train', 'val', or 'test'. Default: ``'train```.
         both_transforms (torch.nn.Module): transformations to apply to the image and target simultaneously.
             Default: ``None``.
         image_transforms (torch.nn.Module): transformations to apply to the image only. Default: ``None``.
@@ -495,21 +496,30 @@ class ADE20k(Dataset):
 
     def __init__(self,
                  datadir: str,
-                 split: str = 'training',
+                 split: str = 'train',
                  both_transforms: Optional[torch.nn.Module] = None,
                  image_transforms: Optional[torch.nn.Module] = None,
                  target_transforms: Optional[torch.nn.Module] = None):
         super().__init__()
         self.datadir = datadir
-        self.split = split
         self.both_transforms = both_transforms
         self.image_transforms = image_transforms
         self.target_transforms = target_transforms
+        split_to_dir = {'train': 'training', # map split names to ade20k image directories
+                        'val': 'validation',
+                        'test': 'test'}
+        self.split = split_to_dir[split]
 
+
+        
         # Check datadir value
         if self.datadir is None:
             raise ValueError('datadir must be specified')
-        elif not os.path.exists(self.datadir):
+            
+        # add ADEChallengeData2016 to root dir
+        self.datadir = os.path.join(self.datadir, 'ADEChallengeData2016')
+
+        if not os.path.exists(self.datadir):
             raise FileNotFoundError(
                 f'datadir path does not exist: {self.datadir}')
 
@@ -651,3 +661,24 @@ class StreamingADE20k(StreamingDataset):
         if self.target_transform:
             y = self.target_transform(y)
         return x, y
+
+
+
+# Helpful to test if your dataloader is working locally
+# Run `python data.py datadir` to test local
+# Run `python data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming dataset
+if __name__ == '__main__':
+    import sys
+    from itertools import islice
+    path = sys.argv[1]
+
+    batch_size = 2
+    if len(sys.argv) > 2:
+        local = sys.argv[2]
+        dataspec = build_streaming_ade20k_dataspec(remote=path, local=local, batch_size=batch_size)
+    else:
+        dataspec = build_ade20k_dataspec(datadir=path, batch_size=batch_size)
+
+    print('Running 5 batchs of dataloader')
+    for batch_ix, batch in enumerate(islice(dataspec.dataloader, 5)):
+        print(f'Batch id: {batch_ix}; Image batch shape: {batch[0].shape}; Target batch shape: {batch[1].shape}')

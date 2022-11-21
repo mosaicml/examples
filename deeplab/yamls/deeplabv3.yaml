@@ -15,9 +15,11 @@ model:
 
 # Training Dataset Parameters
 train_dataset:
-  is_streaming: true                 # Type must be either ['streaming', 'local', 'synthetic']
-  path: s3://my-bucket/my-ade20k     # Path to S3 bucket if streaming, otherwise path to local data directory
+  is_streaming: false                # Type must be either ['streaming', 'local', 'synthetic']
+  path:  ade20k       # Path to S3 bucket if streaming, otherwise path to local data directory
   local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
+  # path:  s3://my-bucket/ade20k       # Path to S3 bucket if streaming, otherwise path to local data directory
+  # local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
   base_size: 512                     # Initial size of the image and target before other augmentations
   min_resize_scale: 0.5              # The minimum value the samples can be rescaled
   max_resize_scale: 2.0              # The maximum value the samples can be rescaled
@@ -27,9 +29,9 @@ train_dataset:
 
 # Validation Dataset Parameters
 eval_dataset:
-  is_streaming: true                   # Type must be either ['streaming', 'local', 'synthetic']
-  path: s3://my-bucket/my-ade20k       # S3 bucket if streaming, otherwise path to local data
-  local: /tmp/mds-cache/mds-ade20k/    # Local cache when streaming data
+  is_streaming: false                   # Type must be either ['streaming', 'local', 'synthetic']
+  path:  ade20k       # Path to S3 bucket if streaming, otherwise path to local data directory
+  local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
   base_size: 512                       # Initial size of the image and target before other augmentations
   min_resize_scale: 0.5                # The minimum value the samples can be rescaled
   max_resize_scale: 2.0                # The maximum value the samples can be rescaled
@@ -55,25 +57,16 @@ loggers:
 recipe_name: null
 
 # Updated parameters for mild recipe
-# mild:
-#   model.loss_name: binary_cross_entropy
-#   train_dataset.crop_size: 176
-#   eval_dataset.resize_size: 232
-#   max_duration: 36ep
+mild:
+  max_duration: 25ep
 
-# # Updated parameters for medium recipe
-# medium:
-#   model.loss_name: binary_cross_entropy
-#   train_dataset.crop_size: 176
-#   eval_dataset.resize_size: 232
-#   max_duration: 135ep
+# Updated parameters for medium recipe
+medium:
+  max_duration: 90ep
 
-# # Updated parameters for hot recipe
-# hot:
-#   model.loss_name: binary_cross_entropy
-#   train_dataset.crop_size: 176
-#   eval_dataset.resize_size: 232
-#   max_duration: 270ep
+# Updated parameters for hot recipe
+hot:
+  max_duration: 240ep
 
 # Save checkpoint parameters
 save_folder: null               # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
