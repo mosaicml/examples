@@ -1,4 +1,6 @@
+import itertools
 import os
+import sys
 from typing import Any, Callable, Optional, List
 
 import torch
@@ -75,10 +77,11 @@ class StreamingImageNet(Dataset, VisionDataset):
         return image, target
 
 
-def build_streaming_imagenet_dataspec(
-    remote: str,
-    local: str,
+def build_imagenet_dataspec(
+    data_path: str,
+    is_streaming: bool,
     batch_size: int,
+    local: str = None,
     is_train: bool = True,
     drop_last: bool = True,
     shuffle: bool = True,
@@ -86,11 +89,14 @@ def build_streaming_imagenet_dataspec(
     crop_size: int = 224,
     **dataloader_kwargs,
 ) -> DataSpec:
-    """Builds an ImageNet dataloader for local data.
+    """Builds an ImageNet dataloader for either local or remote data.
 
     Args:
-        datadir (str): path to location of dataset.
+        data_path (str): Path to the dataset either stored locally or remotely (e.g. in a S3 bucket).
+        is_streaming (bool): Whether or not the data is stored locally or remotely (e.g. in a S3 bucket).
         batch_size (int): Batch size per device.
+        local (str): If using streaming, local filesystem directory where dataset is cached during operation.
+            Default: ``None``.
         is_train (bool): Whether to load the training data or validation data. Default:
             ``True``.
         drop_last (bool): whether to drop last samples. Default: ``True``.
@@ -99,6 +105,10 @@ def build_streaming_imagenet_dataspec(
         crop size (int): The crop size to use. Default: ``224``.
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the dataloader (e.g. num_workers, etc.)
     """
+
+    if is_streaming and not local:
+        raise ValueError('`local` argument must be specified if using a streaming dataset.')
+
     split = 'train' if is_train else 'val'
     transform: List[torch.nn.Module] = []
     if resize_size > 0:
@@ -119,72 +129,16 @@ def build_streaming_imagenet_dataspec(
 
     device_transform_fn = NormalizationFn(mean=IMAGENET_CHANNEL_MEAN,
                                           std=IMAGENET_CHANNEL_STD)
-
-    dataset = StreamingImageNet(remote=remote,
-                                local=local,
-                                split=split,
-                                shuffle=shuffle,
-                                transform=transform)
-
-    # DataSpec allows for on-gpu transformations, slightly relieving dataloader bottleneck
-    return DataSpec(
-        DataLoader(
-            dataset=dataset,
-            batch_size=batch_size,
-            drop_last=drop_last,
-            collate_fn=pil_image_collate,
-            **dataloader_kwargs,
-        ),
-        device_transforms=device_transform_fn,
-    )
-
-
-def build_imagenet_dataspec(
-    datadir: str,
-    batch_size: int,
-    is_train: bool = True,
-    drop_last: bool = True,
-    shuffle: bool = True,
-    resize_size: int = -1,
-    crop_size: int = 224,
-    **dataloader_kwargs,
-) -> DataSpec:
-    """Builds an ImageNet dataloader for local data.
-
-    Args:
-        datadir (str): path to location of dataset.
-        batch_size (int): Batch size per device.
-        is_train (bool): Whether to load the training data or validation data. Default:
-            ``True``.
-        drop_last (bool): whether to drop last samples. Default: ``True``.
-        shuffle (bool): whether to shuffle the dataset. Default: ``True``.
-        resize_size (int, optional): The resize size to use. Use ``-1`` to not resize. Default: ``-1``.
-        crop size (int): The crop size to use. Default: ``224``.
-        **dataloader_kwargs (Dict[str, Any]): Additional settings for the dataloader (e.g. num_workers, etc.)
-    """
-    split = 'train' if is_train else 'val'
-    transformations: List[torch.nn.Module] = []
-    if resize_size > 0:
-        transformations.append(transforms.Resize(resize_size))
-
-    # Add split specific transformations
-    if is_train:
-        transformations += [
-            transforms.RandomResizedCrop(crop_size,
-                                         scale=(0.08, 1.0),
-                                         ratio=(0.75, 4.0 / 3.0)),
-            transforms.RandomHorizontalFlip()
-        ]
+    if is_streaming:
+        dataset = StreamingImageNet(remote=data_path,
+                                    local=local,
+                                    split=split,
+                                    shuffle=shuffle,
+                                    transform=transform)
+        sampler = None
     else:
-        transformations.append(transforms.CenterCrop(crop_size))
-
-    transformations = transforms.Compose(transformations)
-
-    device_transform_fn = NormalizationFn(mean=IMAGENET_CHANNEL_MEAN,
-                                          std=IMAGENET_CHANNEL_STD)
-
-    dataset = ImageFolder(os.path.join(datadir, split), transformations)
-    sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
+        dataset = ImageFolder(os.path.join(data_path, split), transform)
+        sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
 
     # DataSpec allows for on-gpu transformations, slightly relieving dataloader bottleneck
     return DataSpec(
@@ -199,21 +153,24 @@ def build_imagenet_dataspec(
         device_transforms=device_transform_fn,
     )
 
-# Helpful to test if your dataloader is working locally
-# Run `python data.py datadir` to test local
-# Run `python data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming dataset
-if __name__ == '__main__':
-    import sys
-    from itertools import islice
-    path = sys.argv[1]
+def check_dataloader():
+    """Tests if your dataloader is working locally.
 
+    Run `python data.py my_data_path` to test local dataset.
+    Run `python data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming.
+    """
+
+    data_path = sys.argv[1]
     batch_size = 2
-    if len(sys.argv) > 2:
+    local = None
+    is_streaming = len(sys.argv) > 2
+    if is_streaming:
         local = sys.argv[2]
-        dataspec = build_streaming_imagenet_dataspec(remote=path, local=local, batch_size=batch_size)
-    else:
-        dataspec = build_imagenet_dataspec(datadir=path, batch_size=batch_size)
 
+    dataspec = build_imagenet_dataspec(data_path=data_path, is_streaming=is_streaming, batch_size=batch_size, local=local)
     print('Running 5 batchs of dataloader')
-    for batch_ix, batch in enumerate(islice(dataspec.dataloader, 5)):
+    for batch_ix, batch in enumerate(itertools.islice(dataspec.dataloader, 5)):
         print(f'Batch id: {batch_ix}; Image batch shape: {batch[0].shape}; Target batch shape: {batch[1].shape}')
+
+if __name__ == '__main__':
+    check_dataloader()

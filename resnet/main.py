@@ -16,7 +16,7 @@ from composer.optim import CosineAnnealingWithWarmupScheduler, DecoupledSGDW
 from composer.utils import dist
 from omegaconf import OmegaConf
 
-from data import build_imagenet_dataspec, build_streaming_imagenet_dataspec
+from data import build_imagenet_dataspec
 from model import build_composer_resnet
 
 
@@ -54,61 +54,37 @@ def main(config):
 
     # Train dataset
     print('Building train dataloader')
-    if config.train_dataset.is_streaming:
-        train_dataspec = build_streaming_imagenet_dataspec(
-            remote=config.train_dataset.path,
-            local=config.train_dataset.local,
-            batch_size=train_batch_size,
-            is_train=True,
-            drop_last=True,
-            shuffle=True,
-            resize_size=config.train_dataset.resize_size,
-            crop_size=config.train_dataset.crop_size,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
-    else:
-        train_dataspec = build_imagenet_dataspec(
-            datadir=config.train_dataset.path,
-            batch_size=train_batch_size,
-            is_train=True,
-            drop_last=True,
-            shuffle=True,
-            resize_size=config.train_dataset.resize_size,
-            crop_size=config.train_dataset.crop_size,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
+    train_dataspec = build_imagenet_dataspec(
+        data_path=config.train_dataset.path,
+        is_streaming=config.train_dataset.is_streaming,
+        batch_size=train_batch_size,
+        local=config.train_dataset.local,
+        is_train=True,
+        drop_last=True,
+        shuffle=True,
+        resize_size=config.train_dataset.resize_size,
+        crop_size=config.train_dataset.crop_size,
+        num_workers=8,
+        pin_memory=True,
+        persistent_workers=True)
 
     print('Built train dataloader\n')
 
     # Validation dataset
     print('Building evaluation dataloader')
-    if config.eval_dataset.is_streaming:
-        eval_dataspec = build_streaming_imagenet_dataspec(
-            remote=config.eval_dataset.path,
-            local=config.eval_dataset.local,
-            batch_size=eval_batch_size,
-            is_train=False,
-            drop_last=False,
-            shuffle=False,
-            resize_size=config.eval_dataset.resize_size,
-            crop_size=config.eval_dataset.crop_size,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
-    else:
-        eval_dataspec = build_imagenet_dataspec(
-            datadir=config.eval_dataset.path,
-            batch_size=eval_batch_size,
-            is_train=False,
-            drop_last=False,
-            shuffle=False,
-            resize_size=config.eval_dataset.resize_size,
-            crop_size=config.eval_dataset.crop_size,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
+    eval_dataspec = build_imagenet_dataspec(
+        data_path=config.eval_dataset.path,
+        is_streaming=config.train_dataset.is_streaming,
+        batch_size=eval_batch_size,
+        local=config.eval_dataset.local,
+        is_train=False,
+        drop_last=False,
+        shuffle=False,
+        resize_size=config.eval_dataset.resize_size,
+        crop_size=config.eval_dataset.crop_size,
+        num_workers=8,
+        pin_memory=True,
+        persistent_workers=True)
     print('Built evaluation dataloader\n')
 
     # Instantiate torchvision ResNet model
