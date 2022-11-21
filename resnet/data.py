@@ -45,8 +45,8 @@ class StreamingImageNet(Dataset, VisionDataset):
                  shuffle: bool,
                  transform: Optional[Callable] = None,
                  prefetch: Optional[int] = 100_000,
-                 retry: int = 2,
-                 timeout: float = 120,
+                 retry: Optional[int] = 2,
+                 timeout: Optional[float] = 120,
                  batch_size: Optional[int] = None) -> None:
 
         if split not in ['train', 'val']:
@@ -81,12 +81,12 @@ def build_imagenet_dataspec(
     data_path: str,
     is_streaming: bool,
     batch_size: int,
-    local: str = None,
-    is_train: bool = True,
-    drop_last: bool = True,
-    shuffle: bool = True,
-    resize_size: int = -1,
-    crop_size: int = 224,
+    local: Optional[str] = None,
+    is_train: Optional[bool] = True,
+    drop_last: Optional[bool] = True,
+    shuffle: Optional[bool] = True,
+    resize_size: Optional[int] = -1,
+    crop_size: Optional[int] = 224,
     **dataloader_kwargs,
 ) -> DataSpec:
     """Builds an ImageNet dataloader for either local or remote data.
@@ -95,14 +95,14 @@ def build_imagenet_dataspec(
         data_path (str): Path to the dataset either stored locally or remotely (e.g. in a S3 bucket).
         is_streaming (bool): Whether or not the data is stored locally or remotely (e.g. in a S3 bucket).
         batch_size (int): Batch size per device.
-        local (str): If using streaming, local filesystem directory where dataset is cached during operation.
+        local (str, optional): If using streaming, local filesystem directory where dataset is cached during operation.
             Default: ``None``.
-        is_train (bool): Whether to load the training data or validation data. Default:
+        is_train (bool, optional): Whether to load the training data or validation data. Default:
             ``True``.
-        drop_last (bool): whether to drop last samples. Default: ``True``.
-        shuffle (bool): whether to shuffle the dataset. Default: ``True``.
+        drop_last (bool, optional): whether to drop last samples. Default: ``True``.
+        shuffle (bool, optional): whether to shuffle the dataset. Default: ``True``.
         resize_size (int, optional): The resize size to use. Use ``-1`` to not resize. Default: ``-1``.
-        crop size (int): The crop size to use. Default: ``224``.
+        crop size (int, optional): The crop size to use. Default: ``224``.
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the dataloader (e.g. num_workers, etc.)
     """
 

@@ -4,6 +4,7 @@
 
 import os
 import sys
+from typing import Dict
 
 import torch
 from composer import Trainer
@@ -20,7 +21,7 @@ from data import build_imagenet_dataspec
 from model import build_composer_resnet
 
 
-def build_logger(name, kwargs):
+def build_logger(name: str, kwargs: Dict):
     if name == 'progress_bar':
         return ProgressBarLogger(
             progress_bar=kwargs.get('progress_bar', True),
@@ -31,7 +32,7 @@ def build_logger(name, kwargs):
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
-def log_config(cfg):
+def log_config(cfg: OmegaConf.DictConfig):
     print(OmegaConf.to_yaml(cfg))
     if 'wandb' in cfg.loggers:
         try:
