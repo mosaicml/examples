@@ -165,9 +165,9 @@ train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23
 # Using Mosaic Recipes
 
 As described in our [ResNet blog post](https://www.mosaicml.com/blog/mosaic-resnet), we cooked up three recipes to train ResNets faster and with higher accuracy:
-- **Mild** recipe is for shorter training runs
-- **Medium** recipe is for longer training runs
-- **Hot** recipe is for the very longest training runs that maximize accuracy
+- The **Mild** recipe is for short training runs
+- The **Medium** recipe is for longer training runs
+- The **Hot** recipe is for the longest training runs, intended to maximize accuracy
 
 <img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%"/>
 
