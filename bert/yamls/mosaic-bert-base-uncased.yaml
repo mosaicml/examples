@@ -1,16 +1,21 @@
+# Note that some of the fields in this template haven't been filled in yet.
+# Please resolve any `null` fields before launching!
+
+# Follow the instructions in the README to set up ./my-copy-c4
+# Or point data paths to your remote C4 dataset
 data_remote: &data_remote ./my-copy-c4
 data_local: &data_local ./my-copy-c4
+
 max_seq_len: &max_seq_len 128
-tokenizer_name: &tokenizer_name prajjwal1/bert-tiny
-mlm_probability: &mlm_probability 0.15
+tokenizer_name: &tokenizer_name bert-base-uncased
+mlm_probability: &mlm_probability 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
 # Run Name
-run_name: bert-tiny
+run_name: mosaic-bert-base-uncased
 
 # Model
 model:
-  name: hf_bert
-  use_pretrained: false # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
+  name: mosaic_bert
   pretrained_model_name: *tokenizer_name
   tokenizer_name: *tokenizer_name
 
@@ -68,6 +73,9 @@ optimizer:
   eps: 1.0e-06
   weight_decay: 1.0e-5 # Amount of weight decay regularization
 
+algorithms:
+  fused_layernorm: {}
+
 max_duration: 286720000sp # Subsample the training data for ~275M samples
 eval_interval: 2000ba
 global_train_batch_size: 4096
@@ -87,15 +95,15 @@ callbacks:
     window_size: 500
   lr_monitor: {}
 
-# loggers:
-  # wandb: {}
+loggers:
+  wandb: # (Comment this block to disable W&B logging)
+    project: null # Fill this in
+    entity: null # Fill this in
 
 # Checkpoint to local filesystem or remote object store
-# save_interval: 2000ba
-# save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-# save_folder: ./{run_name}/checkpoints
-# save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
+save_interval: 3500ba
+save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+save_folder: null # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
 
-# Load from local filesystem or remote object store
-# load_path: ./my-run/checkpoints/latest-rank{rank}.pt
-# load_path: s3://my-bucket/my-folder/my-run/checkpoints/latest-rank{rank}.pt
+# (Optional) Load from local filesystem or remote object store to start from an existing model checkpoint
+# load_path: null # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)

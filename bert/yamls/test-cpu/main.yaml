@@ -1,4 +1,9 @@
-data_remote: &data_remote ./my-copy-c4
+# Use this YAML to verify that MLM pre-training works. Runs on CPU.
+# From `benchmarks/bert`, run: 
+#   `composer main.py yamls/test-cpu/main.yaml` to run using the HuggingFace BERT
+#   `composer main.py yamls/test-cpu/main.yaml model.name=mosaic_bert` to run using the Mosaic BERT
+
+data_remote: &data_remote ./my-copy-c4 # Follow the instructions in the README to set up ./my-copy-c4
 data_local: &data_local ./my-copy-c4
 tokenizer_name: &tokenizer_name prajjwal1/bert-tiny
 max_seq_len: &max_seq_len 128

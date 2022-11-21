@@ -1,32 +1,34 @@
-# Whether to run the various GLUE jobs serially or in parallel
+# Whether to run the various GLUE jobs serially or in parallel (use parallel=True to take advantage of multiple GPUs)
 parallel: true
 
 # Basic run configuration, additional details will be added to this name for each GLUE task, and each random seed
-base_run_name: glue-finetuning-benchmark
-default_seed: 1111
+base_run_name: mosaic-bert-base-uncased-glue-finetuning # Determines how runs are saved and logged in W&B
+default_seed: 19
 precision: bf16
+
+# Tokenizer for dataset creation
+tokenizer_name: &tokenizer_name bert-base-uncased
 
 # Base model config
 model:
-  name: huggingface_auto_for_sequence_classification
-  pretrained_model_name: bert-base-uncased
+  name: mosaic_bert
+  pretrained_model_name: *tokenizer_name
+  tokenizer_name: *tokenizer_name
 
-# Tokenizer for dataset creation
-tokenizer_name: bert-base-uncased
-
-# Saving and loading
-starting_checkpoint_load_path: s3://mosaicml-internal-checkpoints-shared/alex/bert/dc-2022-07-v2/bert-dc-2022-07-baseline-alibi-glu--seed1654/checkpoints/ep0-ba68796-rank0-43383.486282wct
+# Loading
+starting_checkpoint_load_path: <checkpoint_from_pretraining> # Fill this in with the composer checkpoint from the end of pre-training a Mosaic BERT
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
-save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
-# for s3 logging
-# save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints
+
+# Saving
+save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/ # (local)
+# save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints # (remote)
 save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
 
 # Loggers
-# loggers:
-#   wandb:
-#     project: <project>
-#     entity: <entity>
+loggers:
+  wandb: # (Comment this block to disable W&B logging)
+    project: <project> # Fill this in
+    entity: <entity> # Fill this in
 
 # Callbacks
 callbacks:

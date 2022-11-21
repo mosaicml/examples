@@ -1,8 +1,13 @@
-# Whether to run the various GLUE jobs serially or in parallel
+# Use this YAML to verify that GLUE fine-tuning works. Runs on CPU.
+# From `benchmarks/bert`, run: 
+#   `composer main.py yamls/test-cpu/glue.yaml` to run using the HuggingFace BERT
+#   `composer main.py yamls/test-cpu/glue.yaml model.name=mosaic_bert` to run using the Mosaic BERT
+
+# Whether to run the various GLUE jobs serially or in parallel (must be `false` on CPU)
 parallel: false
 
 # Basic run configuration, additional details will be added to this name for each GLUE task, and each random seed
-base_run_name: glue-finetuning-benchmark
+base_run_name: glue-finetuning-benchmark-test
 default_seed: 1111
 precision: fp32
 
@@ -16,16 +21,16 @@ model:
   tokenizer_name: prajjwal1/bert-tiny
 
 
-
-# Saving and loading
-# starting_checkpoint_load_path: s3://mosaicml-internal-checkpoints-shared/alex/bert/dc-2022-07-v2/bert-dc-2022-07-baseline-alibi-glu--seed1654/checkpoints/ep0-ba68796-rank0-43383.486282wct
+# Loading
+starting_checkpoint_load_path: null # Start from scratch for the sake of testing
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
-save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/
-# for s3 logging
-# save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints
+
+# Saving
+save_finetune_checkpoint_prefix: ./local-finetune-checkpoints/ # (local)
+# save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints # (remote)
 save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
 
-# Loggers
+# Loggers (disable for testing)
 # loggers:
 #   wandb:
 #     project: <project>
