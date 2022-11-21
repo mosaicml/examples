@@ -182,7 +182,7 @@ train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23
 ```
 # Using Mosaic Recipes
 
-As described in our [Segmentation blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation), we cooked up three recipes to train ResNets faster and with higher accuracy:
+As described in our [Segmentation blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation), we cooked up three recipes to train DeepLabv3 faster and with higher accuracy:
 - **Mild** recipe is for shorter training runs
 - **Medium** recipe is for longer training runs
 - **Hot** recipe is for the very longest training runs that maximize accuracy
