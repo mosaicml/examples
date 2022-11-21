@@ -62,7 +62,7 @@ parameters:
       # project: # Name of WandB project
       # group:   # Name of WandB group
 
-  # Set to null for baseline or for recipe, either ["mild", "medium", "spicy"] for increasing training time and accuracy
+  # Set to null for baseline or for recipe, either ["mild", "medium", "hot"] for increasing training time and accuracy
   recipe_name: null
 
   # Updated parameters for mild recipe

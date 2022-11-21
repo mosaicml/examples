@@ -1,3 +1,4 @@
+import pytest
 import os
 import sys
 # TODO: this should be removed when benchmarks has a setup.py i.e. installable
@@ -9,14 +10,15 @@ import torch
 from ..main import main
 from ..tests.utils import SynthClassificationDirectory
 
-
-def test_trainer():
+@pytest.mark.parametrize('recipe_name', [None, 'mild', 'medium', 'hot'])
+def test_trainer(recipe_name):
     with open('yamls/resnet50.yaml') as f:
         base_config = OmegaConf.load(f)
 
     with open('tests/smoketest_config.yaml') as f:
         smoke_config = OmegaConf.load(f)
     config = OmegaConf.merge(base_config, smoke_config)
+    config.recipe_name = recipe_name
 
     with SynthClassificationDirectory() as tmp_datadir:
         print(tmp_datadir)

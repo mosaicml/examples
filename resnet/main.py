@@ -45,6 +45,13 @@ def main(config):
     if config.grad_accum == 'auto' and not torch.cuda.is_available():
         raise ValueError('grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer')
 
+    # If using a recipe, update the config's loss name, eval and train resize sizes, and the max duration
+    if config.recipe_name:
+        if config.recipe_name not in ['mild', 'medium', 'hot']:
+            raise ValueError(f'recipe_name={config.recipe_name}, but must be one of ["mild", "medium", "hot"]')
+        recipe_config = config[config.recipe_name]
+        config.update(recipe_config)
+
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
     eval_batch_size = config.eval_dataset.batch_size
@@ -140,7 +147,7 @@ def main(config):
             MixUp(alpha=0.2),
             SAM(rho=0.5, interval=10),
         ]
-    elif config.recipe_name == 'spicy':
+    elif config.recipe_name == 'hot':
         algorithms = [
             BlurPool(),
             ChannelsLast(),

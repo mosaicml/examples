@@ -12,6 +12,15 @@ eval_dataset:
   crop_size: 16
   batch_size: 2
 
+mild:
+  max_duration: 1ba
+
+medium:
+  max_duration: 1ba
+
+hot:
+  max_duration: 1ba
+
 save_folder: null
 save_interval: 1ba
 save_num_checkpoints_to_keep: 1
