@@ -15,11 +15,9 @@ model:
 
 # Training Dataset Parameters
 train_dataset:
-  is_streaming: false                # Type must be either ['streaming', 'local', 'synthetic']
-  path:  ade20k       # Path to S3 bucket if streaming, otherwise path to local data directory
+  is_streaming: false                # If true, use streaming dataset
+  path:  ade20k                      # Path to S3 bucket if streaming, otherwise path to local data directory
   local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
-  # path:  s3://my-bucket/ade20k       # Path to S3 bucket if streaming, otherwise path to local data directory
-  # local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
   base_size: 512                     # Initial size of the image and target before other augmentations
   min_resize_scale: 0.5              # The minimum value the samples can be rescaled
   max_resize_scale: 2.0              # The maximum value the samples can be rescaled
@@ -29,9 +27,9 @@ train_dataset:
 
 # Validation Dataset Parameters
 eval_dataset:
-  is_streaming: false                   # Type must be either ['streaming', 'local', 'synthetic']
-  path:  ade20k       # Path to S3 bucket if streaming, otherwise path to local data directory
-  local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
+  is_streaming: false                  # If true, use streaming dataset
+  path:  ade20k                        # Path to S3 bucket if streaming, otherwise path to local data directory
+  local: /tmp/mds-cache/mds-ade20k/    # Local cache when streaming data
   base_size: 512                       # Initial size of the image and target before other augmentations
   min_resize_scale: 0.5                # The minimum value the samples can be rescaled
   max_resize_scale: 2.0                # The maximum value the samples can be rescaled
@@ -53,7 +51,7 @@ loggers:
     # project: # Name of WandB project
     # group:   # Name of WandB group
 
-# null for baseline or for recipe, either ["mild", "medium", "spicy"] in order of increasing training time and accuracy
+# null for baseline or for recipe, either ["mild", "medium", "hot"] in order of increasing training time and accuracy
 recipe_name: null
 
 # Updated parameters for mild recipe

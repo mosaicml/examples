@@ -4,20 +4,23 @@
 
 import os
 import sys
+import omegaconf
+from omegaconf import OmegaConf
 
 import torch
+
 from composer import Trainer
 from composer.algorithms import EMA, SAM, ChannelsLast, MixUp
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist
+
 from data import build_ade20k_dataspec, build_streaming_ade20k_dataspec
 from model import build_composer_deeplabv3
-from omegaconf import OmegaConf
 
 
-def build_logger(name, kwargs):
+def build_logger(name: str, kwargs: dict):
     if name == 'progress_bar':
         return ProgressBarLogger(
             progress_bar=kwargs.get('progress_bar', True),
@@ -29,15 +32,15 @@ def build_logger(name, kwargs):
         raise ValueError(f'Not sure how to build logger: {name}')
 
 
-def log_config(cfg):
-    print(OmegaConf.to_yaml(cfg))
-    if 'wandb' in cfg.loggers:
+def log_config(config: omegaconf.ConfigDict):
+    print(OmegaConf.to_yaml(config))
+    if 'wandb' in config.loggers:
         try:
             import wandb
         except ImportError as e:
             raise e
         if wandb.run:
-            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
+            wandb.config.update(OmegaConf.to_container(config, resolve=True))
 
 
 def main(config):
@@ -48,82 +51,50 @@ def main(config):
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
     eval_batch_size = config.eval_dataset.batch_size
-    
 
     if dist.get_world_size():
         train_batch_size //= dist.get_world_size()
         eval_batch_size //= dist.get_world_size()
 
-
     # Train dataset
     print('Building train dataloader')
-    if config.train_dataset.is_streaming:
-        train_dataspec = build_streaming_ade20k_dataspec(
-            remote=config.train_dataset.path,
-            local=config.train_dataset.local,
-            batch_size=train_batch_size,
-            split='train',
-            drop_last=True,
-            shuffle=True,
-            base_size=config.train_dataset.base_size,
-            min_resize_scale=config.train_dataset.min_resize_scale,
-            max_resize_scale=config.train_dataset.max_resize_scale,
-            final_size=config.train_dataset.final_size,
-            ignore_background=config.train_dataset.ignore_background,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
-    else:
-        train_dataspec = build_ade20k_dataspec(
-            datadir=config.train_dataset.path,
-            batch_size=train_batch_size,
-            split='train',
-            drop_last=True,
-            shuffle=True,
-            base_size=config.train_dataset.base_size,
-            min_resize_scale=config.train_dataset.min_resize_scale,
-            max_resize_scale=config.train_dataset.max_resize_scale,
-            final_size=config.train_dataset.final_size,
-            ignore_background=config.train_dataset.ignore_background,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
+    train_dataspec = build_ade20k_dataspec(
+        remote=config.train_dataset.path,
+        local=config.train_dataset.local,
+        is_streaming=config.train_dataset.is_streaming,
+        batch_size=train_batch_size,
+        split='train',
+        drop_last=True,
+        shuffle=True,
+        base_size=config.train_dataset.base_size,
+        min_resize_scale=config.train_dataset.min_resize_scale,
+        max_resize_scale=config.train_dataset.max_resize_scale,
+        final_size=config.train_dataset.final_size,
+        ignore_background=config.train_dataset.ignore_background,
+        num_workers=8,
+        pin_memory=True,
+        persistent_workers=True)
 
     print('Built train dataloader\n')
 
     # Validation dataset
     print('Building evaluation dataloader')
-    if config.eval_dataset.is_streaming:
-        eval_dataspec = build_streaming_ade20k_dataspec(
-            remote=config.eval_dataset.path,
-            local=config.eval_dataset.local,
-            batch_size=eval_batch_size,
-            split='val',
-            drop_last=True,
-            shuffle=True,
-            base_size=config.train_dataset.base_size,
-            min_resize_scale=config.train_dataset.min_resize_scale,
-            max_resize_scale=config.train_dataset.max_resize_scale,
-            final_size=config.train_dataset.final_size,
-            ignore_background=config.train_dataset.ignore_background,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
-    else:
-        eval_dataspec = build_ade20k_dataspec(
-            datadir=config.eval_dataset.path,
-            batch_size=eval_batch_size,
-            split='val',
-            drop_last=True,
-            shuffle=True,
-            base_size=config.train_dataset.base_size,
-            min_resize_scale=config.train_dataset.min_resize_scale,
-            max_resize_scale=config.train_dataset.max_resize_scale,
-            final_size=config.train_dataset.final_size,
-            ignore_background=config.train_dataset.ignore_background,
-            num_workers=8,
-            pin_memory=True,
-            persistent_workers=True)
+    eval_dataspec = build_streaming_ade20k_dataspec(
+        remote=config.eval_dataset.path,
+        local=config.eval_dataset.local,
+        is_streaming=config.eval_dataset.is_streaming,
+        batch_size=eval_batch_size,
+        split='val',
+        drop_last=True,
+        shuffle=True,
+        base_size=config.train_dataset.base_size,
+        min_resize_scale=config.train_dataset.min_resize_scale,
+        max_resize_scale=config.train_dataset.max_resize_scale,
+        final_size=config.train_dataset.final_size,
+        ignore_background=config.train_dataset.ignore_background,
+        num_workers=8,
+        pin_memory=True,
+        persistent_workers=True)
     print('Built evaluation dataloader\n')
 
     # Instantiate Deeplab model
@@ -141,7 +112,6 @@ def main(config):
         backbone_arch=config.model.backbone_arch,
         backbone_weights=config.model.backbone_weights,
         sync_bn=config.model.sync_bn,
-        use_plus=True,
         cross_entropy_weight=config.model.cross_entropy_weight,
         dice_weight=config.model.dice_weight,
         init_fn=weight_init)

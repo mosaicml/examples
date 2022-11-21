@@ -3,7 +3,7 @@
    <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/6375dfb52e6aae05f4ceacc2_Screen%20Shot%202022-11-17%20at%202.13.48%20AM.png" width="50%" height="50%"/>
 </p>
 
-<h2><p align="center">The most efficient recipes for training DeepLabV3 on ADE20K</p></h2>
+<h2><p align="center">The most efficient recipes for training DeepLabV3+ on ADE20K</p></h2>
 
 <h3><p align='center'>
 <a href="https://www.mosaicml.com">[Website]</a>
@@ -22,17 +22,18 @@
 </p>
 <br />
 
-# Mosaic DeepLabV3
-This folder contains starter code for training [mmsegmentation DeepLabV3 architectures](https://github.com/open-mmlab/mmsegmentation/tree/master/configs/deeplabv3plus) using our most efficient training recipes (see our [benchmark blog](https://www.mosaicml.com/blog/behind-the-scenes) or [recipies blog](https://www.mosaicml.com/blog/mosaic-image-segmentation) for details). These recipes were developed to hit baseline accuracy on [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/) 5x faster or to maximize ADE20K accuracy over long training durations. Although these recipes were developed for training DeepLabV3 on ADE20k, they could be used to train other segmentation models on other datasets. Give it a try!
+# Mosaic DeepLabV3+
+This folder contains starter code for training [mmsegmentation DeepLabV3+ architectures](https://github.com/open-mmlab/mmsegmentation/tree/master/configs/deeplabv3plus) using our most efficient training recipes (see our [benchmark blog post](https://www.mosaicml.com/blog/behind-the-scenes) or [recipies blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation) for details). These recipes were developed to hit baseline accuracy on [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/) 5x faster or to maximize ADE20K mean Intersection-over-Union (mIoU) over long training durations. Although these recipes were developed for training DeepLabV3+ on ADE20k, they could be used to train other segmentation models on other datasets. Give it a try!
 
 The specific files in this folder are:
-* `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from an mmsegmentation DeepLabV3 model
+* `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from an mmsegmentation DeepLabV3+ model
 * `data.py` - A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ADE20K and a PyTorch dataset for a local copy of ADE20K
+* `transforms.py` - Torchvision transforms for ADE20K.
 * `download_ade20k.py` - A helper script for downloading ADE20K locally
 * `main.py` - The training script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
-  * `deeplabv3.yaml` - Configuration for a DeepLabV3 training run to be used as the first argument to `main.py`
+  * `deeplabv3.yaml` - Configuration for a DeepLabV3+ training run to be used as the first argument to `main.py`
   * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
 
 Now that you have explored the code, let's jump into the prerequisites for training.
@@ -46,6 +47,8 @@ Here's what you need to train:
    * The image comes pre-configured with the following dependencies:
       * PyTorch Version: 1.12.1
       * CUDA Version: 11.6
+      * MMCV Version: 1.4.4
+      * mmsegmentation Version: 0.22.0
       * Python Version: 3.9
       * Ubuntu Version: 20.04
 * [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) must be stored either locally (see `download_ade20k.py`) or uploaded to an S3 bucket after converting to a [streaming format](https://github.com/mosaicml/streaming) using [this script](https://github.com/mosaicml/streaming/blob/main/streaming/vision/convert/ade20k.py)
@@ -182,7 +185,7 @@ train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23
 ```
 # Using Mosaic Recipes
 
-As described in our [Segmentation blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation), we cooked up three recipes to train DeepLabv3 faster and with higher accuracy:
+As described in our [Segmentation blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation), we cooked up three recipes to train DeepLabV3+ faster and with higher accuracy:
 - **Mild** recipe is for shorter training runs
 - **Medium** recipe is for longer training runs
 - **Hot** recipe is for the very longest training runs that maximize accuracy

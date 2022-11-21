@@ -5,21 +5,20 @@
 import functools
 import textwrap
 import warnings
-from typing import Dict, Optional, Callable
+from typing import Callable, Dict, Optional
 
 import torch
 import torch.distributed as torch_dist
 import torch.nn.functional as F
 import torchvision
-from packaging import version
-from torchmetrics import MetricCollection
-from torchvision.models import _utils, resnet
-
 from composer.loss import DiceLoss, soft_cross_entropy
 from composer.metrics import CrossEntropy, MIoU
 from composer.models.initializers import Initializer
 from composer.models.tasks import ComposerClassifier
 from composer.utils import dist
+from packaging import version
+from torchmetrics import MetricCollection
+from torchvision.models import _utils, resnet
 
 __all__ = ['deeplabv3', 'composer_deeplabv3']
 
