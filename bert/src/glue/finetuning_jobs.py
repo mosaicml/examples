@@ -13,10 +13,7 @@ from composer.core.evaluator import Evaluator
 from composer.core.types import Dataset
 from composer.loggers import LoggerDestination
 from composer.optim import ComposerScheduler, DecoupledAdamW
-try:
-    from composer.trainer.devices import Device, DeviceGPU
-except:
-    from composer.devices import Device, DeviceGPU
+from composer.trainer.devices import Device, DeviceGPU
 from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
 
@@ -107,13 +104,20 @@ class FineTuneJob:
                      dataset and metric name, e.g.
                      ``metrics['glue_mnli']['Accuracy']``.
         """
-        gpu_id = gpu_queue.get() if gpu_queue is not None else 0
+        if gpu_queue is not None:
+            gpu_id = gpu_queue.get()
+            device = DeviceGPU(gpu_id)
+        elif torch.cuda.device_count() > 0:
+            gpu_id = 0
+            device = DeviceGPU(gpu_id)
+        else:
+            gpu_id = None
+            device = 'cpu'
 
         print(f'Running {self.job_name} on GPU {gpu_id}')
 
         try:
-            gpu = DeviceGPU(gpu_id)
-            trainer = self.get_trainer(device=gpu)
+            trainer = self.get_trainer(device=device)
 
             trainer.fit()
 
@@ -128,6 +132,7 @@ class FineTuneJob:
         finally:
             # release the GPU for other jobs
             if gpu_queue:
+                assert gpu_id is not None
                 print(f'Releasing GPU {gpu_id}')
                 gpu_queue.put(gpu_id)
 
@@ -194,7 +199,7 @@ class GlueClassificationJob(FineTuneJob):
                        save_folder=self.save_folder,
                        max_duration=self.max_duration,
                        seed=self.seed,
-                       grad_accum='auto',
+                       grad_accum='auto' if torch.cuda.device_count() > 0 else 1,
                        load_weights_only=True,
                        load_strict_model_weights=False,
                        loggers=self.loggers,

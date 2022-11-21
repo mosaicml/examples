@@ -3,7 +3,6 @@
 
 import os
 import sys
-import warnings
 
 import wandb
 from composer import algorithms
@@ -77,8 +76,6 @@ def build_scheduler(cfg):
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 def build_model(cfg):
-    warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
-
     if cfg.name == 'hf_bert':
         return create_hf_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,

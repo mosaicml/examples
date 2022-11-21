@@ -11,7 +11,7 @@ tokenizer_name: &tokenizer_name bert-base-uncased
 
 # Base model config
 model:
-  name: mosaic_bert
+  name: hf_bert
   pretrained_model_name: prajjwal1/bert-tiny
   tokenizer_name: prajjwal1/bert-tiny
 
@@ -41,13 +41,6 @@ scheduler:
   name: linear_with_warmup
   t_warmup: 0.06dur
 
-# # Algorithms
-# algorithms:
-#   gated_linear_units: {}
-#   alibi:
-#     max_sequence_length: 256
-#     train_sequence_length_scaling: 1.0
-
 # Task configuration
 tasks:
   mnli:
@@ -57,7 +50,6 @@ tasks:
       # RTE, MRPC and STS-B from the MNLI checkpoint
       save_num_checkpoints_to_keep: 1
       max_duration: 10ba
-      grad_accum: 1
   # rte:
   #   seeds: [19, 8364, 717, 10536, 90166]
   #   trainer_kwargs:
@@ -69,7 +61,6 @@ tasks:
     trainer_kwargs:
       save_num_checkpoints_to_keep: 0
       max_duration: 10ba
-      grad_accum: 1
   # sst2:
   #   seeds: [19, 8364, 717]
   #   trainer_kwargs:

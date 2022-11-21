@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 import numpy as np
 import omegaconf as om
 import torch
-import warnings
 
 from composer.algorithms import Alibi, GatedLinearUnits, FusedLayerNorm
 from composer.callbacks import LRMonitor, SpeedMonitor
@@ -72,8 +71,6 @@ def build_algorithm(name, cfg):
 
 
 def build_model(cfg, num_labels: int):
-    warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
-
     if cfg.name == 'hf_bert':
         return create_hf_bert_classification(
             num_labels=num_labels,
