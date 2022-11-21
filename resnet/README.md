@@ -28,7 +28,7 @@ This folder contains starter code for training [torchvision ResNet architectures
 The specific files in this folder are:
 * `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
 * `data.py` - Provides a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
-* `main.py` - Trains a ResNet on ImagNet using the [Composer](https://github.com/mosaicml/composer) [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer). 
+* `main.py` - Trains a ResNet on ImagNet using the [Composer](https://github.com/mosaicml/composer) [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer).
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `resnet50.yaml` - Configuration for a ResNet50 training run to be used as the first argument to `main.py`
@@ -193,10 +193,6 @@ Our best results use FFCV, so an FFCV version of ImageNet is required to exactly
 # Saving and Loading checkpoints
 
 At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
-
-# On memory constraints
-In previous blog posts ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
-we demonstrated Auto Grad Accum, which allows Composer to determine `grad_accum` on its own. This means the same configuration can be run on different hardware or on a fewer number of devices without having to manually adjust the gradient accumulation! We have done extensive testing on this feature, but if there are any issues you can manually set `grad_accum` to your desired value.
 
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.
