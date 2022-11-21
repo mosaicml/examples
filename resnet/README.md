@@ -172,12 +172,12 @@ As described in our [ResNet blog post](https://www.mosaicml.com/blog/mosaic-resn
 <img src="https://assets.website-files.com/61fd4eb76a8d78bc0676b47d/62a188a808b39301a7c3550f_Recipe%20Final.svg" width="50%" height="50%"/>
 
 To use a recipe, specify the name using the the `recipe_name` argument. Specifying a recipe will change several aspects of the training run such as:
-1. Changes the loss function to binary cross entropy instead of standard cross entropy since this has been shown to improve acurracy.
-2. Changes the train crop size to 176 (instead of 224) and the evaluation resize size to 232 (instead of 256). The smaller train crop size increases throughput and has been show to improve accuracy as well.
+1. Changes the loss function to binary cross entropy instead of standard cross entropy to improve accuracy.
+2. Changes the train crop size to 176 (instead of 224) and the evaluation resize size to 232 (instead of 256). The smaller train crop size increases throughput and accuracy.
 3. Changes the number of training epochs to the optimal value for each training recipe. Feel free to change these in `resnet50.yaml` to better suite your model and/or dataset.
-4. Specifies unique sets of speedup methods for model training.
+4. Specifies unique sets of [speedup methods](https://docs.mosaicml.com/en/stable/trainer/algorithms.html) for model training.
 
-Here is an example command to run the mild recipe on a single-node:
+Here is an example command to run the mild recipe on a single node:
 ```bash
 composer main.py yamls/resnet50.yaml recipe_name=mild
 ```
@@ -185,17 +185,17 @@ composer main.py yamls/resnet50.yaml recipe_name=mild
 ---
 **NOTE**
 
-The throughput of ResNet50 and smaller models are dataloader bottlenecked when training with our recipes on 8x NVIDIA A100s. This means the model's throughput is limited to the speed the data can be loaded. One way to alleviate this bottleneck is to use the [FFCV dataloader format](https://github.com/libffcv/ffcv). This [tutorial](https://docs.mosaicml.com/en/v0.11.0/examples/ffcv_dataloaders.html) walks you through creating your FFCV dataloader. We also have example code for an ImageNet FFCV dataloader [here](https://github.com/mosaicml/composer/blob/a0f441537008a1ef2678f1474f3cd5519deb80fa/composer/datasets/imagenet.py#L179).
+The ResNet50 and smaller models are dataloader-bottlenecked when training with our recipes on 8x NVIDIA A100s. This means the model's throughput is limited to the speed the data can be loaded. One way to alleviate this bottleneck is to use the [FFCV dataloader format](https://github.com/libffcv/ffcv). This [tutorial](https://docs.mosaicml.com/en/v0.11.0/examples/ffcv_dataloaders.html) walks you through creating your FFCV dataloader. We also have example code for an ImageNet FFCV dataloader [here](https://github.com/mosaicml/composer/blob/a0f441537008a1ef2678f1474f3cd5519deb80fa/composer/datasets/imagenet.py#L179).
 
 Our best results use FFCV, so an FFCV version of ImageNet is required to duplicate our results.
 
 ---
 # Saving and Loading checkpoints
 
-At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path`arugments if you need to save or load checkpoints!
+At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
 
 # On memory constraints
-In previous blogs ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
+In previous blog posts ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
 we demonstrated Auto Grad Accum, which allows Composer to determine `grad_accum` on its own. This means the same configuration can be run on different hardware or on a fewer number of devices without having to manually adjust the gradient accumulation! We have done extensive testing on this feature, but if there are any issues you can manually set `grad_accum` to your desired value.
 
 # Contact Us
