@@ -60,7 +60,7 @@ Here's what you need to train:
 
 This benchmark assumes that ImageNet is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. Instructions to download ImageNet can be found [here](https://www.image-net.org/download.php). Alternatively, you can train on other image classification datasets. The local dataset code assumes your data is in the [torchvision ImageFolder](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html) format.
 
-The below command will test if your data is setup appropriately:
+The below command will test if your data is set up appropriately:
 ```bash
 # Test locally stored dataset
 python data.py path/to/data
