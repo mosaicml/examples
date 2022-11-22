@@ -10,31 +10,36 @@ You'll find in this folder:
 * `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training training job, locally or on Mosaic's cloud
 * `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across the 8 GLUE tasks, locally or on Mosaic's cloud
 * `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation)
-* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
-* `src/hf_bert.py` — Code for creating a HuggingFace BERT model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/mosaic_bert.py` — Code for creating a Mosaic BERT model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/bert_padding.py` — Source code for Mosaic BERT that supports reshaping tensors in order avoid inefficiencies due to padding
-* `src/bert_layers.py` — Source code for Mosaic BERT that re-implements BERT layers with our custom speed up methods built it, with an eye towards HuggingFace API compatibility
-* `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT
-* `yamls/` - Pre-baked configs for training both our sped-up `MosaicBERT` as well as the reference `HuggingFace BERT`
+* `yamls/` - Pre-baked configs for training both our sped-up `Mosaic BERT` as well as the reference `HuggingFace BERT`
 * `requirements.txt` — All needed Python dependencies
+* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/mosaic_bert.py` — Mosaic BERTs model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built it, with an eye towards HuggingFace API compatibility
+* `src/bert_padding.py` — Source code for Mosaic BERT that supports reshaping tensors in order avoid inefficiencies due to padding
+* `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT
+* `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning
+* `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`, which handle individual fine-tuning jobs and encode task-specific hyperparameters and datasets
 
 # Mosaic BERT
 
 Our starter code provides support for standard HuggingFace BERT models, as well as our own **Mosaic BERT**, which incorporates numerous methods to improve throughput and training.
-Our goal in developing Mosaic BERT was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems! We apply:
+Our goal in developing Mosaic BERT was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems!
+
+We apply:
 * [ALiBi (Press et al, 2021)](https://arxiv.org/abs/2108.12409v1)
 * [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
 * ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
 * [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html)
 * [FlashAttention (Tri Dao, 2022)](https://arxiv.org/abs/2205.14135)
+
 ... and get them to work together! To our knowledge, many of these methods have never been combined before.
 
 If you're reading this, we're still profiling the exact speedup and performance gains offered by Mosaic BERT compared to comparable HuggingFace BERT models. Stay tuned for incoming results!
 
 ## Motivation
 
-The model reader of this README likely does not train BERT-style models from scratch, but instead starts with pre-trained weights, likely using HuggingFace code like `model = AutoModel.from_pretrained('bert-base-uncased')`. Such a reader may wonder: why would you train from scratch? We provide a detailed rationale below, but the strongest case for training your own Mosaic BERT is simple: **better accuracy, with a faster model, at a low cost.**
+The average reader of this README likely does not train BERT-style models from scratch, but instead starts with pre-trained weights, likely using HuggingFace code like `model = AutoModel.from_pretrained('bert-base-uncased')`. Such a reader may wonder: why would you train from scratch? We provide a detailed rationale below, but the strongest case for training your own Mosaic BERT is simple: **better accuracy, with a faster model, at a low cost.**
 
 There is mounting evidence that pre-training on domain specific data improves downstream evaluation accuracy:
 
@@ -150,14 +155,14 @@ composer main.py yamls/mosaic-bert-base-uncased.yaml
 
 ## GLUE fine-tuning
 
-The GLUE benchmark measures the average performance across 8 NLP classification tasks. This performance is typically used to evaluate the quality of the pre-training: once you have a set of weights from your MLM task, you fine-tune those weights separately for each task and average the results, with higher averages indicating higher pre-training quality.
+The GLUE benchmark measures the average performance across 8 NLP classification tasks. This performance is typically used to evaluate the quality of the pre-training: once you have a set of weights from your MLM task, you fine-tune those weights separately for each task and then compute the average performance across the tasks, with higher averages indicating higher pre-training quality.
 
-To handle this complicated fine-tuning pipeline, we provide the `glue.py` script, which supports parallelizing each of these fine-tuning jobs across all the GPUs on your node.
+To handle this complicated fine-tuning pipeline, we provide the `glue.py` script, which handles parallelizing each of these fine-tuning jobs across all the GPUs on your node.
 
-Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained checkpoint as the GLUE starting point, run the `glue.py` script using the standard `python` launcher (we don't use the `composer` launcher here because `glue.py` does its own multi-process orchestration):
+Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained checkpoint as the GLUE starting point, use non-default hyperparameters, etc., run the `glue.py` script using the standard `python` launcher (we don't use the `composer` launcher here because `glue.py` does its own multi-process orchestration):
 
 ```bash
-composer glue.py yamls/glue/mosaic-bert-base-uncased.yaml
+python glue.py yamls/glue/mosaic-bert-base-uncased.yaml
 ```
 
 Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
@@ -166,7 +171,7 @@ Aggregate GLUE scores will be printed out at the end of the script and can also 
 
 **Please remember** to modify the reference YAMLs (e.g., `yamls/glue/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations -- only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
 
-# Running on the MosaicML Cloud
+### Running on the MosaicML Cloud
 
 If you have configured a compute cluster to work with the MosaicML Cloud, you can use the `mcloud_run.yaml` reference YAMLs for examples of how to run pre-training and fine-tuning remotely!
 
@@ -182,9 +187,13 @@ Similarly, for GLUE fine-tuning just fill in the missing YAML fields (e.g., to u
 mcli run -f yamls/glue/mcoud_run.yaml
 ```
 
+## Multi-node training
+
 To train with high performance on *multi-node* clusters, the easiest way is with MosaicML Cloud ;)
 
-But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node:
+But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node.
+
+**Note:** multi-node training will only work `main.py` (the `glue.py` script handles its own orchestration across devices and is not built to be used with the `composer` launcher).
 
 ### Multi-Node via CLI args
 
@@ -223,7 +232,7 @@ composer main.py yamls/mosaic-bert-base-uncased.yaml
 composer main.py yamls/mosaic-bert-base-uncased.yaml
 ```
 
-You should see logs being printed to your terminal like so.
+You should see logs being printed to your terminal.
 You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.1/trainer/logging.html).
 
 # Contact Us
