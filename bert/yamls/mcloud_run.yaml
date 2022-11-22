@@ -6,11 +6,11 @@
 # Note that some of the fields in this template haven't been filled in yet.
 # Please resolve any `null` fields before launching!
 #
-# When ready, use `mcli run -f mcloud_run.yaml` to launch
+# When ready, use `mcli run -f yamls/mcloud_run.yaml` to launch
 
 run_name: &run_name mosaic-bert-base-uncased
 cluster: null  # Name of the cluster to use for this run
-gpu_type: a100_40gb # Type of GPU to use
+gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb)
 gpu_num: 8  # Number of GPUs to use
 image: mosaicml/composer:0.11.1
 integrations:
@@ -70,7 +70,7 @@ parameters:
       max_seq_len: *max_seq_len
       group_method: truncate
       shuffle: false
-      mlm_probability: *mlm_probability
+      mlm_probability: 0.15 # We always evaluate at 15% masking for consistent comparison
     drop_last: false
     num_workers: 8
     pin_memory: true

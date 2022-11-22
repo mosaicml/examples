@@ -1,3 +1,6 @@
+# Note that some of the fields in this template haven't been filled in yet.
+# Please resolve any `null` fields before launching!
+
 # Whether to run the various GLUE jobs serially or in parallel (use parallel=True to take advantage of multiple GPUs)
 parallel: true
 
@@ -16,7 +19,7 @@ model:
   tokenizer_name: *tokenizer_name
 
 # Loading
-starting_checkpoint_load_path: <checkpoint_from_pretraining> # Fill this in with the composer checkpoint from the end of pre-training a HF BERT
+starting_checkpoint_load_path: null # Fill this in with the composer checkpoint from the end of pre-training a HF BERT
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
 
 # Saving
@@ -27,8 +30,8 @@ save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_n
 # Loggers
 loggers:
   wandb: # (Comment this block to disable W&B logging)
-    project: <project> # Fill this in
-    entity: <entity> # Fill this in
+    project: null # Fill this in if using W&B
+    entity: null # Fill this in if using W&B
 
 # Callbacks
 callbacks:
@@ -39,13 +42,6 @@ callbacks:
 scheduler:
   name: linear_with_warmup
   t_warmup: 0.06dur
-
-# Algorithms
-algorithms:
-  gated_linear_units: {}
-  alibi:
-    max_sequence_length: 256
-    train_sequence_length_scaling: 1.0
 
 # Task configuration
 tasks:

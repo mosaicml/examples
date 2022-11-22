@@ -1,3 +1,6 @@
+# Note that some of the fields in this template haven't been filled in yet.
+# Please resolve any `null` fields before launching!
+
 # Whether to run the various GLUE jobs serially or in parallel (use parallel=True to take advantage of multiple GPUs)
 parallel: true
 
@@ -27,8 +30,8 @@ save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_n
 # Loggers
 loggers:
   wandb: # (Comment this block to disable W&B logging)
-    project: <project> # Fill this in
-    entity: <entity> # Fill this in
+    project: null # Fill this in if using W&B
+    entity: null # Fill this in if using W&B
 
 # Callbacks
 callbacks:
@@ -42,10 +45,7 @@ scheduler:
 
 # Algorithms
 algorithms:
-  gated_linear_units: {}
-  alibi:
-    max_sequence_length: 256
-    train_sequence_length_scaling: 1.0
+  fused_layernorm: {}
 
 # Task configuration
 tasks:
