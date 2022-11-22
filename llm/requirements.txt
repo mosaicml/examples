@@ -7,4 +7,3 @@ mosaicml-streaming<1
 transformers<5
 omegaconf<3
 wandb<1
-lm_eval>=0.2.0
