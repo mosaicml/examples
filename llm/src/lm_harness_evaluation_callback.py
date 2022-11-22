@@ -123,7 +123,7 @@ class EvaluationCallback(Callback):
                 }
             )
             model.gpt2 = state.model.model
-            model.tokenizer = state.model.tokenizer
+            # model.tokenizer = state.model.tokenizer
             main(
                 argparse.Namespace(
                     model=model,
