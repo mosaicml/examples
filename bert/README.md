@@ -1,22 +1,42 @@
-<!-- Replace with better image -->
-<p align="center">
-  <picture>
-    <source srcset="./assets/glue.png">
-    <img alt="GLUE training curves" src="./assets/loss-curve-light.png" width="75%">
-  </picture>
-</p>
+# Welcome!
+
+This benchmark covers pre-training and fine-tuning a BERT model from scratch. With this starter code, you'll be able to do Masked Language Modeling (MLM) pre-training on the C4 dataset and classification fine-tuning on the 8 different GLUE benchmark tasks. We also provide the source code and recipe behind our Mosaic BERT model, which you can train yourself using this repo.
+
+## Contents
+
+You'll find in this folder:
+
+* This `README.md`
+* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training training job, locally or on Mosaic's cloud
+* `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across the 8 GLUE tasks, locally or on Mosaic's cloud
+* `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation)
+* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
+* `src/hf_bert.py` — Code for creating a HuggingFace BERT model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/mosaic_bert.py` — Code for creating a Mosaic BERT model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/bert_padding.py` — Source code for Mosaic BERT that supports reshaping tensors in order avoid inefficiencies due to padding
+* `src/bert_layers.py` — Source code for Mosaic BERT that re-implements BERT layers with our custom speed up methods built it, with an eye towards HuggingFace API compatibility
+* `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT
+* `yamls/` - Pre-baked configs for training both our sped-up `MosaicBERT` as well as the reference `HuggingFace BERT`
+* `requirements.txt` — All needed Python dependencies
 
 # Mosaic BERT
 
-This folder contains starter code for training various BERT models: **(TBD FILL IN)**. Our goal was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems. We apply [ALiBi (Press et al, 2021)](https://arxiv.org/abs/2108.12409v1), [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202), ["The Unpadding Trick" (does anyone have a source/name for this? HazyResearch's 2021 MLPerf submission?)](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py), [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html), and [FlashAttention (Tri Dao, 2022)](https://arxiv.org/abs/2205.14135)... and get them to work together. To our knowledge, many of these methods have never been combined before.
+Our starter code provides support for standard HuggingFace BERT models, as well as our own **Mosaic BERT**, which incorporates numerous methods to improve throughput and training.
+Our goal in developing Mosaic BERT was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems! We apply:
+* [ALiBi (Press et al, 2021)](https://arxiv.org/abs/2108.12409v1)
+* [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
+* ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
+* [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html)
+* [FlashAttention (Tri Dao, 2022)](https://arxiv.org/abs/2205.14135)
+... and get them to work together! To our knowledge, many of these methods have never been combined before.
 
-Though we achieve a **(TBD FILL IN)** improvement over **(TBD FILL IN)**, there are further speedups which you can only get access to on the [MosaicML Cloud](https://www.mosaicml.com/)!
+If you're reading this, we're still profiling the exact speedup and performance gains offered by Mosaic BERT compared to comparable HuggingFace BERT models. Stay tuned for incoming results!
 
 ## Motivation
 
-The model reader of this README likely does not train BERT-style models from scratch, but instead starts with pre-trained weights, likely using code like `model = AutoModel.from_pretrained('bert-base-uncased')`. Such a reader may wonder: why would you train from scratch? See a detailed of the rationale [here](@TODO DO WE HAVE THIS? I FEEL LIKE WE SHOULD) — but in summary, the answer is "better accuracy for a given model size, for reasonable cost."
+The model reader of this README likely does not train BERT-style models from scratch, but instead starts with pre-trained weights, likely using HuggingFace code like `model = AutoModel.from_pretrained('bert-base-uncased')`. Such a reader may wonder: why would you train from scratch? We provide a detailed rationale below, but the strongest case for training your own Mosaic BERT is simple: **better accuracy, with a faster model, at a low cost.**
 
-There is mounting evidence that pretraining on domain specific data improves downstream evaluation accuracy:
+There is mounting evidence that pre-training on domain specific data improves downstream evaluation accuracy:
 
 * [Downstream Datasets Make Surprisingly Good Pretraining Corpora](https://arxiv.org/abs/2209.14389)
 * [Quality Not Quantity: On the Interaction between Dataset Design and Robustness of CLIP](https://arxiv.org/abs/2208.05516)
@@ -26,30 +46,19 @@ There is mounting evidence that pretraining on domain specific data improves dow
 * [Domain-Specific Language Model Pretraining for Biomedical Natural Language Processing](https://arxiv.org/abs/2007.15779)
 * [LinkBERT: Pretraining Language Models with Document Links](https://arxiv.org/abs/2203.15827)
 
-One may wonder, why start with random initializations? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pretrained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [Gu et al., 2020](https://arxiv.org/abs/2007.15779).
+In addition to being able to take advantage of pre-training on in-domain data, training from scratch means that you control the data start to finish. Publicly available pre-training corpuses cannot be used in many commercial cases due to legal considerations. Our starter code can easily be modified to handle custom datasets beyond the C4 example we provide.
+
+One may wonder, why start from scratch when public data isn't a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [Gu et al., 2020](https://arxiv.org/abs/2007.15779).
 
 The practical reason is that certain outcomes are only available if the model and tokenizer are pre-trained from scratch.
 
-So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/), they seem to improve LM perplexity, downstream accuracy, and allow the model to generalize to longer sequences than seen at train time), you need to train from scratch (or fine-tune from a checkpoint which was pretrained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in place of regular feedforwards ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
+So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/), they seem to improve LM perplexity, downstream accuracy, and allow the model to generalize to longer sequences than seen at train time), you need to train from scratch (or fine-tune from a checkpoint which was pre-trained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in your feedforward layers ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
 
-Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pretrained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `([na, ##lo, ##xon, ##e]` [Gu et al., 2020](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
+Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `([na, ##lo, ##xon, ##e]` [Gu et al., 2020](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
 
-## Contents
+Now that we've convinced you that you should train a Mosaic BERT from scratch, let's get into the how :) 
 
-You'll find in this folder:
-
-* This `README.md`
-* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off a training job, locally or on Mosaic's cloud
-* `convert_c4.py` — Code for creating a streaming C4 dataset. See [Dataset preparation](#Dataset-preparation)
-* `src/data_c4.py` — a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
-* `src/hf_bert.py` — a modified HuggingFace BERT model, wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.0/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.0/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/bert_padding.py` — Code for reshaping tensors in order to use BERT without padding to the longest sequence length
-* `src/bert_layers.py` — BERT re-implementation with the speed up methods mentioned above, with an eye towards HuggingFace API compatibility
-* `src/mosaic_bert.py` — Our re-implementation of BERT, wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.0/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.0/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `yamls/` - pre-baked configs for training both our sped-up `MosaicBERT` as well as the reference `HuggingFace BERT`
-* `requirements.txt` — All needed Python dependencies
-
-## Prerequisites
+# Setup
 
 Here's what you need to get started with our BERT implementation:
 
@@ -69,12 +78,12 @@ Here's what you need to get started with our BERT implementation:
 
 ## Dataset preparation
 
-To run training, you'll need to make yourself a local copy of the pre-training dataset.
-If you only want to profile these LLMs, we recommend that you **only download and prepare the `val` split**,
+To run pre-training, you'll need to make yourself a local copy of the C4 pre-training dataset.
+If you only want to profile these BERTs, we recommend that you **only download and prepare the `val` split**,
 and use it for both train and eval in your script. Just change `split: train` to `split: val` in your run YAML.
-Alternatively, feel free to substitute our dataloader with one of your own in the entrypoint [main.py](./main.py#L101)!
+Alternatively, feel free to substitute our dataloader with one of your own in the script [main.py](./main.py#L101)!
 
-In this benchmark, we train LLMs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4).
+In this benchmark, we train BERTs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4).
 We first convert the dataset from its native format (a collection of zipped JSONs)
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
@@ -113,9 +122,9 @@ python src/data_c4.py ./my-copy-c4 /tmp/cache-c4
 python src/data_c4.py s3://my-bucket/my-copy-c4 /tmp/cache-c4
 ```
 
-## How to start training
+# Training
 
-Now that you've installed dependencies and built a local copy of the C4 dataset, let's start training!
+Now that you've installed dependencies and built a local copy of the C4 dataset, let's start training! We'll start with MLM pre-training on C4.
 
 **Please remember** to edit the `data_remote` and `data_local` paths in your YAML to point to your local C4 copy.
 Our streaming dataloader always streams from `data_remote` -> `data_local`, and if both paths are the same,
@@ -123,18 +132,57 @@ then no extra copying is done.
 
 **Also remember** that if you only downloaded the `val` split, you need to make sure your train_dataloader is pointed at that split.
 Just change `split: train` to `split: val` in your YAML.
+This is already done in the testing YAML `yamls/test-cpu/main.py`, which you can also use to test your configuration.
 
-### Single-Node training
+## MLM pre-training
 
-We run the `main.py` script using our `composer` launcher, which generates N processes (1 process per device).
+We run the `main.py` script using our `composer` launcher, which generates N processes (1 process per GPU device).
 
-If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is:
+If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do to pre-train a Mosaic BERT is run:
 
 ```bash
-composer main.py yamls/mosaic_bert.yaml
+composer main.py yamls/mosaic-bert-base-uncased.yaml
 ```
 
-To train with high performance on multi-node clusters, the easiest way is with MosaicML Cloud ;)
+**Note:** The `yamls/*.yaml` files are intended to be used with `main.py`.
+
+**Please remember** to modify the reference YAMLs (e.g., `yamls/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations -- only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
+
+## GLUE fine-tuning
+
+The GLUE benchmark measures the average performance across 8 NLP classification tasks. This performance is typically used to evaluate the quality of the pre-training: once you have a set of weights from your MLM task, you fine-tune those weights separately for each task and average the results, with higher averages indicating higher pre-training quality.
+
+To handle this complicated fine-tuning pipeline, we provide the `glue.py` script, which supports parallelizing each of these fine-tuning jobs across all the GPUs on your node.
+
+Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained checkpoint as the GLUE starting point, run the `glue.py` script using the standard `python` launcher (we don't use the `composer` launcher here because `glue.py` does its own multi-process orchestration):
+
+```bash
+composer glue.py yamls/glue/mosaic-bert-base-uncased.yaml
+```
+
+Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
+
+**Note:** The `yamls/glue/*.yaml` files are intended to be used with `glue.py`.
+
+**Please remember** to modify the reference YAMLs (e.g., `yamls/glue/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations -- only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
+
+# Running on the MosaicML Cloud
+
+If you have configured a compute cluster to work with the MosaicML Cloud, you can use the `mcloud_run.yaml` reference YAMLs for examples of how to run pre-training and fine-tuning remotely!
+
+Once you have filled in the missing YAML fields (and made any other modifications you want), you can launch pre-training by simply running:
+
+```bash
+mcli run -f yamls/mcoud_run.yaml
+```
+
+Similarly, for GLUE fine-tuning just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
+
+```bash
+mcli run -f yamls/glue/mcoud_run.yaml
+```
+
+To train with high performance on *multi-node* clusters, the easiest way is with MosaicML Cloud ;)
 
 But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node:
 
@@ -146,10 +194,10 @@ But if you want to try this manually on your own cluster, then just provide a fe
 # IP Address for Node 0 = [0.0.0.0]
 
 # Node 0
-composer --world_size 16 --node_rank 0 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/mosaic_bert.yaml
+composer --world_size 16 --node_rank 0 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/mosaic-bert-base-uncased.yaml
 
 # Node 1
-composer --world_size 16 --node_rank 1 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/mosaic_bert.yaml
+composer --world_size 16 --node_rank 1 --master_addr 0.0.0.0 --master_port 7501 main.py yamls/mosaic-bert-base-uncased.yaml
 
 ```
 
@@ -165,20 +213,20 @@ composer --world_size 16 --node_rank 1 --master_addr 0.0.0.0 --master_port 7501 
 # export NODE_RANK=0
 # export MASTER_ADDR=0.0.0.0
 # export MASTER_PORT=7501
-composer main.py yamls/mosaic_bert.yaml
+composer main.py yamls/mosaic-bert-base-uncased.yaml
 
 # Node 1
 # export WORLD_SIZE=16
 # export NODE_RANK=1
 # export MASTER_ADDR=0.0.0.0
 # export MASTER_PORT=7501
-composer main.py yamls/mosaic_bert.yaml
+composer main.py yamls/mosaic-bert-base-uncased.yaml
 ```
 
 You should see logs being printed to your terminal like so.
-You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.0/trainer/logging.html).
+You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.1/trainer/logging.html).
 
-## Contact Us
+# Contact Us
 
 If you run into any problems with the code, please file Github issues directly to this repo.
 
