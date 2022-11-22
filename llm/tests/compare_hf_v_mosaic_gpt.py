@@ -1,14 +1,12 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-import os
-import sys
-import warnings
 import pytest
+import warnings
 
 import torch
-from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
+from composer.utils import reproducibility
 
 from src.mosaic_gpt import ComposerMosaicGPT
 from src.hf_gpt2 import ComposerHFCausalLM
@@ -17,11 +15,9 @@ from src.hf_gpt2 import ComposerHFCausalLM
 def test_compare_hf_v_mosaic_gpt():
     warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
 
+    # get 125m config
     with open('yamls/mosaic_gpt/125m.yaml') as f:
         cfg = om.load(f)
-    
-    print("Training using config: ")
-    print(om.to_yaml(cfg))
 
     # modify seq len for HF GPT2 compatibility
     cfg.max_seq_len = 1024
@@ -31,6 +27,9 @@ def test_compare_hf_v_mosaic_gpt():
     # set dropout prob
     cfg.model.resid_pdrop = 0.1
     cfg.model.emb_pdrop = 0.1
+
+    # get equivalent config for HF model
+    hf_cfg = om.create({'name': 'hf_gpt2', 'hf_config': 'gpt2'})
 
     # set seed
     reproducibility.seed_all(cfg.seed)
@@ -43,19 +42,16 @@ def test_compare_hf_v_mosaic_gpt():
 
     model = ComposerMosaicGPT(cfg.model).to(device)
     n_params = sum(p.numel() for p in model.parameters())
-    # print(f'{n_params=:.5e}')
 
-    hf_cfg = om.create({'name': 'hf_gpt2', 'hf_config': 'gpt2'})
     hf_model = ComposerHFCausalLM(hf_cfg).to(device)
     hf_n_params = sum(p.numel() for p in hf_model.parameters())
-    # print(f'{hf_n_params=:.5e}')
 
     assert hf_n_params == n_params
 
     # Get batch size info
     batch_size = 2
     
-    # get random input data
+    # generate random input branch
     batch = {}
     batch['input_ids']      = torch.randint(low=0, high=49673, size=(batch_size, cfg.max_seq_len)).to(device)
     batch['attention_mask'] = torch.ones(size=(batch_size, cfg.max_seq_len), dtype=torch.int64).to(device)
@@ -124,9 +120,6 @@ def test_compare_hf_v_mosaic_gpt():
         hf_model_fwd = hf_model(batch)
         torch.manual_seed(0)
         model_fwd = model(batch)
-
-    print(f"{hf_model_fwd['logits'].mean().item()=}")
-    print(f"{model_fwd.mean().item()=}")
 
     # When dropouts are aligned, these are near identical
     assert hf_model_fwd['logits'].mean().allclose(model_fwd.mean())
