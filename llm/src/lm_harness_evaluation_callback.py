@@ -110,7 +110,7 @@ class EvaluationCallback(Callback):
         self.every_n_batches = every_n_batches
 
     def before_train_batch(self, state: State, logger: Logger):
-        if not state.timestamp.batch % self.every_n_batches:  # kick off forked lm evaluation harness
+        if not int(self.state.timestamp.batch) % self.every_n_batches:  # kick off forked lm evaluation harness
             batch_size = None
             device = None
 
