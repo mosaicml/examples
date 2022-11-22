@@ -35,11 +35,11 @@ def test_compare_hf_v_mosaic_gpt():
     # set seed
     reproducibility.seed_all(cfg.seed)
 
-    # Build Model
-    # For fast initialization, use `meta` device
-    print('Initializing model...')
     device = 'cuda'
     cfg.model.device = device
+
+    # Build Model
+    print('Initializing model...')
 
     model = ComposerMosaicGPT(cfg.model).to(device)
     n_params = sum(p.numel() for p in model.parameters())
@@ -76,7 +76,7 @@ def test_compare_hf_v_mosaic_gpt():
     hf_model.train()
     model.train()
 
-    # can be used to verify that models are not the same at init
+    # UTIL: can be used to verify that models are not the same at init
     # with torch.autocast(device_type='cuda', dtype=torch.float16):
     #     torch.manual_seed(0)
     #     hf_model_fwd = hf_model(batch)
