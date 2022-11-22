@@ -59,7 +59,7 @@ def main(config):
     # Train dataset
     print('Building train dataloader')
     train_dataspec = build_ade20k_dataspec(
-        remote=config.train_dataset.path,
+        path=config.train_dataset.path,
         local=config.train_dataset.local,
         is_streaming=config.train_dataset.is_streaming,
         batch_size=train_batch_size,
@@ -79,19 +79,19 @@ def main(config):
 
     # Validation dataset
     print('Building evaluation dataloader')
-    eval_dataspec = build_streaming_ade20k_dataspec(
-        remote=config.eval_dataset.path,
+    eval_dataspec = build_ade20k_dataspec(
+        path=config.eval_dataset.path,
         local=config.eval_dataset.local,
         is_streaming=config.eval_dataset.is_streaming,
         batch_size=eval_batch_size,
         split='val',
         drop_last=True,
         shuffle=True,
-        base_size=config.train_dataset.base_size,
-        min_resize_scale=config.train_dataset.min_resize_scale,
-        max_resize_scale=config.train_dataset.max_resize_scale,
-        final_size=config.train_dataset.final_size,
-        ignore_background=config.train_dataset.ignore_background,
+        base_size=config.eval_dataset.base_size,
+        min_resize_scale=config.eval_dataset.min_resize_scale,
+        max_resize_scale=config.eval_dataset.max_resize_scale,
+        final_size=config.eval_dataset.final_size,
+        ignore_background=config.eval_dataset.ignore_background,
         num_workers=8,
         pin_memory=True,
         persistent_workers=True)
