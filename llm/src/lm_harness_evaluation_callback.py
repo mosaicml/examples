@@ -5,8 +5,7 @@ import fnmatch
 
 from composer import Callback, State, Logger
 import lm_eval.models
-from lm_eval import evaluator
-from lm_eval.tasks import ALL_TASKS
+from lm_eval import evaluator, tasks
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -32,7 +31,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
     parser.add_argument("--model_args", default="")
-    parser.add_argument("--tasks", default=None, choices=MultiChoice(ALL_TASKS))
+    parser.add_argument("--tasks", default=None, choices=MultiChoice(tasks.ALL_TASKS))
     parser.add_argument("--provide_description", action="store_true")
     parser.add_argument("--num_fewshot", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=None)
