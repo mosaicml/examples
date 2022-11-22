@@ -8,3 +8,6 @@ transformers<5
 datasets<3
 omegaconf<3
 wandb<1
+# for lm evaluation harness
+lm_eval>=0.2.0
+datasets>=2.7.0

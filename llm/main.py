@@ -17,6 +17,7 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 
 from src.data_c4 import build_c4_dataloader
+from src.lm_harness_evaluation_callback import EvaluationCallback
 from src.mosaic_gpt import ComposerMosaicGPT
 
 
@@ -184,6 +185,7 @@ def main(cfg):
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
+        callbacks=[EvaluationCallback(every_n_batches=1)],
     )
 
     print("Logging config...")
