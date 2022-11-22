@@ -82,6 +82,7 @@ grad_clip_norm: 1.0
 
 # System
 seed: 17
+device_eval_batch_size: 4
 device_train_microbatch_size: 4
 # device_train_microbatch_size: auto
 precision: bf16

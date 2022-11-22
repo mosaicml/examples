@@ -60,38 +60,37 @@ def build_scheduler(cfg):
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):
     device_batch_size = global_batch_size // dist.get_world_size()
-    device_microbatch_size = device_microbatch_size
     if device_microbatch_size == 'auto':
         device_grad_accum = 'auto'
     elif isinstance(device_microbatch_size, int):
         if device_microbatch_size > device_batch_size:
-            print (f"WARNING: device_microbatch_size > device_batch_size, will be reduced from {device_microbatch_size} -> {device_batch_size}.")
-            device_microbatch_size = device_batch_size
+            print (
+                f'WARNING: device_microbatch_size > device_batch_size, '
+                f'will be reduced from {device_microbatch_size} -> {device_batch_size}.'
+            )
             device_microbatch_size = device_batch_size
         device_grad_accum = device_batch_size // device_microbatch_size
     else:
-        raise ValueError(
-            f'Not sure how to parse {device_microbatch_size=}')
-    
-    return device_batch_size, device_grad_accum
+        raise ValueError(f'Not sure how to parse {device_microbatch_size=}')
+
+    return device_batch_size, device_microbatch_size, device_grad_accum
 
 
-# Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
+# Coming soon: this conversion math will be done inside Composer Trainer
 def update_batch_size_info(cfg):
-
-    device_train_batch_size, device_train_grad_accum = calculate_batch_size_info(
+    device_train_batch_size, device_train_microbatch_size, device_train_grad_accum = calculate_batch_size_info(
         cfg.global_train_batch_size, cfg.device_train_microbatch_size
     )
-    
-    device_eval_batch_size, _ = calculate_batch_size_info(
-        cfg.global_eval_batch_size, cfg.device_eval_microbatch_size
-    )
-
     cfg.n_gpus = dist.get_world_size()
     cfg.device_train_batch_size = device_train_batch_size
+    cfg.device_train_microbatch_size = device_train_microbatch_size
     cfg.device_train_grad_accum = device_train_grad_accum
-    cfg.device_eval_batch_size = device_eval_batch_size
-    cfg.device_eval_microbatch_size = device_eval_batch_size
+    # Safely set `device_eval_batch_size` if not provided by user
+    if 'device_eval_batch_size' not in cfg:
+        if cfg.device_train_microbatch_size == 'auto':
+            cfg.device_eval_batch_size = 1 # TODO debug auto eval microbatching
+        else:
+            cfg.device_eval_batch_size = cfg.device_train_microbatch_size
     return cfg
 
 def log_config(cfg):
