@@ -1,15 +1,16 @@
-from lm_eval import models as lm_eval_models
-from lm_eval import tasks as lm_eval_tasks
-import lm_eval
-from lm_eval.evaluator import evaluate
 import argparse
+import json
+import os
 import time
+from typing import Any, Dict, List
+
+import lm_eval
 import pandas as pd
 import torch
-from typing import Any, Dict, List
-import os
-import json
-from src.llm_evaluation.model_loading  import MODEL_REGISTRY
+from lm_eval import models as lm_eval_models
+from lm_eval import tasks as lm_eval_tasks
+from lm_eval.evaluator import evaluate
+from src.llm_evaluation.model_loading import MODEL_LOADERS
 
 RESULTS_DIR = f"{os.path.dirname(__file__)}/eval_reports"
 PARTIAL_EVAL_SAMPLE_SIZE = 40
@@ -23,13 +24,13 @@ def get_lm_eval_model(model_type: str, model_ctor_args: Dict[str, str]) -> lm_ev
     so that we can interface nicely w/ lm_eval task evaluation.
 
     Parameters:
-        model_ctor_args (Dict[str, str]): Constructor args for the model. 
-        model_type (str): The name of the model from llm.llm_evaluation.model_loading.MODEL_REGISTRY
+        model_ctor_args (Dict[str, str]): Constructor args for the model.
+        model_type (str): The name of the model from llm.llm_evaluation.model_loading.MODEL_LOADERS
 
     Returns:
         lm (lm_eval.base.LM): An lm_eval LM model wrapped around our constructed model
     '''
-    model_components = MODEL_REGISTRY[model_type](**model_ctor_args)
+    model_components = MODEL_LOADERS[model_type](**model_ctor_args)
     model_components.update({"batch_size": 4, "device": DEVICE.type})
     lm = lm_eval_models.get_model("composer_llm").create_from_arg_string(
         "", model_components
@@ -61,7 +62,7 @@ def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str], num_fewsho
                 num_fewshot=num,
                 limit=PARTIAL_EVAL_SAMPLE_SIZE if partial_eval_mode else None
             )
-       
+
     return results
 
 def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
@@ -70,7 +71,7 @@ def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
 
     Parameters:
         results (JsonResults): Model's performance on the tasks.
-        outfile (str): Output file        
+        outfile (str): Output file
     '''
     dumped = json.dumps(results, indent=2)
     print(f"Logging results to {outfile}")
@@ -114,7 +115,7 @@ if __name__ == "__main__":
             --tasks lambada \
             --num_fewshot 0 1 10
 
-            
+
     """
     parser = argparse.ArgumentParser(description='Run the EleutherAI eval harness on ComposerGPT models')
     parser.add_argument('--experiment_name', metavar="experiment_name", type=str)
@@ -125,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true', default=False)
     parser.add_argument('--partial_eval_mode', action='store_true', default=False)
 
-    
+
     args = parser.parse_args()
     print(args)
     if args.debug:
@@ -139,4 +140,3 @@ if __name__ == "__main__":
     results = evaluate_model_on_tasks(model, args.tasks, args.num_fewshots, args.partial_eval_mode)
     outfile =  f"{RESULTS_DIR}/{args.experiment_name}_{'-'.join(args.tasks)}_{hash(time.time())%10_000}.tsv"
     log_results_to_tsv(results, outfile)
-    

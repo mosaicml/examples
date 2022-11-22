@@ -5,12 +5,27 @@ import transformers
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from transformers import AutoConfig, AutoModelForCausalLM
-from transformers.models.gpt2.modeling_gpt2 import (GPT2Block, GPT2Config,
-                                                    GPT2LMHeadModel)
+from transformers.models.gpt2.modeling_gpt2 import GPT2Block, GPT2LMHeadModel
+from transformers.models.gpt_neo.modeling_gpt_neo import (GPTNeoBlock,
+                                                          GPTNeoForCausalLM)
+from transformers.models.gpt_neox.modeling_gpt_neox import (GPTNeoXForCausalLM,
+                                                            GPTNeoXLayer)
 
+_SUPPORTED_HF_MODELS = (
+    GPT2LMHeadModel,
+    GPTNeoForCausalLM,
+    GPTNeoXForCausalLM,
+)
 
-def prepare_hf_gpt2_model_for_fsdp(model):
-    # When using the GPT2LMHeadModel,
+_HF_MODEL_BLOCKS = (
+    GPT2Block,
+    GPTNeoBlock,
+    GPTNeoXLayer,
+)
+
+def prepare_hf_causal_lm_model_for_fsdp(model):
+    assert isinstance(model, _SUPPORTED_HF_MODELS)
+    # When using the HF Causal LM models,
     # the weights of the self.lm_head and self.transformer.wte are tied.
     # This tying occurs inside the `self.post_init()` function.
     # This is a hurdle for FSDP because they need to be in the same FSDP block
@@ -20,16 +35,15 @@ def prepare_hf_gpt2_model_for_fsdp(model):
     model.lm_head._fsdp_wrap = False
 
     # FSDP Wrap and Activation Checkpoint every GPT2Block
-    model.fsdp_wrap_fn = lambda module: isinstance(module, GPT2Block)
-    model.activation_checkpointing_fn = lambda module: isinstance(module, GPT2Block)
+    model.fsdp_wrap_fn = lambda module: isinstance(module, _HF_MODEL_BLOCKS)
+    model.activation_checkpointing_fn = lambda module: isinstance(module, _HF_MODEL_BLOCKS)
 
 
-class ComposerHFGPT2(ComposerModel):
+class ComposerHFCausalLM(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
-        assert hasattr(cfg, 'hf_config')
-        config = GPT2Config.from_pretrained(cfg.hf_config)
-        self.model = GPT2LMHeadModel(config)
+        config = AutoConfig.from_pretrained(cfg.hf_config)
+        self.model = AutoModelForCausalLM.from_config(config)
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
             'Perplexity': Perplexity(),
@@ -38,7 +52,7 @@ class ComposerHFGPT2(ComposerModel):
             'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
             'Perplexity': Perplexity(),
         }
-        prepare_hf_gpt2_model_for_fsdp(self.model)
+        prepare_hf_causal_lm_model_for_fsdp(self.model)
 
     def get_targets(self, batch):
         targets = torch.roll(batch["labels"], shifts=-1)

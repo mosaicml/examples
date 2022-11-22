@@ -1,17 +1,16 @@
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-from typing import Dict, List, Union
-from src.tokenizer import LLMTokenizer
 import os
-from omegaconf import OmegaConf as om
-from composer.utils import  reproducibility
+from typing import Dict, List, Union
+from urllib.parse import urlparse
+
 import torch
-from src.tokenizer import TOKENIZER_REGISTRY
+from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
-from urllib.parse import urlparse
-from src.model_registry import MODEL_REGISTRY as mosaic_model_lookup
+from omegaconf import OmegaConf as om
+from src.model_registry import MODEL_REGISTRY
+from src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 CHECKPOINT_DIR = f"{os.path.dirname(__file__)}/model_checkpoints"
@@ -26,8 +25,8 @@ def download_starting_checkpoints(path_to_download: str) -> List[str]:
     parsed_first_checkpoint = urlparse(path_to_download)
     if parsed_first_checkpoint.scheme == "s3":
         load_object_store = S3ObjectStore(bucket=parsed_first_checkpoint.netloc)
-    
-    
+
+
     parsed_path = urlparse(path_to_download)
     download_path = (parsed_path.path if parsed_path.scheme == "s3" else parsed_first_checkpoint).lstrip("/")
     checkpoint_name = get_checkpoint_name_from_path(parsed_path.path)
@@ -67,32 +66,32 @@ def init_composer_ckpt_from_yaml(checkpoint: str, config: str) -> Dict[str, Unio
     reproducibility.seed_all(seed)
 
     # Build Model
-    # For fast initialization, use `meta` device
     print('Initializing model...')
-    model = mosaic_model_lookup[cfg.model.name](cfg=cfg.model, device=DEVICE).to(DEVICE)
+    if 'device' in cfg.model:
+        cfg.model.device = str(DEVICE)
+    model = MODEL_REGISTRY[cfg.model.name](cfg.model)
     pre = next(model.parameters()).clone().data
 
     if checkpoint.startswith("s3://"):
         checkpoint = download_starting_checkpoints(checkpoint)
         print(f"Downloaded from s3 to local path {checkpoint}")
-    
+
     model.load_state_dict(torch.load(f"{CHECKPOINT_DIR}/{checkpoint}", map_location=DEVICE)['state']['model'])
     post = next(model.parameters()).clone().data
     assert not torch.equal(pre, post)
     print("Successfully loaded model weights")
-    
+
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
     return {
-        "model": model.model, 
+        "model": model.model,
         "tokenizer": tokenizer,
         "precision": cfg.precision
     }
- 
 
-MODEL_REGISTRY = {
+MODEL_LOADERS = {
     "composer_checkpoint": init_composer_ckpt_from_yaml,
     "pretrained_hf": init_huggingface_causal_lm,
 }

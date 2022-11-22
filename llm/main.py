@@ -15,8 +15,7 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 
 from src.data_c4 import build_c4_dataloader
-from src.hf_gpt2 import ComposerHFGPT2
-from src.mosaic_gpt import ComposerMosaicGPT
+from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
 def build_logger(name, kwargs):
@@ -106,12 +105,9 @@ def log_config(cfg):
 
 def build_composer_model(cfg):
     warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
-
-    if cfg.name == 'mosaic_gpt':
-        return ComposerMosaicGPT(cfg)
-    elif cfg.name == 'hf_gpt2':
-        return ComposerHFGPT2(cfg)
-    else:
+    try:
+        return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
+    except:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 def build_dataloader(cfg, device_batch_size):
