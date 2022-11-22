@@ -6,7 +6,7 @@ integrations:
     ssh_clone: False
   - integration_type: git_repo
     git_repo: EleutherAI/lm-evaluation-harness
-    git_branch: main
+    git_branch: master
     pip_install: .
     ssh_clone: False
 

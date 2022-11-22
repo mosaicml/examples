@@ -128,7 +128,7 @@ class EvaluationCallback(Callback):
                 argparse.Namespace(
                     model=model,
                     model_args="",
-                    tasks=["lambada", "hellaswag"],
+                    tasks="lambada,hellaswag",
                     provide_description=False,
                     num_fewshot=0,
                     batch_size=batch_size,
