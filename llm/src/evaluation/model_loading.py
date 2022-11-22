@@ -8,7 +8,7 @@ from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 from omegaconf import OmegaConf as om
-from src.model_registry import MODEL_REGISTRY
+from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -67,9 +67,8 @@ def init_composer_ckpt_from_yaml(checkpoint: str, config: str) -> Dict[str, Unio
 
     # Build Model
     print('Initializing model...')
-    if 'device' in cfg.model:
-        cfg.model.device = str(DEVICE)
-    model = MODEL_REGISTRY[cfg.model.name](cfg.model)
+    cfg.model.device = str(DEVICE)
+    model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     pre = next(model.parameters()).clone().data
 
     if checkpoint.startswith("s3://"):

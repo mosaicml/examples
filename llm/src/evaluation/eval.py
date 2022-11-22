@@ -10,7 +10,7 @@ import torch
 from lm_eval import models as lm_eval_models
 from lm_eval import tasks as lm_eval_tasks
 from lm_eval.evaluator import evaluate
-from src.llm_evaluation.model_loading import MODEL_LOADERS
+from src.evaluation.model_loading import MODEL_LOADERS
 
 RESULTS_DIR = f"{os.path.dirname(__file__)}/eval_reports"
 PARTIAL_EVAL_SAMPLE_SIZE = 40
@@ -92,23 +92,23 @@ def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
 if __name__ == "__main__":
     """
     Example usage from benchmarks/llm directory:
-        python -m src.llm_evaluation.evaluate_composergpt --experiment_name opt_1.3bm \
+        python -m src.evaluation.eval --experiment_name opt_1.3b \
             --model_type pretrained_hf \
             --model_args checkpoint=facebook/opt-1.3b \
             --tasks lambada_cloze \
             --num_fewshot 10
 
-        python -m src.llm_evaluation.evaluate_composergpt --experiment_name gpt_neo_125m \
+        python -m src.evaluation.eval --experiment_name gpt_neo_125m \
             --model_type pretrained_hf \
             --model_args checkpoint=EleutherAI/gpt-neo-125M \
             --tasks lambada \
             --num_fewshot 0 1
 
 
-        For composer checkpoints you can either pass in an s3 URI or a local path to a .pt file
+        For composer checkpoints you can either pass in an S3 URI or a local path to a .pt file
         Your config must also be available locally
 
-        python -m src.llm_evaluation.evaluate_composergpt --experiment_name gpt_neo_125m \
+        python -m src.evaluation.eval --experiment_name gpt_neo_125m \
             --model_type composer_checkpoint \
             --model_args checkpoint=s3://mosaicml-internal-checkpoints-shared/jeremy/gpt-eval/gpt-neo-125m-5rbfZF/checkpoints/ep0-ba80000-rank0.pt \
                 config=yamls/mosaic_gpt/125m.yaml \
