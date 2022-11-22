@@ -6,7 +6,7 @@ from composer.models import ComposerClassifier
 from ..model import build_composer_deeplabv3
 
 @pytest.mark.parametrize('num_classes', [10, 150])
-@pytest.mark.parametrize('dice_weight', [0.0, 125])
+@pytest.mark.parametrize('dice_weight', [0.0, 1.25])
 @pytest.mark.parametrize('cross_entropy_weight', [1.0, 0.375])
 def test_model_builder(num_classes, dice_weight, cross_entropy_weight):
     model = build_composer_deeplabv3(num_classes=num_classes,

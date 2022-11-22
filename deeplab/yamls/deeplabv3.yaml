@@ -1,4 +1,4 @@
-run_name: deeplabv3_ade20k_baseline # Name of the  training run used for checkpointing and other logging
+run_name: deeplabv3_ade20k # Name of the  training run used for checkpointing and other logging
 is_train: true             # Trains the model if true, otherwise runs evaluation
 seed: 17                   # Random seed
 max_duration: 128ep         # Duration to train specified as a Time string
@@ -15,8 +15,8 @@ model:
 
 # Training Dataset Parameters
 train_dataset:
-  is_streaming: false                # If true, use streaming dataset
-  path:  ade20k                      # Path to S3 bucket if streaming, otherwise path to local data directory
+  is_streaming: true                # If true, use streaming dataset
+  path:  s3://my-bucket/my-imagenet  # Path to S3 bucket if streaming, otherwise path to local data directory
   local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
   base_size: 512                     # Initial size of the image and target before other augmentations
   min_resize_scale: 0.5              # The minimum value the samples can be rescaled
@@ -27,8 +27,8 @@ train_dataset:
 
 # Validation Dataset Parameters
 eval_dataset:
-  is_streaming: false                  # If true, use streaming dataset
-  path:  ade20k                        # Path to S3 bucket if streaming, otherwise path to local data directory
+  is_streaming: true                  # If true, use streaming dataset
+  path:  s3://my-bucket/my-imagenet                        # Path to S3 bucket if streaming, otherwise path to local data directory
   local: /tmp/mds-cache/mds-ade20k/    # Local cache when streaming data
   base_size: 512                       # Initial size of the image and target before other augmentations
   min_resize_scale: 0.5                # The minimum value the samples can be rescaled

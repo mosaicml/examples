@@ -134,9 +134,7 @@ def main(config):
 
     # Callbacks for logging
     print('Building Speed, LR, and Memory monitoring callbacks')
-    speed_monitor = SpeedMonitor(
-        window_size=50
-    )  # Measures throughput as samples/sec and tracks total training time
+    speed_monitor = SpeedMonitor(window_size=50)  # Measures throughput as samples/sec and tracks total training time
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
 
