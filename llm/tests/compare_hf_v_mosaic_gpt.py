@@ -14,28 +14,29 @@ from src.hf_gpt2 import ComposerHFCausalLM
 
 def test_compare_hf_v_mosaic_gpt():
     warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
+    device = 'cuda'
 
     # get 125m config
     with open('yamls/mosaic_gpt/125m.yaml') as f:
         cfg = om.load(f)
 
-    # modify seq len for HF GPT2 compatibility
-    cfg.max_seq_len = 1024
+    # modify cfg for HF GPT2 compatibility
+    cfg.max_seq_len = 1024  # GPT2 seq len (GPT3 uses 2048)
     cfg.model.max_seq_len = cfg.max_seq_len
     cfg.train_loader.max_seq_len = cfg.max_seq_len
     cfg.eval_loader.max_seq_len = cfg.max_seq_len
-    # set dropout prob
-    cfg.model.resid_pdrop = 0.1
-    cfg.model.emb_pdrop = 0.1
+    cfg.model.device = device
+    cfg.precision = 'fp16'
+    # set dropout prob to 0 for numerically precise comparisons
+    cfg.model.resid_pdrop = 0.0
+    cfg.model.emb_pdrop = 0.0
+    cfg.model.emb_pdrop = 0.0
 
     # get equivalent config for HF model
     hf_cfg = om.create({'name': 'hf_gpt2', 'hf_config': 'gpt2'})
 
     # set seed
     reproducibility.seed_all(cfg.seed)
-
-    device = 'cuda'
-    cfg.model.device = device
 
     # Build Model
     print('Initializing model...')
@@ -53,10 +54,11 @@ def test_compare_hf_v_mosaic_gpt():
     
     # generate random input branch
     batch = {}
-    batch['input_ids']      = torch.randint(low=0, high=49673, size=(batch_size, cfg.max_seq_len)).to(device)
+    batch['input_ids']      = torch.randint(low=0, high=cfg.model.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
     batch['attention_mask'] = torch.ones(size=(batch_size, cfg.max_seq_len), dtype=torch.int64).to(device)
-    batch['labels']         = torch.randint(low=0, high=49673, size=(batch_size, cfg.max_seq_len)).to(device)
+    batch['labels']         = torch.randint(low=0, high=cfg.model.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
 
+    # set dropout prob to 0 for numerically precise comparisons
     model.model.transformer.emb_drop.p = 0.0
     hf_model.model.transformer.drop.p = 0.0
 
@@ -86,8 +88,11 @@ def test_compare_hf_v_mosaic_gpt():
     hf_model_statedict = hf_model.state_dict()
 
     # convert hf gpt statedict to mosaic gpt statedict
+    # HF keys which are ignored
     hf_keys_ignore = [".attn.masked_bias", ".attn.bias"]
+    # HF params which need to be transposed
     _transpose = [".attn.c_attn.", ".attn.c_proj.", ".mlp.c_fc.", ".mlp.c_proj."]
+    # HF keys which need to be replaced by the associated value
     hf_2_mosaic_key_mods = {
         "model.transformer.h.": "model.transformer.blocks.",
         ".attn.c_attn.":        ".causal_attn.mha.Wqkv.",
@@ -96,6 +101,7 @@ def test_compare_hf_v_mosaic_gpt():
         ".mlp.c_proj.":         ".mlp.mlp_down.",
     }
 
+    # convert hf gpt statedict to mosaic gpt statedict using the dict and list above
     _hf_model_statedict = {}
     for k, v in hf_model_statedict.items():
         skip = False
@@ -113,15 +119,17 @@ def test_compare_hf_v_mosaic_gpt():
         if not skip:
             _hf_model_statedict[k] = v
 
+    # load hf model weights into mosaic gpt model
     model.load_state_dict(_hf_model_statedict)
 
-    with torch.autocast(device_type='cuda', dtype=torch.float16):
-        torch.manual_seed(0)
+    with torch.autocast(device_type=device, dtype=torch.float16):
+        torch.manual_seed(cfg.seed)
         hf_model_fwd = hf_model(batch)
-        torch.manual_seed(0)
+        torch.manual_seed(cfg.seed)
         model_fwd = model(batch)
 
-    # When dropouts are aligned, these are near identical
-    assert hf_model_fwd['logits'].mean().allclose(model_fwd.mean())
+    print(hf_model_fwd['logits'].mean().item(), model_fwd.mean().item())
+    print(hf_model_fwd['logits'], model_fwd)
 
+    assert hf_model_fwd['logits'].mean().allclose(model_fwd.mean())
     assert hf_model_fwd['logits'].allclose(model_fwd, rtol=1e-02, atol=1e-02)
