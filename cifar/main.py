@@ -1,13 +1,11 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
-
+import datetime
 import os
-import sys
 import torch
-import torch.utils.data
+import sys
 from typing import Dict
 
-import composer
 from composer import Trainer
 from composer.callbacks import MemoryMonitor, LRMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
@@ -43,6 +41,11 @@ def log_config(cfg: DictConfig):
 def main(config):
     if config.grad_accum == 'auto' and not torch.cuda.is_available():
         raise ValueError('grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer')
+
+    # Initialize dist, to ensure CIFAR is only downloaded by rank 0
+    device = "gpu" if torch.cuda.is_available() else "cpu"
+    if dist.get_world_size() > 1:
+        dist.initialize_dist(device, datetime.timedelta(seconds=15))
 
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
@@ -110,7 +113,6 @@ def main(config):
     loggers = [build_logger(name, logger_config) for name, logger_config in config.loggers.items()]
 
     print('Building Trainer')
-    device = "gpu" if torch.cuda.is_available() else "cpu"
     precision = 'amp' if device == 'gpu' else 'fp32' # Mixed precision for fast training when using a GPU
     trainer = Trainer(run_name=config.run_name,
                       model=model,

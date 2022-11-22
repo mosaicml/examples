@@ -21,4 +21,10 @@
 This folder contains starter code for training a CIFAR ResNet architecture. You can swap out the model and dataset if desired, but we recommend using the [ResNet + ImageNet benchmark](../resnet/) for new models and datasets.
 
 The specific files in this folder are:
-* `model.py`
+* `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a CIFAR ResNet model defined in the script
+* `data.py` - Creates a PyTorch dataset for a local copy of CIFAR10 and a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for CIFAR10
+* `main.py` - Trains a CIFAR ResNet on CIFAR10 using the [Composer](https://github.com/mosaicml/composer) [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer)
+* `tests/` - A suite of tests to check each training component
+* `yamls/`
+  * `resnet56.yaml` - Configuration for a CIFAR ResNet56 training run, to be used as the first argument to `main.py`
+  * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
