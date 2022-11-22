@@ -1,18 +1,18 @@
 
-from composer.models.base import ComposerModel
-from transformers import AutoConfig, AutoModelForCausalLM
-from transformers.models.gpt_neo.modeling_gpt_neo import GPTNeoBlock
-from transformers.models.gpt_neox.modeling_gpt_neox import GPTNeoXLayer
-import transformers
-from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
-import torch
 import torch
 import torch.nn.functional as F
+import transformers
+from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
+from composer.models.base import ComposerModel
+from transformers import AutoConfig, AutoModelForCausalLM
+from transformers.models.gpt2.modeling_gpt2 import (GPT2Block, GPT2Config,
+                                                    GPT2LMHeadModel)
 
 
 def prepare_hf_gpt2_model_for_fsdp(model):
-    # Special Case! When using the LMHeadModel, the weights of the self.lm_head and self.transformer.wte are tied.
-    # This tying occurs inside the `self.post_init()` function call above.
+    # When using the GPT2LMHeadModel,
+    # the weights of the self.lm_head and self.transformer.wte are tied.
+    # This tying occurs inside the `self.post_init()` function.
     # This is a hurdle for FSDP because they need to be in the same FSDP block
     # These lines ensures that both modules stay together in the top-most block
     model.transformer._fsdp_wrap = False
@@ -20,17 +20,16 @@ def prepare_hf_gpt2_model_for_fsdp(model):
     model.lm_head._fsdp_wrap = False
 
     # FSDP Wrap and Activation Checkpoint every GPT2Block
-    model.fsdp_wrap_fn = lambda module: isinstance(module, GPTNeoBlock) \
-        or isinstance(module, GPTNeoXLayer)
-    model.activation_checkpointing_fn = lambda module: isinstance(module, GPTNeoBlock) \
-        or isinstance(module, GPTNeoXLayer)
+    model.fsdp_wrap_fn = lambda module: isinstance(module, GPT2Block)
+    model.activation_checkpointing_fn = lambda module: isinstance(module, GPT2Block)
 
-class ComposerHFCausalLM(ComposerModel):
+
+class ComposerHFGPT2(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
-        assert hasattr(cfg, "hf_config")
-        config = AutoConfig.from_pretrained(cfg.hf_config)
-        self.model = AutoModelForCausalLM.from_config(config)
+        assert hasattr(cfg, 'hf_config')
+        config = GPT2Config.from_pretrained(cfg.hf_config)
+        self.model = GPT2LMHeadModel(config)
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
             'Perplexity': Perplexity(),
@@ -47,11 +46,7 @@ class ComposerHFCausalLM(ComposerModel):
         return targets
 
     def forward(self, batch):
-        batch['attention_mask'] = batch['attention_mask'].bool()
-        res = self.model(**batch)
-        if isinstance(res, transformers.modeling_outputs.CausalLMOutputWithPast):
-            res = res.logits
-        return res
+        return self.model(input_ids=batch['input_ids'], attention_mask=batch['attention_mask'].bool()).logits
 
     def eval_forward(self, batch, outputs=None):
         return outputs if outputs is not None else self.forward(batch)

@@ -15,6 +15,7 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 
 from src.data_c4 import build_c4_dataloader
+from src.hf_gpt2 import ComposerHFGPT2
 from src.mosaic_gpt import ComposerMosaicGPT
 
 
@@ -108,6 +109,8 @@ def build_composer_model(cfg):
 
     if cfg.name == 'mosaic_gpt':
         return ComposerMosaicGPT(cfg)
+    elif cfg.name == 'hf_gpt2':
+        return ComposerHFGPT2(cfg)
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
