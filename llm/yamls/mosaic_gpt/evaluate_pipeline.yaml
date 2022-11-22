@@ -8,6 +8,7 @@ integrations:
 command: |
   cd benchmarks-adafactor/llm
   cat /mnt/config/parameters.yaml
+  pip install --upgrade datasets
   WANDB_API_KEY=011ca75d0cb58d449a9957690456b143d909f532 GCS_KEY=GOOG1EYYKKHYUK574G4HKFTRYKLQ22KM33FIW4QRQZ5QUYSLV7UO34U7H6GXA GCS_SECRET=8WmsrawOqngGi0zJPcPm2ckUX5XY/2UIx7Z5vzsA composer main.py /mnt/config/parameters.yaml
 
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
