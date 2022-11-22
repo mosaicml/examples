@@ -16,7 +16,7 @@ from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist
 
-from data import build_ade20k_dataspec, build_streaming_ade20k_dataspec
+from data import build_ade20k_dataspec
 from model import build_composer_deeplabv3
 
 
