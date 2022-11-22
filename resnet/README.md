@@ -58,7 +58,7 @@ Here's what you need to train:
 
 # Dataloader Testing
 
-This benchmark assumes that ImageNet is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. Instructions to download ImageNet can be found [here](https://www.image-net.org/download.php). Alternatively, you can train on other image classification datasets. The local dataset code assumes your data is in the [torchvision ImageFolder](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html) format.
+If you want to train on ImageNet or any other dataset, you'll need to either make it a [streaming dataset](https://github.com/mosaicml/streaming) using [this script](https://github.com/mosaicml/streaming/blob/86a9b95189e8b292a8c7880a1c49dc55d1895544/streaming/vision/convert/imagenet.py) or a local [torchvision ImageFolder](https://pytorch.org/vision/main/generated/torchvision.datasets.ImageFolder.html). If you are planning to train on ImageNet, download instructions can be found [here](https://www.image-net.org/download.php).
 
 The below command will test if your data is set up appropriately:
 ```bash
