@@ -129,6 +129,8 @@ parameters:
       window_size: 10
     lr_monitor: {}
     memory_monitor: {}
+    lm_eval_harness:
+      every_n_batches: 1
 
   loggers:
     wandb:

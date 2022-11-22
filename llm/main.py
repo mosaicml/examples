@@ -34,6 +34,8 @@ def build_callback(name, kwargs):
         return MemoryMonitor()
     elif name == 'speed_monitor':
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
+    elif name == "lm_eval_harness":
+        return EvaluationCallback(every_n_batches=kwargs.get("every_n_batches", 32))
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -185,7 +187,6 @@ def main(cfg):
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
-        callbacks=[EvaluationCallback(every_n_batches=1)],
     )
 
     print("Logging config...")
