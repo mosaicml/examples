@@ -134,7 +134,7 @@ class EvaluationCallback(Callback):
                     batch_size=batch_size,
                     device=device,
                     limit=None,
-                    no_cache=False,
+                    no_cache=True,
                     decontamination_ngrams_path=None,
                     description_dict_path=None,
                     check_integrity=False,
