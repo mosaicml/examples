@@ -8,3 +8,4 @@ transformers<5
 datasets<3
 omegaconf<3
 wandb<1
+pytest
