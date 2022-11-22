@@ -1,7 +1,11 @@
-from abc import abstractmethod
-import transformers
-from typing import Any
+# Copyright 2022 MosaicML Benchmarks authors
+# SPDX-License-Identifier: Apache-2.0
+
 from abc import ABC, abstractmethod
+from typing import Any
+
+import transformers
+
 
 class LLMTokenizer(ABC):
     tokenizer_name: str
@@ -14,7 +18,7 @@ class LLMTokenizer(ABC):
     @abstractmethod
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
-    
+
     @abstractmethod
     def encode(self, x):
         raise NotImplementedError
@@ -25,7 +29,7 @@ class LLMTokenizer(ABC):
     @property
     def vocab_size(self):
         raise NotImplementedError
-    
+
 
 class HFTokenizer(LLMTokenizer):
     tokenizer_name: str
@@ -56,11 +60,11 @@ class HFTokenizer(LLMTokenizer):
     @property
     def vocab_size(self):
         return self.tokenizer.vocab_size
-    
+
     @property
     def pad_token_id(self):
         return self.tokenizer.pad_token_id
-    
+
     @property
     def bos_token_id(self):
         return self.tokenizer.bos_token_id

@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Benchmarks authors
+# SPDX-License-Identifier: Apache-2.0
+
 from src.hf_causal_lm import ComposerHFCausalLM
 from src.mosaic_gpt import ComposerMosaicGPT
 

@@ -27,7 +27,7 @@ class TorchCausalAttention(nn.Module):
             batch_first=True,
             device=device,
         )
-        
+
         self.register_buffer(
             "mask", nn.Transformer.generate_square_subsequent_mask(cfg.max_seq_len))
         self.mha.out_proj._is_residual = True
@@ -41,7 +41,7 @@ class TorchCausalAttention(nn.Module):
         #
         # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
         #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
-        #   
+        #
         return self.mha(x, x, x,
             attn_mask=self.mask,
             key_padding_mask=~key_padding_mask,
