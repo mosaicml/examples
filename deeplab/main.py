@@ -32,7 +32,7 @@ def build_logger(name: str, kwargs: dict):
         raise ValueError(f'Not sure how to build logger: {name}')
 
 
-def log_config(config: omegaconf.ConfigDict):
+def log_config(config: omegaconf.DictConfig):
     print(OmegaConf.to_yaml(config))
     if 'wandb' in config.loggers:
         try:
