@@ -128,11 +128,10 @@ def build_cifar10_dataspec(
                                  batch_size=batch_size)
         sampler = None
     else:
-        with dist.run_local_rank_zero_first():
-            dataset = datasets.CIFAR10(root=data_path,
-                                       train=is_train,
-                                       download=dist.get_local_rank() == 0 and download,
-                                       transform=transform)
+        dataset = datasets.CIFAR10(root=data_path,
+                                    train=is_train,
+                                    download=dist.get_local_rank() == 0 and download,
+                                    transform=transform)
         sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
 
     return DataSpec(
