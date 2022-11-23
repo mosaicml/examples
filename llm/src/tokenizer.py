@@ -23,6 +23,7 @@ class LLMTokenizer(ABC):
     def encode(self, x):
         raise NotImplementedError
 
+    @abstractmethod
     def decode(self, x):
         raise NotImplementedError
 

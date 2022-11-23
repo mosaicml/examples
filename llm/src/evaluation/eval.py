@@ -133,8 +133,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print(args)
-    if args.debug:
-        import pdb; pdb.set_trace()
     model_ctor_args = {}
     for arg in args.model_args:
         k,v = tuple(arg.split('='))
