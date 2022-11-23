@@ -1,19 +1,18 @@
-run_name: deeplab_example
+run_name: deeplab-benchmark
 cluster: null  # Name of the cluster to use for this run
-gpu_type: null # Type of GPU to use
-gpu_num: null  # Number of GPUs to use specified as an integer
+gpu_type: a100_80gb # Type of GPU to use
+gpu_num: 8  # Number of GPUs to use specified as an integer
 image: mosaicml/pytorch_vision:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
   - integration_type: "git_repo"
     git_repo: mosaicml/benchmarks
-    git_branch: a-jacobson/resnet_benchmark
 command: |
-  cd benchmarks/resnet
+  cd benchmarks/deeplab
   pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 # Configuration copied from baseline.yaml
 parameters:
-  run_name: deeplabv3_ade20k_baseline # Name of the  training run used for checkpointing and other logging
+  run_name: deeplabv3_ade20k # Name of the  training run used for checkpointing and other logging
   is_train: true             # Trains the model if true, otherwise runs evaluation
   seed: 17                   # Random seed
   max_duration: 128ep         # Duration to train specified as a Time string
@@ -31,7 +30,7 @@ parameters:
   # Training Dataset Parameters
   train_dataset:
     is_streaming: true                 # Type must be either ['streaming', 'local', 'synthetic']
-    path: s3://my-bucket/my-ade20k     # Path to S3 bucket if streaming, otherwise path to local data directory
+    path: s3://my-bucket/ade20k     # Path to S3 bucket if streaming, otherwise path to local data directory
     local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
     base_size: 512                     # Initial size of the image and target before other augmentations
     min_resize_scale: 0.5              # The minimum value the samples can be rescaled
@@ -43,7 +42,7 @@ parameters:
   # Validation Dataset Parameters
   eval_dataset:
     is_streaming: true                   # Type must be either ['streaming', 'local', 'synthetic']
-    path: s3://my-bucket/my-ade20k       # S3 bucket if streaming, otherwise path to local data
+    path: s3://my-bucket/ade20k      # S3 bucket if streaming, otherwise path to local data
     local: /tmp/mds-cache/mds-ade20k/    # Local cache when streaming data
     base_size: 512                       # Initial size of the image and target before other augmentations
     min_resize_scale: 0.5                # The minimum value the samples can be rescaled
@@ -51,6 +50,7 @@ parameters:
     final_size: 512                      # The final size of the image and target
     ignore_background: true              # If true, ignore the background class when calculating the training loss             
     batch_size: 128                      # Evaluation dataloader batch size per device
+    drop_last: False
 
   # Optimizer Parameters
   optimizer:
@@ -62,9 +62,9 @@ parameters:
   loggers:
     progress_bar: {}
     # wandb:     # Uncomment and fill below arguments to use WandB logger
-      # entity:  # Name of WandB entity, usually username or organization name
-      # project: # Name of WandB project
-      # group:   # Name of WandB group
+    #   entity:  # Name of WandB entity, usually username or organization name
+    #   project:  # Name of WandB project
+    #   group:   # Name of WandB group
 
   # null for baseline or for recipe, either ["mild", "medium", "hot"] in order of increasing training time and accuracy
   recipe_name: null

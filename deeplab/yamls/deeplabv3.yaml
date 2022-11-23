@@ -36,6 +36,7 @@ eval_dataset:
   final_size: 512                      # The final size of the image and target
   ignore_background: true              # If true, ignore the background class when calculating the training loss             
   batch_size: 128                      # Evaluation dataloader batch size per device
+  drop_last: False
 
 # Optimizer Parameters
 optimizer:
