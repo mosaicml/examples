@@ -128,7 +128,6 @@ if __name__ == "__main__":
     parser.add_argument('--model_args',  nargs='+', metavar="checkpoint_path", type=str)
     parser.add_argument('--tasks', metavar="task_name", type=str, nargs='+')
     parser.add_argument('--num_fewshots', metavar="num_fewshots", type=int, nargs='+')
-    parser.add_argument('--debug', action='store_true', default=False)
     parser.add_argument('--partial_eval_mode', action='store_true', default=False)
 
     args = parser.parse_args()
