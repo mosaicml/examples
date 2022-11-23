@@ -1,7 +1,7 @@
 run_name: cifar_example
-cluster: r1z1       # Name of the cluster to use for this run
-gpu_type: a100_80gb # Type of GPU to use
-gpu_num: 4          # Number of GPUs to use
+cluster: null       # Name of the cluster to use for this run
+gpu_type: a100_40gb # Type of GPU to use
+gpu_num: 8          # Number of GPUs to use
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
   - integration_type: "git_repo"
