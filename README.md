@@ -14,7 +14,7 @@ Train the MosaicML ResNet, the fastest ResNet50 implementation that yields a :sp
 ## DeepLabV3 + ADE20k
 <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/637512d993030157b04ad4f8_Frame%2010%20(1).png" alt="drawing" width="500"/>
 
-Train the MosaicML DeepLabV3 that yields a :sparkles: 5x :sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-image-segmentation) for more details and recipes.
+Train the MosaicML DeepLabV3 that yields a :sparkles:5x:sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-image-segmentation) for more details and recipes.
 
 :rocket: Get started with the code [here](./deeplab/).
 
