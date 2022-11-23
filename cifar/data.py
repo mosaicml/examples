@@ -10,6 +10,7 @@ The CIFAR datasets are a collection of labeled 32x32 colour images. Please refer
 from typing import Any, Callable, Optional
 
 from composer.core import DataSpec
+from composer.datasets.utils import NormalizationFn, pil_image_collate
 from composer.utils import dist
 from streaming import Dataset
 from torch.utils.data import DataLoader
@@ -18,8 +19,10 @@ from torchvision.datasets import VisionDataset
 
 __all__ = ['StreamingCIFAR', 'build_cifar10_dataspec']
 
-CIFAR10_CHANNEL_MEAN = 0.4914, 0.4822, 0.4465
-CIFAR10_CHANNEL_STD = 0.247, 0.243, 0.261
+# Scale by 255 since the collate `pil_image_collate` results in images in range 0-255
+# If using ToTensor() and the default collate, remove the scaling by 255
+CIFAR10_CHANNEL_MEAN = 0.4914 * 255, 0.4822 * 255, 0.4465 * 255
+CIFAR10_CHANNEL_STD = 0.247 * 255, 0.243 * 255, 0.261 * 255
 
 class StreamingCIFAR(Dataset, VisionDataset):
     """CIFAR streaming dataset based on PyTorch's VisionDataset.
@@ -113,14 +116,9 @@ def build_cifar10_dataspec(
         transform = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(CIFAR10_CHANNEL_MEAN, CIFAR10_CHANNEL_STD),
         ])
     else:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(CIFAR10_CHANNEL_MEAN, CIFAR10_CHANNEL_STD),
-        ])
+        transform = None
 
     if is_streaming:
         dataset = StreamingCIFAR(remote=data_path,
@@ -138,11 +136,16 @@ def build_cifar10_dataspec(
                                        transform=transform)
         sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
 
+    device_transform_fn = NormalizationFn(mean=CIFAR10_CHANNEL_MEAN, std=CIFAR10_CHANNEL_STD)
+
     return DataSpec(
         DataLoader(
             dataset,
             batch_size=batch_size,
             sampler=sampler,
             drop_last=drop_last,
+            collate_fn=pil_image_collate,
             **dataloader_kwargs,
-        ),)
+        ),
+        device_transforms=device_transform_fn,
+    )
