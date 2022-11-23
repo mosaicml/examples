@@ -1,6 +1,6 @@
 # Welcome!
 
-This benchmark covers pre-training and fine-tuning a BERT model from scratch. With this starter code, you'll be able to do Masked Language Modeling (MLM) pre-training on the C4 dataset and classification fine-tuning on the 8 different GLUE benchmark tasks. We also provide the source code and recipe behind our Mosaic BERT model, which you can train yourself using this repo.
+This benchmark covers pre-training and fine-tuning a BERT model from scratch. With this starter code, you'll be able to do Masked Language Modeling (MLM) pre-training on the C4 dataset and classification fine-tuning on GLUE benchmark tasks. We also provide the source code and recipe behind our Mosaic BERT model, which you can train yourself using this repo.
 
 ## Contents
 
@@ -8,14 +8,14 @@ You'll find in this folder:
 
 * This `README.md`
 * `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training training job, locally or on Mosaic's cloud
-* `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across the 8 GLUE tasks, locally or on Mosaic's cloud
+* `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud
 * `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation)
 * `yamls/` - Pre-baked configs for training both our sped-up `Mosaic BERT` as well as the reference `HuggingFace BERT`
 * `requirements.txt` — All needed Python dependencies
 * `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/mosaic_bert.py` — Mosaic BERTs model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/composer_model.html), for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built it, with an eye towards HuggingFace API compatibility
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/mosaic_bert.py` — Mosaic BERTs model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility
 * `src/bert_padding.py` — Source code for Mosaic BERT that supports reshaping tensors in order avoid inefficiencies due to padding
 * `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT
 * `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning
@@ -155,9 +155,10 @@ composer main.py yamls/mosaic-bert-base-uncased.yaml
 
 ## GLUE fine-tuning
 
-The GLUE benchmark measures the average performance across 8 NLP classification tasks. This performance is typically used to evaluate the quality of the pre-training: once you have a set of weights from your MLM task, you fine-tune those weights separately for each task and then compute the average performance across the tasks, with higher averages indicating higher pre-training quality.
+The GLUE benchmark measures the average performance across 8 NLP classification tasks (again, here we exclude the WNLI task). This performance is typically used to evaluate the quality of the pre-training: once you have a set of weights from your MLM task, you fine-tune those weights separately for each task and then compute the average performance across the tasks, with higher averages indicating higher pre-training quality.
 
-To handle this complicated fine-tuning pipeline, we provide the `glue.py` script, which handles parallelizing each of these fine-tuning jobs across all the GPUs on your node.
+To handle this complicated fine-tuning pipeline, we provide the `glue.py` script. which handles parallelizing each of these fine-tuning jobs across all the GPUs on your node.
+To clarify, the `glue.py` script takes advantage of the small dataset/batch size of the GLUE tasks through *task* parallelism (where different tasks are trained in parallel, each using its own GPU), rather than the typical data parallelism (where one task is trained at a time and training batches are parallelized across GPUs).
 
 Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained checkpoint as the GLUE starting point, use non-default hyperparameters, etc., run the `glue.py` script using the standard `python` launcher (we don't use the `composer` launcher here because `glue.py` does its own multi-process orchestration):
 
@@ -166,6 +167,7 @@ python glue.py yamls/glue/mosaic-bert-base-uncased.yaml
 ```
 
 Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
+Any of the other (composer supported loggers)[https://docs.mosaicml.com/en/latest/trainer/logging.html#available-loggers] can be added easily as well!
 
 **Note:** The `yamls/glue/*.yaml` files are intended to be used with `glue.py`.
 
