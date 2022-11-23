@@ -1,0 +1,142 @@
+integrations:
+  - integration_type: git_repo
+    git_repo: evanfabry/benchmarks-adafactor
+    git_branch: eval_callbacks
+    pip_install: -r llm/requirements.txt
+    ssh_clone: False
+  - integration_type: git_repo
+    git_repo: EleutherAI/lm-evaluation-harness
+    git_branch: master
+    pip_install: .
+    ssh_clone: False
+
+command: |
+  cd benchmarks-adafactor/llm
+  cat /mnt/config/parameters.yaml
+  pip list
+  WANDB_API_KEY=011ca75d0cb58d449a9957690456b143d909f532 GCS_KEY=GOOG1EYYKKHYUK574G4HKFTRYKLQ22KM33FIW4QRQZ5QUYSLV7UO34U7H6GXA GCS_SECRET=8WmsrawOqngGi0zJPcPm2ckUX5XY/2UIx7Z5vzsA composer main.py /mnt/config/parameters.yaml
+
+image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
+optimization_level: 0
+
+run_name: &run_name thirty-billion-adam-run-batch-size-4-16-gpus
+
+gpu_num: 16
+gpu_type: a100_40gb
+cluster: r7z7
+
+# The below is injected as a YAML file:
+parameters:
+  data_remote: &data_remote gs://llm_data_public/c4/my-copy-c4
+  data_local: &data_local ./my-copy-c4
+  max_seq_len: &max_seq_len 2048
+  tokenizer_name: &tokenizer_name gpt2
+
+  # Run Name
+  run_name: *run_name
+
+  # Model
+  model:
+    name: mosaic_gpt
+    device: meta
+    tokenizer_name: *tokenizer_name
+    d_model: 7168
+    n_heads: 56
+    n_layers: 48
+    mlp_ratio: 4
+    max_seq_len: *max_seq_len
+    vocab_size: 50257
+    init_std: 0.02
+    attn_pdrop: 0.0
+    resid_pdrop: 0.0
+    emb_pdrop: 0.0
+    attn_impl: flash
+
+  # Dataloaders
+  train_loader:
+    name: c4
+    dataset:
+      remote: *data_remote
+      local: *data_local
+      split: train
+      shuffle: true
+      prefetch: 1_000_000
+      tokenizer_name: *tokenizer_name
+      max_seq_len: *max_seq_len
+      group_method: concat
+    drop_last: true
+    num_workers: 8
+    pin_memory: true
+    prefetch_factor: 2
+    persistent_workers: true
+    timeout: 0
+
+  eval_loader:
+    name: c4
+    dataset:
+      remote: *data_remote
+      local: *data_local
+      split: val
+      shuffle: false
+      prefetch: 1000
+      tokenizer_name: *tokenizer_name
+      max_seq_len: *max_seq_len
+      group_method: truncate
+    drop_last: false
+    num_workers: 8
+    pin_memory: true
+    prefetch_factor: 2
+    persistent_workers: true
+    timeout: 0
+
+  # Optimization
+  scheduler:
+    name: cosine_with_warmup
+    t_warmup: 100ba
+    alpha_f: 0.1
+
+  optimizer:
+    name: decoupled_adamw
+    lr: 1.0e-4
+    betas:
+      - 0.9
+      - 0.95
+    eps: 1.0e-08
+    weight_decay: 0.0
+
+  max_duration: 143100ba # ~ 600B tokens
+  eval_interval: 10000ba
+  global_train_batch_size: 8
+  grad_clip_norm: 1.0
+
+  # System
+  seed: 17
+  device_train_microbatch_size: 4
+  # device_train_microbatch_size: auto
+  precision: bf16
+
+  # FSDP
+  fsdp_config:
+    sharding_strategy: FULL_SHARD
+    min_params: 5e8
+    mixed_precision: PURE # Only needed for 40GB cards
+    activation_checkpointing: true
+    activation_cpu_offload: false
+    verbose: true
+
+  # Logging
+  progress_bar: true
+  log_to_console: true
+
+  callbacks:
+    speed_monitor:
+      window_size: 10
+    lr_monitor: {}
+    memory_monitor: {}
+    lm_eval_harness:
+      every_n_batches: 1
+
+  loggers:
+    wandb:
+      project: optimizer-etc-choices
+      entity: llm

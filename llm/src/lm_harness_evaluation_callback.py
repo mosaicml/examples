@@ -3,9 +3,15 @@ import json
 import logging
 import fnmatch
 
+from abc import ABC, abstractmethod
+from typing import Any
+
 from composer import Callback, State, Logger
 import lm_eval.models
 from lm_eval import evaluator, tasks
+
+import transformers
+
 
 logging.getLogger("openai").setLevel(logging.WARNING)
 
@@ -104,6 +110,71 @@ def main(args: argparse.Namespace):
     print(evaluator.make_table(results))
 
 
+# class LLMTokenizer(ABC):
+#     tokenizer_name: str
+#     max_seq_len: int
+
+#     def __init__(self, tokenizer_name: str, max_seq_len: int):
+#         self.tokenizer_name = tokenizer_name
+#         self.max_seq_len = max_seq_len
+
+#     @abstractmethod
+#     def __call__(self, *args, **kwargs):
+#         raise NotImplementedError
+
+#     @abstractmethod
+#     def encode(self, x):
+#         raise NotImplementedError
+
+#     def decode(self, x):
+#         raise NotImplementedError
+
+#     @property
+#     def vocab_size(self):
+#         raise NotImplementedError
+
+
+class HFTokenizer(ABC):
+    tokenizer_name: str
+    max_seq_len: int
+    group_method: str
+    tokenizer: transformers.AutoTokenizer
+
+    def __init__(self, tokenizer_name: str, max_seq_len: int):
+        # super().__init__(tokenizer_name, max_seq_len)
+        self.tokenizer_name = tokenizer_name
+        self.max_seq_len = max_seq_len
+
+        # Build tokenizer
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name)
+        if self.tokenizer.pad_token is None:
+            # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        # suppress warnings when using group_method='concat' and no truncation
+        self.tokenizer.model_max_length = int(1e30)
+
+    def __call__(self, *args, **kwargs):
+        return self.tokenizer(*args, **kwargs)
+
+    def encode(self, x):
+        return self.tokenizer.encode(x)
+
+    def decode(self, x):
+        return self.tokenizer.decode(x)
+
+    @property
+    def vocab_size(self):
+        return self.tokenizer.vocab_size
+
+    @property
+    def pad_token_id(self):
+        return self.tokenizer.pad_token_id
+
+    @property
+    def bos_token_id(self):
+        return self.tokenizer.bos_token_id
+
+
 class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
@@ -115,15 +186,26 @@ class EvaluationCallback(Callback):
             device = None
 
             # terrifyingly hacky approach to wrapping a Composer model :p
-            model = lm_eval.models.get_model("gpt2").create_from_arg_string(
-                "pretrained=EleutherAI/gpt-neo-2.7B",
+            # model = lm_eval.models.get_model("gpt2").create_from_arg_string(
+            #     "pretrained=EleutherAI/gpt-neo-2.7B",
+            #     {
+            #         "batch_size": batch_size,
+            #         "device": device,
+            #     }
+            # )
+            # model.gpt2 = state.model.model
+            # model.tokenizer = state.model.tokenizer
+            model = lm_eval.models.get_model("composer_llm").create_from_arg_string(
+                "", 
                 {
-                    "batch_size": batch_size,
-                    "device": device,
+                    "model": state.model.model,
+                    "tokenizer": HFTokenizer(
+                        tokenizer_name="gpt2",
+                        max_seq_len=2048,
+                    ),
+                    "precision": state.precision
                 }
             )
-            model.gpt2 = state.model.model
-            # model.tokenizer = state.model.tokenizer
             main(
                 argparse.Namespace(
                     model=model,

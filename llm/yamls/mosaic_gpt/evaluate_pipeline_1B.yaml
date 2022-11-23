@@ -5,10 +5,15 @@ integrations:
     pip_install: -r llm/requirements.txt
     ssh_clone: False
   - integration_type: git_repo
-    git_repo: EleutherAI/lm-evaluation-harness
+    git_repo: evanfabry/lm-evaluation-harness-composergpt-integration
     git_branch: master
-    pip_install: .
+    pip install: .
     ssh_clone: False
+  # - integration_type: git_repo
+  #   git_repo: EleutherAI/lm-evaluation-harness
+  #   git_branch: master
+  #   pip_install: .
+  #   ssh_clone: False
 
 command: |
   cd benchmarks-adafactor/llm
@@ -19,7 +24,7 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: &run_name thirty-billion-adam-run-batch-size-128-16-gpus
+run_name: &run_name mosaic-gpt-1b-16-gpus
 
 gpu_num: 16
 gpu_type: a100_40gb
@@ -40,9 +45,9 @@ parameters:
     name: mosaic_gpt
     device: meta
     tokenizer_name: *tokenizer_name
-    d_model: 7168
-    n_heads: 56
-    n_layers: 48
+    d_model: 2048
+    n_heads: 16 # Modified 24->16 so that d_head == 128 to statisfy FlashAttention
+    n_layers: 24
     mlp_ratio: 4
     max_seq_len: *max_seq_len
     vocab_size: 50257
@@ -97,29 +102,29 @@ parameters:
 
   optimizer:
     name: decoupled_adamw
-    lr: 1.0e-4
+    lr: 2.0e-4
     betas:
       - 0.9
       - 0.95
     eps: 1.0e-08
     weight_decay: 0.0
 
-  max_duration: 143100ba # ~ 600B tokens
-  eval_interval: 10000ba
-  global_train_batch_size: 128
+  max_duration: 24800ba # ~ 26B tokens
+  eval_interval: 2000ba
+  global_train_batch_size: 64
   grad_clip_norm: 1.0
 
   # System
   seed: 17
-  device_train_microbatch_size: 4
+  device_train_microbatch_size: 2
   # device_train_microbatch_size: auto
   precision: bf16
 
   # FSDP
   fsdp_config:
     sharding_strategy: FULL_SHARD
-    min_params: 5e8
-    mixed_precision: PURE # Only needed for 40GB cards
+    min_params: 2e8
+    mixed_precision: DEFAULT
     activation_checkpointing: true
     activation_cpu_offload: false
     verbose: true
