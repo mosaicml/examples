@@ -9,7 +9,7 @@ run_name: gpt-neo-125m
 # Model
 model:
   name: hf_causal_lm
-  hf_config: EleutherAI/gpt-neo-125M
+  hf_config_name_or_path: EleutherAI/gpt-neo-125M
 
 # Tokenizer
 tokenizer:

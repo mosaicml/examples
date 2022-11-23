@@ -9,7 +9,7 @@ run_name: gpt2-small
 # Model
 model:
   name: hf_causal_lm
-  hf_config: gpt2
+  hf_config_name_or_path: gpt2
 
 # Tokenizer
 tokenizer:
