@@ -59,7 +59,7 @@ The practical reason is that certain outcomes are only available if the model an
 
 So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/), they seem to improve LM perplexity, downstream accuracy, and allow the model to generalize to longer sequences than seen at train time), you need to train from scratch (or fine-tune from a checkpoint which was pre-trained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in your feedforward layers ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
 
-Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `([na, ##lo, ##xon, ##e]` [Gu et al., 2020](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
+Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `[na, ##lo, ##xon, ##e]` [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
 
 Now that we've convinced you that you should train a Mosaic BERT from scratch, let's get into the how :) 
 
@@ -167,7 +167,7 @@ python glue.py yamls/glue/mosaic-bert-base-uncased.yaml
 ```
 
 Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
-Any of the other (composer supported loggers)[https://docs.mosaicml.com/en/latest/trainer/logging.html#available-loggers] can be added easily as well!
+Any of the other [composer supported loggers](https://docs.mosaicml.com/en/latest/trainer/logging.html#available-loggers) can be added easily as well!
 
 **Note:** The `yamls/glue/*.yaml` files are intended to be used with `glue.py`.
 
