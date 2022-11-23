@@ -21,6 +21,7 @@ PARTIAL_EVAL_SAMPLE_SIZE = 40
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 JsonResults = Dict[int, Dict[str, Any]]
 
+
 def get_lm_eval_model(model_type: str, model_ctor_args: Dict[str, str]) -> lm_eval.base.LM:
     '''
     Loads ComposerGPT model from checkpoint & yaml and the passes it into the lm_eval.models.ComposerLLM wrapper class
@@ -39,6 +40,7 @@ def get_lm_eval_model(model_type: str, model_ctor_args: Dict[str, str]) -> lm_ev
         "", model_components
     )
     return lm
+
 
 def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str], num_fewshots: List[int], partial_eval_mode: bool) -> JsonResults:
     '''
@@ -68,6 +70,7 @@ def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str], num_fewsho
 
     return results
 
+
 def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
     '''
     Logs the task results to a pandas tsv
@@ -91,6 +94,7 @@ def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
 
     with open(outfile, "w") as f:
         df.to_csv(f, sep='\t', index=None)
+
 
 if __name__ == "__main__":
     """
@@ -117,8 +121,6 @@ if __name__ == "__main__":
                 config=yamls/mosaic_gpt/125m.yaml \
             --tasks lambada \
             --num_fewshot 0 1 10
-
-
     """
     parser = argparse.ArgumentParser(description='Run the EleutherAI eval harness on ComposerGPT models')
     parser.add_argument('--experiment_name', metavar="experiment_name", type=str)
@@ -128,7 +130,6 @@ if __name__ == "__main__":
     parser.add_argument('--num_fewshots', metavar="num_fewshots", type=int, nargs='+')
     parser.add_argument('--debug', action='store_true', default=False)
     parser.add_argument('--partial_eval_mode', action='store_true', default=False)
-
 
     args = parser.parse_args()
     print(args)

@@ -17,9 +17,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 CHECKPOINT_DIR = f"{os.path.dirname(__file__)}/model_checkpoints"
 
+
 def get_checkpoint_name_from_path(path: str) -> str:
     """To go from checkpoint name to path, replace | with /"""
     return path.lstrip('/').replace('/', '|')
+
 
 def download_starting_checkpoints(path_to_download: str) -> List[str]:
     """Downloads the pretrained checkpoints to start from. Currently only supports S3 and URLs"""
@@ -27,7 +29,6 @@ def download_starting_checkpoints(path_to_download: str) -> List[str]:
     parsed_first_checkpoint = urlparse(path_to_download)
     if parsed_first_checkpoint.scheme == "s3":
         load_object_store = S3ObjectStore(bucket=parsed_first_checkpoint.netloc)
-
 
     parsed_path = urlparse(path_to_download)
     download_path = (parsed_path.path if parsed_path.scheme == "s3" else parsed_first_checkpoint).lstrip("/")
@@ -59,7 +60,6 @@ def init_composer_ckpt_from_yaml(checkpoint: str, config: str) -> Dict[str, Unio
         model, tokenizer, precision (Dict[str, Union[MosaicGPT, LLMTokenizer, str]]):
             Model and tokenizer to be used to build the lm_eval.base.LM wrapper as well as precision context.
     '''
-
     with open(config) as f:
         cfg = om.load(f)
     print("Building MosaicGPT w/ config: ")
