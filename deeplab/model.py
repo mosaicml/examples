@@ -202,7 +202,7 @@ def build_composer_deeplabv3(num_classes: int,
     Args:
         num_classes (int): Number of classes in the segmentation task.
         backbone_arch (str, optional): The architecture to use for the backbone. Must be either
-            [``'resnet50'``, ``'resnet101'``]. Default: ``'resnet101'``.
+            ``'resnet50'`` or ``'resnet101'``. Default: ``'resnet101'``.
         backbone_weights (str, optional): If specified, the PyTorch pre-trained weights to load for the backbone.
             Currently, only ['IMAGENET1K_V1', 'IMAGENET1K_V2'] are supported. Default: ``None``.
         sync_bn (bool, optional): If ``True``, replace all BatchNorm layers with SyncBatchNorm layers.

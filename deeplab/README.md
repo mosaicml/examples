@@ -23,14 +23,14 @@
 <br />
 
 # Mosaic DeepLabV3+
-This folder contains starter code for training [mmsegmentation DeepLabV3+ architectures](https://github.com/open-mmlab/mmsegmentation/tree/master/configs/deeplabv3plus) using our most efficient training recipes (see our [benchmark blog post](https://www.mosaicml.com/blog/behind-the-scenes) or [recipies blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation) for details). These recipes were developed to hit baseline accuracy on [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/) 5x faster or to maximize ADE20K mean Intersection-over-Union (mIoU) over long training durations. Although these recipes were developed for training DeepLabV3+ on ADE20k, they could be used to train other segmentation models on other datasets. Give it a try!
+This folder contains starter code for training [mmsegmentation DeepLabV3+ architectures](https://github.com/open-mmlab/mmsegmentation/tree/master/configs/deeplabv3plus) using our most efficient training recipes (see our [benchmark blog post](https://www.mosaicml.com/blog/behind-the-scenes) or [recipes blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation) for details). These recipes were developed to hit baseline accuracy on [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/) 5x faster or to maximize ADE20K mean Intersection-over-Union (mIoU) over long training durations. Although these recipes were developed for training DeepLabV3+ on ADE20k, they could be used to train other segmentation models on other datasets. Give it a try!
 
 The specific files in this folder are:
-* `model.py` - A function to create a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from an mmsegmentation DeepLabV3+ model
+* `model.py` - A [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) that wraps an mmsegmentation DeepLabV3+ model
 * `data.py` - A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for ADE20K and a PyTorch dataset for a local copy of ADE20K
-* `transforms.py` - Torchvision transforms for ADE20K.
+* `transforms.py` - Torchvision transforms for ADE20K
 * `download_ade20k.py` - A helper script for downloading ADE20K locally
-* `main.py` - The training script that builds a [Composer](https://github.com/mosaicml/composer) Trainer based on a configuration specified by a yaml
+* `main.py` - The training script that builds a Composer [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer) using the data and model
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `deeplabv3.yaml` - Configuration for a DeepLabV3+ training run to be used as the first argument to `main.py`
@@ -53,7 +53,7 @@ Here's what you need to train:
       * Ubuntu Version: 20.04
 * [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) must be stored either locally (see `download_ade20k.py`) or uploaded to an S3 bucket after converting to a [streaming format](https://github.com/mosaicml/streaming) using [this script](https://github.com/mosaicml/streaming/blob/main/streaming/vision/convert/ade20k.py)
 * System with NVIDIA GPUs
-* Install requirements via `pip install -r requirements.txt` which installs:
+* Requirements (`pip install -r requirements.txt`), including:
   * [`composer`](https://github.com/mosaicml/composer) - MosaicML's PyTorch training framework
   * [`streaming`](https://github.com/mosaicml/streaming) - MosaicML's streaming dataset
   * [`wandb`](https://github.com/wandb/wandb) - Weights and Biases for experiment tracking
@@ -68,7 +68,7 @@ This benchmark assumes that ADE20K is already stored on your local machine or st
 python download_ade20k.py path/to/data
 ```
 
-The below commands will test if your data is setup appropriately:
+The below commands will test if your data is set up appropriately:
 ```bash
 # Test locally stored dataset
 python data.py path/to/data
@@ -86,7 +86,7 @@ Now that you've installed dependencies and tested your dataset, let's start trai
 ### Single-Node training
 We run the `main.py` script using our `composer` launcher, which generates a process for each device in a node.
 
-If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is :
+If training on a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is:
 
 ```bash
 composer main.py yamls/deeplabv3.yaml
@@ -186,15 +186,15 @@ train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23
 # Using Mosaic Recipes
 
 As described in our [Segmentation blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation), we cooked up three recipes to train DeepLabV3+ faster and with higher accuracy:
-- **Mild** recipe is for shorter training runs
-- **Medium** recipe is for longer training runs
-- **Hot** recipe is for the very longest training runs that maximize accuracy
+- The **Mild** recipe is for short training runs
+- The **Medium** recipe is for longer training runs
+- The **Hot** recipe is for the longest training runs, intended to maximize accuracy
 
 <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/6375c40a1de1101f791bc2d7_Recipe%20Final%20(18).png" width="50%" height="50%"/>
 
-To use a recipe, specify the name using the the `recipe_name` argument. Specifying a recipe will change the duration of training run to the optimal value for that recipe. Feel free to change these in `deeplabv3.yaml` to better suite your model and/or dataset.
+To use a recipe, specify the name using the the `recipe_name` argument. Specifying a recipe will change the duration of the training run to the optimal value for that recipe. Feel free to change these in `deeplabv3.yaml` to better suite your model and/or dataset.
 
-Here is an example command to run the mild recipe on a single-node:
+Here is an example command to run the mild recipe on a single node:
 ```bash
 composer main.py yamls/basline.yaml recipe_name=mild
 ```
@@ -202,11 +202,11 @@ composer main.py yamls/basline.yaml recipe_name=mild
 ---
 # Saving and Loading checkpoints
 
-At the bottom of `yamls/deeplabv3.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path`arugments if you need to save or load checkpoints!
+At the bottom of `yamls/deeplabv3.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
 
 # On memory constraints
-In previous blogs ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
-we demonstrated Auto Grad Accum, which allows Composer to determine `grad_accum` on its own. This means the same configuration can be run on different hardware or on a fewer number of devices without having to manually adjust the gradient accumulation! We have done extensive testing on this feature, but if there are any issues you can manually set `grad_accum` to your desired value.
+In previous blog posts ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
+we demonstrated Auto Grad Accum. This allows Composer to automatically execute each batch as multiple microbatches to save memory. This means the same configuration can be run on different hardware or on fewer devices without manually tuning the batch size or (significantly) changing the optimization. This feature is thoroughly tested, but if there are any issues, you can manually set `grad_accum` to your desired value.
 
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.

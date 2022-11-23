@@ -25,10 +25,10 @@ def build_ade20k_transformations(split,
                                  final_size: int = 512):
     """Builds the transformations for the ADE20k dataset.
        Args:
-           split (str): The dataset split to use either 'train', 'val', or 'test'. Default: ``'train```.
+           split (str): The dataset split to use; one of 'train', 'val', or 'test'. Default: ``'train```.
            base_size (int): Initial size of the image and target before other augmentations. Default: ``512``.
-           min_resize_scale (float): The minimum value the samples can be rescaled. Default: ``0.5``.
-           max_resize_scale (float): The maximum value the samples can be rescaled. Default: ``2.0``.
+           min_resize_scale (float): The minimum value by which the samples can be rescaled. Default: ``0.5``.
+           max_resize_scale (float): The maximum value by which the samples can be rescaled. Default: ``2.0``.
            final_size (int): The final size of the image and target. Default: ``512``.
        Returns:
            both_transforms (torch.nn.Module): Transformations to apply to a 2-tuple containing the input image and the
@@ -75,10 +75,10 @@ def build_ade20k_transformations(split,
 
 
 class RandomResizePair(torch.nn.Module):
-    """Resize the image and target to ``base_size`` scaled by a randomly sampled value.
+    """Resize the image and target to ``base_size`` times a randomly sampled value.
     Args:
-        min_scale (float): the minimum value the samples can be rescaled.
-        max_scale (float): the maximum value the samples can be rescaled.
+        min_scale (float): the minimum value by which the samples can be rescaled.
+        max_scale (float): the maximum value by which the samples can be rescaled.
         base_size (Tuple[int, int]): a specified base size (height x width) to scale to get the resized dimensions.
             When this is None, use the input image size. Default: ``None``.
     """

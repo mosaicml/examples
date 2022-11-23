@@ -24,7 +24,6 @@ from transforms import (IMAGENET_CHANNEL_MEAN, IMAGENET_CHANNEL_STD,
 __all__ = ['ADE20k', 'StreamingADE20k']
 
 
-
 def build_ade20k_dataspec(
     path: str,
     is_streaming: bool = True,
@@ -126,9 +125,7 @@ class ADE20k(Dataset):
                         'val': 'validation',
                         'test': 'test'}
         self.split = split_to_dir[split]
-
-
-        
+ 
         # Check datadir value
         if self.datadir is None:
             raise ValueError('datadir must be specified')
