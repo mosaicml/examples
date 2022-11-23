@@ -180,13 +180,13 @@ If you have configured a compute cluster to work with the MosaicML Cloud, you ca
 Once you have filled in the missing YAML fields (and made any other modifications you want), you can launch pre-training by simply running:
 
 ```bash
-mcli run -f yamls/mcoud_run.yaml
+mcli run -f yamls/mcloud_run.yaml
 ```
 
 Similarly, for GLUE fine-tuning just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
 
 ```bash
-mcli run -f yamls/glue/mcoud_run.yaml
+mcli run -f yamls/glue/mcloud_run.yaml
 ```
 
 ## Multi-node training
