@@ -50,3 +50,64 @@ Here's what you need to train:
   * [`streaming`](https://github.com/mosaicml/streaming) - MosaicML's streaming dataset
   * [`wandb`](https://github.com/wandb/wandb) - Weights and Biases for experiment tracking
   * [`omegaconf`](https://github.com/omry/omegaconf) - Configuration management
+
+# How to start training
+
+Now that you've installed dependencies, let's start training!
+
+**Please remember**: for both `train-dataset` and `eval_dataset`, edit the `path` argument and (if streaming) `local` arguments in `resnet56.yaml` to point to where your data is located or where you would like the data to be downloaded (if `download: true`).
+
+We run the `main.py` script using our `composer` launcher, which generates a process for each device in a node.
+
+For a single node, the `composer` launcher will autodetect the number of devices, so all you need to do is:
+
+```bash
+composer main.py yamls/resnet56.yaml
+```
+
+## Results
+
+You should see logs printed to your terminal like below. You can also easily enable other experiment trackers like Weights and Biases or CometML, by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.0/trainer/logging.html).
+
+```bash
+[epoch=0][batch=16/625]: wall_clock/train: 17.1607
+[epoch=0][batch=16/625]: wall_clock/val: 10.9666
+[epoch=0][batch=16/625]: wall_clock/total: 28.1273
+[epoch=0][batch=16/625]: lr-DecoupledSGDW/group0: 0.0061
+[epoch=0][batch=16/625]: trainer/global_step: 16
+[epoch=0][batch=16/625]: trainer/batch_idx: 16
+[epoch=0][batch=16/625]: memory/alloc_requests: 38424
+[epoch=0][batch=16/625]: memory/free_requests: 37690
+[epoch=0][batch=16/625]: memory/allocated_mem: 6059054353408
+[epoch=0][batch=16/625]: memory/active_mem: 1030876672
+[epoch=0][batch=16/625]: memory/inactive_mem: 663622144
+[epoch=0][batch=16/625]: memory/reserved_mem: 28137488384
+[epoch=0][batch=16/625]: memory/alloc_retries: 3
+[epoch=0][batch=16/625]: trainer/grad_accum: 2
+[epoch=0][batch=16/625]: loss/train/total: 7.1292
+[epoch=0][batch=16/625]: metrics/train/Accuracy: 0.0005
+[epoch=0][batch=17/625]: wall_clock/train: 17.8836
+[epoch=0][batch=17/625]: wall_clock/val: 10.9666
+[epoch=0][batch=17/625]: wall_clock/total: 28.8502
+[epoch=0][batch=17/625]: lr-DecoupledSGDW/group0: 0.0066
+[epoch=0][batch=17/625]: trainer/global_step: 17
+[epoch=0][batch=17/625]: trainer/batch_idx: 17
+[epoch=0][batch=17/625]: memory/alloc_requests: 40239
+[epoch=0][batch=17/625]: memory/free_requests: 39497
+[epoch=0][batch=17/625]: memory/allocated_mem: 6278452575744
+[epoch=0][batch=17/625]: memory/active_mem: 1030880768
+[epoch=0][batch=17/625]: memory/inactive_mem: 663618048
+[epoch=0][batch=17/625]: memory/reserved_mem: 28137488384
+[epoch=0][batch=17/625]: memory/alloc_retries: 3
+[epoch=0][batch=17/625]: trainer/grad_accum: 2
+[epoch=0][batch=17/625]: loss/train/total: 7.1243
+[epoch=0][batch=17/625]: metrics/train/Accuracy: 0.0010
+train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23,  1.37ba/s, loss/train/total=7.1292]
+```
+
+# Saving and Loading checkpoints
+
+At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
+
+# Contact Us
+If you run into any problems with the code, please file Github issues directly to this repo.

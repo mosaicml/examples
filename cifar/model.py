@@ -128,7 +128,7 @@ def build_composer_resnet_cifar(model_name: str, num_classes = 10):
             w.bias.data = torch.zeros_like(w.bias.data)
 
 
-    model = ResNetCIFAR(model_name=model_name, initializer=weight_init, num_classes=num_classes)
+    model = ResNetCIFAR.get_model_from_name(model_name=model_name, initializer=weight_init, num_classes=num_classes)
     composer_model = ComposerClassifier(module=model)
     return composer_model
 
