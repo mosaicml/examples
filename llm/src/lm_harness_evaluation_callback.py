@@ -205,7 +205,7 @@ class EvaluationCallback(Callback):
                         max_seq_len=2048,
                     ),
                     "precision": state.precision,
-                    "device": torch.device('cuda'),
+                    "device": torch.device('cuda').type,
                 }
             )
             main(
