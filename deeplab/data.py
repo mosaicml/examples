@@ -4,21 +4,22 @@
 Please refer to the `ADE20K dataset <https://groups.csail.mit.edu/vision/datasets/ADE20K/>`_ for more details about this
 dataset.
 """
-
 import os
+import sys
 from io import BytesIO
+from itertools import islice
 from typing import Any, Optional, Tuple
 
+import streaming
 import torch
 from composer.core import DataSpec
 from composer.datasets.streaming import StreamingDataset
 from composer.datasets.utils import NormalizationFn, pil_image_collate
-from composer.utils import  dist
-import streaming
-
+from composer.utils import dist
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
-from transforms import IMAGENET_CHANNEL_MEAN, IMAGENET_CHANNEL_STD, build_ade20k_transformations
+from transforms import (IMAGENET_CHANNEL_MEAN, IMAGENET_CHANNEL_STD,
+                        build_ade20k_transformations)
 
 __all__ = ['ADE20k', 'StreamingADE20k']
 
@@ -278,19 +279,16 @@ class StreamingADE20k(StreamingDataset):
         return x, y
 
 
-
-# Helpful to test if your dataloader is working locally
-# Run `python data.py datadir` to test local
-# Run `python data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming dataset
-if __name__ == '__main__':
-    import sys
-    from itertools import islice
+def check_dataloader():
+    """Tests if your dataloader is working locally.
+    Run `python data.py my_data_path` to test local dataset.
+    Run `python data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming.
+    """
     path = sys.argv[1]
-
     batch_size = 2
     if len(sys.argv) > 2:
         local = sys.argv[2]
-        dataspec = build_ade20k_dataspec(path=path, batch_size=batch_size)
+        dataspec = build_ade20k_dataspec(path=path, local=local, batch_size=batch_size)
     else:
         dataspec = build_ade20k_dataspec(path=path, is_streaming=False, batch_size=batch_size)
 
@@ -298,3 +296,6 @@ if __name__ == '__main__':
     print('Running 5 batchs of dataloader')
     for batch_ix, batch in enumerate(islice(dataspec.dataloader, 5)):
         print(f'Batch id: {batch_ix}; Image batch shape: {batch[0].shape}; Target batch shape: {batch[1].shape}')
+
+if __name__ == '__main__':
+    check_dataloader()
