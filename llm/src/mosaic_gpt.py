@@ -16,6 +16,11 @@ from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 
 
+def _fill_causal_attn_mask(x):
+    torch.full(size=x.shape, fill_value=float('-inf'), out=x)
+    torch.triu(x, diagonal=1, out=x)
+
+
 class TorchCausalAttention(nn.Module):
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
@@ -28,8 +33,8 @@ class TorchCausalAttention(nn.Module):
             device=device,
         )
 
-        self.register_buffer(
-            "mask", nn.Transformer.generate_square_subsequent_mask(cfg.max_seq_len))
+        self.register_buffer('mask', torch.zeros((cfg.max_seq_len, cfg.max_seq_len), device=device))
+        _fill_causal_attn_mask(self.mask)
         self.mha.out_proj._is_residual = True
 
     def forward(self, x, key_padding_mask):
@@ -47,6 +52,7 @@ class TorchCausalAttention(nn.Module):
             key_padding_mask=~key_padding_mask,
             need_weights=True
         )
+
 
 class FlashCausalAttention(nn.Module):
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
@@ -190,6 +196,10 @@ class MosaicGPT(nn.Module):
         if isinstance(module, nn.LayerNorm):
             torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
+
+        # TorchCausalAttention mask buffer
+        if isinstance(module, TorchCausalAttention):
+            _fill_causal_attn_mask(module.mask)
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
