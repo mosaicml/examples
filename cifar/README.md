@@ -1,4 +1,11 @@
 <br />
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/acc_curve_dark.png">
+    <img alt="CIFAR10 ResNet56 Accuracy Curves" src="./assets/acc_curve_light.png" width="75%">
+  </picture>
+</p>
+
 <h2><p align="center">CIFAR10 Benchmark</p></h2>
 
 <h3><p align='center'>
