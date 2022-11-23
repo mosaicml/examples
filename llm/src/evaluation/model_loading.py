@@ -92,6 +92,7 @@ def init_composer_ckpt_from_yaml(checkpoint: str, config: str) -> Dict[str, Unio
         "precision": cfg.precision
     }
 
+
 MODEL_LOADERS = {
     "composer_checkpoint": init_composer_ckpt_from_yaml,
     "pretrained_hf": init_huggingface_causal_lm,
