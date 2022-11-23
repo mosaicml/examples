@@ -1,6 +1,3 @@
-# Copyright 2022 MosaicML Composer authors
-# SPDX-License-Identifier: Apache-2.0
-
 run_name: cifar10_base # Name of the  training run used for checkpointing and other logging
 is_train: true         # Trains the model if true, otherwise runs evaluation
 seed: 42               # Random seed
