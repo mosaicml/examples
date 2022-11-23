@@ -24,9 +24,9 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: &run_name mosaic-gpt-1b-16-gpus
+run_name: &run_name mosaic-gpt-1b-32-gpus
 
-gpu_num: 16
+gpu_num: 32
 gpu_type: a100_40gb
 cluster: r7z7
 
