@@ -27,7 +27,7 @@ class StreamingCIFAR(Dataset, VisionDataset):
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.
         local (str): Local filesystem directory where dataset is cached during operation.
-        split (str): The dataset split to use, either 'train' or 'val'.
+        split (str): The dataset split to use, either 'train' or 'test'.
         shuffle (bool): Whether to iterate over the samples in randomized order.
         transform (callable, optional): A function/transform that takes in an image and returns a transformed version.
             Default: ``None``.
@@ -51,9 +51,9 @@ class StreamingCIFAR(Dataset, VisionDataset):
                  timeout: Optional[float] = 120,
                  batch_size: Optional[int] = None) -> None:
 
-        if split not in ['train', 'val']:
+        if split not in ['train', 'test']:
             raise ValueError(
-                f"split='{split}', but must be one of ['train', 'val'].")
+                f"split='{split}', but must be one of ['train', 'test'].")
 
         self.transform = transform
 
@@ -105,7 +105,10 @@ def build_cifar10_dataspec(
         shuffle (bool): Shuffle the dataset. Default: ``True``.
         **dataloader_kwargs (Any): Additional settings for the dataloader (e.g. num_workers, etc.).
     """
-    split = 'train' if is_train else 'val'
+    if is_streaming and not local:
+        raise ValueError('`local` argument must be specified if using a streaming dataset.')
+
+    split = 'train' if is_train else 'test'
     if is_train:
         transform = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
