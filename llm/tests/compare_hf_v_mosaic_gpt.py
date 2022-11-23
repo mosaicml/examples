@@ -138,9 +138,6 @@ def test_compare_hf_v_mosaic_gpt(dropout):
     print(f'{hf_model_fwd.mean().item() = }\n{model_fwd.mean().item() = }')
     print(f'{hf_model_fwd = }\n{model_fwd = }')
 
-    # max_atol = ((hf_model_fwd - model_fwd).abs() - 1e-3 * model_fwd.abs()).max()
-    # print(max_atol)
-
     # given dropout seeded the same way, the mean of the outputs is extremely similar
     assert hf_model_fwd.mean().allclose(model_fwd.mean())
     assert hf_model_fwd.allclose(model_fwd, rtol=1e-02, atol=1e-02)
