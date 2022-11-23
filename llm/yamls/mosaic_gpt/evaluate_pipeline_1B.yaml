@@ -7,7 +7,7 @@ integrations:
   - integration_type: git_repo
     git_repo: evanfabry/lm-evaluation-harness-composergpt-integration
     git_branch: master
-    pip install: .
+    pip_install: .
     ssh_clone: False
   # - integration_type: git_repo
   #   git_repo: EleutherAI/lm-evaluation-harness

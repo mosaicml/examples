@@ -10,6 +10,7 @@ from composer import Callback, State, Logger
 import lm_eval.models
 from lm_eval import evaluator, tasks
 
+import torch
 import transformers
 
 
@@ -203,7 +204,8 @@ class EvaluationCallback(Callback):
                         tokenizer_name="gpt2",
                         max_seq_len=2048,
                     ),
-                    "precision": state.precision
+                    "precision": state.precision,
+                    "device": torch.device('cuda'),
                 }
             )
             main(
