@@ -74,6 +74,7 @@ def build_ade20k_dataspec(
                                 transform=image_transforms,
                                 target_transform=target_transforms,
                                 batch_size=batch_size)
+        sampler = None
     else:
         dataset = ADE20k(datadir=path,
                          split=split,
@@ -82,7 +83,7 @@ def build_ade20k_dataspec(
                          target_transforms=target_transforms)
 
 
-    sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
+        sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
     device_transform_fn = NormalizationFn(mean=IMAGENET_CHANNEL_MEAN,
                                           std=IMAGENET_CHANNEL_STD,
                                           ignore_background=ignore_background)
