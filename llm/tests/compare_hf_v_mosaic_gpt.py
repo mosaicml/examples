@@ -1,4 +1,4 @@
-# Copyright 2022 MosaicML Composer authors
+# Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
@@ -8,8 +8,7 @@ import torch
 from omegaconf import OmegaConf as om
 from composer.utils import reproducibility
 
-from src.mosaic_gpt import ComposerMosaicGPT
-from src.hf_gpt2 import ComposerHFCausalLM
+from main import build_composer_model
 
 
 def test_compare_hf_v_mosaic_gpt():
@@ -27,13 +26,16 @@ def test_compare_hf_v_mosaic_gpt():
     cfg.eval_loader.max_seq_len = cfg.max_seq_len
     cfg.model.device = device
     cfg.precision = 'fp16'
-    # set dropout prob to 0 for numerically precise comparisons
-    cfg.model.resid_pdrop = 0.0
-    cfg.model.emb_pdrop = 0.0
-    cfg.model.emb_pdrop = 0.0
+    # set dropout prob
+    cfg.model.resid_pdrop = 0.1
+    cfg.model.emb_pdrop = 0.1
+    # attn_dropout is imtegrated into the FlashMHA kernel
+    # given this, it will generate different drop idx when compared to nn.Dropout
+    # reguradless of if rng is seeded.
+    cfg.model.attn_pdrop = 0.0
 
     # get equivalent config for HF model
-    hf_cfg = om.create({'name': 'hf_gpt2', 'hf_config': 'gpt2'})
+    hf_cfg = om.create({'name': 'hf_causal_lm', 'hf_config_name_or_path': 'gpt2'})
 
     # set seed
     reproducibility.seed_all(cfg.seed)
@@ -41,10 +43,11 @@ def test_compare_hf_v_mosaic_gpt():
     # Build Model
     print('Initializing model...')
 
-    model = ComposerMosaicGPT(cfg.model).to(device)
+    print(cfg)
+    model = build_composer_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
 
-    hf_model = ComposerHFCausalLM(hf_cfg).to(device)
+    hf_model = build_composer_model(hf_cfg).to(device)
     hf_n_params = sum(p.numel() for p in hf_model.parameters())
 
     assert hf_n_params == n_params
@@ -58,16 +61,17 @@ def test_compare_hf_v_mosaic_gpt():
     batch['attention_mask'] = torch.ones(size=(batch_size, cfg.max_seq_len), dtype=torch.int64).to(device)
     batch['labels']         = torch.randint(low=0, high=cfg.model.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
 
-    # set dropout prob to 0 for numerically precise comparisons
-    model.model.transformer.emb_drop.p = 0.0
-    hf_model.model.transformer.drop.p = 0.0
+    # # set dropout prob to 0 for potentially more numerically precise comparisons
+    # model.model.transformer.emb_drop.p = 0.0
+    # hf_model.model.transformer.drop.p = 0.0
 
-    for b in model.model.transformer.blocks:    b.resid_mlp_dropout.p = 0.0
-    for b in hf_model.model.transformer.h:      b.mlp.dropout.p = 0.0
+    # for b in model.model.transformer.blocks:    b.resid_mlp_dropout.p = 0.0
+    # for b in hf_model.model.transformer.h:      b.mlp.dropout.p = 0.0
 
-    for b in model.model.transformer.blocks:    b.resid_attn_dropout.p = 0.0
-    for b in hf_model.model.transformer.h:      b.attn.resid_dropout.p = 0.0
+    # for b in model.model.transformer.blocks:    b.resid_attn_dropout.p = 0.0
+    # for b in hf_model.model.transformer.h:      b.attn.resid_dropout.p = 0.0
 
+    # # attn_dropout is imtegrated into the FlashMHA kernel and must therefore be set to 0
     # for b in model.model.transformer.blocks:    b.attn_dropout.p = 0.0 # set in cfg
     for b in hf_model.model.transformer.h:      b.attn.attn_dropout.p = 0.0
 
@@ -95,8 +99,8 @@ def test_compare_hf_v_mosaic_gpt():
     # HF keys which need to be replaced by the associated value
     hf_2_mosaic_key_mods = {
         "model.transformer.h.": "model.transformer.blocks.",
-        ".attn.c_attn.":        ".causal_attn.mha.Wqkv.",
-        ".attn.c_proj.":        ".causal_attn.mha.out_proj.",
+        ".attn.c_attn.":        ".causal_attn.mhsa.Wqkv.",
+        ".attn.c_proj.":        ".causal_attn.mhsa.out_proj.",
         ".mlp.c_fc.":           ".mlp.mlp_up.",
         ".mlp.c_proj.":         ".mlp.mlp_down.",
     }
@@ -128,8 +132,9 @@ def test_compare_hf_v_mosaic_gpt():
         torch.manual_seed(cfg.seed)
         model_fwd = model(batch)
 
-    print(hf_model_fwd['logits'].mean().item(), model_fwd.mean().item())
-    print(hf_model_fwd['logits'], model_fwd)
+    print(hf_model_fwd.mean().item(), model_fwd.mean().item())
+    print(hf_model_fwd, model_fwd)
 
-    assert hf_model_fwd['logits'].mean().allclose(model_fwd.mean())
-    assert hf_model_fwd['logits'].allclose(model_fwd, rtol=1e-02, atol=1e-02)
+    # given dropout seeded the same way, the mean of the outputs is extreamly similar
+    assert hf_model_fwd.mean().allclose(model_fwd.mean())
+    assert hf_model_fwd.allclose(model_fwd, rtol=1e-02, atol=1e-02)
