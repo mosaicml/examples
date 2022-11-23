@@ -16,11 +16,6 @@ from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 
 
-def _fill_causal_attn_mask(x):
-    torch.full(size=x.shape, fill_value=float('-inf'), out=x)
-    torch.triu(x, diagonal=1, out=x)
-
-
 class TorchCausalAttention(nn.Module):
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
@@ -33,9 +28,13 @@ class TorchCausalAttention(nn.Module):
             device=device,
         )
 
-        self.register_buffer('mask', torch.zeros((cfg.max_seq_len, cfg.max_seq_len), device=device))
-        _fill_causal_attn_mask(self.mask)
+        self.register_buffer('mask', torch.empty((cfg.max_seq_len, cfg.max_seq_len), device=device))
+        self.mask_initialized = False
         self.mha.out_proj._is_residual = True
+
+    def _fill_causal_attn_mask(self):
+        torch.full(size=self.mask.shape, fill_value=float('-inf'), out=self.mask)
+        torch.triu(input=self.mask, diagonal=1, out=self.mask)
 
     def forward(self, x, key_padding_mask):
         # Two important disclaimers
@@ -47,6 +46,10 @@ class TorchCausalAttention(nn.Module):
         # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
         #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
         #
+        if not self.mask_initialized:
+            self._fill_causal_attn_mask()
+            self.mask_initialized = True
+
         return self.mha(x, x, x,
             attn_mask=self.mask,
             key_padding_mask=~key_padding_mask,
@@ -196,10 +199,6 @@ class MosaicGPT(nn.Module):
         if isinstance(module, nn.LayerNorm):
             torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
-
-        # TorchCausalAttention mask buffer
-        if isinstance(module, TorchCausalAttention):
-            _fill_causal_attn_mask(module.mask)
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
