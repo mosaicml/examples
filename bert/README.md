@@ -27,11 +27,11 @@ Our starter code provides support for standard HuggingFace BERT models, as well 
 Our goal in developing Mosaic BERT was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems!
 
 We apply:
-* [ALiBi (Press et al, 2021)](https://arxiv.org/abs/2108.12409v1)
+* [ALiBi (Press et al., 2021)](https://arxiv.org/abs/2108.12409v1)
 * [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
 * ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
 * [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html)
-* [FlashAttention (Tri Dao, 2022)](https://arxiv.org/abs/2205.14135)
+* [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135)
 
 ... and get them to work together! To our knowledge, many of these methods have never been combined before.
 
@@ -53,7 +53,7 @@ There is mounting evidence that pre-training on domain specific data improves do
 
 In addition to being able to take advantage of pre-training on in-domain data, training from scratch means that you control the data start to finish. Publicly available pre-training corpuses cannot be used in many commercial cases due to legal considerations. Our starter code can easily be modified to handle custom datasets beyond the C4 example we provide.
 
-One may wonder, why start from scratch when public data isn't a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [Gu et al., 2020](https://arxiv.org/abs/2007.15779).
+One may wonder, why start from scratch when public data isn't a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779).
 
 The practical reason is that certain outcomes are only available if the model and tokenizer are pre-trained from scratch.
 
