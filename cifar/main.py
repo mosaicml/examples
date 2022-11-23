@@ -9,7 +9,7 @@ from typing import Dict
 from composer import Trainer
 from composer.callbacks import MemoryMonitor, LRMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
-from composer.algorithms import BlurPool, ChannelsLast, EMA, LabelSmoothing
+from composer.algorithms import BlurPool, ChannelsLast, LabelSmoothing, MixUp
 from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist
 from omegaconf import DictConfig, OmegaConf
@@ -105,7 +105,7 @@ def main(config):
 
     print('Building algorithm recipes')
     if config.use_recipe:
-        algorithms = [BlurPool(), ChannelsLast(), LabelSmoothing(), EMA(half_life='100ba', update_interval='20ba')]
+        algorithms = [BlurPool(), ChannelsLast(), LabelSmoothing(), MixUp()]
     else:
         algorithms = None
     print('Built algorithm recipes\n')
