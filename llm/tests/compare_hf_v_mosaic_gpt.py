@@ -3,91 +3,94 @@
 
 import pytest
 import warnings
-
 import torch
 from omegaconf import OmegaConf as om
 from composer.utils import reproducibility
 
-from main import build_composer_model
+from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
-def test_compare_hf_v_mosaic_gpt():
+@pytest.mark.parametrize('dropout', [0.0, 0.1])
+def test_compare_hf_v_mosaic_gpt(dropout):
     warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
-    device = 'cuda'
+    conf_path = "yamls/mosaic_gpt/125m.yaml"    # set cfg path
+    batch_size = 2                              # set batch size
+    device = 'cuda'                             # set decive
+    
+    # ensure reproducibility
+    seed = 17
+    reproducibility.seed_all(seed)  # set seed
 
-    # get 125m config
-    with open('yamls/mosaic_gpt/125m.yaml') as f:
-        cfg = om.load(f)
-
-    # modify cfg for HF GPT2 compatibility
-    cfg.max_seq_len = 1024  # GPT2 seq len (GPT3 uses 2048)
-    cfg.model.max_seq_len = cfg.max_seq_len
-    cfg.train_loader.max_seq_len = cfg.max_seq_len
-    cfg.eval_loader.max_seq_len = cfg.max_seq_len
-    cfg.model.device = device
-    cfg.precision = 'fp16'
-    # set dropout prob
-    cfg.model.resid_pdrop = 0.1
-    cfg.model.emb_pdrop = 0.1
-    # attn_dropout is imtegrated into the FlashMHA kernel
-    # given this, it will generate different drop idx when compared to nn.Dropout
-    # reguradless of if rng is seeded.
-    cfg.model.attn_pdrop = 0.0
-
-    # get equivalent config for HF model
+    # get hf gpt2 cfg
     hf_cfg = om.create({'name': 'hf_causal_lm', 'hf_config_name_or_path': 'gpt2'})
 
-    # set seed
-    reproducibility.seed_all(cfg.seed)
+    # get hf gpt2 model
+    print(hf_cfg)
+    hf_model = COMPOSER_MODEL_REGISTRY[hf_cfg.name](hf_cfg).to(device)
+    hf_n_params = sum(p.numel() for p in hf_model.parameters())
+
+    hf_model.model.config.embd_pdrop = dropout
+    hf_model.model.transformer.drop.p = dropout
+    
+    hf_model.model.config.resid_pdrop = dropout
+    for b in hf_model.model.transformer.h:
+        b.mlp.dropout.p = dropout
+    for b in hf_model.model.transformer.h:
+        b.attn.resid_dropout.p = dropout
+
+    # in mosaic gpt, attn_dropout is integrated into the FlashMHA kernel
+    # and will therefore generate different drop idx when compared to nn.Dropout
+    # reguradless of if rng is seeded
+    # attn_dropout must be set to 0 for numerical comparisons.
+    hf_model.model.config.attn_pdrop = 0.0
+    for b in hf_model.model.transformer.h:
+        b.attn.attn_dropout.p = 0.0
+
+    # get mosaic 125m config
+    with open(conf_path) as f:
+        cfg = om.load(f)
+
+    # extract model cfg
+    cfg = cfg.model
+    # modify cfg for HF GPT2 compatibility
+    cfg.max_seq_len = hf_model.model.config.n_ctx
+    cfg.device = device
+    # set dropout prob
+    cfg.resid_pdrop = hf_model.model.config.resid_pdrop
+    cfg.emb_pdrop = hf_model.model.config.embd_pdrop
+    # attn_dropout is integrated into the FlashMHA kernel
+    # given this, it will generate different drop idx when compared to nn.Dropout
+    # reguradless of if rng is seeded.
+    cfg.attn_pdrop = hf_model.model.config.attn_pdrop
 
     # Build Model
     print('Initializing model...')
 
     print(cfg)
-    model = build_composer_model(cfg.model)
+    model = COMPOSER_MODEL_REGISTRY[cfg.name](cfg).to(device)
     n_params = sum(p.numel() for p in model.parameters())
 
-    hf_model = build_composer_model(hf_cfg).to(device)
-    hf_n_params = sum(p.numel() for p in hf_model.parameters())
-
     assert hf_n_params == n_params
-
-    # Get batch size info
-    batch_size = 2
     
     # generate random input branch
     batch = {}
-    batch['input_ids']      = torch.randint(low=0, high=cfg.model.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
+    batch['input_ids']      = torch.randint(low=0, high=cfg.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
+    batch['labels']         = torch.randint(low=0, high=cfg.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
     batch['attention_mask'] = torch.ones(size=(batch_size, cfg.max_seq_len), dtype=torch.int64).to(device)
-    batch['labels']         = torch.randint(low=0, high=cfg.model.vocab_size, size=(batch_size, cfg.max_seq_len)).to(device)
-
-    # # set dropout prob to 0 for potentially more numerically precise comparisons
-    # model.model.transformer.emb_drop.p = 0.0
-    # hf_model.model.transformer.drop.p = 0.0
-
-    # for b in model.model.transformer.blocks:    b.resid_mlp_dropout.p = 0.0
-    # for b in hf_model.model.transformer.h:      b.mlp.dropout.p = 0.0
-
-    # for b in model.model.transformer.blocks:    b.resid_attn_dropout.p = 0.0
-    # for b in hf_model.model.transformer.h:      b.attn.resid_dropout.p = 0.0
-
-    # # attn_dropout is imtegrated into the FlashMHA kernel and must therefore be set to 0
-    # for b in model.model.transformer.blocks:    b.attn_dropout.p = 0.0 # set in cfg
-    for b in hf_model.model.transformer.h:      b.attn.attn_dropout.p = 0.0
 
     hf_model.train()
     model.train()
 
     # UTIL: can be used to verify that models are not the same at init
-    # with torch.autocast(device_type='cuda', dtype=torch.float16):
-    #     torch.manual_seed(0)
-    #     hf_model_fwd = hf_model(batch)
-    #     _hf_model_fwd = hf_model_fwd
-    #     torch.manual_seed(0)
-    #     model_fwd = model(batch)
-    # can be used to verify that models are not the same at init
-    # print(f"{hf_model_fwd['logits'].mean().item()=}")
-    # print(f"{model_fwd.mean().item()=}")
+    with torch.autocast(device_type='cuda', dtype=torch.float16):
+        torch.manual_seed(0)
+        hf_model_fwd = hf_model(batch)
+        torch.manual_seed(0)
+        model_fwd = model(batch)
+    print(f'{hf_model_fwd.mean().item() = }\n{model_fwd.mean().item() = }')
+    if hf_model_fwd.mean().allclose(model_fwd.mean()):
+        warn_msg = f'WARNING: model_fwd ({model_fwd}) and hf_model_fwd ({hf_model_fwd}) are very close at init.'
+        raise warnings.warn(warn_msg)
 
     hf_model_statedict = hf_model.state_dict()
 
@@ -127,14 +130,17 @@ def test_compare_hf_v_mosaic_gpt():
     model.load_state_dict(_hf_model_statedict)
 
     with torch.autocast(device_type=device, dtype=torch.float16):
-        torch.manual_seed(cfg.seed)
+        torch.manual_seed(seed)
         hf_model_fwd = hf_model(batch)
-        torch.manual_seed(cfg.seed)
+        torch.manual_seed(seed)
         model_fwd = model(batch)
 
-    print(hf_model_fwd.mean().item(), model_fwd.mean().item())
-    print(hf_model_fwd, model_fwd)
+    print(f'{hf_model_fwd.mean().item() = }\n{model_fwd.mean().item() = }')
+    print(f'{hf_model_fwd = }\n{model_fwd = }')
 
-    # given dropout seeded the same way, the mean of the outputs is extreamly similar
+    # max_atol = ((hf_model_fwd - model_fwd).abs() - 1e-3 * model_fwd.abs()).max()
+    # print(max_atol)
+
+    # given dropout seeded the same way, the mean of the outputs is extremely similar
     assert hf_model_fwd.mean().allclose(model_fwd.mean())
     assert hf_model_fwd.allclose(model_fwd, rtol=1e-02, atol=1e-02)
