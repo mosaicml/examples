@@ -88,7 +88,7 @@ class ResNetCIFAR(nn.Module):
 
     @staticmethod
     def is_valid_model_name(model_name: str):
-        valid_model_names = [f'resnet{layers}' for layers in (20, 56)]
+        valid_model_names = [f'resnet_{layers}' for layers in (20, 56)]
         return (model_name in valid_model_names)
 
     @staticmethod
