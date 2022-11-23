@@ -3,7 +3,7 @@ import json
 import logging
 import fnmatch
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any
 
 from composer import Callback, State, Logger
@@ -12,6 +12,7 @@ from lm_eval import evaluator, tasks
 
 import torch
 import transformers
+import wandb
 
 
 logging.getLogger("openai").setLevel(logging.WARNING)
@@ -100,39 +101,7 @@ def main(args: argparse.Namespace):
     dumped = json.dumps(results, indent=2)
     print(dumped)
 
-    if args.output_path:
-        with open(args.output_path, "w") as f:
-            f.write(dumped)
-
-    print(
-        f"{args.model} ({args.model_args}), limit: {args.limit}, provide_description: {args.provide_description}, "
-        f"num_fewshot: {args.num_fewshot}, batch_size: {args.batch_size}"
-    )
-    print(evaluator.make_table(results))
-
-
-# class LLMTokenizer(ABC):
-#     tokenizer_name: str
-#     max_seq_len: int
-
-#     def __init__(self, tokenizer_name: str, max_seq_len: int):
-#         self.tokenizer_name = tokenizer_name
-#         self.max_seq_len = max_seq_len
-
-#     @abstractmethod
-#     def __call__(self, *args, **kwargs):
-#         raise NotImplementedError
-
-#     @abstractmethod
-#     def encode(self, x):
-#         raise NotImplementedError
-
-#     def decode(self, x):
-#         raise NotImplementedError
-
-#     @property
-#     def vocab_size(self):
-#         raise NotImplementedError
+    wandb.log(results)
 
 
 class HFTokenizer(ABC):
@@ -183,21 +152,10 @@ class EvaluationCallback(Callback):
 
     def before_train_batch(self, state: State, logger: Logger):
         if not int(state.timestamp.batch) % self.every_n_batches:  # kick off forked lm evaluation harness
-            batch_size = None
-            device = None
-
-            # terrifyingly hacky approach to wrapping a Composer model :p
-            # model = lm_eval.models.get_model("gpt2").create_from_arg_string(
-            #     "pretrained=EleutherAI/gpt-neo-2.7B",
-            #     {
-            #         "batch_size": batch_size,
-            #         "device": device,
-            #     }
-            # )
-            # model.gpt2 = state.model.model
-            # model.tokenizer = state.model.tokenizer
-            model = lm_eval.models.get_model("composer_llm").create_from_arg_string(
-                "", 
+            model = lm_eval.models.get_model(
+                "composer_llm"
+            ).create_from_arg_string(
+                "",
                 {
                     "model": state.model.model,
                     "tokenizer": HFTokenizer(
@@ -215,8 +173,8 @@ class EvaluationCallback(Callback):
                     tasks="lambada,hellaswag",
                     provide_description=False,
                     num_fewshot=0,
-                    batch_size=batch_size,
-                    device=device,
+                    batch_size=None,
+                    device=None,
                     limit=None,
                     no_cache=True,
                     decontamination_ngrams_path=None,

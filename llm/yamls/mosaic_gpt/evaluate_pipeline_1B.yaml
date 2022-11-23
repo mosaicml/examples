@@ -111,12 +111,12 @@ parameters:
 
   max_duration: 24800ba # ~ 26B tokens
   eval_interval: 2000ba
-  global_train_batch_size: 64
+  global_train_batch_size: 512
   grad_clip_norm: 1.0
 
   # System
   seed: 17
-  device_train_microbatch_size: 2
+  device_train_microbatch_size: 16
   # device_train_microbatch_size: auto
   precision: bf16
 
@@ -139,7 +139,7 @@ parameters:
     lr_monitor: {}
     memory_monitor: {}
     lm_eval_harness:
-      every_n_batches: 1
+      every_n_batches: 1024
 
   loggers:
     wandb:

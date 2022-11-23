@@ -19,7 +19,7 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: &run_name thirty-billion-adam-run-batch-size-4-16-gpus
+run_name: &run_name thirty-billion-adam-run-batch-size-2048-64-gpus
 
 gpu_num: 16
 gpu_type: a100_40gb
@@ -106,7 +106,7 @@ parameters:
 
   max_duration: 143100ba # ~ 600B tokens
   eval_interval: 10000ba
-  global_train_batch_size: 8
+  global_train_batch_size: 2048
   grad_clip_norm: 1.0
 
   # System
@@ -134,7 +134,7 @@ parameters:
     lr_monitor: {}
     memory_monitor: {}
     lm_eval_harness:
-      every_n_batches: 1
+      every_n_batches: 128
 
   loggers:
     wandb:
