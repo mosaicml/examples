@@ -20,6 +20,8 @@
 
 This folder contains starter code for training a CIFAR ResNet architecture. You can swap out the model and dataset if desired, but we recommend using the [ResNet + ImageNet benchmark](../resnet/) for new models and datasets.
 
+# Overview
+
 The specific files in this folder are:
 * `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a CIFAR ResNet model defined in the script
 * `data.py` - Creates a PyTorch dataset for a local copy of CIFAR10 and a [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) for CIFAR10
@@ -28,3 +30,23 @@ The specific files in this folder are:
 * `yamls/`
   * `resnet56.yaml` - Configuration for a CIFAR ResNet56 training run, to be used as the first argument to `main.py`
   * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
+
+Now that you have explored the code, let's jump into the prerequisites for training.
+
+# Prerequisites
+
+Here's what you need to train:
+
+* Docker image with PyTorch 1.12+, e.g. [MosaicML's PyTorch image](https://hub.docker.com/r/mosaicml/pytorch/tags)
+  * Recommended tag: `mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04`
+  * The image comes pre-configured with the following dependencies:
+    * PyTorch Version: 1.12.1
+    * CUDA Version: 11.6
+    * Python Version: 3.9
+    * Ubuntu Version: 20.04
+  * System with NVIDIA GPUs
+* Install requirements via `pip install -r requirements.txt` which installs:
+  * [`composer`](https://github.com/mosaicml/composer) - MosaicML's PyTorch training framework
+  * [`streaming`](https://github.com/mosaicml/streaming) - MosaicML's streaming dataset
+  * [`wandb`](https://github.com/wandb/wandb) - Weights and Biases for experiment tracking
+  * [`omegaconf`](https://github.com/omry/omegaconf) - Configuration management

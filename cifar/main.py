@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
-import datetime
 import os
 import torch
 import sys
@@ -45,7 +44,7 @@ def main(config):
     # Initialize dist, to ensure CIFAR is only downloaded by rank 0
     device = "gpu" if torch.cuda.is_available() else "cpu"
     if dist.get_world_size() > 1:
-        dist.initialize_dist(device, datetime.timedelta(seconds=15))
+        dist.initialize_dist(device, 60)
 
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
