@@ -190,7 +190,7 @@ class EvaluationCallback(Callback):
                     check_integrity=False,
                 )
             )
-            logger.info(f"ran evaluation in: {(dt.now() - s).total_seconds():.03f}")
+            logger.info(f"ran evaluation in: {(dt.now() - start).total_seconds():.03f}")
 
 
 if __name__ == "__main__":
