@@ -99,7 +99,8 @@ def main(args: argparse.Namespace):
         check_integrity=args.check_integrity,
     )
 
-    results_without_model = {k: v for k, v in results.items() if k != "model"}
+    results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
+    print(f"results_without_model.keys(): {results_without_model.keys()}")
     print(json.dumps(results_without_model, indent=2))
     wandb.log(results_without_model)
 
