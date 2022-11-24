@@ -98,10 +98,16 @@ def main(args: argparse.Namespace):
         check_integrity=args.check_integrity,
     )
 
-    dumped = json.dumps(results, indent=2)
-    print(dumped)
-
     wandb.log(results)
+
+    dumped = json.dumps(
+        {
+            **results,
+            "model": None,  # because ComposerLLM object is not JSON serializable
+        },
+        indent=2,
+    )
+    print(dumped)
 
 
 class HFTokenizer(ABC):
