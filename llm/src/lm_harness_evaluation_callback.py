@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import fnmatch
+from datetime import datetime as dt
 
 from abc import ABC
 from typing import Any
@@ -158,6 +159,7 @@ class EvaluationCallback(Callback):
 
     def before_train_batch(self, state: State, logger: Logger):
         if not int(state.timestamp.batch) % self.every_n_batches:  # kick off forked lm evaluation harness
+            start = dt.now()
             model = lm_eval.models.get_model(
                 "composer_llm"
             ).create_from_arg_string(
@@ -188,6 +190,7 @@ class EvaluationCallback(Callback):
                     check_integrity=False,
                 )
             )
+            logger.info(f"ran evaluation in: {(dt.now() - s).total_seconds():.03f}")
 
 
 if __name__ == "__main__":
