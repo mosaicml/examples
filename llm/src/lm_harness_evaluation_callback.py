@@ -175,7 +175,7 @@ class EvaluationCallback(Callback):
                     tasks="lambada",
                     provide_description=False,
                     num_fewshot=0,
-                    batch_size=512,
+                    batch_size=2048,
                     device=None,
                     limit=None,
                     no_cache=True,
