@@ -6,8 +6,8 @@ import sys
 import warnings
 
 from composer import Trainer
-from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import WandBLogger
+from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor, CheckpointSaver
+from composer.loggers import WandBLogger, RemoteUploaderDownloader
 from composer.optim import DecoupledAdamW
 from composer.algorithms import SelectiveBackprop
 from torch_optimizer import Adafactor
@@ -23,6 +23,13 @@ from src.mosaic_gpt import ComposerMosaicGPT
 def build_logger(name, kwargs):
     if name == 'wandb':
         return WandBLogger(**kwargs)
+    elif name == "remote_uploader_downloader":
+        return RemoteUploaderDownloader(bucket_uri=f"libcloud://{kwargs['bucket']}",backend_kwargs={
+            "provider": "google_storage",
+            "container": kwargs['bucket'],
+            "key_environ": "GCS_KEY", # Name of env variable for HMAC access id.
+            "secret_environ": "GCS_SECRET", # Name of env variable for HMAC secret.
+        })
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
@@ -33,6 +40,8 @@ def build_callback(name, kwargs):
         return MemoryMonitor()
     elif name == 'speed_monitor':
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
+    elif name == "checkpoint_saver":
+        return CheckpointSaver(folder="sophia_model_experiments/{run_name}/checkpoints")
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -158,6 +167,9 @@ def main(cfg):
     callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
 
     algorithms = [build_algorithm(name, algorithm_cfg) for name, algorithm_cfg in cfg.get("algorithms", {}).items()]
+
+    print("loggers are", loggers)
+    print("callbacks are", callbacks)
 
     # Build the Trainer
     trainer = Trainer(

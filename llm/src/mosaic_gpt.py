@@ -59,6 +59,61 @@ class FlashCausalAttention(nn.Module):
                         key_padding_mask=key_padding_mask,
                         need_weights=False)
 
+class SparseSelfAttention(nn.Module):
+    def __init__(self, cfg: Mapping[str, Any], device: str = None):
+        super().__init__()
+        from deepspeed.ops.sparse_attention import SparseSelfAttention
+        from deepspeed.ops.sparse_attention import FixedSparsityConfig
+
+        # Arguably we should really be using BertSparseSelfAttention b/c we're copying their code,
+        # but the underlying SparseSelfAttention class seems to only support
+        # fp16 training since they rewrote the kernels in Triton and BertSparseSelfAttention no longer works.
+
+        # copied from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/ops/sparse_attention/bert_sparse_self_attention.py#L36
+        self.attention_head_size = int(cfg.d_model / cfg.n_heads)
+        self.num_attention_heads = cfg.n_heads
+        self.all_head_size = cfg.n_heads * self.attention_head_size
+        self.query = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
+        self.key = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
+        self.value = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
+        # print(f"{self.query.dtype=} {self.key.dtype=} {self.value.dtype=}")
+
+        config = FixedSparsityConfig(attention="unidirectional", num_heads=cfg.n_heads)
+        self.mha = SparseSelfAttention(config, max_seq_length=cfg.max_seq_len)
+        print(self.mha)
+        # self.mha.out_proj._is_residual = True
+
+    def transpose_for_scores(self, x):
+        new_x_shape = x.size()[:-1] + (self.num_attention_heads,
+                                       self.attention_head_size)
+        x = x.view(*new_x_shape)
+        return x.permute(0, 2, 1, 3)
+
+    def forward(self, x, key_padding_mask):
+        # copied from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/ops/sparse_attention/bert_sparse_self_attention.py#LL62-L73C84
+        print(f"{x.dtype=}")
+        mixed_query_layer = self.query(x)
+        mixed_key_layer = self.key(x)
+        mixed_value_layer = self.value(x)
+
+        print("mixed_query_layer layer", mixed_query_layer.dtype, "mixed_key_layer", mixed_key_layer.dtype, "mixed_value_layer layer", mixed_value_layer.dtype)
+
+
+        query_layer = self.transpose_for_scores(mixed_query_layer)
+        key_layer = self.transpose_for_scores(mixed_key_layer)
+        value_layer = self.transpose_for_scores(mixed_value_layer)
+
+        print("query layer", query_layer.dtype, "key_layer", key_layer.dtype, "value layer", value_layer.dtype)
+
+        context_layer = self.mha(query_layer,
+                                                   key_layer,
+                                                   value_layer,
+                                                   key_padding_mask=key_padding_mask)
+        context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
+        new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size, )
+        context_layer = context_layer.view(*new_context_layer_shape)
+        return context_layer
+
 
 class GPTMLP(nn.Module):
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
@@ -84,6 +139,9 @@ class GPTBlock(nn.Module):
             self.causal_attn = TorchCausalAttention(cfg, device)
         elif cfg.attn_impl == 'flash':
             self.causal_attn = FlashCausalAttention(cfg, device)
+        elif cfg.attn_impl == 'sparse':
+            self.causal_attn = SparseSelfAttention(cfg, device)
+            self.causal_attn._fsdp_wrap = True
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
