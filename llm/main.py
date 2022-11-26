@@ -41,7 +41,7 @@ def build_callback(name, kwargs):
     elif name == 'speed_monitor':
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
     elif name == "checkpoint_saver":
-        return CheckpointSaver(folder="sophia_model_experiments/{run_name}/checkpoints", save_interval="3e4tok")
+        return CheckpointSaver(folder="sophia_model_experiments/{run_name}/checkpoints", save_interval="100ba")
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
