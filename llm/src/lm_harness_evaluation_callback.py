@@ -166,6 +166,7 @@ class EvaluationCallback(Callback):
                     ),
                     "precision": state.precision,
                     "device": torch.device('cuda').type,
+                    "batch_size": 2048,
                 }
             )
             main(
@@ -175,8 +176,8 @@ class EvaluationCallback(Callback):
                     tasks="lambada",
                     provide_description=False,
                     num_fewshot=0,
-                    batch_size=2048,
-                    device=None,
+                    batch_size=None,  # N/A b/c model is defined
+                    device=None,  # N/A b/c model is defined
                     limit=None,
                     no_cache=True,
                     decontamination_ngrams_path=None,
