@@ -166,7 +166,7 @@ class EvaluationCallback(Callback):
                     ),
                     "precision": state.precision,
                     "device": torch.device('cuda').type,
-                    "batch_size": 256,
+                    "batch_size": 128,
                 }
             )
             main(
