@@ -38,22 +38,18 @@ def gpt_tiny_cfg(conf_path="yamls/mosaic_gpt/125m.yaml"):
     return test_cfg
 
 
-def test_cpu_train():
+@pytest.mark.parametrize('device', ['cpu', 'cuda'])
+def test_train(device):
+    if device == 'cpu' and not torch.cuda.is_available():
+        pytest.skip("testing with cuda requires GPU")
+
     warnings.filterwarnings(action='ignore', category=DeprecationWarning, message="Using the 'grad_clip_norm' field in Trainer is deprecated. Please usethe GradientClipping Algorithm in composer.algorithms.gradient_clipping.")
 
     test_cfg = gpt_tiny_cfg(conf_path="yamls/mosaic_gpt/125m.yaml")
 
-    test_cfg.model.device = 'cpu'
-    test_cfg.model.attn_impl = 'torch'
-    test_cfg.precision = 'fp32'
+    if device == 'cpu':
+        test_cfg.model.device = 'cpu'
+        test_cfg.model.attn_impl = 'torch'
+        test_cfg.precision = 'fp32'
 
-    main(test_cfg)
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU")
-def test_gpu_train():
-    warnings.filterwarnings(action='ignore', category=DeprecationWarning, message="Using the 'grad_clip_norm' field in Trainer is deprecated. Please usethe GradientClipping Algorithm in composer.algorithms.gradient_clipping.")
-
-    test_cfg = gpt_tiny_cfg(conf_path="yamls/mosaic_gpt/125m.yaml")
-    
     main(test_cfg)
