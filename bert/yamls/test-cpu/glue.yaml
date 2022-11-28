@@ -12,12 +12,12 @@ default_seed: 1111
 precision: fp32
 
 # Tokenizer for dataset creation
-tokenizer_name: &tokenizer_name prajjwal1/bert-tiny
+tokenizer_name: &tokenizer_name bert-base-uncased
 
 # Base model config
 model:
   name: hf_bert
-  pretrained_model_name: *tokenizer_name
+  pretrained_model_name: prajjwal1/bert-tiny
   tokenizer_name: *tokenizer_name
 
 

@@ -187,6 +187,8 @@ def run_job_worker(
     process_to_gpu: Optional[mp.managers.DictProxy] = None
 ) -> Any:
     """Instantiates the job object and runs it"""
+    # need to set seed before model initialization for determinism
+    reproducibility.seed_all(config.seed)
     instantiated_job = TASK_NAME_TO_CLASS[config.task](
         job_name=config.job_name,
         seed=config.seed,
