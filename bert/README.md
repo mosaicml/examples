@@ -27,11 +27,11 @@ Our starter code provides support for standard HuggingFace BERT models, as well 
 Our goal in developing Mosaic BERT was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems!
 
 We apply:
-* [ALiBi (Press et al, 2021)](https://arxiv.org/abs/2108.12409v1)
+* [ALiBi (Press et al., 2021)](https://arxiv.org/abs/2108.12409v1)
 * [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
 * ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
 * [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html)
-* [FlashAttention (Tri Dao, 2022)](https://arxiv.org/abs/2205.14135)
+* [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135)
 
 ... and get them to work together! To our knowledge, many of these methods have never been combined before.
 
@@ -53,13 +53,13 @@ There is mounting evidence that pre-training on domain specific data improves do
 
 In addition to being able to take advantage of pre-training on in-domain data, training from scratch means that you control the data start to finish. Publicly available pre-training corpuses cannot be used in many commercial cases due to legal considerations. Our starter code can easily be modified to handle custom datasets beyond the C4 example we provide.
 
-One may wonder, why start from scratch when public data isn't a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [Gu et al., 2020](https://arxiv.org/abs/2007.15779).
+One may wonder, why start from scratch when public data isn't a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779).
 
 The practical reason is that certain outcomes are only available if the model and tokenizer are pre-trained from scratch.
 
 So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/), they seem to improve LM perplexity, downstream accuracy, and allow the model to generalize to longer sequences than seen at train time), you need to train from scratch (or fine-tune from a checkpoint which was pre-trained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in your feedforward layers ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
 
-Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `([na, ##lo, ##xon, ##e]` [Gu et al., 2020](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
+Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `[na, ##lo, ##xon, ##e]` [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
 
 Now that we've convinced you that you should train a Mosaic BERT from scratch, let's get into the how :) 
 
@@ -167,7 +167,7 @@ python glue.py yamls/glue/mosaic-bert-base-uncased.yaml
 ```
 
 Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
-Any of the other (composer supported loggers)[https://docs.mosaicml.com/en/latest/trainer/logging.html#available-loggers] can be added easily as well!
+Any of the other [composer supported loggers](https://docs.mosaicml.com/en/latest/trainer/logging.html#available-loggers) can be added easily as well!
 
 **Note:** The `yamls/glue/*.yaml` files are intended to be used with `glue.py`.
 
@@ -180,13 +180,13 @@ If you have configured a compute cluster to work with the MosaicML Cloud, you ca
 Once you have filled in the missing YAML fields (and made any other modifications you want), you can launch pre-training by simply running:
 
 ```bash
-mcli run -f yamls/mcoud_run.yaml
+mcli run -f yamls/mcloud_run.yaml
 ```
 
 Similarly, for GLUE fine-tuning just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
 
 ```bash
-mcli run -f yamls/glue/mcoud_run.yaml
+mcli run -f yamls/glue/mcloud_run.yaml
 ```
 
 ## Multi-node training
