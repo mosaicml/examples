@@ -114,7 +114,7 @@ train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23
 
 # Saving and Loading checkpoints
 
-At the bottom of `yamls/resnet50.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
+At the bottom of `yamls/resnet56.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
 
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.

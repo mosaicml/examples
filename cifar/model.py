@@ -93,7 +93,7 @@ class ResNetCIFAR(nn.Module):
 
     @staticmethod
     def get_model_from_name(model_name: str, initializer: Optional[Callable] = None, num_classes: int = 10):
-        """The naming scheme for a ResNet is ``'resnet_D[_W]'``.
+        """The naming scheme for a ResNet is ``'resnet_D'``.
         D is the model depth (e.g. ``'resnet_56'``)
         """
 
@@ -101,10 +101,7 @@ class ResNetCIFAR(nn.Module):
             raise ValueError('Invalid model name: {}'.format(model_name))
 
         depth = int(model_name.split('_')[-1])  # for resnet56, depth 56, width 16
-        if len(model_name.split('_')) == 2:
-            width = 16
-        else:
-            width = int(model_name.split('_')[3])
+        width = 16
 
         if (depth - 2) % 3 != 0:
             raise ValueError('Invalid ResNetCIFAR depth: {}'.format(depth))
