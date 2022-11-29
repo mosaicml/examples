@@ -42,7 +42,7 @@ def main(config):
     if config.grad_accum == 'auto' and not torch.cuda.is_available():
         raise ValueError('grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer')
 
-    # Initialize dist, to ensure CIFAR is only downloaded by rank 0
+    # Initialize dist to ensure CIFAR is only downloaded by rank 0
     device = "gpu" if torch.cuda.is_available() else "cpu"
     if dist.get_world_size() > 1:
         dist.initialize_dist(device, 180)

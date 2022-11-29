@@ -41,7 +41,7 @@ class ResNetCIFAR(nn.Module):
                     nn.BatchNorm2d(f_out),
                 )
             else:
-                self.shortcut = nn.Sequential()
+                self.shortcut = nn.Identity()
 
         def forward(self, x: torch.Tensor):
             out = self.relu(self.bn1(self.conv1(x)))
@@ -76,8 +76,6 @@ class ResNetCIFAR(nn.Module):
 
         if initializer is not None:
             self.apply(initializer)
-
-
     def forward(self, x: torch.Tensor):
         out = self.relu(self.bn(self.conv(x)))
         out = self.blocks(out)
@@ -88,8 +86,7 @@ class ResNetCIFAR(nn.Module):
 
     @staticmethod
     def is_valid_model_name(model_name: str):
-        valid_model_names = [f'resnet_{layers}' for layers in (20, 56)]
-        return (model_name in valid_model_names)
+        return model_name in [f'resnet_{layers}' for layers in (20, 56)]
 
     @staticmethod
     def get_model_from_name(model_name: str, initializer: Optional[Callable] = None, num_classes: int = 10):
@@ -123,8 +120,6 @@ def build_composer_resnet_cifar(model_name: str, num_classes = 10):
         if isinstance(w, nn.BatchNorm2d):
             w.weight.data = torch.rand(w.weight.data.shape)
             w.bias.data = torch.zeros_like(w.bias.data)
-
-
     model = ResNetCIFAR.get_model_from_name(model_name=model_name, initializer=weight_init, num_classes=num_classes)
     composer_model = ComposerClassifier(module=model)
     return composer_model
