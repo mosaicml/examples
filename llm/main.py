@@ -168,9 +168,6 @@ def main(cfg):
 
     algorithms = [build_algorithm(name, algorithm_cfg) for name, algorithm_cfg in cfg.get("algorithms", {}).items()]
 
-    print("loggers are", loggers)
-    print("callbacks are", callbacks)
-
     # Build the Trainer
     trainer = Trainer(
         run_name=cfg.run_name,
@@ -211,4 +208,12 @@ if __name__ == '__main__':
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
-    main(cfg)
+    orig_run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME', 'llm'))
+    if cfg.lrs:
+        for lr in cfg.lrs:
+            cfg.optimizer.lr = lr
+            cfg.run_name = orig_run_name + str(lr)
+            print("Running learning rate", lr)
+            main(cfg)
+    else:
+        main(cfg)
