@@ -43,21 +43,30 @@ def build_ade20k_dataspec(
     **dataloader_kwargs,
 ):
     """Builds an ADE20k dataloader.
+
     Args:
-        path (str): Path to S3 bucket if streaming, otherwise path to local data directory
-        local (str): Local filesystem directory where dataset is cached during operation. Default: ``'/tmp/mds-cache/mds-ade20k/'``.
+        path (str): Path to S3 bucket if streaming, otherwise path to local
+            data directory
+        local (str): Local filesystem directory where dataset is cached during
+            operation. Default: ``'/tmp/mds-cache/mds-ade20k/'``.
         is_streaming (bool):  If True, use streaming dataset. Default: ``True``.
         batch_size (int): Batch size per device.
-        split (str): The dataset split to use either 'train', 'val', or 'test'. Default: ``'train```.
+        split (str): The dataset split to use either 'train', 'val', or 'test'.
+            Default: ``'train```.
         drop_last (bool): Whether to drop last samples. Default: ``True``.
         shuffle (bool): Whether to shuffle the dataset. Default: ``True``.
-        base_size (int): Initial size of the image and target before other augmentations. Default: ``512``.
-        min_resize_scale (float): The minimum value the samples can be rescaled. Default: ``0.5``.
-        max_resize_scale (float): The maximum value the samples can be rescaled. Default: ``2.0``.
-        final_size (int): The final size of the image and target. Default: ``512``.
-        ignore_background (bool): If true, ignore the background class when calculating the training loss.
-            Default: ``true``.
-        **dataloader_kwargs (Dict[str, Any]): Additional settings for the dataloader (e.g. num_workers, etc.)
+        base_size (int): Initial size of the image and target before other
+            augmentations. Default: ``512``.
+        min_resize_scale (float): The minimum value the samples can be rescaled.
+            Default: ``0.5``.
+        max_resize_scale (float): The maximum value the samples can be rescaled.
+            Default: ``2.0``.
+        final_size (int): The final size of the image and target.
+            Default: ``512``.
+        ignore_background (bool): If true, ignore the background class when
+            calculating the training loss. Default: ``true``.
+        **dataloader_kwargs (Dict[str, Any]): Additional settings for the
+            dataloader (e.g. num_workers, etc.)
     """
     both_transforms, image_transforms, target_transforms = build_ade20k_transformations(
         split=split,

@@ -1,6 +1,3 @@
-# Copyright 2022 MosaicML Composer authors
-# SPDX-License-Identifier: Apache-2.0
-
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
@@ -18,8 +15,7 @@ from torch.utils.data import DataLoader
 
 
 class StreamingC4(Dataset):
-    """Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using
-    mosaicml-streaming's Dataset V2.
+    """Implementation of the C4 dataset using mosaicml-streaming's Dataset V2.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.

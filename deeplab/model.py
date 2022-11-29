@@ -1,4 +1,4 @@
-# Copyright 2022 MosaicML Composer authors
+# Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
 """DeepLabV3 model extending :class:`.ComposerClassifier`."""
@@ -50,6 +50,7 @@ def deeplabv3(num_classes: int,
               use_plus: bool = True,
               init_fn: Optional[Callable] = None):
     """Helper function to build a mmsegmentation DeepLabV3 model.
+
     Args:
         num_classes (int): Number of classes in the segmentation task.
         backbone_arch (str, optional): The architecture to use for the backbone. Must be either
@@ -61,14 +62,15 @@ def deeplabv3(num_classes: int,
         use_plus (bool, optional): If ``True``, use DeepLabv3+ head instead of DeepLabv3. Default: ``True``.
         init_fn (Callable, optional): initialization function for the model. ``()`` for no initialization.
             Default: ``()``.
+
     Returns:
         deeplabv3: A DeepLabV3 :class:`torch.nn.Module`.
+
     Example:
     .. code-block:: python
         from composer.models.deeplabv3.deeplabv3 import deeplabv3
         pytorch_model = deeplabv3(num_classes=150, backbone_arch='resnet101', backbone_weights=None)
     """
-
     # check that the specified architecture is in the resnet module
     if not hasattr(resnet, backbone_arch):
         raise ValueError(
@@ -195,10 +197,12 @@ def build_composer_deeplabv3(num_classes: int,
                              cross_entropy_weight: float = 1.0,
                              dice_weight: float = 0.0,
                              init_fn: Optional[Callable] = None):
-    """Helper function to create a :class:`.ComposerClassifier` with a DeepLabv3(+) model. Logs
-        Mean Intersection over Union (MIoU) and Cross Entropy during training and validation.
+    """Create a :class:`.ComposerClassifier` for a DeepLabv3(+) model.
+
+    Logs Mean Intersection over Union (MIoU) and Cross Entropy during training and validation.
     From `Rethinking Atrous Convolution for Semantic Image Segmentation <https://arxiv.org/abs/1706.05587>`_
         (Chen et al, 2017).
+
     Args:
         num_classes (int): Number of classes in the segmentation task.
         backbone_arch (str, optional): The architecture to use for the backbone. Must be either
@@ -213,14 +217,15 @@ def build_composer_deeplabv3(num_classes: int,
         dice_weight (float): Weight to scale the dice loss. Default: ``0.0``.
         init_fn (Callable, optional): initialization function for the model. ``None`` for no initialization.
             Default: ``None``.
+
     Returns:
         ComposerModel: instance of :class:`.ComposerClassifier` with a DeepLabv3(+) model.
+
     Example:
     .. code-block:: python
         from composer.models import composer_deeplabv3
         model = composer_deeplabv3(num_classes=150, backbone_arch='resnet101', backbone_weights=None)
     """
-
     model = deeplabv3(backbone_arch=backbone_arch,
                       backbone_weights=backbone_weights,
                       use_plus=use_plus,

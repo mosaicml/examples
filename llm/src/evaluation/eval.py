@@ -1,9 +1,6 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright 2022 MosaicML Benchmarks authors
-# SPDX-License-Identifier: Apache-2.0
-
 import argparse
 import json
 import os
@@ -28,11 +25,13 @@ JsonResults = Dict[int, Dict[str, Any]]
 
 def get_lm_eval_model(model_type: str,
                       model_ctor_args: Dict[str, str]) -> lm_eval.base.LM:
-    """Loads ComposerGPT model from checkpoint & yaml and the passes it into the
-    lm_eval.models.ComposerLLM wrapper class so that we can interface nicely w/
-    lm_eval task evaluation.
+    """Load a trained ComposerGPT model for evaluation.
 
-    Parameters:
+    In more detail, this loads a ComposerGPT model from a checkpoint & yaml
+    and then passes it into the lm_eval.models.ComposerLLM wrapper class so
+    that we can interface nicely with lm_eval task evaluation.
+
+    Args:
         model_ctor_args (Dict[str, str]): Constructor args for the model.
         model_type (str): The name of the model from llm.llm_evaluation.model_loading.MODEL_LOADERS
 
@@ -51,7 +50,7 @@ def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str],
                             partial_eval_mode: bool) -> JsonResults:
     """Returns the sum of two decimal numbers in binary digits.
 
-    Parameters:
+    Args:
         model (lm_eval.base.LM): An lm_eval LM model.
         tasks (List[str]): List of task names as defined in lm_eval.tasks.TASK_REGISTRY
         num_fewshots (List[int]): Number of few shots to used for in-context learning for each task. Runs each task
@@ -78,7 +77,7 @@ def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str],
 def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
     """Logs the task results to a pandas tsv.
 
-    Parameters:
+    Args:
         results (JsonResults): Model's performance on the tasks.
         outfile (str): Output file
     """

@@ -1,9 +1,6 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright 2022 MosaicML Benchmarks authors
-# SPDX-License-Identifier: Apache-2.0
-
 import os
 from typing import Dict, List, Union
 from urllib.parse import urlparse
@@ -22,15 +19,17 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
 CHECKPOINT_DIR = f'{os.path.dirname(__file__)}/model_checkpoints'
 
 
-def get_checkpoint_name_from_path(path: str) -> str:
-    """To go from checkpoint name to path, replace | with /"""
+def _get_checkpoint_name_from_path(path: str) -> str:
+    """To go from checkpoint name to path, replace '|' with '/'."""
     return path.lstrip('/').replace('/', '|')
 
 
 def download_starting_checkpoints(path_to_download: str) -> List[str]:
     """Downloads the pretrained checkpoints to start from.
 
-    Currently only supports S3 and URLs
+    Args:
+        path_to_download (str): an http:// or s3:// path. Local files not
+            yet supported.
     """
     load_object_store = None
     parsed_first_checkpoint = urlparse(path_to_download)
@@ -40,7 +39,7 @@ def download_starting_checkpoints(path_to_download: str) -> List[str]:
     parsed_path = urlparse(path_to_download)
     download_path = (parsed_path.path if parsed_path.scheme == 's3' else
                      parsed_first_checkpoint).lstrip('/')
-    checkpoint_name = get_checkpoint_name_from_path(parsed_path.path)
+    checkpoint_name = _get_checkpoint_name_from_path(parsed_path.path)
     local_path = os.path.join(CHECKPOINT_DIR, checkpoint_name)
     if not os.path.exists(local_path):
         get_file(destination=local_path,
@@ -62,12 +61,14 @@ def init_huggingface_causal_lm(
 def init_composer_ckpt_from_yaml(
         checkpoint: str,
         config: str) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
-    """Constructs a MosaicGPT model and LLMTokenizer from the yaml config and
-    attempts to initialize its weights from the state dict in checkpoint_path.
-    If there is an error during state dict loading, a randomly initialized model
-    is return.
+    """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
 
-    Parameters:
+    Constructs the MosaicGPT model and LLMTokenizer from the yaml config and
+    attempts to initialize its weights from the state dict in `checkpoint`.
+    If there is an error during state dict loading, returns a randomly
+    initialized model.
+
+    Args:
         checkpoint (str): Pytorch .pt checkpoint path. Must be located in `CHECKPOINT_DIR` or on s3
         config (str): YAML config. Must be an absolute path
 

@@ -33,6 +33,7 @@ def build_ade20k_transformations(split,
         min_resize_scale (float): The minimum value by which the samples can be rescaled. Default: ``0.5``.
         max_resize_scale (float): The maximum value by which the samples can be rescaled. Default: ``2.0``.
         final_size (int): The final size of the image and target. Default: ``512``.
+
     Returns:
         both_transforms (torch.nn.Module): Transformations to apply to a 2-tuple containing the input image and the
             target semantic segmentation mask.
@@ -78,8 +79,7 @@ def build_ade20k_transformations(split,
 
 
 class RandomResizePair(torch.nn.Module):
-    """Resize the image and target to ``base_size`` times a randomly sampled
-    value.
+    """Resize the image and target to ``base_size`` times a random value.
 
     Args:
         min_scale (float): the minimum value by which the samples can be rescaled.
@@ -226,11 +226,11 @@ class PadToSize(torch.nn.Module):
 
 
 class PhotometricDistoration(torch.nn.Module):
-    """Applies a combination of brightness, contrast, saturation, and hue
-    jitters with random intensity.
+    """Randomly jitters brightness, contrast, saturation, and hue.
 
     This is a less severe form of PyTorch's ColorJitter used by the mmsegmentation library here:
     https://github.com/open-mmlab/mmsegmentation/blob/aa50358c71fe9c4cccdd2abe42433bdf702e757b/mmseg/datasets/pipelines/transforms.py#L861
+
     Args:
         brightness (float): max and min to jitter brightness.
         contrast (float): max and min to jitter contrast.

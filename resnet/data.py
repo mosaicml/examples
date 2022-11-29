@@ -104,10 +104,9 @@ def build_imagenet_dataspec(
         drop_last (bool, optional): whether to drop last samples. Default: ``True``.
         shuffle (bool, optional): whether to shuffle the dataset. Default: ``True``.
         resize_size (int, optional): The resize size to use. Use ``-1`` to not resize. Default: ``-1``.
-        crop size (int, optional): The crop size to use. Default: ``224``.
+        crop_size (int, optional): The crop size to use. Default: ``224``.
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the dataloader (e.g. num_workers, etc.)
     """
-
     if is_streaming and not local:
         raise ValueError(
             '`local` argument must be specified if using a streaming dataset.')
@@ -162,10 +161,9 @@ def build_imagenet_dataspec(
 def check_dataloader():
     """Tests if your dataloader is working locally.
 
-    Run `python data.py my_data_path` to test local dataset. Run `python data.py
-    s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming.
+    Run `python data.py my_data_path` to test a local dataset. Run `python
+    data.py s3://my-bucket/my-dir/data /tmp/path/to/local` to test streaming.
     """
-
     data_path = sys.argv[1]
     batch_size = 2
     local = None
