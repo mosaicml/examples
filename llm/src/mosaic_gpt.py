@@ -73,11 +73,11 @@ class SparseSelfAttention(nn.Module):
         self.attention_head_size = int(cfg.d_model / cfg.n_heads)
         self.num_attention_heads = cfg.n_heads
         self.all_head_size = cfg.n_heads * self.attention_head_size
-        self.query = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
-        self.key = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
-        self.value = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
-        # print(f"{self.query.dtype=} {self.key.dtype=} {self.value.dtype=}")
-        breakpoint()
+        self.query = nn.Linear(cfg.d_model, self.all_head_size)
+        self.key = nn.Linear(cfg.d_model, self.all_head_size)
+        self.value = nn.Linear(cfg.d_model, self.all_head_size)
+        print(f"at init time: {self.query.weight.dtype=} {self.key.weight.dtype=} {self.value.weight.dtype=}")
+        print(f"at init time: {self.query.bias.dtype=} {self.key.bias.dtype=} {self.value.bias.dtype=}")
 
         config = FixedSparsityConfig(attention="unidirectional", num_heads=cfg.n_heads)
         self.mha = SparseSelfAttention(config, max_seq_length=cfg.max_seq_len)
@@ -92,19 +92,22 @@ class SparseSelfAttention(nn.Module):
 
     def forward(self, x, key_padding_mask):
         # copied from https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/ops/sparse_attention/bert_sparse_self_attention.py#LL62-L73C84
-        print(f"{x.dtype=}")
+        # print(f"{x.dtype=}")
+        # print(f"at forward time: {self.query.weight.dtype=} {self.key.weight.dtype=} {self.value.weight.dtype=}")
+        # print(f"at forward time: {self.query.bias.dtype=} {self.key.bias.dtype=} {self.value.bias.dtype=}")
+        
         mixed_query_layer = self.query(x)
         mixed_key_layer = self.key(x)
         mixed_value_layer = self.value(x)
 
-        print("mixed_query_layer layer", mixed_query_layer.dtype, "mixed_key_layer", mixed_key_layer.dtype, "mixed_value_layer layer", mixed_value_layer.dtype)
+        # print("mixed_query_layer layer", mixed_query_layer.dtype, "mixed_key_layer", mixed_key_layer.dtype, "mixed_value_layer layer", mixed_value_layer.dtype)
 
 
         query_layer = self.transpose_for_scores(mixed_query_layer)
         key_layer = self.transpose_for_scores(mixed_key_layer)
         value_layer = self.transpose_for_scores(mixed_value_layer)
 
-        print("query layer", query_layer.dtype, "key_layer", key_layer.dtype, "value layer", value_layer.dtype)
+        # print("query layer", query_layer.dtype, "key_layer", key_layer.dtype, "value layer", value_layer.dtype)
 
         context_layer = self.mha(query_layer,
                                                    key_layer,
@@ -154,7 +157,9 @@ class GPTBlock(nn.Module):
                 x: torch.Tensor,
                 key_padding_mask: torch.ByteTensor = None) -> torch.Tensor:
         a = self.ln_1(x)
-        b, _ = self.causal_attn(a, key_padding_mask)
+        b = self.causal_attn(a, key_padding_mask)
+        if type(b) == tuple:
+            b = b[0]
         x = x + self.resid_attn_dropout(b)
         m = self.ln_2(x)
         n = self.mlp(m)
@@ -285,3 +290,4 @@ class ComposerMosaicGPT(ComposerModel):
         outputs = outputs.view(-1, outputs.size(-1))
         targets = self.get_targets(batch).view(-1)
         metric.update(outputs, targets)
+
