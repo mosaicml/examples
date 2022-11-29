@@ -201,11 +201,11 @@ class MosaicGPT(nn.Module):
         # torch's MultiheadAttention
         if isinstance(module, nn.MultiheadAttention):
             if module._qkv_same_embed_dim:
-                assert module.in_proj_weight
+                assert module.in_proj_weight is not None
                 assert module.q_proj_weight is None and module.k_proj_weight is None and module.v_proj_weight is None
                 init_fn(module.in_proj_weight)
             else:
-                assert module.q_proj_weight and module.k_proj_weight and module.v_proj_weight
+                assert module.q_proj_weight is not None and module.k_proj_weight is not None and module.v_proj_weight is not None
                 assert module.in_proj_weight is None
                 init_fn(module.q_proj_weight)
                 init_fn(module.k_proj_weight)
