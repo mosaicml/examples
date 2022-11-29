@@ -77,6 +77,7 @@ class SparseSelfAttention(nn.Module):
         self.key = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
         self.value = nn.Linear(cfg.d_model, self.all_head_size, dtype=torch.half)
         # print(f"{self.query.dtype=} {self.key.dtype=} {self.value.dtype=}")
+        breakpoint()
 
         config = FixedSparsityConfig(attention="unidirectional", num_heads=cfg.n_heads)
         self.mha = SparseSelfAttention(config, max_seq_length=cfg.max_seq_len)
