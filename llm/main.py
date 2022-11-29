@@ -209,7 +209,7 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
     orig_run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME', 'llm'))
-    if cfg.lrs:
+    if cfg.get("lrs"):
         for lr in cfg.lrs:
             cfg.optimizer.lr = lr
             cfg.run_name = orig_run_name + str(lr)
