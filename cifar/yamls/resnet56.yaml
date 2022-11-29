@@ -7,7 +7,7 @@ grad_accum: 'auto'     # Amount of gradient accumulation, 'auto' (GPU only) mean
 
 train_dataset:
   path: cifar10
-  is_streaming: false # Set to `true` if your data is in a remote location (e.g. a S3 bucket)
+  is_streaming: false # Set to `true` if your data is in a remote location (e.g. an S3 bucket)
   batch_size: 1024    # Training dataloader batch size per device
   local: null         # Local cache location when streaming data
   download: true      # Whether to download the data
