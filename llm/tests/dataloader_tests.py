@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import pytest
 import torch
 from omegaconf import OmegaConf as om
 
@@ -16,6 +17,9 @@ def get_config(conf_path="yamls/mosaic_gpt/125m.yaml"):
 
 
 def test_correct_padding(batch_size=32):
+    if not os.path.isdir('./my-copy-c4/val'):
+        pytest.xfail("c4 dataset not set up as expected")
+
     test_cfg = get_config(conf_path="yamls/mosaic_gpt/125m.yaml")
 
     # Dataloaders

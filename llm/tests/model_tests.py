@@ -9,7 +9,6 @@ from omegaconf import OmegaConf as om
 from composer.utils import reproducibility
 from composer.optim import DecoupledAdamW
 
-from src.data_c4 import build_c4_dataloader
 from src.tokenizer import TOKENIZER_REGISTRY
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
@@ -61,15 +60,19 @@ def get_objs(conf_path="yamls/mosaic_gpt/125m.yaml"):
     return test_cfg, model, optimizer
 
 
+def gen_random_batch(batch_size, test_cfg):
+    # generate input batch of random data
+    batch = {}
+    batch['input_ids']      = torch.randint(low=0, high=test_cfg.model.vocab_size, size=(batch_size, test_cfg.max_seq_len)).to(test_cfg.device)
+    batch['labels']         = torch.randint(low=0, high=test_cfg.model.vocab_size, size=(batch_size, test_cfg.max_seq_len)).to(test_cfg.device)
+    batch['attention_mask'] = torch.ones(size=(batch_size, test_cfg.max_seq_len), dtype=torch.int64).to(test_cfg.device)
+    return batch
+
+
 def test_full_forward_and_backward(batch_size=2):
     test_cfg, model, optimizer = get_objs(conf_path="yamls/mosaic_gpt/125m.yaml")
 
-    # Dataloaders
-    eval_loader = build_c4_dataloader(test_cfg.eval_loader, batch_size)
-    batch = next(iter(eval_loader))
-    batch['input_ids'] = batch['input_ids'].to(test_cfg.device)
-    batch['labels'] = batch['labels'].to(test_cfg.device)
-    batch['attention_mask'] = batch['attention_mask'].to(test_cfg.device)
+    batch = gen_random_batch(batch_size, test_cfg)
 
     assert batch['input_ids'].shape == torch.Size([batch_size, test_cfg.max_seq_len])
     model.train()
@@ -85,10 +88,7 @@ def test_full_forward_and_backward(batch_size=2):
 def test_attention_mechanism(batch_size=2):
     test_cfg, model, _ = get_objs(conf_path="yamls/mosaic_gpt/125m.yaml")
 
-    # Dataloaders
-    eval_loader = build_c4_dataloader(test_cfg.eval_loader, batch_size)
-    batch = next(iter(eval_loader))
-    batch['input_ids'].shape == torch.Size([batch_size, test_cfg.max_seq_len])
+    batch = gen_random_batch(batch_size, test_cfg)
 
     model.eval()
     # run a partial forward where we explicitly inspect the attention_mask from the causal_attn block
@@ -150,12 +150,9 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
         eps=neo_cfg.optimizer.eps,
         weight_decay=neo_cfg.optimizer.weight_decay)
 
-    # Dataloaders
-    eval_loader = build_c4_dataloader(neo_cfg.eval_loader, batch_size)
-    batch = next(iter(eval_loader))
-    batch['input_ids'] = batch['input_ids'].to(neo_cfg.device)
-    batch['labels'] = batch['labels'].to(neo_cfg.device)
-    batch['attention_mask'] = batch['attention_mask'].to(neo_cfg.device)
+    # set vacab size using model num_embeddings
+    neo_cfg.model.vocab_size = model.model.transformer.wte.num_embeddings
+    batch = gen_random_batch(batch_size, neo_cfg)
 
     batch['input_ids'].shape == torch.Size([batch_size, neo_cfg.max_seq_len])
     model.train()
