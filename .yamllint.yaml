@@ -11,7 +11,7 @@ rules:
   colons: enable
   commas: enable
   comments:
-    level: warning
+    min-spaces-from-content: 1
   comments-indentation: enable
   document-end:
     present: false
@@ -27,7 +27,7 @@ rules:
   key-duplicates: enable
   key-ordering: disable
   line-length:
-    max: 80
+    max: 120
     allow-non-breakable-words: true
     allow-non-breakable-inline-mappings: true
   new-line-at-end-of-file: enable
