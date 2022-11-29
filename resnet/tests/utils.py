@@ -1,10 +1,14 @@
+# Copyright 2022 MosaicML Composer authors
+# SPDX-License-Identifier: Apache-2.0
+
 import itertools
 import os
-import tempfile
 import shutil
+import tempfile
 
 import numpy as np
 from PIL import Image
+
 
 class SynthClassificationDirectory(object):
 
@@ -14,6 +18,7 @@ class SynthClassificationDirectory(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         shutil.rmtree(self.path)
+
 
 def create_synthetic_imagenet():
     tmp_dirname = tempfile.mkdtemp()

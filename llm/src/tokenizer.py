@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Composer authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
@@ -42,7 +45,8 @@ class HFTokenizer(LLMTokenizer):
         super().__init__(tokenizer_name, max_seq_len)
 
         # Build tokenizer
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name)
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            self.tokenizer_name)
         if self.tokenizer.pad_token is None:
             # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -71,6 +75,4 @@ class HFTokenizer(LLMTokenizer):
         return self.tokenizer.bos_token_id
 
 
-TOKENIZER_REGISTRY = {
-    "hftokenizer": HFTokenizer
-}
+TOKENIZER_REGISTRY = {'hftokenizer': HFTokenizer}
