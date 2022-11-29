@@ -9,3 +9,4 @@ datasets<3
 omegaconf<3
 wandb<1
 deepspeed==0.7.5
+triton # does *not* work with nightly triton (what you're supposed to use) only pip triton
