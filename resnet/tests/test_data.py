@@ -1,11 +1,16 @@
-import pytest
+# Copyright 2022 MosaicML Composer authors
+# SPDX-License-Identifier: Apache-2.0
+
 import sys
+
+import pytest
 import torch
 
-from ..tests.utils import SynthClassificationDirectory
 from ..data import build_imagenet_dataspec, check_dataloader
+from ..tests.utils import SynthClassificationDirectory
 
 # TODO: streaming dataset and dataloader testing
+
 
 @pytest.mark.parametrize('is_train', [True, False])
 def test_dataloader_builder(is_train, batch_size=2, crop_size=16):
@@ -19,7 +24,8 @@ def test_dataloader_builder(is_train, batch_size=2, crop_size=16):
 
         for i, batch in enumerate(imagenet_dataspec.dataloader):
             # Check the image and label shapes
-            assert batch[0].shape == torch.Size([batch_size, 3, crop_size, crop_size])
+            assert batch[0].shape == torch.Size(
+                [batch_size, 3, crop_size, crop_size])
             assert batch[1].shape == torch.Size([batch_size])
 
 

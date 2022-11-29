@@ -1,8 +1,11 @@
+# Copyright 2022 MosaicML Composer authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""
-A simple, flexible implementation of a GPT model.
+"""A simple, flexible implementation of a GPT model.
+
 Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 """
 
@@ -17,6 +20,7 @@ from composer.models.base import ComposerModel
 
 
 class TorchCausalAttention(nn.Module):
+
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
         self.mhsa = nn.MultiheadAttention(
@@ -28,12 +32,16 @@ class TorchCausalAttention(nn.Module):
             device=device,
         )
 
-        self.register_buffer('mask', torch.empty((cfg.max_seq_len, cfg.max_seq_len), device=device))
+        self.register_buffer(
+            'mask',
+            torch.empty((cfg.max_seq_len, cfg.max_seq_len), device=device))
         self.mask_initialized = False
         self.mhsa.out_proj._is_residual = True
 
     def _fill_causal_attn_mask(self):
-        torch.full(size=self.mask.shape, fill_value=float('-inf'), out=self.mask)
+        torch.full(size=self.mask.shape,
+                   fill_value=float('-inf'),
+                   out=self.mask)
         torch.triu(input=self.mask, diagonal=1, out=self.mask)
 
     def forward(self, x, key_padding_mask):
@@ -50,14 +58,16 @@ class TorchCausalAttention(nn.Module):
             self._fill_causal_attn_mask()
             self.mask_initialized = True
 
-        return self.mhsa(x, x, x,
-            attn_mask=self.mask,
-            key_padding_mask=~key_padding_mask,
-            need_weights=True
-        )
+        return self.mhsa(x,
+                         x,
+                         x,
+                         attn_mask=self.mask,
+                         key_padding_mask=~key_padding_mask,
+                         need_weights=True)
 
 
 class FlashCausalAttention(nn.Module):
+
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
         try:
@@ -78,11 +88,12 @@ class FlashCausalAttention(nn.Module):
 
     def forward(self, x, key_padding_mask):
         return self.mhsa(x,
-                        key_padding_mask=key_padding_mask,
-                        need_weights=False)
+                         key_padding_mask=key_padding_mask,
+                         need_weights=False)
 
 
 class GPTMLP(nn.Module):
+
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
         self.mlp_up = nn.Linear(cfg.d_model,
@@ -99,6 +110,7 @@ class GPTMLP(nn.Module):
 
 
 class GPTBlock(nn.Module):
+
     def __init__(self, cfg: Mapping[str, Any], device: str = None):
         super().__init__()
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
@@ -126,17 +138,22 @@ class GPTBlock(nn.Module):
 
 
 class MosaicGPT(nn.Module):
+
     def __init__(self, cfg: Mapping[str, Any]):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
         self.transformer = nn.ModuleDict(
             dict(
-                wte=nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device),
-                wpe=nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device),
+                wte=nn.Embedding(cfg.vocab_size, cfg.d_model,
+                                 device=cfg.device),
+                wpe=nn.Embedding(cfg.max_seq_len,
+                                 cfg.d_model,
+                                 device=cfg.device),
                 emb_drop=nn.Dropout(cfg.emb_pdrop),
                 blocks=nn.ModuleList([
-                    GPTBlock(cfg, device=cfg.device) for _ in range(cfg.n_layers)
+                    GPTBlock(cfg, device=cfg.device)
+                    for _ in range(cfg.n_layers)
                 ]),
                 ln_f=nn.LayerNorm(cfg.d_model, device=cfg.device),
             ))
@@ -161,7 +178,7 @@ class MosaicGPT(nn.Module):
         _, S = input_ids.size()
         assert (
             S <= self.cfg.max_seq_len
-        ), f"Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}"
+        ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
         pos = torch.arange(0, S, dtype=torch.long,
                            device=input_ids.device).unsqueeze(0)
 
@@ -224,7 +241,7 @@ class ComposerMosaicGPT(ComposerModel):
         }
 
     def get_targets(self, batch):
-        targets = torch.roll(batch["labels"], shifts=-1)
+        targets = torch.roll(batch['labels'], shifts=-1)
         targets[:, -1] = -100
         return targets
 

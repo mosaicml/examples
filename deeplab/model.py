@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
+
 """DeepLabV3 model extending :class:`.ComposerClassifier`."""
 
 import functools
@@ -90,7 +91,7 @@ def deeplabv3(num_classes: int,
                     textwrap.dedent(f"""\
                         `backbone_weights` must be either "IMAGENET1K_V1" or "IMAGENET1K_V2"
                         if torchvision.__version__ < 0.13.0. `backbone_weights` was {backbone_weights}."""
-                                    ))
+                                   ))
         backbone = getattr(resnet, backbone_arch)(
             pretrained=pretrained,
             replace_stride_with_dilation=[False, True, True])
@@ -117,8 +118,7 @@ def deeplabv3(num_classes: int,
             Either mmcv or mmsegmentation is not installed. To install mmcv, please run pip install mmcv-full==1.4.4 -f
              https://download.openmmlab.com/mmcv/dist/{cu_version}/{torch_version}/index.html where {cu_version} and
              {torch_version} refer to your CUDA and PyTorch versions, respectively. To install mmsegmentation, please
-             run pip install mmsegmentation==0.22.0 on command-line.""")
-        ) from e
+             run pip install mmsegmentation==0.22.0 on command-line.""")) from e
 
     world_size = dist.get_world_size()
     if sync_bn and world_size == 1:

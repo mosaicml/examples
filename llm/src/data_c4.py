@@ -1,9 +1,10 @@
+# Copyright 2022 MosaicML Composer authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""
-Build a StreamingC4 dataset and dataloader for training.
-"""
+"""Build a StreamingC4 dataset and dataloader for training."""
 
 import os
 import sys
@@ -17,8 +18,8 @@ from torch.utils.data import DataLoader
 
 
 class StreamingC4(Dataset):
-    """
-    Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using mosaicml-streaming's Dataset V2.
+    """Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using
+    mosaicml-streaming's Dataset V2.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.
@@ -48,9 +49,12 @@ class StreamingC4(Dataset):
                  batch_size: Optional[int] = None):
         # Validation
         if split not in ['train', 'val']:
-            raise ValueError(f"split='{split}' must be one of ['train', 'val'].")
+            raise ValueError(
+                f"split='{split}' must be one of ['train', 'val'].")
         if group_method not in ['truncate', 'concat']:
-            raise ValueError(f"group_method='{group_method}' must be one of ['truncate', 'concat'].")
+            raise ValueError(
+                f"group_method='{group_method}' must be one of ['truncate', 'concat']."
+            )
 
         # Build Dataset
         super().__init__(remote=remote,
@@ -69,7 +73,8 @@ class StreamingC4(Dataset):
 
         # Build tokenizer
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.tokenizer_name)
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            self.tokenizer_name)
         if self.tokenizer.pad_token is None:
             # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -88,7 +93,10 @@ class StreamingC4(Dataset):
             max_length = None
         else:
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
-        return self.tokenizer(text_sample['text'], truncation=truncation, padding=padding, max_length=max_length)
+        return self.tokenizer(text_sample['text'],
+                              truncation=truncation,
+                              padding=padding,
+                              max_length=max_length)
 
     # How to process a sample
     def __getitem__(self, idx: int) -> Dict[str, Any]:
@@ -136,17 +144,16 @@ class StreamingC4(Dataset):
 
 
 def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
-
     assert cfg.name == 'c4', f'Tried to build c4 dataloader with cfg.name={cfg.name}'
     dataset = StreamingC4(split=cfg.dataset.split,
-                            remote=cfg.dataset.remote,
-                            local=cfg.dataset.local,
-                            shuffle=cfg.dataset.shuffle,
-                            prefetch=cfg.dataset.prefetch,
-                            tokenizer_name=cfg.dataset.tokenizer_name,
-                            max_seq_len=cfg.dataset.max_seq_len,
-                            group_method=cfg.dataset.group_method,
-                            batch_size=device_batch_size)
+                          remote=cfg.dataset.remote,
+                          local=cfg.dataset.local,
+                          shuffle=cfg.dataset.shuffle,
+                          prefetch=cfg.dataset.prefetch,
+                          tokenizer_name=cfg.dataset.tokenizer_name,
+                          max_seq_len=cfg.dataset.max_seq_len,
+                          group_method=cfg.dataset.group_method,
+                          batch_size=device_batch_size)
 
     collate_fn = transformers.DataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer, mlm=False)
@@ -163,6 +170,7 @@ def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
         timeout=cfg.timeout,
     )
 
+
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out
 if __name__ == '__main__':
@@ -171,7 +179,7 @@ if __name__ == '__main__':
         local = sys.argv[2]
     else:
         local = remote
-    print (f'Reading val split from {remote} -> {local}')
+    print(f'Reading val split from {remote} -> {local}')
 
     cfg = {
         'name': 'c4',
@@ -199,10 +207,9 @@ if __name__ == '__main__':
     tokenizer = loader.dataset.tokenizer
     for batch_ix, batch in enumerate(islice(loader, 5)):
         print('\n')
-        print ('#'*20, f'Batch {batch_ix}', '#'*20)
+        print('#' * 20, f'Batch {batch_ix}', '#' * 20)
         for k, v in batch.items():
-            print (k, v.shape, v.dtype)
+            print(k, v.shape, v.dtype)
         for sample_ix, token_sample in enumerate(batch['input_ids']):
-            print ('-'*20, f' Sample {sample_ix} ', '-'*20)
-            print (tokenizer.decode(token_sample))
-
+            print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
+            print(tokenizer.decode(token_sample))
