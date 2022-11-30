@@ -236,16 +236,18 @@ class EvaluationCallback(Callback):
             self.metric.update(inference["resps"], inference["sampled_indices"])
 
         elif event == Event.AFTER_TRAIN_BATCH:
-            if dist.get_global_rank() == 0 or True:
-                print("reducing from rank zero...")
-                resps, sampled_indices = torch.unbind(self.metric.compute())
-                print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
+            print("reducing from rank zero...")
+            resps, sampled_indices = torch.unbind(self.metric.compute())
+            print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
 
+            if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
-                    **self.simple_evaluate_args,
-                    **self.simple_evaluate_inference,
-                    resps=resps,
-                    sampled_indices=sampled_indices,
+                    **{
+                        **self.simple_evaluate_args,
+                        **self.simple_evaluate_inference,
+                        "resps": resps,
+                        "sampled_indices": sampled_indices,
+                    }
                 )
 
                 # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
@@ -259,30 +261,17 @@ class EvaluationCallback(Callback):
                 self.metric.reset()
 
 
-# class LMEvalHarnessReducerMetric(torchmetrics.Metric):
-#     """Somewhat janky distributed reducer hacked together w/ torchmetrics.
-
-#     Just concats responses and sampled indices from eval harness. compute simply
-#     returns those tensors for use elsewhere.
-#     """
+# class CatTensorMetric(torchmetrics.Metric):
 #     def __init__(self, **kwargs):
 #         super().__init__(**kwargs)
 #         self.add_state(
-#             "responses",
-#             default=torch.Tensor([]).cuda(dist.get_local_rank()),
-#             dist_reduce_fx="cat",
-#         )
-#         self.add_state(
-#             "sampled_indices",
+#             "inferences",
 #             default=torch.Tensor([]).cuda(dist.get_local_rank()),
 #             dist_reduce_fx="cat",
 #         )
 
 #     def update(self, preds, target):
-#         print(self.responses.device)
-#         self.responses = torch.cat([self.responses, torch.Tensor(preds).cuda(dist.get_local_rank())])
-#         self.sampled_indices = torch.cat([self.sampled_indices, torch.Tensor(target).cuda(dist.get_local_rank())])
-#         print(f"metric updating... new shape: {self.responses.shape}", self.responses.device, self.sampled_indices.device)
+#         self.inferences = torch.cat([self.inferences, torch.Tensor(preds).cuda(dist.get_local_rank())])
 
 #     def compute(self):
 #         print("in compute()...")
