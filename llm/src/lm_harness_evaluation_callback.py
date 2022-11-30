@@ -159,8 +159,8 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         self.add_state("sampled_indices", default=torch.Tensor([]), dist_reduce_fx="cat")
 
     def update(self, preds, target):
-        self.responses = torch.cat(self.responses, preds)
-        self.sampled_indices = torch.cat(self.sampled_indices, target)
+        self.responses = torch.cat(self.responses, torch.Tensor(preds))
+        self.sampled_indices = torch.cat(self.sampled_indices, torch.Tensor(target))
 
     def compute(self):
         return self.responses, self.sampled_indices
@@ -192,38 +192,6 @@ class EvaluationCallback(Callback):
                     "batch_size": 64,
                 }
             )
-            # results = main(
-            #     argparse.Namespace(
-            #         model=model,
-            #         model_args="",
-            #         tasks="lambada",
-            #         provide_description=False,
-            #         num_fewshot=0,
-            #         batch_size=None,  # N/A b/c model is defined
-            #         device=None,  # N/A b/c model is defined
-            #         limit=None,
-            #         no_cache=True,
-            #         decontamination_ngrams_path=None,
-            #         description_dict_path=None,
-            #         check_integrity=False,
-            #     )
-            # )
-
-
-            # args = argparse.Namespace(
-            #     model=model,
-            #     model_args="",
-            #     tasks="lambada",
-            #     provide_description=False,
-            #     num_fewshot=0,
-            #     batch_size=None,  # N/A b/c model is defined
-            #     device=None,  # N/A b/c model is defined
-            #     limit=None,
-            #     no_cache=True,
-            #     decontamination_ngrams_path=None,
-            #     description_dict_path=None,
-            #     check_integrity=False,
-            # )
 
             task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
             print(f"Selected Tasks: {task_names}")
@@ -248,31 +216,21 @@ class EvaluationCallback(Callback):
             self.simple_evaluate_inference = inference
             self.metric.update(inference["resps"], inference["sampled_indices"])
 
-            # results = evaluator.evaluate_metrics(
-            #     task_dict,
-            #     requests=inference["requests"],
-            #     requests_origin=inference["requests_origin"],
-            #     docs=inference["docs"],
-            #     overlaps=inference["overlaps"],
-            #     sampled_indices=inference["sampled_indices"],
-            #     resps=inference["resps"],
-            #     versions=inference["versions"],
-            #     decontamination_ngrams_path=decontamination_ngrams_path,
-            #     bootstrap_iters=bootstrap_iters,
-            # )
-
-            # results = evaluator.simple_evaluate(
-            #     model=model,
-            #     model_args="",
-            #     tasks=task_names,
-            #     num_fewshot=0,
-            #     batch_size=None,
-            #     device=None,
-            #     no_cache=True,
-            #     limit=None,
-            #     description_dict={},
-            #     decontamination_ngrams_path=None,
-            #     check_integrity=False,
+            # results = main(
+            #     argparse.Namespace(
+            #         model=model,
+            #         model_args="",
+            #         tasks="lambada",
+            #         provide_description=False,
+            #         num_fewshot=0,
+            #         batch_size=None,  # N/A b/c model is defined
+            #         device=None,  # N/A b/c model is defined
+            #         limit=None,
+            #         no_cache=True,
+            #         decontamination_ngrams_path=None,
+            #         description_dict_path=None,
+            #         check_integrity=False,
+            #     )
             # )
 
             # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
