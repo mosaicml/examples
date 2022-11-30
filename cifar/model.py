@@ -138,7 +138,14 @@ class ResNetCIFAR(nn.Module):
         return ResNetCIFAR(model_arch[depth], initializer, num_classes)
 
 
-def build_composer_resnet_cifar(model_name: str, num_classes=10):
+def build_composer_resnet_cifar(model_name: str,
+                                num_classes=10) -> ComposerClassifier:
+    """Factory function to produce a CIFAR ResNet ComposerModel.
+
+    Args:
+        model_name (str): one of ['resnet_20', 'resnet_56']
+        num_classes (int): number of classes to use for the output softmax
+    """
 
     def weight_init(w: torch.nn.Module):
         if isinstance(w, nn.Linear) or isinstance(w, nn.Conv2d):
