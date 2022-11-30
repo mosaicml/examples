@@ -9,6 +9,7 @@ from datetime import datetime as dt
 from typing import Any
 
 from composer import Callback, Event, State, Logger
+from composer.utils import dist
 import lm_eval.models
 from lm_eval import evaluator, tasks
 
@@ -158,12 +159,12 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         super().__init__(**kwargs)
         self.add_state(
             "responses",
-            default=torch.Tensor([]),
+            default=torch.Tensor([]).gpu(dist.get_local_rank()),
             dist_reduce_fx="cat",
         )
         self.add_state(
             "sampled_indices",
-            default=torch.Tensor([]),
+            default=torch.Tensor([]).gpu(dist.get_local_rank()),
             dist_reduce_fx="cat",
         )
 
