@@ -176,7 +176,7 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
 
     def compute(self):
         print("in compute()...")
-        out = torch.stack([self.responses, self.sampled_indices])
+        out = torch.sort(torch.stack([self.responses, self.sampled_indices]))
         print(f"returning tensor of shape: {out.shape}...")
         return out
 
@@ -233,20 +233,29 @@ class EvaluationCallback(Callback):
                 **self.simple_evaluate_args
             )
             self.simple_evaluate_inference = inference
-            self.metric.update(inference["resps"], inference["sampled_indices"])
+            # self.metric.update(inference["resps"], inference["sampled_indices"])
+            gathered = dist.all_gather_object([inference["sampled_indices"], inference["resps"]])
 
-        elif event == Event.AFTER_TRAIN_BATCH:
-            print("reducing from rank zero...")
-            resps, sampled_indices = torch.unbind(self.metric.compute())
-            print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
+            print(f"gathered: {pprint.pformat(gathered)}")
+
+            gathered_resps, gathered_sampled_indices = zip(
+                *sorted(
+                    [
+                        (r, i)
+                        for resps, indices
+                        in gathered
+                        for r, i in zip(resps, indices)
+                    ]
+                )
+            )
 
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
                     **{
                         **self.simple_evaluate_args,
                         **self.simple_evaluate_inference,
-                        "resps": resps,
-                        "sampled_indices": sampled_indices,
+                        "resps": gathered_resps,
+                        "sampled_indices": gathered_sampled_indices,
                     }
                 )
 
@@ -259,6 +268,31 @@ class EvaluationCallback(Callback):
                 logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
                 
                 self.metric.reset()
+
+        # elif event == Event.AFTER_TRAIN_BATCH:
+        #     print("reducing from rank zero...")
+        #     resps, sampled_indices = torch.unbind(self.metric.compute())
+        #     print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
+
+        #     if dist.get_global_rank() == 0:
+        #         results = evaluator.evaluate_metrics(
+        #             **{
+        #                 **self.simple_evaluate_args,
+        #                 **self.simple_evaluate_inference,
+        #                 "resps": resps,
+        #                 "sampled_indices": sampled_indices,
+        #             }
+        #         )
+
+        #         # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
+        #         # print(f"results_without_model.keys(): {results_without_model.keys()}")
+
+        #         print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
+        #         wandb.log(results["results"])
+
+        #         logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
+                
+        #         self.metric.reset()
 
 
 # class CatTensorMetric(torchmetrics.Metric):
