@@ -236,7 +236,7 @@ class EvaluationCallback(Callback):
             self.metric.update(inference["resps"], inference["sampled_indices"])
 
         elif event == Event.AFTER_TRAIN_BATCH:
-            if torch.distributed.get_rank() == 0:
+            if dist.get_global_rank() == 0 or True:
                 print("reducing from rank zero...")
                 resps, sampled_indices = torch.unbind(self.metric.compute())
                 print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
@@ -257,6 +257,62 @@ class EvaluationCallback(Callback):
                 logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
                 
                 self.metric.reset()
+
+
+# class LMEvalHarnessReducerMetric(torchmetrics.Metric):
+#     """Somewhat janky distributed reducer hacked together w/ torchmetrics.
+
+#     Just concats responses and sampled indices from eval harness. compute simply
+#     returns those tensors for use elsewhere.
+#     """
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
+#         self.add_state(
+#             "responses",
+#             default=torch.Tensor([]).cuda(dist.get_local_rank()),
+#             dist_reduce_fx="cat",
+#         )
+#         self.add_state(
+#             "sampled_indices",
+#             default=torch.Tensor([]).cuda(dist.get_local_rank()),
+#             dist_reduce_fx="cat",
+#         )
+
+#     def update(self, preds, target):
+#         print(self.responses.device)
+#         self.responses = torch.cat([self.responses, torch.Tensor(preds).cuda(dist.get_local_rank())])
+#         self.sampled_indices = torch.cat([self.sampled_indices, torch.Tensor(target).cuda(dist.get_local_rank())])
+#         print(f"metric updating... new shape: {self.responses.shape}", self.responses.device, self.sampled_indices.device)
+
+#     def compute(self):
+#         print("in compute()...")
+#         out = torch.stack([self.responses, self.sampled_indices])
+#         print(f"returning tensor of shape: {out.shape}...")
+#         return out
+
+
+# class EvaluationCallback(Callback):
+#     def __init__(self, every_n_batches=1024):
+#         super().__init__()
+#         self.every_n_batches = every_n_batches
+#         self.metric = CatTensorMetric()
+#         self.local_state = None
+
+#     def run_event(self, event: Event, state: State, logger: Logger):
+#         if (int(state.timestamp.batch) + 1) % self.every_n_batches != 0:
+#             return
+#         if event == Event.BEFORE_TRAIN_BATCH:
+#             ...  # execute parallel 
+#             self.local_state = ...
+#             self.metric.update(...)
+
+#         elif event == Event.AFTER_TRAIN_BATCH:
+#             if torch.distributed.get_rank() == 0:
+#                 print("reducing from rank zero...")
+#                 ... = torch.unbind(self.metric.compute())
+#                 ...  # compute metrics over reduced set of inferences
+                
+#                 self.metric.reset()
 
 
 if __name__ == "__main__":
