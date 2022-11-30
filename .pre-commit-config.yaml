@@ -13,6 +13,11 @@ repos:
     types: [python]
     additional_dependencies:
     - toml
+- repo: https://github.com/hadialqattan/pycln
+  rev: v2.1.2
+  hooks:
+  - id: pycln
+    args: [. --all]
 - repo: https://github.com/pycqa/isort
   hooks:
   - id: isort
@@ -58,11 +63,6 @@ repos:
     - --comment-style
     - '#'
     types: [python]
-- repo: https://github.com/hadialqattan/pycln
-  rev: v2.1.2
-  hooks:
-  - id: pycln
-    args: [. --all]
 - repo: local
   hooks:
   - id: pyright

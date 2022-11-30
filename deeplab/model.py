@@ -14,7 +14,6 @@ import torch.nn.functional as F
 import torchvision
 from composer.loss import DiceLoss, soft_cross_entropy
 from composer.metrics import CrossEntropy, MIoU
-from composer.models.initializers import Initializer
 from composer.models.tasks import ComposerClassifier
 from composer.utils import dist
 from packaging import version

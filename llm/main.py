@@ -189,7 +189,7 @@ def main(cfg):
         precision=cfg.precision,
         grad_clip_norm=cfg.grad_clip_norm,
         grad_accum=cfg.device_train_grad_accum,
-        fsdp_config=fsdp_config,
+        fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',

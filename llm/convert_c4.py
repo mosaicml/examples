@@ -7,14 +7,10 @@
 """C4 streaming dataset conversion scripts."""
 
 import os
-import random
 from argparse import ArgumentParser, Namespace
-from glob import glob
-from itertools import islice
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Dict, Iterable
 
 import datasets as hf_datasets
-import torch
 from streaming import MDSWriter
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
@@ -48,17 +44,20 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
                                                     streaming=True)
 
         def num_shards(self):
-            return len(self.dataset._ex_iterable.kwargs['filepaths'])
+            paths = self.dataset._ex_iterable.kwargs[
+                'filepaths']  # type: ignore noqa
+            return len(paths)
 
         def __iter__(self):
             worker_info = get_worker_info()
             if worker_info:
                 num_workers = worker_info.num_workers
                 worker_id = worker_info.id
-                shards = self.dataset._ex_iterable.kwargs['filepaths']
+                it = self.dataset._ex_iterable  # type: ignore
+                shards = it.kwargs['filepaths']  # type: ignore
                 assert len(shards) % num_workers == 0
-                self.dataset._ex_iterable.kwargs['filepaths'] = shards[
-                    worker_id::num_workers]
+                it.kwargs['filepaths'] = shards[
+                    worker_id::num_workers]  # type: ignore noqa
             return iter(self.dataset)
 
     return ShardedC4()
@@ -73,7 +72,7 @@ def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
     Yields:
         Sample dicts.
     """
-    num_workers = min(64, dataset.num_shards())
+    num_workers = min(64, dataset.num_shards())  # type: ignore
     batch_size = 512
     # If using multiple workers, configure each worker to prefetch as many samples as it can, up to the aggregate device batch size
     # If not using workers, the torch DataLoader expects the default value for prefetch_factor, which non-intuitively must be 2.

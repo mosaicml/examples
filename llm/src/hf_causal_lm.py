@@ -3,7 +3,6 @@
 
 import torch
 import torch.nn.functional as F
-import transformers
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from transformers import AutoConfig, AutoModelForCausalLM
