@@ -58,6 +58,11 @@ repos:
     - --comment-style
     - '#'
     types: [python]
+- repo: https://github.com/hadialqattan/pycln
+  rev: v2.1.2
+  hooks:
+  - id: pycln
+    args: [. --all]
 - repo: local
   hooks:
   - id: pyright
@@ -66,7 +71,7 @@ repos:
     language: node
     types: [python]
     pass_filenames: false
-    args: [--warnings]
+    args: [--warnings .]
     additional_dependencies: [pyright@1.1.256]
 - repo: https://github.com/PyCQA/docformatter
   rev: v1.5.0
