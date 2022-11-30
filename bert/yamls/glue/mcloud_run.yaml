@@ -1,5 +1,5 @@
 # This YAML is intended to serve as a reference for running on the Mosaic Cloud
-# The config from `glue/mosaic-bert-base-uncased.yaml` is copied into the `parameters` field below.
+# The config from `yamls/glue/mosaic-bert-base-uncased.yaml` is copied into the `parameters` field below.
 # You can copy/modify the contents of this file to run different workloads, following the other
 # examples in this directory.
 #
@@ -12,16 +12,18 @@ run_name: &run_name mosaic-bert-base-uncased-glue-finetuning
 cluster: null  # Name of the cluster to use for this run
 gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb)
 gpu_num: 8  # Number of GPUs to use
-image: mosaicml/composer:0.11.1
+image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
   - integration_type: "git_repo"
     git_repo: mosaicml/benchmarks
 command: |
   cd benchmarks/bert
   pip install -r requirements.txt
-  composer main.py /mnt/config/parameters.yaml
+  python glue.py /mnt/config/parameters.yaml
 
-# `parameters` copied from `glue/mosaic-bert-base-uncased.yaml`
+# Starting `parameters` copied from `yamls/glue/mosaic-bert-base-uncased.yaml`
+# Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
+# is the config that `glue.py` uses in the above command.
 parameters:
   # Whether to run the various GLUE jobs serially or in parallel (use parallel=True to take advantage of multiple GPUs)
   parallel: true

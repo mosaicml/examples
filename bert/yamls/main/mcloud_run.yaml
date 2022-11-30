@@ -1,18 +1,18 @@
 # This YAML is intended to serve as a reference for running on the Mosaic Cloud
-# The config from `mosaic-bert-base-uncased.yaml` is copied into the `parameters` field below.
+# The config from `yamls/main/mosaic-bert-base-uncased.yaml` is copied into the `parameters` field below.
 # You can copy/modify the contents of this file to run different workloads, following the other
 # examples in this directory.
 #
 # Note that some of the fields in this template haven't been filled in yet.
 # Please resolve any `null` fields before launching!
 #
-# When ready, use `mcli run -f yamls/mcloud_run.yaml` to launch
+# When ready, use `mcli run -f yamls/main/mcloud_run.yaml` to launch
 
 run_name: &run_name mosaic-bert-base-uncased
 cluster: null  # Name of the cluster to use for this run
 gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb)
 gpu_num: 8  # Number of GPUs to use
-image: mosaicml/composer:0.11.1
+image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
   - integration_type: "git_repo"
     git_repo: mosaicml/benchmarks
@@ -21,7 +21,9 @@ command: |
   pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 
-# `parameters` copied from `mosaic-bert-base-uncased.yaml`
+# Starting `parameters` copied from `yamls/main/mosaic-bert-base-uncased.yaml`.
+# Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
+# is the config that `main.py` uses in the above command.
 parameters:
   data_remote: &data_remote null # Supply a path to your remote dataset
   data_local: &data_local /tmp/mds-cache/
