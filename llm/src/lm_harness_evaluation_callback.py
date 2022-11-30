@@ -160,6 +160,7 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         self.add_state("sampled_indices", default=torch.Tensor([]), dist_reduce_fx="cat")
 
     def update(self, preds, target):
+        print(self.responses.device)
         self.responses = torch.cat([self.responses, torch.Tensor(preds)]).to(self.responses.device)
         self.sampled_indices = torch.cat([self.sampled_indices, torch.Tensor(target)]).to(self.sampled_indices.device)
         print(f"metric updating... new shape: {self.responses.shape}", self.responses.device, self.sampled_indices.device)
