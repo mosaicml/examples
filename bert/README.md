@@ -7,18 +7,18 @@ This benchmark covers both pre-training and fine-tuning a BERT model. With this 
 You'll find in this folder:
 
 * This `README.md`
-* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on Mosaic's cloud
-* `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud
-* `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation)
-* `yamls/` - Pre-baked configs for training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT
-* `requirements.txt` — All needed Python dependencies
-* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/mosaic_bert.py` — Mosaic BERTs model for MLM (pre-training) or classification (GLUE fine-tuning)
-* `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility
-* `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead
-* `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT
-* `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning
+* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on Mosaic's cloud.
+* `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud.
+* `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation).
+* `yamls/` - Pre-baked configs for training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT.
+* `requirements.txt` — All needed Python dependencies.
+* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader.
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer).
+* `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
+* `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
+* `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
+* `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT.
+* `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning.
 * `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`. These handle individual fine-tuning jobs and task-specific hyperparameters.
 
 # Mosaic BERT
