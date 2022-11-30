@@ -33,10 +33,11 @@ def get_lm_eval_model(model_type: str,
 
     Args:
         model_ctor_args (Dict[str, str]): Constructor args for the model.
-        model_type (str): The name of the model from llm.llm_evaluation.model_loading.MODEL_LOADERS
+        model_type (str): The name of the model from
+        llm.llm_evaluation.model_loading.MODEL_LOADERS
 
     Returns:
-        lm (lm_eval.base.LM): An lm_eval LM model wrapped around our constructed model
+        lm (lm_eval.base.LM): An lm_eval wrapper around our constructed model
     """
     model_components = MODEL_LOADERS[model_type](**model_ctor_args)
     model_components.update({'batch_size': 4, 'device': DEVICE.type})
@@ -52,15 +53,18 @@ def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str],
 
     Args:
         model (lm_eval.base.LM): An lm_eval LM model.
-        tasks (List[str]): List of task names as defined in lm_eval.tasks.TASK_REGISTRY
-        num_fewshots (List[int]): Number of few shots to used for in-context learning for each task. Runs each task
-            separately for each number in this list.
-        partial_eval_mode (bool): To quickly sanity check model performance, run eval on only the first
-            `PARTIAL_EVAL_SAMPLE_SIZE` examples in the task's test set.
+        tasks (List[str]): List of task names as defined in
+            lm_eval.tasks.TASK_REGISTRY
+        num_fewshots (List[int]): Number of few shots to used for in-context
+            learning for each task. Runs each task separately for each number
+            in this list.
+        partial_eval_mode (bool): To quickly sanity check model performance,
+            run eval on only the first `PARTIAL_EVAL_SAMPLE_SIZE` examples in
+            the task's test set.
 
     Returns:
-        results (JsonResults): Results of the task including ppl, acc, acc_norm (if multiple choice),
-            task name, and few shot samples used
+        results (JsonResults): Results of the task including ppl, acc,
+            acc_norm (if multiple choice), task name, and few shot samples used
     """
     task_dict = lm_eval_tasks.get_task_dict(tasks)
     results = {}

@@ -69,12 +69,14 @@ def init_composer_ckpt_from_yaml(
     initialized model.
 
     Args:
-        checkpoint (str): Pytorch .pt checkpoint path. Must be located in `CHECKPOINT_DIR` or on s3
+        checkpoint (str): Pytorch .pt checkpoint path. Must be located in
+            `CHECKPOINT_DIR` or on s3
         config (str): YAML config. Must be an absolute path
 
     Returns:
-        model, tokenizer, precision (Dict[str, Union[MosaicGPT, LLMTokenizer, str]]):
-            Model and tokenizer to be used to build the lm_eval.base.LM wrapper as well as precision context.
+        model, tok, precision (Dict[str, Union[MosaicGPT, LLMTokenizer, str]]):
+            Model and tokenizer to be used to build the lm_eval.base.LM wrapper
+            as well as precision context.
     """
     with open(config) as f:
         cfg = om.load(f)
