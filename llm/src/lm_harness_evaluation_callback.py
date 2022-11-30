@@ -159,12 +159,12 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         super().__init__(**kwargs)
         self.add_state(
             "responses",
-            default=torch.Tensor([]).gpu(dist.get_local_rank()),
+            default=torch.Tensor([]).cuda(dist.get_local_rank()),
             dist_reduce_fx="cat",
         )
         self.add_state(
             "sampled_indices",
-            default=torch.Tensor([]).gpu(dist.get_local_rank()),
+            default=torch.Tensor([]).cuda(dist.get_local_rank()),
             dist_reduce_fx="cat",
         )
 
