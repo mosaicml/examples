@@ -1,6 +1,6 @@
 # Welcome!
 
-This benchmark covers pre-training and fine-tuning a BERT model from scratch. With this starter code, you'll be able to do Masked Language Modeling (MLM) pre-training on the C4 dataset and classification fine-tuning on GLUE benchmark tasks. We also provide the source code and recipe behind our Mosaic BERT model, which you can train yourself using this repo.
+This benchmark covers both pre-training and fine-tuning a BERT model. With this starter code, you'll be able to do Masked Language Modeling (MLM) pre-training on the C4 dataset and classification fine-tuning on GLUE benchmark tasks. We also provide the source code and recipe behind our Mosaic BERT model, which you can train yourself using this repo.
 
 ## Contents
 
