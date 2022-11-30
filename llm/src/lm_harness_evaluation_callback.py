@@ -154,8 +154,8 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
     returns those tensors for use elsewhere.
     """
     def __init__(self):
-        self.add_state("responses", dist_reduce_fx="cat")
-        self.add_state("sampled_indices", dist_reduce_fx="cat")
+        self.add_state("responses", default=torch.Tensor([]), dist_reduce_fx="cat")
+        self.add_state("sampled_indices", default=torch.Tensor([]), dist_reduce_fx="cat")
 
     def update(self, preds, target):
         self.responses = torch.cat(self.responses, preds)
