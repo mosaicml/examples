@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Implements a BERT wrapper around a :class:`.ComposerTransformer`."""
+"""Implements a Mosaic BERT wrapper around a :class:`.ComposerTransformer`."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                            gradient_checkpointing: Optional[bool] = False,
                            pretrained_checkpoint: Optional[str] = None):
     """
-    BERT masked language modelbased on |:hugging_face:| Transformers.
+    Mosaic BERT masked language model based on |:hugging_face:| Transformers.
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
 
     This function creates a Mosaic BERT, which includes several throughput optimizations not available in |:hugging_face:| BERT as well
@@ -130,7 +130,7 @@ def create_mosaic_bert_classification(num_labels: int,
                            gradient_checkpointing: Optional[bool] = False,
                            pretrained_checkpoint: Optional[str] = None):
     """
-    BERT classification model based on |:hugging_face:| Transformers.
+    Mosaic BERT classification model based on |:hugging_face:| Transformers.
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
 
     This function creates a Mosaic BERT, which includes several throughput optimizations not available in |:hugging_face:| BERT as well

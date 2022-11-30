@@ -6,7 +6,10 @@
 # Adapted from https://github.com/HazyResearch/flash-attention/blob/main/flash_attn/bert_padding.py
 # Which was adapted from https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/padding.py
 
-"""Helper functions for padding and unpadding batches"""
+"""Helper functions for padding and unpadding batches.
+
+These functions are used extensively throughout the Mosaic BERT implementation in `bert_layers.py`.
+"""
 
 from typing import Tuple
 import torch
