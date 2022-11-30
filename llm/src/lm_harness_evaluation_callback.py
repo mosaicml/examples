@@ -8,7 +8,7 @@ from abc import ABC
 from datetime import datetime as dt
 from typing import Any
 
-from composer import Callback, State, Logger
+from composer import Callback, Event, State, Logger
 import lm_eval.models
 from lm_eval import evaluator, tasks
 
@@ -176,78 +176,53 @@ class EvaluationCallback(Callback):
         self.simple_evaluate_args = None
         self.simple_evaluate_inference = None
 
-    def before_train_batch(self, state: State, logger: Logger):
-        print(f"rank: {torch.distributed.get_rank()}  callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
-        if not (int(state.timestamp.batch) + 1) % self.every_n_batches:  # kick off forked lm evaluation harness
-            self.start_time = dt.now()
-            model = lm_eval.models.get_model(
-                "composer_llm"
-            ).create_from_arg_string(
-                "",
-                {
-                    "model": state.model.model,
-                    "tokenizer": HFTokenizer(
-                        tokenizer_name="gpt2",
-                        max_seq_len=2048,
-                    ),
-                    "precision": state.precision,
-                    "device": torch.device('cuda').type,
-                    # "batch_size": 64,
-                }
-            )
+    def run_event(self, event: Event, state: State, logger: Logger):
+        if event == Event.BEFORE_TRAIN_BATCH:
+            print(f"rank: {torch.distributed.get_rank()}  callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
+            if not (int(state.timestamp.batch) + 1) % self.every_n_batches:  # kick off forked lm evaluation harness
+                self.start_time = dt.now()
+                model = lm_eval.models.get_model(
+                    "composer_llm"
+                ).create_from_arg_string(
+                    "",
+                    {
+                        "model": state.model.model,
+                        "tokenizer": HFTokenizer(
+                            tokenizer_name="gpt2",
+                            max_seq_len=2048,
+                        ),
+                        "precision": state.precision,
+                        "device": torch.device('cuda').type,
+                        # "batch_size": 64,
+                    }
+                )
 
-            task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
-            print(f"Selected Tasks: {task_names}")
+                task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
+                print(f"Selected Tasks: {task_names}")
 
-            self.simple_evaluate_args = evaluator.simple_evaluate_args(
-                model=model,
-                model_args="",
-                tasks=task_names,
-                num_fewshot=0,
-                batch_size=None,
-                device=None,
-                no_cache=True,
-                limit=None,
-                description_dict={},
-                decontamination_ngrams_path=None,
-                check_integrity=False,
-            )
+                self.simple_evaluate_args = evaluator.simple_evaluate_args(
+                    model=model,
+                    model_args="",
+                    tasks=task_names,
+                    num_fewshot=0,
+                    batch_size=None,
+                    device=None,
+                    no_cache=True,
+                    limit=None,
+                    description_dict={},
+                    decontamination_ngrams_path=None,
+                    check_integrity=False,
+                )
 
-            inference = evaluator.evaluate_inference(
-                **self.simple_evaluate_args
-            )
-            self.simple_evaluate_inference = inference
-            self.metric.update(inference["resps"], inference["sampled_indices"])
+                inference = evaluator.evaluate_inference(
+                    **self.simple_evaluate_args
+                )
+                self.simple_evaluate_inference = inference
+                self.metric.update(inference["resps"], inference["sampled_indices"])
 
-            # results = main(
-            #     argparse.Namespace(
-            #         model=model,
-            #         model_args="",
-            #         tasks="lambada",
-            #         provide_description=False,
-            #         num_fewshot=0,
-            #         batch_size=None,  # N/A b/c model is defined
-            #         device=None,  # N/A b/c model is defined
-            #         limit=None,
-            #         no_cache=True,
-            #         decontamination_ngrams_path=None,
-            #         description_dict_path=None,
-            #         check_integrity=False,
-            #     )
-            # )
-
-            # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
-            # print(f"results_without_model.keys(): {results_without_model.keys()}")
-            # print(json.dumps(results_without_model, indent=2))
-            # wandb.log(results_without_model)
-
-            # logger.info(f"ran evaluation in: {(dt.now() - start).total_seconds():.03f}")
-
-    def after_train_bach(self, state: State, logger: Logger):
-        print(f"rank: {torch.distributed.get_rank()}  after_train_batch batch number: {int(state.timestamp.batch)}")
-        if not (int(state.timestamp.batch) + 1) % self.every_n_batches:
-            assert False
+        elif event == Event.AFTER_TRAIN_BATCH:
             if torch.distributed.get_rank() == 0:
+                print("reducing from rank zero...")
                 resps, sampled_indices = self.metric.compute()
 
                 results = evaluator.evaluate_metrics(
