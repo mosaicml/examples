@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from typing import Dict, List, Union
+from typing import Dict, Union
 from urllib.parse import urlparse
 
 import torch
@@ -24,7 +24,7 @@ def _get_checkpoint_name_from_path(path: str) -> str:
     return path.lstrip('/').replace('/', '|')
 
 
-def download_starting_checkpoints(path_to_download: str) -> List[str]:
+def download_starting_checkpoints(path_to_download: str) -> str:
     """Downloads the pretrained checkpoints to start from.
 
     Args:
@@ -38,7 +38,7 @@ def download_starting_checkpoints(path_to_download: str) -> List[str]:
 
     parsed_path = urlparse(path_to_download)
     download_path = (parsed_path.path if parsed_path.scheme == 's3' else
-                     parsed_first_checkpoint).lstrip('/')
+                     parsed_first_checkpoint.path).lstrip('/')
     checkpoint_name = _get_checkpoint_name_from_path(parsed_path.path)
     local_path = os.path.join(CHECKPOINT_DIR, checkpoint_name)
     if not os.path.exists(local_path):

@@ -6,9 +6,10 @@
 import os
 import sys
 from itertools import islice
-from typing import Any, Dict, Iterator, Mapping, Optional
+from typing import Any, Dict, Iterator, Optional
 
 import transformers
+from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from streaming import Dataset
 from torch.utils.data import DataLoader
@@ -141,7 +142,7 @@ class StreamingC4(Dataset):
     # Dataset, but concatenating samples is custom behavior.
     # If group_method=='truncate', we simply return the # samples.
     # If group_method=='concat', we repeat forever, and have no defined length.
-    def __len__(self) -> int:
+    def __len__(self) -> Optional[int]:
         if self.group_method == 'truncate':
             return super().__len__()
         elif self.group_method == 'concat':
@@ -150,7 +151,7 @@ class StreamingC4(Dataset):
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
 
 
-def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
+def build_c4_dataloader(cfg: DictConfig, device_batch_size: int):
     assert cfg.name == 'c4', f'Tried to build c4 dataloader with cfg.name={cfg.name}'
     dataset = StreamingC4(split=cfg.dataset.split,
                           remote=cfg.dataset.remote,
@@ -211,7 +212,7 @@ if __name__ == '__main__':
     device_batch_size = 2
 
     loader = build_c4_dataloader(cfg, device_batch_size)
-    tokenizer = loader.dataset.tokenizer
+    tokenizer = loader.dataset.tokenizer  # type: ignore
     for batch_ix, batch in enumerate(islice(loader, 5)):
         print('\n')
         print('#' * 20, f'Batch {batch_ix}', '#' * 20)

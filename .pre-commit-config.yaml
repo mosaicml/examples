@@ -85,7 +85,7 @@ repos:
     entry: pydocstyle
     language: python
     types: [python]
-    exclude: (tests|.ci|.github)
+    exclude: (.ci|.github)
     additional_dependencies:
     - toml
   rev: 6.1.1

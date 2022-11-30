@@ -11,8 +11,7 @@ from omegaconf import OmegaConf as om
 
 
 def gpt_tiny_cfg(conf_path='yamls/mosaic_gpt/125m.yaml'):
-    """create gpt tiny cfg."""
-
+    """Create gpt tiny cfg."""
     with open(conf_path) as f:
         test_cfg = om.load(f)
     # removes requirement to download / process train set

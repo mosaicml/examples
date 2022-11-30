@@ -3,22 +3,24 @@
 
 import os
 import warnings
+from typing import cast
 
 import torch
 import torch.nn as nn
 from composer.optim import DecoupledAdamW
 from composer.utils import reproducibility
+from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.tokenizer import TOKENIZER_REGISTRY
 
 
-def get_config(conf_path='yamls/mosaic_gpt/125m.yaml'):
+def get_config(conf_path='yamls/mosaic_gpt/125m.yaml') -> DictConfig:
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     print(conf_path)
     with open(conf_path) as f:
         test_cfg = om.load(f)
-    return test_cfg
+    return cast(DictConfig, test_cfg)
 
 
 def get_objs(conf_path='yamls/mosaic_gpt/125m.yaml'):
@@ -26,8 +28,8 @@ def get_objs(conf_path='yamls/mosaic_gpt/125m.yaml'):
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
     test_cfg = get_config(conf_path=conf_path)
-    tokenizer = TOKENIZER_REGISTRY[test_cfg.tokenizer.type](
-        **test_cfg.tokenizer.args)
+    _ = TOKENIZER_REGISTRY[test_cfg.tokenizer.type](
+        **test_cfg.tokenizer.args)  # make sure tokenizer in registry
 
     reproducibility.seed_all(test_cfg.seed)
 
@@ -124,9 +126,9 @@ def test_attention_mechanism(batch_size=2):
     # and with 0 everywhere else
     expected_zerod_weights = nn.Transformer.generate_square_subsequent_mask(test_cfg.max_seq_len)\
         .reshape(1, test_cfg.max_seq_len, test_cfg.max_seq_len)
-    expected_zerod_weights = torch.isneginf(
+    expected_zerod_weights = torch.isneginf(  # type: ignore
         torch.cat(batch_size * [expected_zerod_weights]))
-    torch_key_padding = torch.cat(
+    torch_key_padding = torch.cat(  # type: ignore
         test_cfg.max_seq_len *
         [(~key_padding_mask).reshape(batch_size, 1, test_cfg.max_seq_len)],
         axis=1)

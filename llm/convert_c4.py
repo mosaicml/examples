@@ -44,9 +44,8 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
                                                     streaming=True)
 
         def num_shards(self):
-            paths = self.dataset._ex_iterable.kwargs[
-                'filepaths']  # type: ignore noqa
-            return len(paths)
+            it = self.dataset._ex_iterable  # type: ignore
+            return len(it.kwargs['filepaths'])  # type: ignore
 
         def __iter__(self):
             worker_info = get_worker_info()
@@ -56,8 +55,8 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
                 it = self.dataset._ex_iterable  # type: ignore
                 shards = it.kwargs['filepaths']  # type: ignore
                 assert len(shards) % num_workers == 0
-                it.kwargs['filepaths'] = shards[
-                    worker_id::num_workers]  # type: ignore noqa
+                it.kwargs['filepaths'] = shards[  # type: ignore
+                    worker_id::num_workers]
             return iter(self.dataset)
 
     return ShardedC4()

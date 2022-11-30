@@ -105,7 +105,7 @@ def test_compare_hf_v_mosaic_gpt(dropout):
     print(f'{hf_model_fwd.mean().item() = }\n{model_fwd.mean().item() = }')
     if hf_model_fwd.mean().allclose(model_fwd.mean()):
         warn_msg = f'WARNING: model_fwd ({model_fwd}) and hf_model_fwd ({hf_model_fwd}) are very close at init.'
-        raise warnings.warn(warn_msg)
+        raise warnings.warn(warn_msg)  # type: ignore
 
     hf_model_statedict = hf_model.state_dict()
 

@@ -34,7 +34,7 @@ class LLMTokenizer(ABC):
 class HFTokenizer(LLMTokenizer):
     tokenizer_name: str
     max_seq_len: int
-    group_method: str
+    group_method: str  # type: ignore (reportUninitializedInstanceVariable)
     tokenizer: transformers.AutoTokenizer
 
     def __init__(self, tokenizer_name: str, max_seq_len: int):
