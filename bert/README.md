@@ -7,7 +7,7 @@ This benchmark covers both pre-training and fine-tuning a BERT model. With this 
 You'll find in this folder:
 
 * This `README.md`
-* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training training job, locally or on Mosaic's cloud
+* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on Mosaic's cloud
 * `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud
 * `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation)
 * `yamls/` - Pre-baked configs for training both our sped-up `Mosaic BERT` as well as the reference `HuggingFace BERT`
