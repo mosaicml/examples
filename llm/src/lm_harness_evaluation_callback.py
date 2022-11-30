@@ -156,8 +156,16 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
     """
     def __init__(self):
         super().__init__()
-        self.add_state("responses", default=torch.Tensor([]), dist_reduce_fx="cat")
-        self.add_state("sampled_indices", default=torch.Tensor([]), dist_reduce_fx="cat")
+        self.add_state(
+            "responses",
+            default=torch.Tensor([]).cuda(0),
+            dist_reduce_fx="cat",
+        )
+        self.add_state(
+            "sampled_indices",
+            default=torch.Tensor([]).cuda(0),
+            dist_reduce_fx="cat",
+        )
 
     def update(self, preds, target):
         print(self.responses.device)
