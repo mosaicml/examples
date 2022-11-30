@@ -139,6 +139,7 @@ class ResNetCIFAR(nn.Module):
 
 
 def build_composer_resnet_cifar(model_name: str, num_classes=10):
+
     def weight_init(w: torch.nn.Module):
         if isinstance(w, nn.Linear) or isinstance(w, nn.Conv2d):
             torch.nn.init.kaiming_normal_(w.weight)

@@ -15,20 +15,28 @@ from torch.utils.data import DataLoader
 
 
 class StreamingC4(Dataset):
-    """Implementation of the C4 dataset using mosaicml-streaming's Dataset V2.
+    """Implementation of the C4 dataset using MosaicML's streaming Dataset V2.
 
     Args:
-        remote (str): Remote directory (S3 or local filesystem) where dataset is stored.
-        local (str): Local filesystem directory where dataset is cached during operation.
+        remote (str): Remote directory (S3 or local filesystem) where dataset
+            is stored.
+        local (str): Local filesystem directory where dataset is cached
+            during operation.
         split (str): The dataset split to use, either 'train' or 'val'.
         shuffle (bool): Whether to shuffle the samples in this dataset.
-        prefetch (int): Target number of samples remaining to prefetch while iterating.
-        tokenizer_name (str): The name of the HuggingFace tokenizer to use to tokenize samples.
-        max_seq_len (int): The max sequence length of each token sample.
-        group_method (str): How to group text samples into token samples. Supports 'truncate' or 'concat'.
-        retry (int): Number of download re-attempts before giving up. Default: 2.
-        timeout (float): How long to wait for shard to download before raising an exception. Default: 120 sec.
-        batch_size (Optional[int]): Hint batch_size that will be used on each device's DataLoader. Default: ``None``.
+        prefetch (int): Target number of samples remaining to prefetch
+            while iterating.
+        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
+            tokenize samples.
+        max_seq_len (int): The max sequence length of each sample.
+        group_method (str): How to group text samples into token samples.
+            Supports 'truncate' or 'concat'.
+        retry (int): Number of download re-attempts before giving up.
+            Default: 2.
+        timeout (float): How long to wait for shard to download before
+            raising an exception. Default: 120 sec.
+        batch_size (Optional[int]): Hint batch_size that will be used on
+            each device's DataLoader. Default: ``None``.
     """
 
     def __init__(self,
@@ -101,9 +109,11 @@ class StreamingC4(Dataset):
         return token_sample
 
     # Define iterable over samples
-    # Usually this can be left alone and inherited directly from super() class StreamingDataset, but concatenating samples is custom behavior.
+    # Usually this can be left alone and inherited directly from super()
+    # class StreamingDataset, but concatenating samples is custom behavior.
     # If group_method=='truncate', we simply return the token sample.
-    # If group_method=='concat', then we keep fetching token samples until we fill up max_seq_len.
+    # If group_method=='concat', then we keep fetching token samples until we
+    # fill up max_seq_len.
     def __iter__(self) -> Iterator[Any]:
         if self.group_method == 'truncate':
             iterator = super().__iter__()
@@ -127,9 +137,10 @@ class StreamingC4(Dataset):
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
 
     # Define length
-    # Usually this can be left alone and inherited directly from super() class Dataset, but concatenating samples is custom behavior.
+    # Usually this can be left alone and inherited directly from super() class
+    # Dataset, but concatenating samples is custom behavior.
     # If group_method=='truncate', we simply return the # samples.
-    # If group_method=='concat', we repeat forever, and we don't have a defined length.
+    # If group_method=='concat', we repeat forever, and have no defined length.
     def __len__(self) -> int:
         if self.group_method == 'truncate':
             return super().__len__()
