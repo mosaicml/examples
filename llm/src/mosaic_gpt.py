@@ -7,9 +7,8 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 """
 
 import math
-from typing import Optional
 from functools import partial
-from typing import Any, Mapping
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -196,7 +195,9 @@ class MosaicGPT(nn.Module):
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
-        init_fn = partial(torch.nn.init.normal_, mean=0.0, std=self.cfg.init_std)
+        init_fn = partial(torch.nn.init.normal_,
+                          mean=0.0,
+                          std=self.cfg.init_std)
         # Linear
         if isinstance(module, nn.Linear):
             init_fn(module.weight)
