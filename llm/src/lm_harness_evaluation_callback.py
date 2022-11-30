@@ -177,7 +177,7 @@ class EvaluationCallback(Callback):
         self.simple_evaluate_inference = None
 
     def before_train_batch(self, state: State, logger: Logger):
-        print(f"callback observed batch: {state.timestamp.batch}")
+        print(f"callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
         if not (int(state.timestamp.batch) + 1) % self.every_n_batches:  # kick off forked lm evaluation harness
             self.start_time = dt.now()
             model = lm_eval.models.get_model(
