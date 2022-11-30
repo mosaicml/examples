@@ -12,6 +12,7 @@ import lm_eval.models
 from lm_eval import evaluator, tasks
 
 import torch
+import torchmetrics
 import transformers
 import wandb
 
@@ -146,14 +147,35 @@ class HFTokenizer(ABC):
         return self.tokenizer.bos_token_id
 
 
+class LMEvalHarnessReducerMetric(torchmetrics.Metric):
+    """Somewhat janky distributed reducer hacked together w/ torchmetrics.
+
+    Just concats responses and sampled indices from eval harness. compute simply
+    returns those tensors for use elsewhere.
+    """
+    def __init__(self):
+        self.add_state("responses", dist_reduce_fx="cat")
+        self.add_state("sampled_indices", dist_reduce_fx="cat")
+
+    def update(self, preds, target):
+        self.responses = torch.cat(self.responses, preds)
+        self.sampled_indices = torch.cat(self.sampled_indices, target)
+
+    def compute(self):
+        return self.responses, self.sampled_indices
+
+
 class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
         self.every_n_batches = every_n_batches
+        self.metric = LMEvalHarnessReducerMetric()
+        self.simple_evaluate_args = None
+        self.simple_evaluate_inference = None
 
     def before_train_batch(self, state: State, logger: Logger):
-        if not int(state.timestamp.batch) % self.every_n_batches:  # kick off forked lm evaluation harness
-            start = dt.now()
+        if not (int(state.timestamp.batch) + 1) % self.every_n_batches:  # kick off forked lm evaluation harness
+            self.start_time = dt.now()
             model = lm_eval.models.get_model(
                 "composer_llm"
             ).create_from_arg_string(
@@ -169,23 +191,114 @@ class EvaluationCallback(Callback):
                     "batch_size": 64,
                 }
             )
-            main(
-                argparse.Namespace(
-                    model=model,
-                    model_args="",
-                    tasks="lambada",
-                    provide_description=False,
-                    num_fewshot=0,
-                    batch_size=None,  # N/A b/c model is defined
-                    device=None,  # N/A b/c model is defined
-                    limit=None,
-                    no_cache=True,
-                    decontamination_ngrams_path=None,
-                    description_dict_path=None,
-                    check_integrity=False,
-                )
+            # results = main(
+            #     argparse.Namespace(
+            #         model=model,
+            #         model_args="",
+            #         tasks="lambada",
+            #         provide_description=False,
+            #         num_fewshot=0,
+            #         batch_size=None,  # N/A b/c model is defined
+            #         device=None,  # N/A b/c model is defined
+            #         limit=None,
+            #         no_cache=True,
+            #         decontamination_ngrams_path=None,
+            #         description_dict_path=None,
+            #         check_integrity=False,
+            #     )
+            # )
+
+
+            # args = argparse.Namespace(
+            #     model=model,
+            #     model_args="",
+            #     tasks="lambada",
+            #     provide_description=False,
+            #     num_fewshot=0,
+            #     batch_size=None,  # N/A b/c model is defined
+            #     device=None,  # N/A b/c model is defined
+            #     limit=None,
+            #     no_cache=True,
+            #     decontamination_ngrams_path=None,
+            #     description_dict_path=None,
+            #     check_integrity=False,
+            # )
+
+            task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
+            print(f"Selected Tasks: {task_names}")
+
+            self.simple_evaluate_args = evaluator.simple_evaluate_args(
+                model=model,
+                model_args="",
+                tasks=task_names,
+                num_fewshot=0,
+                batch_size=None,
+                device=None,
+                no_cache=True,
+                limit=None,
+                description_dict={},
+                decontamination_ngrams_path=None,
+                check_integrity=False,
             )
-            logger.info(f"ran evaluation in: {(dt.now() - start).total_seconds():.03f}")
+
+            inference = evaluator.evaluate_inference(
+                **self.simple_evaluate_args
+            )
+            self.simple_evaluate_inference = inference
+            self.metric.update(inference["resps"], inference["sampled_indices"])
+
+            # results = evaluator.evaluate_metrics(
+            #     task_dict,
+            #     requests=inference["requests"],
+            #     requests_origin=inference["requests_origin"],
+            #     docs=inference["docs"],
+            #     overlaps=inference["overlaps"],
+            #     sampled_indices=inference["sampled_indices"],
+            #     resps=inference["resps"],
+            #     versions=inference["versions"],
+            #     decontamination_ngrams_path=decontamination_ngrams_path,
+            #     bootstrap_iters=bootstrap_iters,
+            # )
+
+            # results = evaluator.simple_evaluate(
+            #     model=model,
+            #     model_args="",
+            #     tasks=task_names,
+            #     num_fewshot=0,
+            #     batch_size=None,
+            #     device=None,
+            #     no_cache=True,
+            #     limit=None,
+            #     description_dict={},
+            #     decontamination_ngrams_path=None,
+            #     check_integrity=False,
+            # )
+
+            # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
+            # print(f"results_without_model.keys(): {results_without_model.keys()}")
+            # print(json.dumps(results_without_model, indent=2))
+            # wandb.log(results_without_model)
+
+            # logger.info(f"ran evaluation in: {(dt.now() - start).total_seconds():.03f}")
+
+    def after_train_bach(self, state: State, logger: Logger):
+        if not (int(state.timestamp.batch) + 1) % self.every_n_batches:
+            resps, sampled_indices = self.metric.compute()
+
+            results = evaluator.evaluate_metrics(
+                **self.simple_evaluate_args,
+                **self.simple_evaluate_inference,
+                resps=resps,
+                sampled_indices=sampled_indices,
+            )
+
+            # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
+            # print(f"results_without_model.keys(): {results_without_model.keys()}")
+
+            print(json.dumps(results["results"], indent=2))
+            wandb.log(results["results"])
+
+            logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
 
 
 if __name__ == "__main__":
