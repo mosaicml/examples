@@ -6,6 +6,7 @@
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from ..data import build_cifar10_dataspec
 from ..tests.utils import SynthClassificationDirectory
@@ -23,10 +24,12 @@ def test_dataloader_builder(is_train, batch_size=2):
                                                 is_train=is_train,
                                                 download=False)
 
-        print(len(cifar_dataspec.dataloader))
-        assert len(cifar_dataspec.dataloader) == 8
+        assert isinstance(cifar_dataspec.dataloader, DataLoader)
+        dataloader = cifar_dataspec.dataloader
+        print(len(dataloader))
+        assert len(dataloader) == 8
 
-        for i, batch in enumerate(cifar_dataspec.dataloader):
+        for batch in dataloader:
             # Check the image and label shapes
             assert batch[0].shape == torch.Size([batch_size, 3, 32, 32])
             assert batch[1].shape == torch.Size([batch_size])

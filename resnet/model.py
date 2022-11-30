@@ -1,8 +1,6 @@
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Optional
-
 import torch
 from composer.loss import binary_cross_entropy_with_logits, soft_cross_entropy
 from composer.metrics import CrossEntropy
@@ -11,9 +9,9 @@ from torchmetrics import Accuracy, MetricCollection
 from torchvision.models import resnet
 
 
-def build_composer_resnet(model_name: Optional[str] = 'resnet50',
-                          loss_name: Optional[str] = 'cross_entropy',
-                          num_classes: Optional[int] = 1000):
+def build_composer_resnet(model_name: str = 'resnet50',
+                          loss_name: str = 'cross_entropy',
+                          num_classes: int = 1000):
     """Helper function to build a Composer ResNet model.
 
     Args:

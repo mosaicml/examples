@@ -20,7 +20,8 @@ from ..data import build_ade20k_dataspec, check_dataloader
 class SynthADE20KDirectory:
 
     def __enter__(self):
-        self.path = create_synthetic_ade20k()
+        path = create_synthetic_ade20k()
+        self.path = path  # type: ignore (reportUninitializedInstanceVariable)
         return self.path
 
     def __exit__(self, exc_type, exc_value, traceback):

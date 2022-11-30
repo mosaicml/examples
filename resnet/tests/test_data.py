@@ -25,7 +25,7 @@ def test_dataloader_builder(is_train, batch_size=2, crop_size=16):
                                                     shuffle=False,
                                                     crop_size=crop_size)
 
-        for i, batch in enumerate(imagenet_dataspec.dataloader):
+        for batch in imagenet_dataspec.dataloader:
             # Check the image and label shapes
             assert batch[0].shape == torch.Size(
                 [batch_size, 3, crop_size, crop_size])

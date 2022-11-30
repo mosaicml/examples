@@ -62,7 +62,7 @@ class ResNetCIFAR(nn.Module):
 
     def __init__(self,
                  plan: List[Tuple[int, int]],
-                 initializer: Callable,
+                 initializer: Optional[Callable],
                  outputs: int = 10):
         super(ResNetCIFAR, self).__init__()
         outputs = outputs or 10

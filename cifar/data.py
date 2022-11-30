@@ -91,7 +91,7 @@ def build_cifar10_dataspec(
     data_path: str,
     is_streaming: bool,
     batch_size: int,
-    local: str = None,
+    local: Optional[str] = None,
     is_train: bool = True,
     download: bool = True,
     drop_last: bool = True,
@@ -130,12 +130,14 @@ def build_cifar10_dataspec(
         transform = None
 
     if is_streaming:
-        dataset = StreamingCIFAR(remote=data_path,
-                                 local=local,
-                                 split=split,
-                                 shuffle=shuffle,
-                                 transform=transform,
-                                 batch_size=batch_size)
+        assert local is not None  # for type checkings
+        dataset = StreamingCIFAR(
+            remote=data_path,
+            local=local,
+            split=split,
+            shuffle=shuffle,
+            transform=transform,  # type: ignore
+            batch_size=batch_size)
         sampler = None
     else:
         with dist.run_local_rank_zero_first():

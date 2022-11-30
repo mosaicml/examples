@@ -41,9 +41,9 @@ class StreamingImageNet(Dataset, VisionDataset):
     """
 
     def __init__(self,
-                 remote: str,
+                 remote: Optional[str],
                  local: str,
-                 split: str,
+                 split: Optional[str],
                  shuffle: bool,
                  transform: Optional[Callable] = None,
                  prefetch: Optional[int] = 100_000,
@@ -84,11 +84,11 @@ def build_imagenet_dataspec(
     is_streaming: bool,
     batch_size: int,
     local: Optional[str] = None,
-    is_train: Optional[bool] = True,
-    drop_last: Optional[bool] = True,
-    shuffle: Optional[bool] = True,
-    resize_size: Optional[int] = -1,
-    crop_size: Optional[int] = 224,
+    is_train: bool = True,
+    drop_last: bool = True,
+    shuffle: bool = True,
+    resize_size: int = -1,
+    crop_size: int = 224,
     **dataloader_kwargs,
 ) -> DataSpec:
     """Builds an ImageNet dataloader for either local or remote data.
@@ -132,11 +132,12 @@ def build_imagenet_dataspec(
     device_transform_fn = NormalizationFn(mean=IMAGENET_CHANNEL_MEAN,
                                           std=IMAGENET_CHANNEL_STD)
     if is_streaming:
+        assert local is not None  # for type checking
         dataset = StreamingImageNet(remote=data_path,
                                     local=local,
                                     split=split,
                                     shuffle=shuffle,
-                                    transform=transform)
+                                    transform=transform)  # type: ignore
         sampler = None
     else:
         dataset = ImageFolder(os.path.join(data_path, split), transform)

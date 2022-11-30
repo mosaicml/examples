@@ -16,7 +16,8 @@ from PIL import Image
 class SynthClassificationDirectory(object):
 
     def __enter__(self):
-        self.path = create_synthetic_cifar()
+        path = create_synthetic_cifar()
+        self.path = path  # type: ignore (reportUninitializedInstanceVariable)
         return self.path
 
     def __exit__(self, exc_type, exc_value, traceback):

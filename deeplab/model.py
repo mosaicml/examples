@@ -20,7 +20,7 @@ from packaging import version
 from torchmetrics import MetricCollection
 from torchvision.models import _utils, resnet
 
-__all__ = ['deeplabv3', 'composer_deeplabv3']
+__all__ = ['deeplabv3', 'build_composer_deeplabv3']
 
 
 class SimpleSegmentationModel(torch.nn.Module):
@@ -112,7 +112,8 @@ def deeplabv3(num_classes: int,
                                               return_layers=return_layers)
 
     try:
-        from mmseg.models import ASPPHead, DepthwiseSeparableASPPHead
+        from mmseg.models import (  # type: ignore (reportMissingImports)
+            ASPPHead, DepthwiseSeparableASPPHead)
     except ImportError as e:
         raise ImportError(
             textwrap.dedent("""\
