@@ -10,23 +10,23 @@ You'll find in this folder:
 * `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on Mosaic's cloud
 * `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud
 * `convert_c4.py` — Code for creating a streaming C4 dataset, which can be used for pre-training. See [Dataset preparation](#Dataset-preparation)
-* `yamls/` - Pre-baked configs for training both our sped-up `Mosaic BERT` as well as the reference `HuggingFace BERT`
+* `yamls/` - Pre-baked configs for training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT
 * `requirements.txt` — All needed Python dependencies
-* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader or [Composer](https://github.com/mosaicml/composer)
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
-* `src/mosaic_bert.py` — Mosaic BERTs model for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/data_c4.py` — A [MosaicML streaming dataset](https://docs.mosaicml.com/projects/streaming/en/latest/) that can be used with a vanilla PyTorch dataloader
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer)
+* `src/mosaic_bert.py` — Mosaic BERTs model for MLM (pre-training) or classification (GLUE fine-tuning)
 * `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility
-* `src/bert_padding.py` — Source code for Mosaic BERT that supports reshaping tensors in order avoid inefficiencies due to padding
+* `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead
 * `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT
 * `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning
-* `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`, which handle individual fine-tuning jobs and encode task-specific hyperparameters and datasets
+* `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`. These handle individual fine-tuning jobs and task-specific hyperparameters.
 
 # Mosaic BERT
 
-Our starter code provides support for standard HuggingFace BERT models, as well as our own **Mosaic BERT**, which incorporates numerous methods to improve throughput and training.
-Our goal in developing Mosaic BERT was to apply a combination of methods from the literature to seriously speed up training time, and to package it in a way that's easy for you to use on your own problems!
+Our starter code supports both standard HuggingFace BERT models and our own **Mosaic BERT**. The latter incorporates numerous methods to improve throughput and training.
+Our goal in developing Mosaic BERT was to greatly reduce training time while making it easy for you to use on your own problems!
 
-We apply:
+To do this, we employ a number of techniques from the literature:
 * [ALiBi (Press et al., 2021)](https://arxiv.org/abs/2108.12409v1)
 * [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
 * ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
@@ -84,7 +84,7 @@ Here's what you need to get started with our BERT implementation:
 ## Dataset preparation
 
 To run pre-training, you'll need to make yourself a local copy of the C4 pre-training dataset.
-If you only want to profile these BERTs, we recommend that you **only download and prepare the `val` split**,
+If you only want to profile the speed of these BERTs, we recommend that you **only download and prepare the `val` split**,
 and use it for both train and eval in your script. Just change `split: train` to `split: val` in your run YAML.
 Alternatively, feel free to substitute our dataloader with one of your own in the script [main.py](./main.py#L101)!
 
@@ -92,7 +92,7 @@ In this benchmark, we train BERTs on the [C4: Colossal, Cleaned, Common Crawl da
 We first convert the dataset from its native format (a collection of zipped JSONs)
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
-and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all ~ just works ~ .
+and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all ~just works~ .
 You can read more about the benefits of using mosaicml-streaming [here](https://docs.mosaicml.com/projects/streaming/en/latest/).
 
 ### Converting C4 to streaming dataset `.mds` format
@@ -151,14 +151,14 @@ composer main.py yamls/mosaic-bert-base-uncased.yaml
 
 **Note:** The `yamls/*.yaml` files are intended to be used with `main.py`.
 
-**Please remember** to modify the reference YAMLs (e.g., `yamls/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations -- only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
+**Please remember** to modify the reference YAMLs (e.g., `yamls/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations—only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
 
 ## GLUE fine-tuning
 
 The GLUE benchmark measures the average performance across 8 NLP classification tasks (again, here we exclude the WNLI task). This performance is typically used to evaluate the quality of the pre-training: once you have a set of weights from your MLM task, you fine-tune those weights separately for each task and then compute the average performance across the tasks, with higher averages indicating higher pre-training quality.
 
-To handle this complicated fine-tuning pipeline, we provide the `glue.py` script. which handles parallelizing each of these fine-tuning jobs across all the GPUs on your node.
-To clarify, the `glue.py` script takes advantage of the small dataset/batch size of the GLUE tasks through *task* parallelism (where different tasks are trained in parallel, each using its own GPU), rather than the typical data parallelism (where one task is trained at a time and training batches are parallelized across GPUs).
+To handle this complicated fine-tuning pipeline, we provide the `glue.py` script. This script handles parallelizing each of these fine-tuning jobs across all the GPUs on your machine.
+That is, the `glue.py` script takes advantage of the small dataset/batch size of the GLUE tasks through *task* parallelism rather than data parallelism. This means that different tasks are trained in parallel, each using one GPU, instead of having one task trained at a time with batches parallelized across GPUs.
 
 Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained checkpoint as the GLUE starting point, use non-default hyperparameters, etc., run the `glue.py` script using the standard `python` launcher (we don't use the `composer` launcher here because `glue.py` does its own multi-process orchestration):
 
@@ -171,7 +171,7 @@ Any of the other [composer supported loggers](https://docs.mosaicml.com/en/lates
 
 **Note:** The `yamls/glue/*.yaml` files are intended to be used with `glue.py`.
 
-**Please remember** to modify the reference YAMLs (e.g., `yamls/glue/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations -- only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
+**Please remember** to modify the reference YAMLs (e.g., `yamls/glue/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations—only the YAMLs in `yamls/test-cpu/` are ready to use out-of-the-box.
 
 ### Running on the MosaicML Cloud
 
@@ -183,7 +183,7 @@ Once you have filled in the missing YAML fields (and made any other modification
 mcli run -f yamls/mcloud_run.yaml
 ```
 
-Similarly, for GLUE fine-tuning just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
+Similarly, for GLUE fine-tuning, just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
 
 ```bash
 mcli run -f yamls/glue/mcloud_run.yaml
@@ -195,7 +195,7 @@ To train with high performance on *multi-node* clusters, the easiest way is with
 
 But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node.
 
-**Note:** multi-node training will only work `main.py` (the `glue.py` script handles its own orchestration across devices and is not built to be used with the `composer` launcher).
+**Note:** multi-node training will only work with `main.py`; the `glue.py` script handles its own orchestration across devices and is not built to be used with the `composer` launcher.
 
 ### Multi-Node via CLI args
 
@@ -241,4 +241,4 @@ You can also easily enable other experiment trackers like Weights and Biases or 
 
 If you run into any problems with the code, please file Github issues directly to this repo.
 
-If you want train BERT-style models on MosaicML Cloud, reach out to us at [demo@mosaicml.com](mailto:demo@mosaicml.com)!
+If you want to train BERT-style models on MosaicML Cloud, reach out to us at [demo@mosaicml.com](mailto:demo@mosaicml.com)!
