@@ -185,7 +185,7 @@ class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
         self.every_n_batches = every_n_batches
-        self.metric = LMEvalHarnessReducerMetric(compute_on_cpu=True)
+        self.metric = LMEvalHarnessReducerMetric()
         self.simple_evaluate_args = None
         self.simple_evaluate_inference = None
 
