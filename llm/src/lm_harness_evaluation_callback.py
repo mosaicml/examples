@@ -175,6 +175,7 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         print(f"metric updating... new shape: {self.responses.shape}", self.responses.device, self.sampled_indices.device)
 
     def compute(self):
+        print("in compute()...")
         out = torch.stack([self.responses, self.sampled_indices])
         print(f"returning tensor of shape: {out.shape}...")
         return out
@@ -238,6 +239,7 @@ class EvaluationCallback(Callback):
             if torch.distributed.get_rank() == 0:
                 print("reducing from rank zero...")
                 resps, sampled_indices = torch.unbind(self.metric.compute())
+                print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
 
                 results = evaluator.evaluate_metrics(
                     **self.simple_evaluate_args,
