@@ -154,8 +154,8 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
     Just concats responses and sampled indices from eval harness. compute simply
     returns those tensors for use elsewhere.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.add_state(
             "responses",
             default=torch.Tensor([]),
