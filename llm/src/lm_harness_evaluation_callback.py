@@ -1,10 +1,11 @@
 import argparse
+import fnmatch
 import json
 import logging
-import fnmatch
-from datetime import datetime as dt
+import pprint
 
 from abc import ABC
+from datetime import datetime as dt
 from typing import Any
 
 from composer import Callback, State, Logger
@@ -254,7 +255,7 @@ class EvaluationCallback(Callback):
             # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
             # print(f"results_without_model.keys(): {results_without_model.keys()}")
 
-            print(json.dumps(results["results"], indent=2))
+            print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
             wandb.log(results["results"])
 
             logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
