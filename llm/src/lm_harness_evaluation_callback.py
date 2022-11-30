@@ -162,6 +162,7 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
     def update(self, preds, target):
         self.responses = torch.cat([self.responses, torch.Tensor(preds)])
         self.sampled_indices = torch.cat([self.sampled_indices, torch.Tensor(target)])
+        print(f"metric updating... new shape: {self.responses.shape}")
 
     def compute(self):
         return self.responses, self.sampled_indices
@@ -243,6 +244,7 @@ class EvaluationCallback(Callback):
 
     def after_train_bach(self, state: State, logger: Logger):
         if not (int(state.timestamp.batch) + 1) % self.every_n_batches:
+            assert False
             resps, sampled_indices = self.metric.compute()
 
             results = evaluator.evaluate_metrics(
