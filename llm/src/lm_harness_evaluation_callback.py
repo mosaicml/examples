@@ -177,7 +177,7 @@ class EvaluationCallback(Callback):
         self.simple_evaluate_inference = None
 
     def before_train_batch(self, state: State, logger: Logger):
-        print(f"callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
+        print(f"rank: {torch.distributed.get_rank()}  callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
         if not (int(state.timestamp.batch) + 1) % self.every_n_batches:  # kick off forked lm evaluation harness
             self.start_time = dt.now()
             model = lm_eval.models.get_model(
@@ -244,24 +244,28 @@ class EvaluationCallback(Callback):
             # logger.info(f"ran evaluation in: {(dt.now() - start).total_seconds():.03f}")
 
     def after_train_bach(self, state: State, logger: Logger):
+        print(f"rank: {torch.distributed.get_rank()}  after_train_batch batch number: {int(state.timestamp.batch)}")
         if not (int(state.timestamp.batch) + 1) % self.every_n_batches:
             assert False
-            resps, sampled_indices = self.metric.compute()
+            if torch.distributed.get_rank() == 0:
+                resps, sampled_indices = self.metric.compute()
 
-            results = evaluator.evaluate_metrics(
-                **self.simple_evaluate_args,
-                **self.simple_evaluate_inference,
-                resps=resps,
-                sampled_indices=sampled_indices,
-            )
+                results = evaluator.evaluate_metrics(
+                    **self.simple_evaluate_args,
+                    **self.simple_evaluate_inference,
+                    resps=resps,
+                    sampled_indices=sampled_indices,
+                )
 
-            # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
-            # print(f"results_without_model.keys(): {results_without_model.keys()}")
+                # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
+                # print(f"results_without_model.keys(): {results_without_model.keys()}")
 
-            print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
-            wandb.log(results["results"])
+                print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
+                wandb.log(results["results"])
 
-            logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
+                logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
+                
+                self.metric.reset()
 
 
 if __name__ == "__main__":
