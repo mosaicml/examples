@@ -165,7 +165,7 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         print(f"metric updating... new shape: {self.responses.shape}")
 
     def compute(self):
-        return self.responses, self.sampled_indices
+        return torch.stack([self.responses, self.sampled_indices])
 
 
 class EvaluationCallback(Callback):
@@ -177,10 +177,10 @@ class EvaluationCallback(Callback):
         self.simple_evaluate_inference = None
 
     def run_event(self, event: Event, state: State, logger: Logger):
-        print(f"rank: {torch.distributed.get_rank()}  callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
+        # if event == Event.BEFORE_TRAIN_BATCH or event == Event.AFTER_TRAIN_BATCH:
+        #     print(f"rank: {torch.distributed.get_rank()}  callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
         if (int(state.timestamp.batch) + 1) % self.every_n_batches != 0:
             return
-        print("running lm eval harness...")
         if event == Event.BEFORE_TRAIN_BATCH:
             self.start_time = dt.now()
             model = lm_eval.models.get_model(
@@ -225,7 +225,7 @@ class EvaluationCallback(Callback):
         elif event == Event.AFTER_TRAIN_BATCH:
             if torch.distributed.get_rank() == 0:
                 print("reducing from rank zero...")
-                resps, sampled_indices = self.metric.compute()
+                resps, sampled_indices = torch.unbind(self.metric.compute())
 
                 results = evaluator.evaluate_metrics(
                     **self.simple_evaluate_args,
