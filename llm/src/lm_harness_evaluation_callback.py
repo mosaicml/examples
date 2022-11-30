@@ -183,7 +183,7 @@ class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
         self.every_n_batches = every_n_batches
-        self.metric = LMEvalHarnessReducerMetric()
+        self.metric = LMEvalHarnessReducerMetric(compute_on_cpu=True)
         self.simple_evaluate_args = None
         self.simple_evaluate_inference = None
 
@@ -236,7 +236,7 @@ class EvaluationCallback(Callback):
         elif event == Event.AFTER_TRAIN_BATCH:
             if torch.distributed.get_rank() == 0:
                 print("reducing from rank zero...")
-                resps, sampled_indices = torch.unbind(self.metric.compute_on_cpu())
+                resps, sampled_indices = torch.unbind(self.metric.compute())
 
                 results = evaluator.evaluate_metrics(
                     **self.simple_evaluate_args,
