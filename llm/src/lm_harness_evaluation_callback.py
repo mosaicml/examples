@@ -158,12 +158,12 @@ class LMEvalHarnessReducerMetric(torchmetrics.Metric):
         super().__init__()
         self.add_state(
             "responses",
-            default=torch.Tensor([]).cuda(torch.distributed.get_rank() % 8),
+            default=torch.Tensor([]),
             dist_reduce_fx="cat",
         )
         self.add_state(
             "sampled_indices",
-            default=torch.Tensor([]).cuda(torch.distributed.get_rank() % 8),
+            default=torch.Tensor([]),
             dist_reduce_fx="cat",
         )
 
@@ -236,7 +236,7 @@ class EvaluationCallback(Callback):
         elif event == Event.AFTER_TRAIN_BATCH:
             if torch.distributed.get_rank() == 0:
                 print("reducing from rank zero...")
-                resps, sampled_indices = torch.unbind(self.metric.compute())
+                resps, sampled_indices = torch.unbind(self.metric.compute_on_cpu())
 
                 results = evaluator.evaluate_metrics(
                     **self.simple_evaluate_args,
