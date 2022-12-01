@@ -232,6 +232,7 @@ class EvaluationCallback(Callback):
             self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
             )
+            assert len(self.simple_evaluate_inference["sampled_indices"]) == len(self.simple_evaluate_inference["resps"]), f"{len(self.simple_evaluate_inference['sampled_indices'])} != {len(self.simple_evaluate_inference['resps'])}"
             gathered_sampled_indices, gathered_resps = zip(
                 *sorted(
                     {
@@ -264,8 +265,9 @@ class EvaluationCallback(Callback):
 
                 print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
                 wandb.log(results["results"])
+                logger.log_metrics(results["results"])
 
-                logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
+                print(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
 
 
 if __name__ == "__main__":
