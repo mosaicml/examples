@@ -95,7 +95,7 @@ In this benchmark, we train BERTs on the [C4: Colossal, Cleaned, Common Crawl da
 We first convert the dataset from its native format (a collection of zipped JSONs)
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
-and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all ~just works~ .
+and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all just works.
 You can read more about the benefits of using mosaicml-streaming [here](https://docs.mosaicml.com/projects/streaming/en/latest/).
 
 ### Converting C4 to streaming dataset `.mds` format
@@ -144,7 +144,7 @@ This is already done in the testing YAML `yamls/test/main.py`, which you can als
 
 ## MLM pre-training
 
-To get the most out of your pre-training budget, we recommend using **Mosiac BERT**! You can read more [below](#mosaic-bert).
+To get the most out of your pre-training budget, we recommend using **Mosaic BERT**! You can read more [below](#mosaic-bert).
 
 We run the `main.py` pre-training script using our `composer` launcher, which generates N processes (1 process per GPU device).
 If training on a single node, the `composer` launcher will autodetect the number of devices.
@@ -158,7 +158,7 @@ composer main.py yamls/main/hf-bert-base-uncased.yaml
 composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 ```
 
-**Please remember** to modify the reference YAMLs (e.g., `yamls/main/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations—-only the YAMLs in `yamls/test/` are ready to use out-of-the-box. See the [configs](#configs) section for more detail.
+**Please remember** to modify the reference YAMLs (e.g., `yamls/main/mosaic-bert-base-uncased.yaml`) to customize saving and loading locations—only the YAMLs in `yamls/test/` are ready to use out-of-the-box. See the [configs](#configs) section for more detail.
 
 ## GLUE fine-tuning
 
@@ -311,15 +311,15 @@ There is mounting evidence that pre-training on domain specific data improves do
 * [Domain-Specific Language Model Pretraining for Biomedical Natural Language Processing](https://arxiv.org/abs/2007.15779)
 * [LinkBERT: Pretraining Language Models with Document Links](https://arxiv.org/abs/2203.15827)
 
-In addition to being able to take advantage of pre-training on in-domain data, training from scratch means that you control the data start to finish. Publicly available pre-training corpuses cannot be used in many commercial cases due to legal considerations. Our starter code can easily be modified to handle custom datasets beyond the C4 example we provide.
+In addition to being able to take advantage of pre-training on in-domain data, training from scratch means that you control the data start to finish. Publicly available pre-training corpora cannot be used in many commercial cases due to legal considerations. Our starter code can easily be modified to handle custom datasets beyond the C4 example we provide.
 
-One may wonder, why start from scratch when public data isn't a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779).
+One may wonder, why start from scratch when public data *isn't* a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779).
 
-The practical reason is that certain outcomes are only available if the model and tokenizer are pre-trained from scratch.
+The practical reason to train from scratch is that it allows you to modify your model or tokenizer.
 
-So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/), they seem to improve LM perplexity, downstream accuracy, and allow the model to generalize to longer sequences than seen at train time), you need to train from scratch (or fine-tune from a checkpoint which was pre-trained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in your feedforward layers ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
+So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/) since they improve LM perplexity, downstream accuracy, and generalization across sequences lengths), you need to train from scratch (or fine-tune from a checkpoint which was pre-trained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in your feedforward layers ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
 
-Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" in tokenized by `bert-base-uncased` tokenizer into the 4 tokens `[na, ##lo, ##xon, ##e]` [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
+Another good example is domain-specific tokenization. In the biomedical domain, words may be split by the pre-trained BERT tokenizer in ways that make downstream tasks more difficult and computationally expensive. For example, the common drug "naloxone" is tokenized by `bert-base-uncased` tokenizer into the 4 tokens `[na, ##lo, ##xon, ##e]` [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779), making tasks like NER more difficult and using more of the limited sequence length available.
 
 In short, you should pre-train your own Mosaic BERT from scratch :) 
 
