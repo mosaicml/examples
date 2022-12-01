@@ -149,49 +149,14 @@ class HFTokenizer(ABC):
         return self.tokenizer.bos_token_id
 
 
-class LMEvalHarnessReducerMetric(torchmetrics.Metric):
-    """Somewhat janky distributed reducer hacked together w/ torchmetrics.
-
-    Just concats responses and sampled indices from eval harness. compute simply
-    returns those tensors for use elsewhere.
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.add_state(
-            "responses",
-            default=torch.Tensor([]).cuda(dist.get_local_rank()),
-            dist_reduce_fx="cat",
-        )
-        self.add_state(
-            "sampled_indices",
-            default=torch.Tensor([]).cuda(dist.get_local_rank()),
-            dist_reduce_fx="cat",
-        )
-
-    def update(self, preds, target):
-        print(self.responses.device)
-        self.responses = torch.cat([self.responses, torch.Tensor(preds).cuda(dist.get_local_rank())])
-        self.sampled_indices = torch.cat([self.sampled_indices, torch.Tensor(target).cuda(dist.get_local_rank())])
-        print(f"metric updating... new shape: {self.responses.shape}", self.responses.device, self.sampled_indices.device)
-
-    def compute(self):
-        print("in compute()...")
-        out = torch.sort(torch.stack([self.responses, self.sampled_indices]))
-        print(f"returning tensor of shape: {out.shape}...")
-        return out
-
-
 class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
         self.every_n_batches = every_n_batches
-        # self.metric = LMEvalHarnessReducerMetric()
         self.simple_evaluate_args = None
         self.simple_evaluate_inference = None
 
     def run_event(self, event: Event, state: State, logger: Logger):
-        # if event == Event.BEFORE_TRAIN_BATCH or event == Event.AFTER_TRAIN_BATCH:
-        #     print(f"rank: {torch.distributed.get_rank()}  callback observed batch: {state.timestamp.batch}  cast to int: {int(state.timestamp.batch)}")
         if (int(state.timestamp.batch) + 1) % self.every_n_batches != 0:
             return
         if event == Event.BEFORE_TRAIN_BATCH:
@@ -248,10 +213,6 @@ class EvaluationCallback(Callback):
                     }  # set for deduplication- idk why we need this but we do
                 )
             )
-
-            # print(f"gathered indices, resps: {list(zip(gathered_sampled_indices, gathered_resps))}")
-
-            # gathered_sampled_indices = sorted(set(gathered_sampled_indices))  # idk why but we have to deduplicate here
 
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
