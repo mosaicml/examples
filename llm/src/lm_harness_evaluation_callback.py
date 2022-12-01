@@ -6,7 +6,6 @@ import pprint
 
 from abc import ABC
 from datetime import datetime as dt
-from typing import Any
 
 from composer import Callback, Event, State, Logger
 from composer.utils import dist
@@ -14,7 +13,6 @@ import lm_eval.models
 from lm_eval import evaluator, tasks
 
 import torch
-import torchmetrics
 import transformers
 import wandb
 
