@@ -155,77 +155,78 @@ class EvaluationCallback(Callback):
         self.simple_evaluate_inference = None
 
     def run_event(self, event: Event, state: State, logger: Logger):
-        if (int(state.timestamp.batch) + 1) % self.every_n_batches != 0:
-            return
-        if event == Event.BEFORE_TRAIN_BATCH:
-            self.start_time = dt.now()
-            model = lm_eval.models.get_model(
-                "composer_llm"
-            ).create_from_arg_string(
-                "",
-                {
-                    "model": state.model.model,
-                    "tokenizer": HFTokenizer(
-                        tokenizer_name="gpt2",
-                        max_seq_len=2048,
-                    ),
-                    "precision": state.precision,
-                    "device": torch.device('cuda').type,
-                    # "batch_size": 64,
-                }
-            )
+        return
+        # if (int(state.timestamp.batch) + 1) % self.every_n_batches != 0:
+        #     return
+        # if event == Event.BEFORE_TRAIN_BATCH:
+        #     self.start_time = dt.now()
+        #     model = lm_eval.models.get_model(
+        #         "composer_llm"
+        #     ).create_from_arg_string(
+        #         "",
+        #         {
+        #             "model": state.model.model,
+        #             "tokenizer": HFTokenizer(
+        #                 tokenizer_name="gpt2",
+        #                 max_seq_len=2048,
+        #             ),
+        #             "precision": state.precision,
+        #             "device": torch.device('cuda').type,
+        #             # "batch_size": 64,
+        #         }
+        #     )
 
-            task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
-            print(f"Selected Tasks: {task_names}")
+        #     task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
+        #     print(f"Selected Tasks: {task_names}")
 
-            self.simple_evaluate_args = evaluator.simple_evaluate_args(
-                model=model,
-                model_args="",
-                tasks=task_names,
-                num_fewshot=0,
-                batch_size=None,
-                device=None,
-                no_cache=True,
-                limit=None,
-                description_dict={},
-                decontamination_ngrams_path=None,
-                check_integrity=False,
-            )
+        #     self.simple_evaluate_args = evaluator.simple_evaluate_args(
+        #         model=model,
+        #         model_args="",
+        #         tasks=task_names,
+        #         num_fewshot=0,
+        #         batch_size=None,
+        #         device=None,
+        #         no_cache=True,
+        #         limit=None,
+        #         description_dict={},
+        #         decontamination_ngrams_path=None,
+        #         check_integrity=False,
+        #     )
 
-            self.simple_evaluate_inference = evaluator.evaluate_inference(
-                **self.simple_evaluate_args
-            )
-            assert len(self.simple_evaluate_inference["sampled_indices"]) == len(self.simple_evaluate_inference["resps"]), f"{len(self.simple_evaluate_inference['sampled_indices'])} != {len(self.simple_evaluate_inference['resps'])}"
-            gathered_sampled_indices, gathered_resps = zip(
-                *sorted(
-                    {
-                        (i, r)
-                        for indices, resps
-                        in dist.all_gather_object(
-                            [
-                                self.simple_evaluate_inference["sampled_indices"],
-                                self.simple_evaluate_inference["resps"],
-                            ],
-                        )
-                        for i, r in zip(indices, resps)
-                    }  # set for deduplication- idk why we need this but we do
-                )
-            )
+        #     self.simple_evaluate_inference = evaluator.evaluate_inference(
+        #         **self.simple_evaluate_args
+        #     )
+        #     assert len(self.simple_evaluate_inference["sampled_indices"]) == len(self.simple_evaluate_inference["resps"]), f"{len(self.simple_evaluate_inference['sampled_indices'])} != {len(self.simple_evaluate_inference['resps'])}"
+        #     gathered_sampled_indices, gathered_resps = zip(
+        #         *sorted(
+        #             {
+        #                 (i, r)
+        #                 for indices, resps
+        #                 in dist.all_gather_object(
+        #                     [
+        #                         self.simple_evaluate_inference["sampled_indices"],
+        #                         self.simple_evaluate_inference["resps"],
+        #                     ],
+        #                 )
+        #                 for i, r in zip(indices, resps)
+        #             }  # set for deduplication- idk why we need this but we do
+        #         )
+        #     )
 
-            if dist.get_global_rank() == 0:
-                results = evaluator.evaluate_metrics(
-                    **{
-                        **self.simple_evaluate_args,
-                        **self.simple_evaluate_inference,
-                        "resps": gathered_resps,
-                        "sampled_indices": gathered_sampled_indices,
-                    },
-                )
+        #     if dist.get_global_rank() == 0:
+        #         results = evaluator.evaluate_metrics(
+        #             **{
+        #                 **self.simple_evaluate_args,
+        #                 **self.simple_evaluate_inference,
+        #                 "resps": gathered_resps,
+        #                 "sampled_indices": gathered_sampled_indices,
+        #             },
+        #         )
 
-                print(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
-                print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
-                wandb.log(results["results"])
-                logger.log_metrics(results["results"])
+        #         print(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
+        #         print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
+        #         wandb.log(results["results"])
+        #         logger.log_metrics(results["results"])
 
 
 if __name__ == "__main__":
