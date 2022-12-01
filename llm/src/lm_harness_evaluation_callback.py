@@ -272,6 +272,7 @@ class EvaluationCallback(Callback):
                     ]
                 )
             )
+            gathered_sampled_indices = sorted(set(gathered_sampled_indices))  # idk why but we have to deduplicate here
 
             print(f"gathered indices, resps: {list(zip(gathered_sampled_indices, gathered_resps))}")
 
