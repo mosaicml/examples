@@ -232,49 +232,25 @@ class EvaluationCallback(Callback):
             self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
             )
-
-            print(f"self.simple_evaluate_inference: {pprint.pformat(self.simple_evaluate_inference)}")
-            print("evaluating local shard...")
-            res = evaluator.evaluate_metrics(
-                **{
-                    **self.simple_evaluate_args,
-                    **self.simple_evaluate_inference,
-                },
-                # task_dict,
-                # requests=inference["requests"],
-                # requests_origin=inference["requests_origin"],
-                # docs=inference["docs"],
-                # overlaps=inference["overlaps"],
-                # sampled_indices=inference["sampled_indices"],
-                # resps=inference["resps"],
-                # versions=inference["versions"],
-                # decontamination_ngrams_path=decontamination_ngrams_path,
-                # bootstrap_iters=bootstrap_iters,
-            )
-            print(f"res: {res}")
-            # self.metric.update(inference["resps"], inference["sampled_indices"])
-            gathered = dist.all_gather_object(
-                [
-                    self.simple_evaluate_inference["sampled_indices"],
-                    self.simple_evaluate_inference["resps"],
-                ],
-            )
-
-            print(f"gathered: {gathered}")
-
             gathered_sampled_indices, gathered_resps = zip(
                 *sorted(
                     [
                         (i, r)
                         for indices, resps
-                        in gathered
+                        in dist.all_gather_object(
+                            [
+                                self.simple_evaluate_inference["sampled_indices"],
+                                self.simple_evaluate_inference["resps"],
+                            ],
+                        )
                         for i, r in zip(indices, resps)
                     ]
                 )
             )
-            gathered_sampled_indices = sorted(set(gathered_sampled_indices))  # idk why but we have to deduplicate here
 
             print(f"gathered indices, resps: {list(zip(gathered_sampled_indices, gathered_resps))}")
+
+            gathered_sampled_indices = sorted(set(gathered_sampled_indices))  # idk why but we have to deduplicate here
 
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
@@ -286,83 +262,10 @@ class EvaluationCallback(Callback):
                     },
                 )
 
-                # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
-                # print(f"results_without_model.keys(): {results_without_model.keys()}")
-
                 print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
                 wandb.log(results["results"])
 
                 logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
-                
-                # self.metric.reset()
-
-        # elif event == Event.AFTER_TRAIN_BATCH:
-        #     print("reducing from rank zero...")
-        #     resps, sampled_indices = torch.unbind(self.metric.compute())
-        #     print(f"got back resps: {pprint.pformat(resps)}\n\nsampled_indices: {pprint.pformat(sampled_indices)}")
-
-        #     if dist.get_global_rank() == 0:
-        #         results = evaluator.evaluate_metrics(
-        #             **{
-        #                 **self.simple_evaluate_args,
-        #                 **self.simple_evaluate_inference,
-        #                 "resps": resps,
-        #                 "sampled_indices": sampled_indices,
-        #             }
-        #         )
-
-        #         # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
-        #         # print(f"results_without_model.keys(): {results_without_model.keys()}")
-
-        #         print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
-        #         wandb.log(results["results"])
-
-        #         logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
-                
-        #         self.metric.reset()
-
-
-# class CatTensorMetric(torchmetrics.Metric):
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
-#         self.add_state(
-#             "inferences",
-#             default=torch.Tensor([]).cuda(dist.get_local_rank()),
-#             dist_reduce_fx="cat",
-#         )
-
-#     def update(self, preds, target):
-#         self.inferences = torch.cat([self.inferences, torch.Tensor(preds).cuda(dist.get_local_rank())])
-
-#     def compute(self):
-#         print("in compute()...")
-#         out = torch.stack([self.responses, self.sampled_indices])
-#         print(f"returning tensor of shape: {out.shape}...")
-#         return out
-
-
-# class EvaluationCallback(Callback):
-#     def __init__(self, every_n_batches=1024):
-#         super().__init__()
-#         self.every_n_batches = every_n_batches
-#         self.metric = CatTensorMetric()
-#         self.local_state = None
-
-#     def run_event(self, event: Event, state: State, logger: Logger):
-#         if (int(state.timestamp.batch) + 1) % self.every_n_batches != 0:
-#             return
-#         if event == Event.BEFORE_TRAIN_BATCH:
-#             ...  # execute parallel 
-#             self.local_state = ...
-#             self.metric.update(...)
-
-#         elif event == Event.AFTER_TRAIN_BATCH:
-#             if torch.distributed.get_rank() == 0:
-#                 print("reducing from rank zero...")
-#                 ... = torch.unbind(self.metric.compute())
-#                 ...  # compute metrics over reduced set of inferences
-                
-#                 self.metric.reset()
 
 
 if __name__ == "__main__":
