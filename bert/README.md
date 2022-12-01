@@ -313,7 +313,7 @@ In addition to being able to take advantage of pre-training on in-domain data, t
 
 One may wonder, why start from scratch when public data *isn't* a concern? Granted that it is better to train on domain-specific data, can't that happen as "domain adaptation" from a pre-trained checkpoint? There are two reasons not to do this, one theoretical and one practical. The theory says that, because we are doing non-convex optimization, domain adaptation "may not be able to completely undo suboptimal initialization from the general-domain language model" [(Gu et al., 2020)](https://arxiv.org/abs/2007.15779).
 
-The practical reason is that certain outcomes are only available if the model and tokenizer are pre-trained from scratch.
+The practical reason to train from scratch is that it allows you to modify your model or tokenizer.
 
 So, for example, if you want to use ALiBi positional embeddings (and [you probably should](https://ofir.io/The-Use-Case-for-Relative-Position-Embeddings/) since they improve LM perplexity, downstream accuracy, and generalization across sequences lengths), you need to train from scratch (or fine-tune from a checkpoint which was pre-trained with ALiBi positional embeddings, which we will be releasing!). Or if you want to use Gated Linear Units in your feedforward layers ([as recommended by Noam Shazeer](https://arxiv.org/abs/2002.05202), one of the authors of the original Transformers paper), again, you have to train with them from scratch.
 
