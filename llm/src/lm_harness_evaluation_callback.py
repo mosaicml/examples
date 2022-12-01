@@ -263,11 +263,10 @@ class EvaluationCallback(Callback):
                     },
                 )
 
+                print(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
                 print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
                 wandb.log(results["results"])
                 logger.log_metrics(results["results"])
-
-                print(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
 
 
 if __name__ == "__main__":
