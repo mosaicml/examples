@@ -158,7 +158,7 @@ composer main.py yamls/main/hf-bert-base-uncased.yaml
 composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 ```
 
-**Please remember** to modify the reference YAMLs (e.g., `yamls/main/mosiac-bert-base-uncased.yaml`) to customize saving and loading locations—-only the YAMLs in `yamls/test/` are ready to use out-of-the-box. See the [configs](#configs) section for more detail.
+**Please remember** to modify the reference YAMLs (e.g., `yamls/main/mosaic-bert-base-uncased.yaml`) to customize saving and loading locations—only the YAMLs in `yamls/test/` are ready to use out-of-the-box. See the [configs](#configs) section for more detail.
 
 ## GLUE fine-tuning
 
