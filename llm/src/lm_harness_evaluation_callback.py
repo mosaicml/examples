@@ -233,6 +233,7 @@ class EvaluationCallback(Callback):
                 **self.simple_evaluate_args
             )
 
+            print(f"self.simple_evaluate_inference: {pprint.pformat(self.simple_evaluate_inference)}")
             print("evaluating local shard...")
             res = evaluator.evaluate_metrics(
                 **{
