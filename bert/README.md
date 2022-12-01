@@ -144,7 +144,7 @@ This is already done in the testing YAML `yamls/test/main.py`, which you can als
 
 ## MLM pre-training
 
-To get the most out of your pre-training budget, we recommend using **Mosiac BERT**! You can read more [below](#mosaic-bert).
+To get the most out of your pre-training budget, we recommend using **Mosaic BERT**! You can read more [below](#mosaic-bert).
 
 We run the `main.py` pre-training script using our `composer` launcher, which generates N processes (1 process per GPU device).
 If training on a single node, the `composer` launcher will autodetect the number of devices.
