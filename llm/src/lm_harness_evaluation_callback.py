@@ -234,7 +234,7 @@ class EvaluationCallback(Callback):
             )
             gathered_sampled_indices, gathered_resps = zip(
                 *sorted(
-                    [
+                    {
                         (i, r)
                         for indices, resps
                         in dist.all_gather_object(
@@ -244,13 +244,13 @@ class EvaluationCallback(Callback):
                             ],
                         )
                         for i, r in zip(indices, resps)
-                    ]
+                    }  # set for deduplication- idk why we need this but we do
                 )
             )
 
-            print(f"gathered indices, resps: {list(zip(gathered_sampled_indices, gathered_resps))}")
+            # print(f"gathered indices, resps: {list(zip(gathered_sampled_indices, gathered_resps))}")
 
-            gathered_sampled_indices = sorted(set(gathered_sampled_indices))  # idk why but we have to deduplicate here
+            # gathered_sampled_indices = sorted(set(gathered_sampled_indices))  # idk why but we have to deduplicate here
 
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
