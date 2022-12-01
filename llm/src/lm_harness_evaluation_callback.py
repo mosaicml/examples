@@ -229,12 +229,35 @@ class EvaluationCallback(Callback):
                 check_integrity=False,
             )
 
-            inference = evaluator.evaluate_inference(
+            self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
             )
-            self.simple_evaluate_inference = inference
+
+            print("evaluating local shard...")
+            res = evaluator.evaluate_metrics(
+                **{
+                    **self.simple_evaluate_args,
+                    **self.simple_evaluate_inference,
+                },
+                # task_dict,
+                # requests=inference["requests"],
+                # requests_origin=inference["requests_origin"],
+                # docs=inference["docs"],
+                # overlaps=inference["overlaps"],
+                # sampled_indices=inference["sampled_indices"],
+                # resps=inference["resps"],
+                # versions=inference["versions"],
+                # decontamination_ngrams_path=decontamination_ngrams_path,
+                # bootstrap_iters=bootstrap_iters,
+            )
+            print(f"res: {res}")
             # self.metric.update(inference["resps"], inference["sampled_indices"])
-            gathered = dist.all_gather_object([inference["sampled_indices"], inference["resps"]])
+            gathered = dist.all_gather_object(
+                [
+                    self.simple_evaluate_inference["sampled_indices"],
+                    self.simple_evaluate_inference["resps"],
+                ],
+            )
 
             print(f"gathered: {gathered}")
 
@@ -258,7 +281,7 @@ class EvaluationCallback(Callback):
                         **self.simple_evaluate_inference,
                         "resps": gathered_resps,
                         "sampled_indices": gathered_sampled_indices,
-                    }
+                    },
                 )
 
                 # results_without_model = {k: v for k, v in results.items() if k not in {"model", "device"}}
