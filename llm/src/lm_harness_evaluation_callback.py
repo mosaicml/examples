@@ -185,7 +185,7 @@ class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
         self.every_n_batches = every_n_batches
-        self.metric = LMEvalHarnessReducerMetric()
+        # self.metric = LMEvalHarnessReducerMetric()
         self.simple_evaluate_args = None
         self.simple_evaluate_inference = None
 
@@ -236,7 +236,7 @@ class EvaluationCallback(Callback):
             # self.metric.update(inference["resps"], inference["sampled_indices"])
             gathered = dist.all_gather_object([inference["sampled_indices"], inference["resps"]])
 
-            print(f"gathered: {pprint.pformat(gathered)}")
+            print(f"gathered: {gathered}")
 
             gathered_resps, gathered_sampled_indices = zip(
                 *sorted(
@@ -248,6 +248,8 @@ class EvaluationCallback(Callback):
                     ]
                 )
             )
+
+            print(f"gathered indices, resps: {list(zip(gathered_sampled_indices, gathered_resps))}")
 
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
@@ -267,7 +269,7 @@ class EvaluationCallback(Callback):
 
                 logger.info(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
                 
-                self.metric.reset()
+                # self.metric.reset()
 
         # elif event == Event.AFTER_TRAIN_BATCH:
         #     print("reducing from rank zero...")
