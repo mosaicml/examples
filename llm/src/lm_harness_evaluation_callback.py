@@ -238,13 +238,13 @@ class EvaluationCallback(Callback):
 
             print(f"gathered: {gathered}")
 
-            gathered_resps, gathered_sampled_indices = zip(
+            gathered_sampled_indices, gathered_resps = zip(
                 *sorted(
                     [
-                        (r, i)
-                        for resps, indices
+                        (i, r)
+                        for indices, resps
                         in gathered
-                        for r, i in zip(resps, indices)
+                        for i, r in zip(indices, resps)
                     ]
                 )
             )
