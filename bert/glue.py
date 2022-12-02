@@ -9,7 +9,7 @@ import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor as Pool
-from multiprocessing.managers import SyncManager
+from multiprocessing.managers import DictProxy, SyncManager
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from urllib.parse import urlparse
 
@@ -153,7 +153,7 @@ def _setup_gpu_queue(num_gpus: int, manager: SyncManager):
 
 
 def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str],
-                       pretrained_checkpoint_path: str):
+                       pretrained_checkpoint_path: Optional[str]):
     configs = []
     for task_name, task_config in main_config.tasks.items():
         if task_name not in tasks_to_run:
@@ -202,7 +202,7 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str],
 def run_job_worker(
         config: om.DictConfig,
         gpu_queue: Optional[mp.Queue] = None,
-        process_to_gpu: Optional[mp.managers.DictProxy] = None) -> Any:
+        process_to_gpu: Optional[DictProxy] = None) -> Any:
     """Instantiates the job object and runs it."""
     # need to set seed before model initialization for determinism
     reproducibility.seed_all(config.seed)
@@ -319,8 +319,7 @@ def _print_table(results: Dict[str, Dict[str, Any]]):
     print('\n')
 
 
-def _print_averaged_glue_results(glue_results: List[Tuple[Tuple[str, str],
-                                                          float]]):
+def _print_averaged_glue_results(glue_results: List[Tuple[str, float]]) -> None:
     """Pretty prints a table of glue results averaged across seeds."""
     header = '{job_name:50}|'
     hyphen_count = 50 + 11

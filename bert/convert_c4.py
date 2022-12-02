@@ -6,11 +6,9 @@
 import os
 import platform
 from argparse import ArgumentParser, Namespace
-from itertools import islice
 from typing import Dict, Iterable
 
 import datasets as hf_datasets
-import torch
 from streaming import MDSWriter
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
@@ -44,17 +42,18 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
                                                     streaming=True)
 
         def num_shards(self):
-            return len(self.dataset._ex_iterable.kwargs['filepaths'])
+            it = self.dataset._ex_iterable  # type: ignore
+            return len(it.kwargs['filepaths']) # type: ignore
 
         def __iter__(self):
             worker_info = get_worker_info()
             if worker_info:
                 num_workers = worker_info.num_workers
                 worker_id = worker_info.id
-                shards = self.dataset._ex_iterable.kwargs['filepaths']
+                kwargs = self.dataset._ex_iterable.kwargs  # type: ignore
+                shards = kwargs['filepaths']  # type: ignore
                 assert len(shards) % num_workers == 0
-                self.dataset._ex_iterable.kwargs['filepaths'] = shards[
-                    worker_id::num_workers]
+                kwargs['filepaths'] = shards[worker_id::num_workers]  # type: ignore  # noqa
             return iter(self.dataset)
 
     return ShardedC4()
@@ -71,7 +70,7 @@ def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
     """
     # Multiple workers is only supported on linux machines
     if 'linux' in platform.platform().lower():
-        num_workers = min(64, dataset.num_shards())
+        num_workers = min(64, dataset.num_shards()) # type: ignore
     else:
         num_workers = 0
     batch_size = 512
