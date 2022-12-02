@@ -6,10 +6,12 @@ import atexit
 import copy
 import gc
 import multiprocessing as mp
+from multiprocessing import managers
 import os
 from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
+from composer import ComposerModel
 from composer.core import Callback
 from composer.core.evaluator import Evaluator
 from composer.core.types import Dataset
@@ -54,9 +56,9 @@ def reset_trainer(trainer: Trainer, garbage_collect: bool = False):
     # Unregister engine from atexit to remove ref
     atexit.unregister(trainer.engine._close)
     # Close potentially persistent dataloader workers
-    if trainer.state.train_dataloader and trainer.state.train_dataloader._iterator is not None:  # type: ignore [reportGeneralTypeIssues]
-        trainer.state.train_dataloader._iterator._shutdown_workers(
-        )  # type: ignore [reportGeneralTypeIssues]
+    loader = trainer.state.train_dataloader
+    if loader and loader._iterator is not None:  # type: ignore
+        loader._iterator._shutdown_workers()  # type: ignore
     # Explicitly delete attributes of state as otherwise gc.collect() doesn't free memory
     for key in list(trainer.state.__dict__.keys()):
         delattr(trainer.state, key)
@@ -121,7 +123,7 @@ class FineTuneJob:
     def run(
         self,
         gpu_queue: Optional[mp.Queue] = None,
-        process_to_gpu: Optional[mp.managers.DictProxy] = None
+        process_to_gpu: Optional[managers.DictProxy] = None
     ) -> Dict[str, Any]:
         """Trains the model, optionally pulling a GPU id from the queue. Returns
         a dict with keys:
@@ -140,6 +142,7 @@ class FineTuneJob:
                 device = 'cpu'
         else:
             current_pid = os.getpid()
+            assert process_to_gpu is not None
             if current_pid in process_to_gpu:
                 gpu_id = process_to_gpu[current_pid]
             else:
@@ -178,7 +181,7 @@ class GlueClassificationJob(FineTuneJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -255,7 +258,7 @@ class MNLIJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -331,7 +334,7 @@ class RTEJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -400,7 +403,7 @@ class QQPJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -469,7 +472,7 @@ class COLAJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -538,7 +541,7 @@ class MRPCJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -607,7 +610,7 @@ class QNLIJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -676,7 +679,7 @@ class SST2Job(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
@@ -745,7 +748,7 @@ class STSBJob(GlueClassificationJob):
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: ComposerModel,
         tokenizer_name: str,
         job_name: Optional[str] = None,
         seed: int = 42,
