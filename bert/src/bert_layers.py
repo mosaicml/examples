@@ -1,12 +1,9 @@
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
-# coding=utf-8
-# Copyright 2022 MosaicML Composer authors
 # Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
 # Copyright (c) 2018-2021, NVIDIA CORPORATION.  All rights reserved.
 # Copyright (c) 2022, Tri Dao.
-# SPDX-License-Identifier: Apache-2.0
 
 """Implements Mosaic BERT, with an eye towards the Hugging Face API.
 
