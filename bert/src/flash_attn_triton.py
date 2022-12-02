@@ -139,6 +139,8 @@ def _fwd_kernel(
     elif BIAS_TYPE == 'matrix':
         b_ptrs = Bias + off_b * stride_bb + off_h * stride_bh + (
             offs_m[:, None] * stride_bm + offs_n[None, :])
+    else:
+        raise ValueError("BIAS_TYPE must be one of {'vector', 'matrix'}")
     # initialize pointer to m and l
     t_ptrs = TMP + off_hb * seqlen_q_rounded + offs_m
     lse_i = tl.zeros([BLOCK_M], dtype=tl.float32) - float('inf')
@@ -209,6 +211,8 @@ def _fwd_kernel(
                                    mask=(offs_m[:, None] < seqlen_q) &
                                    ((start_n + offs_n)[None, :] < seqlen_k),
                                    other=0.0).to(tl.float32)
+            else:
+                raise ValueError("BIAS_TYPE must be one of {'vector', 'matrix'}")
             # Slightly faster to multiply the softmax_scale in the tl.exp below since the compiler
             # can then fuse the mult and add into an fma instruction. But if we have bias we need to
             # to multiply with softmax_scale here.
@@ -376,6 +380,8 @@ def _bwd_kernel_one_col_block(
         b_ptrs = Bias + offs_n
     elif BIAS_TYPE == 'matrix':
         b_ptrs = Bias + (offs_qm[:, None] * stride_bm + offs_n[None, :])
+    else:
+        raise ValueError("BIAS_TYPE must be one of {'vector', 'matrix'}")
     # initialize dv and dk
     dv = tl.zeros([BLOCK_N, BLOCK_HEADDIM], dtype=tl.float32)
     dk = tl.zeros([BLOCK_N, BLOCK_HEADDIM], dtype=tl.float32)
@@ -445,6 +451,8 @@ def _bwd_kernel_one_col_block(
                                    mask=(offs_m_curr[:, None] < seqlen_q) &
                                    (offs_n[None, :] < seqlen_k),
                                    other=0.0).to(tl.float32)
+            else:
+                raise ValueError("BIAS_TYPE must be one of {'vector', 'matrix'}")
             qk = qk * softmax_scale + bias
         # There seems to be a race condition when headdim=48/96, and dq, dk, dv are wrong.
         # Also wrong for headdim=64.
@@ -791,6 +799,7 @@ def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
         assert bias.shape[:2] == (
             batch, nheads
         ), 'First 2 dimensions of bias must be broadcastible to (batch, nheads)'
+    assert bias is not None # for type checking
     bias_strides = (bias.stride(0), bias.stride(1),
                     bias.stride(2)) if has_bias else (0, 0, 0)
 
@@ -807,7 +816,7 @@ def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
     # BLOCK = 128
     # num_warps = 4 if d <= 64 else 8
     grid = lambda META: (triton.cdiv(seqlen_q, META['BLOCK_M']), batch * nheads)
-    _fwd_kernel[grid](
+    _fwd_kernel[grid](  # type: ignore
         q,
         k,
         v,
@@ -879,7 +888,7 @@ def _flash_attn_backward(do,
 
     BLOCK_HEADDIM = max(triton.next_power_of_2(d), 16)
     grid = lambda META: (triton.cdiv(seqlen_q, META['BLOCK_M']), batch * nheads)
-    _bwd_preprocess_do_o_dot[grid](
+    _bwd_preprocess_do_o_dot[grid](  # type: ignore
         o,
         do,
         delta,
@@ -918,6 +927,7 @@ def _flash_attn_backward(do,
         assert bias.shape[:2] == (
             batch, nheads
         ), 'First 2 dimensions of bias must be broadcastible to (batch, nheads)'
+    assert bias is not None # type checking
     bias_strides = (bias.stride(0), bias.stride(1),
                     bias.stride(2)) if has_bias else (0, 0, 0)
 
@@ -926,7 +936,7 @@ def _flash_attn_backward(do,
     # num_warps = 4
     grid = lambda META: (triton.cdiv(seqlen_k, META['BLOCK_N'])
                          if META['SEQUENCE_PARALLEL'] else 1, batch * nheads)
-    _bwd_kernel[grid](
+    _bwd_kernel[grid]( # type: ignore
         q,
         k,
         v,

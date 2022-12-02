@@ -98,9 +98,12 @@ class BertEmbeddings(nn.Module):
         inputs_embeds: Optional[torch.FloatTensor] = None,
         past_key_values_length: int = 0,
     ) -> torch.Tensor:
+        if (input_ids is not None) != (inputs_embeds is not None):
+            raise ValueError("Must specify either input_ids or input_embeds!")
         if input_ids is not None:
             input_shape = input_ids.size()
         else:
+            assert inputs_embeds is not None # just for type checking
             input_shape = inputs_embeds.size()[:-1]
 
         seq_length = input_shape[1]
@@ -109,19 +112,21 @@ class BertEmbeddings(nn.Module):
             # great! ALiBi
             pass
 
-        # Setting the token_type_ids to the registered buffer in constructor where it is all zeros, which usually occurs
-        # when its auto-generated, registered buffer helps users when tracing the model without passing token_type_ids, solves
-        # issue #5664
+        # Setting the token_type_ids to the registered buffer in constructor
+        # where it is all zeros, which usually occurs when it's auto-generated;
+        # registered buffer helps users when tracing the model without passing
+        # token_type_ids, solves issue #5664
         if token_type_ids is None:
             if hasattr(self, 'token_type_ids'):
+                assert isinstance(self.token_type_ids, torch.LongTensor)
                 buffered_token_type_ids = self.token_type_ids[:, :seq_length]
                 buffered_token_type_ids_expanded = buffered_token_type_ids.expand(
                     input_shape[0], seq_length)
-                token_type_ids = buffered_token_type_ids_expanded
+                token_type_ids = buffered_token_type_ids_expanded # type: ignore
             else:
-                token_type_ids = torch.zeros(input_shape,
+                token_type_ids = torch.zeros(input_shape,  # type: ignore
                                              dtype=torch.long,
-                                             device=self.word_embeddings.device)
+                                             device=self.word_embeddings.device) # type: ignore  # yapf: disable
 
         if inputs_embeds is None:
             inputs_embeds = self.word_embeddings(input_ids)
@@ -695,21 +700,6 @@ class BertOnlyNSPHead(nn.Module):
         return seq_relationship_score
 
 
-class BertPreTrainingHeads(nn.Module):
-
-    def __init__(self, config):
-        super().__init__()
-        self.predictions = BertLMPredictionHead(config)
-        self.seq_relationship = nn.Linear(config.hidden_size, 2)
-
-    def forward(
-            self, sequence_output: torch.Tensor,
-            pooled_output: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        prediction_scores = self.predictions(sequence_output)
-        seq_relationship_score = self.seq_relationship(pooled_output)
-        return prediction_scores, seq_relationship_score
-
-
 #####################
 # Various Bert models
 #####################
@@ -806,8 +796,10 @@ class BertForMaskedLM(BertPreTrainedModel):
         Prediction scores are only computed for masked tokens and the (bs,
         seqlen) dimensions are flattened
         """
-        masked_lm_labels = labels
+        if (input_ids is not None) != (inputs_embeds is not None):
+            raise ValueError("Must specify either input_ids or input_embeds!")
 
+        masked_lm_labels = labels
         if masked_lm_labels is None:
             raise ValueError('Mosaic BertForMaskedLM requires a labels tensor.')
 
@@ -840,6 +832,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         masked_lm_loss = loss_fct(prediction_scores,
                                   masked_lm_labels.flatten()[masked_token_idx])
 
+        assert input_ids is not None, "Coding error; please open an issue"
         batch, seqlen = input_ids.shape[:2]
         prediction_scores = rearrange(index_put_first_axis(
             prediction_scores, masked_token_idx, batch * seqlen),
