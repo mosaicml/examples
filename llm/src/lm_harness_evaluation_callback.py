@@ -191,11 +191,11 @@ class EvaluationCallback(Callback):
                 decontamination_ngrams_path=None,
                 check_integrity=False,
             )
-
             simple_evaluate_inference_all = evaluator.evaluate_inference(
                 **self.simple_evaluate_args,
                 distributed=False,
             )
+            print("making local call to evaluate_metrics...")
             results = evaluator.evaluate_metrics(
                 **{
                     **self.simple_evaluate_args,
