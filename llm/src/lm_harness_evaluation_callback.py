@@ -192,6 +192,20 @@ class EvaluationCallback(Callback):
                 check_integrity=False,
             )
 
+            simple_evaluate_inference_all = evaluator.evaluate_inference(
+                **self.simple_evaluate_args,
+                distributed=False,
+            )
+            results = evaluator.evaluate_metrics(
+                **{
+                    **self.simple_evaluate_args,
+                    **self.simple_evaluate_inference_all,
+                    "resps": simple_evaluate_inference_all["resps"],
+                    "sampled_indices": simple_evaluate_inference_all["sampled_indices"],
+                },
+            )
+            print(f"local eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
+
             self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
             )
