@@ -147,6 +147,11 @@ class HFTokenizer(ABC):
         return self.tokenizer.bos_token_id
 
 
+def pprint_results(results, indent=0):
+    for line in pprint.pformat(json.dumps(results, indent=2)):
+        print(" " * indent + line)
+
+
 class EvaluationCallback(Callback):
     def __init__(self, every_n_batches=1024):
         super().__init__()
@@ -204,7 +209,8 @@ class EvaluationCallback(Callback):
                     "sampled_indices": simple_evaluate_inference_all["sampled_indices"],
                 },
             )
-            print(f"local eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
+            print("local eval results:")
+            pprint_results(results["results"])
 
             self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
@@ -237,7 +243,8 @@ class EvaluationCallback(Callback):
                 )
 
                 print(f"ran evaluation in: {(dt.now() - self.start_time).total_seconds():.03f}")
-                print(f"eval results: {pprint.pformat(json.dumps(results['results'], indent=2))}")
+                print("gathered eval results:")
+                pprint_results(results["results"])
                 wandb.log(results["results"])
                 logger.log_metrics(results["results"])
 
