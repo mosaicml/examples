@@ -199,7 +199,7 @@ class EvaluationCallback(Callback):
             results = evaluator.evaluate_metrics(
                 **{
                     **self.simple_evaluate_args,
-                    **self.simple_evaluate_inference_all,
+                    **simple_evaluate_inference_all,
                     "resps": simple_evaluate_inference_all["resps"],
                     "sampled_indices": simple_evaluate_inference_all["sampled_indices"],
                 },
