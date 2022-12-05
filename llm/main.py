@@ -62,7 +62,6 @@ def calculate_batch_size_info(global_batch_size, device_microbatch_size):
                          'as a result, the batch size will be truncated, please adjust `global_batch_size` '
                          f'to be divisible by world size, {dist.get_world_size()}.')
     device_batch_size = global_batch_size // dist.get_world_size()
-    print ("calculated batch size now is: ", device_batch_size * dist.get_world_size())
     if device_microbatch_size == 'auto':
         device_grad_accum = 'auto'
     elif isinstance(device_microbatch_size, int):
