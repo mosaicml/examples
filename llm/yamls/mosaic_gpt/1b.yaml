@@ -1,5 +1,5 @@
-data_remote: &data_remote ./my-copy-c4
-data_local: &data_local ./my-copy-c4
+data_remote: &data_remote s3://mosaicml-datasets/c4/
+data_local: &data_local /tmp/mds-cache/mds-c4/
 max_seq_len: &max_seq_len 2048
 tokenizer_name: &tokenizer_name gpt2
 
