@@ -200,7 +200,7 @@ class EvaluationCallback(Callback):
                 distributed=False,
             )
             print("local eval resps:")
-            pprint_results(
+            pprint.pprint(
                 list(
                     zip(
                         simple_evaluate_inference_all["sampled_indices"],
@@ -218,7 +218,7 @@ class EvaluationCallback(Callback):
                 },
             )
             print("local eval results:")
-            pprint_results(results["results"])
+            pprint.pprint(results["results"])
 
             self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
@@ -230,8 +230,8 @@ class EvaluationCallback(Callback):
                     self.simple_evaluate_inference["resps"],
                 ],
             )
-            print("gathered:")
-            pprint_results(gathered)
+            # print("gathered:")
+            # pprint_results(gathered)
             gathered_sampled_indices, gathered_resps = zip(
                 *sorted(
                     {
@@ -240,6 +240,15 @@ class EvaluationCallback(Callback):
                         in gathered
                         for i, r in zip(indices, resps)
                     }  # set for deduplication- idk why we need this but we do
+                )
+            )
+            print("gathered:")
+            pprint.pprint(
+                list(
+                    zip(
+                        gathered_sampled_indices,
+                        gathered_resps
+                    )
                 )
             )
 
