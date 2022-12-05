@@ -247,15 +247,30 @@ class EvaluationCallback(Callback):
                     gathered_resps
                 )
             )
-            print("gathered:")
-            pprint.pprint(gathered_zipped)
-            if local_zipped != gathered_zipped:
+
+            if len(gathered_zipped) != 10306:
+                print(f"not enough samples in gathered response. Expected: {10306}  saw: {len(gathered_zipped)}")
+                print("Running eval locally...")
+
+                simple_evaluate_inference_all = evaluator.evaluate_inference(
+                    **self.simple_evaluate_args,
+                    distributed=False,
+                )
+                local_zipped = list(
+                    zip(
+                        simple_evaluate_inference_all["sampled_indices"],
+                        simple_evaluate_inference_all["resps"],
+                    )
+                )
+
                 for idx, local in enumerate(local_zipped):
                     if idx >= len(gathered_zipped):
                         break
                     if local != gathered_zipped[idx]:
                         print(f"local and gathered differ at {idx}:  {local} != {gathered_zipped[idx]}")
 
+                assert False, f"did not see all samples in validation"
+            
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
                     **{
