@@ -21,18 +21,28 @@ from src.lm_harness_evaluation_callback import EvaluationCallback
 from src.mosaic_gpt import ComposerMosaicGPT
 
 
-def build_logger(name, kwargs):
-    if name == 'wandb':
-        return WandBLogger(**kwargs)
-    elif name == "remote_uploader_downloader":
-        return RemoteUploaderDownloader(bucket_uri=f"libcloud://{kwargs['bucket']}",backend_kwargs={
+def build_object_store_loader(kwargs):
+    if kwargs is None:
+        return None
+    return RemoteUploaderDownloader(
+        bucket_uri=f"libcloud://{kwargs['bucket']}",
+        backend_kwargs={
             "provider": "google_storage",
             "container": kwargs['bucket'],
             "key_environ": "GCS_KEY", # Name of env variable for HMAC access id.
             "secret_environ": "GCS_SECRET", # Name of env variable for HMAC secret.
-        })
+        },
+    )
+
+
+def build_logger(name, kwargs):
+    if name == 'wandb':
+        return WandBLogger(**kwargs)
+    elif name == "remote_uploader_downloader":
+        return build_object_store_loader(kwargs)
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
+
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -196,6 +206,7 @@ def main(cfg):
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
+        load_object_store=build_object_store_loader(cfg.get('load_object_store', None))
     )
 
     print("Logging config...")
