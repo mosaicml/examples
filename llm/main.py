@@ -6,7 +6,7 @@ import sys
 import warnings
 
 from composer import Trainer
-from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
+from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor, OptimizerMonitor, EleutherEvalHarness
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
@@ -15,6 +15,7 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.data_c4 import build_c4_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
+from src.tokenizer import TOKENIZER_REGISTRY
 
 
 def build_logger(name, kwargs):
@@ -24,13 +25,25 @@ def build_logger(name, kwargs):
         raise ValueError(f'Not sure how to build logger: {name}')
 
 
-def build_callback(name, kwargs):
+def build_callback(name, kwargs, tokenizer):
     if name == 'lr_monitor':
         return LRMonitor()
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
+    elif name == "optimizer_monitor":
+        return OptimizerMonitor(
+            log_layer_grad_norms=kwargs.get('log_layer_grad_norms'),
+            log_optimizer_metrics=kwargs.get('log_optimizer_metrics')
+        )
+    elif name == "eleuther_eval_harness":
+        return EleutherEvalHarness(
+            task_list=kwargs.get('task_list'),
+            num_fewshot=kwargs.get('num_fewshot'),
+            subsample_size=kwargs.get('subsample_size'),
+            tokenizer=tokenizer,
+        )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -161,10 +174,9 @@ def main(cfg):
     ]
 
     # Callbacks
-    callbacks = [
-        build_callback(name, callback_cfg)
-        for name, callback_cfg in cfg.get('callbacks', {}).items()
-    ]
+    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
+    callbacks = [build_callback(name, callback_cfg, tokenizer) for name, callback_cfg in cfg.callbacks.items()]
+
 
     # Build the Trainer
     trainer = Trainer(

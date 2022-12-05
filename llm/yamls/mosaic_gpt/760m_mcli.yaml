@@ -1,127 +1,152 @@
-data_remote: &data_remote ./my-copy-c4
-data_local: &data_local ./my-copy-c4
-max_seq_len: &max_seq_len 2048
-tokenizer_name: &tokenizer_name gpt2
+integrations:
+  - integration_type: git_repo
+    git_repo: mosaicml/benchmarks
+    git_branch: experimental/fix_loss_spikes
+    pip_install: -r llm/requirements.txt
+  - integration_type: wandb
+    entity: mosaic-ml
+    project: jeremy-gpt3-760m
 
-# Run Name
-run_name: gpt-760m
+command: |
+  cd benchmarks/llm
+  composer main.py /mnt/config/parameters.yaml
 
-# Model
-model:
-  name: mosaic_gpt
-  device: meta
-  tokenizer_name: *tokenizer_name
-  d_model: 1536
-  n_heads: 12  # Modified 16->12 so that d_head == 128 to statisfy FlashAttention
-  n_layers: 24
-  mlp_ratio: 4
-  max_seq_len: *max_seq_len
-  vocab_size: 50257
-  init_std: 0.02
-  attn_pdrop: 0.0
-  resid_pdrop: 0.0
-  emb_pdrop: 0.0
-  attn_impl: flash
+image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
+optimization_level: 0
 
-# Tokenizer
-tokenizer:
-  type: hftokenizer
-  args:
+run_name: gpt-760m-baseline
+
+gpu_type: a100_40gb
+gpu_num: 8
+cluster: r7z2
+
+# The below is injected as a YAML file:
+# /mnt/config/parameters.yaml
+parameters:
+  data_remote: &data_remote s3://mosaicml-internal-dataset-c4/mds/2
+  data_local: &data_local /tmp/c4
+  max_seq_len: &max_seq_len 2048
+  tokenizer_name: &tokenizer_name gpt2
+
+  # Model
+  model:
+    name: mosaic_gpt
+    device: meta
     tokenizer_name: *tokenizer_name
+    d_model: 1536
+    n_heads: 12  # Modified 16->12 so that d_head == 128 to statisfy FlashAttention
+    n_layers: 24
+    mlp_ratio: 4
     max_seq_len: *max_seq_len
+    vocab_size: 50257
+    init_std: 0.02
+    attn_pdrop: 0.0
+    resid_pdrop: 0.0
+    emb_pdrop: 0.0
+    attn_impl: flash
 
-# Dataloaders
-train_loader:
-  name: c4
-  dataset:
-    remote: *data_remote
-    local: *data_local
-    split: train
-    shuffle: true
-    prefetch: 1_000_000
-    tokenizer_name: *tokenizer_name
-    max_seq_len: *max_seq_len
-    group_method: concat
-  drop_last: true
-  num_workers: 8
-  pin_memory: true
-  prefetch_factor: 2
-  persistent_workers: true
-  timeout: 0
+  # Tokenizer
+  tokenizer:
+    type: hftokenizer
+    args:
+      tokenizer_name: *tokenizer_name
+      max_seq_len: *max_seq_len
 
-eval_loader:
-  name: c4
-  dataset:
-    remote: *data_remote
-    local: *data_local
-    split: val
-    shuffle: false
-    prefetch: 1000
-    tokenizer_name: *tokenizer_name
-    max_seq_len: *max_seq_len
-    group_method: truncate
-  drop_last: false
-  num_workers: 8
-  pin_memory: true
-  prefetch_factor: 2
-  persistent_workers: true
-  timeout: 0
+  # Dataloaders
+  train_loader:
+    name: c4
+    dataset:
+      remote: *data_remote
+      local: *data_local
+      split: train
+      shuffle: true
+      prefetch: 1_000_000
+      tokenizer_name: *tokenizer_name
+      max_seq_len: *max_seq_len
+      group_method: concat
+    drop_last: true
+    num_workers: 8
+    pin_memory: true
+    prefetch_factor: 2
+    persistent_workers: true
+    timeout: 0
 
-# Optimization
-scheduler:
-  name: cosine_with_warmup
-  t_warmup: 100ba
-  alpha_f: 0.1
+  eval_loader:
+    name: c4
+    dataset:
+      remote: *data_remote
+      local: *data_local
+      split: val
+      shuffle: false
+      prefetch: 1000
+      tokenizer_name: *tokenizer_name
+      max_seq_len: *max_seq_len
+      group_method: truncate
+    drop_last: false
+    num_workers: 8
+    pin_memory: true
+    prefetch_factor: 2
+    persistent_workers: true
+    timeout: 0
 
-optimizer:
-  name: decoupled_adamw
-  lr: 2.5e-4
-  betas:
-  - 0.9
-  - 0.95
-  eps: 1.0e-08
-  weight_decay: 0.0
+  # Optimization
+  scheduler:
+    name: cosine_with_warmup
+    t_warmup: 100ba
+    alpha_f: 0.1
 
-max_duration: 29000ba # ~ 15.2B tokens
-eval_interval: 2000ba
-global_train_batch_size: 256
-grad_clip_norm: 1.0
+  optimizer:
+    name: decoupled_adamw
+    lr: 2.5e-4
+    betas:
+    - 0.9
+    - 0.95
+    eps: 1.0e-08
+    weight_decay: 0.0
 
-# System
-seed: 17
-device_eval_batch_size: 4
-device_train_microbatch_size: 4
-# device_train_microbatch_size: auto
-precision: bf16
+  max_duration: 600000ba # ~ 15.2B tokens
+  eval_interval: 2000ba
+  global_train_batch_size: 256
+  grad_clip_norm: 1.0
 
-# FSDP
-fsdp_config:
-  sharding_strategy: FULL_SHARD
-  min_params: 1e8
-  mixed_precision: DEFAULT
-  activation_checkpointing: false
-  activation_cpu_offload: false
-  verbose: true
+  # System
+  seed: 17
+  device_eval_batch_size: 4
+  device_train_microbatch_size: 4
+  # device_train_microbatch_size: auto
+  precision: bf16
 
-# Logging
-progress_bar: true
-log_to_console: true
+  # FSDP
+  fsdp_config:
+    sharding_strategy: FULL_SHARD
+    min_params: 1e8
+    mixed_precision: DEFAULT
+    activation_checkpointing: false
+    activation_cpu_offload: false
+    verbose: true
 
-callbacks:
-  speed_monitor:
-    window_size: 10
-  lr_monitor: {}
-  memory_monitor: {}
+  # Logging
+  progress_bar: true
+  log_to_console: true
 
-# loggers:
-#   wandb: {}
+  callbacks:
+    speed_monitor:
+      window_size: 10
+    lr_monitor: {}
+    memory_monitor: {}
+    optimizer_monitor: 
+      log_layer_grad_norms: true
+      log_optimizer_metrics: true
 
-# Checkpoint to local filesystem or remote object store
-# save_interval: 2000ba
-# save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-# save_folder: ./{run_name}/checkpoints
-# save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
+  loggers:
+    wandb: {}
 
-# Load from local filesystem or remote object store
-# load_path: ./gpt-760m/checkpoints/latest-rank{rank}.pt
-# load_path: s3://my-bucket/my-folder/gpt-760m/checkpoints/latest-rank{rank}.pt
+  # Checkpoint to local filesystem or remote object store
+  # save_interval: 2000ba
+  # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+  # save_folder: ./{run_name}/checkpoints
+  # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
+
+  # Load from local filesystem or remote object store
+  # load_path: ./gpt-760m/checkpoints/latest-rank{rank}.pt
+  # load_path: s3://my-bucket/my-folder/gpt-760m/checkpoints/latest-rank{rank}.pt
