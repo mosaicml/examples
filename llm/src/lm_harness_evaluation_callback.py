@@ -148,8 +148,7 @@ class HFTokenizer(ABC):
 
 
 def pprint_results(results, indent=0):
-    for line in pprint.pformat(json.dumps(results, indent=2)).split("\n"):
-        print(" " * indent + line)
+    print(pprint.pformat(json.dumps(results, indent=2)))
 
 
 class EvaluationCallback(Callback):
