@@ -200,14 +200,13 @@ class EvaluationCallback(Callback):
                 distributed=False,
             )
             print("local eval resps:")
-            pprint.pprint(
-                list(
-                    zip(
-                        simple_evaluate_inference_all["sampled_indices"],
-                        simple_evaluate_inference_all["resps"],
-                    )
+            local_zipped = list(
+                zip(
+                    simple_evaluate_inference_all["sampled_indices"],
+                    simple_evaluate_inference_all["resps"],
                 )
             )
+            pprint.pprint(local_zipped)
             print("making local call to evaluate_metrics...")
             results = evaluator.evaluate_metrics(
                 **{
@@ -242,15 +241,20 @@ class EvaluationCallback(Callback):
                     }  # set for deduplication- idk why we need this but we do
                 )
             )
-            print("gathered:")
-            pprint.pprint(
-                list(
-                    zip(
-                        gathered_sampled_indices,
-                        gathered_resps
-                    )
+            gathered_zipped = list(
+                zip(
+                    gathered_sampled_indices,
+                    gathered_resps
                 )
             )
+            print("gathered:")
+            pprint.pprint(gathered_zipped)
+            if local_zipped != gathered_zipped:
+                for idx, local in enumerate(local_zipped):
+                    if idx >= len(gathered_zipped):
+                        break
+                    if local != gathered_zipped[idx]:
+                        print(f"local and gathered differ at {idx}:  {local} != {gathered_zipped[idx]}")
 
             if dist.get_global_rank() == 0:
                 results = evaluator.evaluate_metrics(
