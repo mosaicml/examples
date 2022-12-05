@@ -5,23 +5,33 @@ integrations:
     pip_install: -r llm/requirements.txt
     ssh_clone: False
   - integration_type: git_repo
-    git_repo: EleutherAI/lm-evaluation-harness
+    git_repo: evanfabry/lm-evaluation-harness-composergpt-integration
     git_branch: master
     pip_install: .
     ssh_clone: False
+  - integration_type: git_repo
+    git_repo: Lightning-AI/metrics
+    pip_install: .
+    ssh_clone: False
+  # - integration_type: git_repo
+  #   git_repo: EleutherAI/lm-evaluation-harness
+  #   git_branch: master
+  #   pip_install: .
+  #   ssh_clone: False
 
 command: |
   cd benchmarks-adafactor/llm
   cat /mnt/config/parameters.yaml
   pip list
-  WANDB_API_KEY=011ca75d0cb58d449a9957690456b143d909f532 GCS_KEY=GOOG1EYYKKHYUK574G4HKFTRYKLQ22KM33FIW4QRQZ5QUYSLV7UO34U7H6GXA GCS_SECRET=8WmsrawOqngGi0zJPcPm2ckUX5XY/2UIx7Z5vzsA composer main.py /mnt/config/parameters.yaml
+  WANDB_API_KEY=011ca75d0cb58d449a9957690456b143d909f532 GCS_KEY=GOOG1EYYKKHYUK574G4HKFTRYKLQ22KM33FIW4QRQZ5QUYSLV7UO34U7H6GXA GCS_SECRET=8WmsrawOqngGi0zJPcPm2ckUX5XY/2UIx7Z5vzsA TOKENIZERS_PARALLELISM=true composer main.py /mnt/config/parameters.yaml
 
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: &run_name thirty-billion-adam-run-batch-size-2048-64-gpus
+# run_name: &run_name mosaic-gpt-760m-16-gpus-divergent
+run_name: &run_name mosaic-gpt-30b-32-gpus-eval-harness
 
-gpu_num: 16
+gpu_num: 32
 gpu_type: a100_40gb
 cluster: r7z7
 
@@ -35,14 +45,31 @@ parameters:
   # Run Name
   run_name: *run_name
 
-  # Model
+  # # 1B model
+  # model:
+  #   name: mosaic_gpt
+  #   device: meta
+  #   tokenizer_name: *tokenizer_name
+  #   d_model: 2048
+  #   n_heads: 16 # Modified 24->16 so that d_head == 128 to statisfy FlashAttention
+  #   n_layers: 24
+  #   mlp_ratio: 4
+  #   max_seq_len: *max_seq_len
+  #   vocab_size: 50257
+  #   init_std: 0.02
+  #   attn_pdrop: 0.0
+  #   resid_pdrop: 0.0
+  #   emb_pdrop: 0.0
+  #   attn_impl: flash
+
+  # 760M model
   model:
     name: mosaic_gpt
     device: meta
     tokenizer_name: *tokenizer_name
-    d_model: 7168
-    n_heads: 56
-    n_layers: 48
+    d_model: 1536
+    n_heads: 12 # Modified 16->12 so that d_head == 128 to statisfy FlashAttention
+    n_layers: 24
     mlp_ratio: 4
     max_seq_len: *max_seq_len
     vocab_size: 50257
@@ -51,6 +78,23 @@ parameters:
     resid_pdrop: 0.0
     emb_pdrop: 0.0
     attn_impl: flash
+
+  # # 30B model
+  # model:
+  #   name: mosaic_gpt
+  #   device: meta
+  #   tokenizer_name: *tokenizer_name
+  #   d_model: 7168
+  #   n_heads: 56
+  #   n_layers: 48
+  #   mlp_ratio: 4
+  #   max_seq_len: *max_seq_len
+  #   vocab_size: 50257
+  #   init_std: 0.02
+  #   attn_pdrop: 0.0
+  #   resid_pdrop: 0.0
+  #   emb_pdrop: 0.0
+  #   attn_impl: flash
 
   # Dataloaders
   train_loader:
@@ -97,6 +141,7 @@ parameters:
 
   optimizer:
     name: decoupled_adamw
+    # lr: 0.001
     lr: 1.0e-4
     betas:
       - 0.9
@@ -104,28 +149,32 @@ parameters:
     eps: 1.0e-08
     weight_decay: 0.0
 
+  # max_duration: 24800ba # ~ 26B tokens
+  # eval_interval: 2000ba
+  # global_train_batch_size: 512
   max_duration: 143100ba # ~ 600B tokens
   eval_interval: 10000ba
   global_train_batch_size: 2048
   grad_clip_norm: 1.0
 
   # System
-  seed: 17
-  device_train_microbatch_size: 4
+  seed: 18
+  # device_train_microbatch_size: 16
   # device_train_microbatch_size: auto
+  device_train_microbatch_size: 4
   precision: bf16
 
   # FSDP
   fsdp_config:
     sharding_strategy: FULL_SHARD
-    min_params: 5e8
-    mixed_precision: PURE # Only needed for 40GB cards
+    min_params: 2e8
+    mixed_precision: DEFAULT
     activation_checkpointing: true
     activation_cpu_offload: false
     verbose: true
 
   # Logging
-  progress_bar: true
+  progress_bar: false
   log_to_console: true
 
   callbacks:
@@ -134,9 +183,20 @@ parameters:
     lr_monitor: {}
     memory_monitor: {}
     lm_eval_harness:
-      every_n_batches: 128
+      every_n_batches: 16
 
   loggers:
     wandb:
-      project: optimizer-etc-choices
+      # project: resumability_debugging
+      project: eval_debugging
       entity: llm
+    remote_uploader_downloader:
+      bucket: llm_models
+
+  # Checkpoint to local filesystem or remote object store
+  save_interval: 128ba
+  save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
+  save_folder: ./{run_name}/checkpoints
+  # load_object_store:
+  #   bucket: llm_models
+  # load_path: mosaic-gpt-760m-16-gpus-divergent/checkpoints/ep0-ba13312-rank0.pt
