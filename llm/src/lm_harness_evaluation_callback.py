@@ -195,48 +195,22 @@ class EvaluationCallback(Callback):
                 decontamination_ngrams_path=None,
                 check_integrity=False,
             )
-            simple_evaluate_inference_all = evaluator.evaluate_inference(
-                **self.simple_evaluate_args,
-                distributed=False,
-            )
-            print("local eval resps:")
-            local_zipped = list(
-                zip(
-                    simple_evaluate_inference_all["sampled_indices"],
-                    simple_evaluate_inference_all["resps"],
-                )
-            )
-            pprint.pprint(local_zipped)
-            print("making local call to evaluate_metrics...")
-            results = evaluator.evaluate_metrics(
-                **{
-                    **self.simple_evaluate_args,
-                    **simple_evaluate_inference_all,
-                    "resps": simple_evaluate_inference_all["resps"],
-                    "sampled_indices": simple_evaluate_inference_all["sampled_indices"],
-                },
-            )
-            print("local eval results:")
-            pprint.pprint(results["results"])
 
             self.simple_evaluate_inference = evaluator.evaluate_inference(
                 **self.simple_evaluate_args
             )
             assert len(self.simple_evaluate_inference["sampled_indices"]) == len(self.simple_evaluate_inference["resps"]), f"{len(self.simple_evaluate_inference['sampled_indices'])} != {len(self.simple_evaluate_inference['resps'])}"
-            gathered = dist.all_gather_object(
-                [
-                    self.simple_evaluate_inference["sampled_indices"],
-                    self.simple_evaluate_inference["resps"],
-                ],
-            )
-            # print("gathered:")
-            # pprint_results(gathered)
             gathered_sampled_indices, gathered_resps = zip(
                 *sorted(
                     {
                         (i, r)
                         for indices, resps
-                        in gathered
+                        in dist.all_gather_object(
+                            [
+                                self.simple_evaluate_inference["sampled_indices"],
+                                self.simple_evaluate_inference["resps"],
+                            ],
+                        )
                         for i, r in zip(indices, resps)
                     }  # set for deduplication- idk why we need this but we do
                 )
