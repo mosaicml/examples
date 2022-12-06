@@ -14,7 +14,7 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: gpt-760m-baseline
+run_name: gpt-760m-orthogonal-linear-embedding-gain-1
 
 gpu_type: a100_40gb
 gpu_num: 8
@@ -40,6 +40,10 @@ parameters:
     max_seq_len: *max_seq_len
     vocab_size: 50257
     init_std: 0.02
+    orthogonal_layers: # alt.: gaussian
+      - linear
+      - embedding
+    gain: 1.05
     attn_pdrop: 0.0
     resid_pdrop: 0.0
     emb_pdrop: 0.0

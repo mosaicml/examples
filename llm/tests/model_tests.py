@@ -3,7 +3,7 @@
 
 import os
 import warnings
-from typing import cast
+from typing import cast, List, Optional
 
 import torch
 import torch.nn as nn
@@ -23,7 +23,7 @@ def get_config(conf_path='yamls/mosaic_gpt/125m.yaml') -> DictConfig:
     return cast(DictConfig, test_cfg)
 
 
-def get_objs(conf_path='yamls/mosaic_gpt/125m.yaml'):
+def get_objs(conf_path='yamls/mosaic_gpt/125m.yaml', orthogonal_layers: Optional[List[str]]=None):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -49,10 +49,13 @@ def get_objs(conf_path='yamls/mosaic_gpt/125m.yaml'):
     test_cfg.model.device = device
     test_cfg.device = device
 
+    if orthogonal_layers is not None:
+        test_cfg.model.orthogonal_layers = orthogonal_layers
+        test_cfg.model.gain = 1.01
+
     test_cfg.global_train_batch_size = 2
     test_cfg.device_eval_batch_size = 2
     test_cfg.device_train_microbatch_size = 2
-
     model = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
     # Optimizer
     assert test_cfg.optimizer.name == 'decoupled_adamw'
@@ -180,3 +183,22 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     optimizer.step()
     updated_params = next(model.parameters()).clone().data
     assert not torch.equal(original_params, updated_params)
+
+
+def test_orthogonal_initialization(batch_size=2):
+    test_cfg, model, optimizer = get_objs(
+        conf_path='yamls/mosaic_gpt/125m.yaml', orthogonal_layers=['linear', 'embedding', 'attention'])
+
+    batch = gen_random_batch(batch_size, test_cfg)
+
+    assert batch['input_ids'].shape == torch.Size(
+        [batch_size, test_cfg.max_seq_len])
+    model.train()
+    original_params = next(model.parameters()).clone().data
+    outputs = model(batch)
+    loss = model.loss(outputs, batch)
+    loss.backward()
+    optimizer.step()
+    updated_params = next(model.parameters()).clone().data
+    assert not torch.equal(original_params, updated_params)
+

@@ -195,23 +195,32 @@ class MosaicGPT(nn.Module):
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
-        init_fn = partial(torch.nn.init.normal_,
+        init_gaussian_fn = partial(torch.nn.init.normal_,
                           mean=0.0,
                           std=self.cfg.init_std)
+        init_orthogonal_fn = partial(torch.nn.init.orthogonal_,
+            gain=self.cfg.gain if hasattr(self.cfg, 'gain') else 1
+        )
         # Linear
         if isinstance(module, nn.Linear):
-            init_fn(module.weight)
-            if module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
+            if hasattr(self.cfg, 'orthogonal_layers') and 'linear' in self.cfg.orthogonal_layers:
+                init_orthogonal_fn(module.weight)
+            else:
+                init_gaussian_fn(module.weight)
+                if module.bias is not None:
+                    torch.nn.init.zeros_(module.bias)
 
-            if getattr(module, '_is_residual', False):
-                module.weight.data.normal_(
-                    mean=0.0,
-                    std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+                if getattr(module, '_is_residual', False):
+                    module.weight.data.normal_(
+                        mean=0.0,
+                        std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
 
         # Embedding
         if isinstance(module, nn.Embedding):
-            init_fn(module.weight)
+            if hasattr(self.cfg, 'orthogonal_layers') and 'embedding' in self.cfg.orthogonal_layers:
+                init_orthogonal_fn(module.weight)
+            else:
+                init_gaussian_fn(module.weight)
 
         # LayerNorm
         if isinstance(module, nn.LayerNorm):
@@ -223,13 +232,21 @@ class MosaicGPT(nn.Module):
             if module._qkv_same_embed_dim:
                 assert module.in_proj_weight is not None
                 assert module.q_proj_weight is None and module.k_proj_weight is None and module.v_proj_weight is None
-                init_fn(module.in_proj_weight)
+                if hasattr(self.cfg, 'orthogonal_layers') and 'attention' in self.cfg.orthogonal_layers:
+                    init_orthogonal_fn(module.in_proj_weight)
+                else:
+                    init_gaussian_fn(module.in_proj_weight)
             else:
                 assert module.q_proj_weight is not None and module.k_proj_weight is not None and module.v_proj_weight is not None
                 assert module.in_proj_weight is None
-                init_fn(module.q_proj_weight)
-                init_fn(module.k_proj_weight)
-                init_fn(module.v_proj_weight)
+                if hasattr(self.cfg, 'orthogonal_layers') and 'attention' in self.cfg.orthogonal_layers:
+                    init_orthogonal_fn(module.q_proj_weight)
+                    init_orthogonal_fn(module.k_proj_weight)
+                    init_orthogonal_fn(module.v_proj_weight)
+                else:
+                    init_gaussian_fn(module.q_proj_weight)
+                    init_gaussian_fn(module.k_proj_weight)
+                    init_gaussian_fn(module.v_proj_weight)
 
             # bias
             if module.in_proj_bias is not None:
@@ -240,12 +257,16 @@ class MosaicGPT(nn.Module):
                 torch.nn.init.zeros_(module.bias_v)
 
             # out proj
-            if module.out_proj._is_residual:
-                module.out_proj.weight.data.normal_(
-                    mean=0.0,
-                    std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+            if hasattr(self.cfg, 'orthogonal_layers') and 'attention' in self.cfg.orthogonal_layers:
+                init_orthogonal_fn(module.out_proj.weight)
             else:
-                init_fn(module.out_proj.weight)
+                if module.out_proj._is_residual:
+                    module.out_proj.weight.data.normal_(
+                            mean=0.0,
+                            std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+                else:
+                    init_gaussian_fn(module.out_proj.weight)
+
             if module.out_proj.bias is not None:
                 torch.nn.init.zeros_(module.out_proj.bias)
 
