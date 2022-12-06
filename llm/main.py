@@ -209,6 +209,9 @@ def main(cfg):
         load_object_store=build_object_store_loader(cfg.get('load_object_store', None))
     )
 
+    import pprint
+    print(f"state: trainer.state: {pprint.pformat(vars(trainer.state))}")
+
     print("Logging config...")
     log_config(cfg)
 

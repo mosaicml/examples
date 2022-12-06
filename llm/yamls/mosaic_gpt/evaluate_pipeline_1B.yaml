@@ -28,11 +28,9 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-# run_name: &run_name mosaic-gpt-760m-16-gpus-divergent
-run_name: &run_name mosaic-gpt-760m-32-gpus-eval-harness
-# run_name: &run_name thirty-billion-adam-run-batch-size-2048-32-gpus-eval-harness
+run_name: &run_name mosaic-gpt-760m-16-gpus-divergent
 
-gpu_num: 32
+gpu_num: 16
 gpu_type: a100_40gb
 cluster: r7z7
 
@@ -150,19 +148,19 @@ parameters:
     eps: 1.0e-08
     weight_decay: 0.0
 
-  # max_duration: 24800ba # ~ 26B tokens
-  # eval_interval: 2000ba
-  # global_train_batch_size: 512
-  max_duration: 143100ba # ~ 600B tokens
-  eval_interval: 10000ba
-  global_train_batch_size: 2048
+  max_duration: 24800ba # ~ 26B tokens
+  eval_interval: 2000ba
+  global_train_batch_size: 512
+  # max_duration: 143100ba # ~ 600B tokens
+  # eval_interval: 10000ba
+  # global_train_batch_size: 2048
   grad_clip_norm: 1.0
 
   # System
   seed: 18
   # device_train_microbatch_size: 16
   # device_train_microbatch_size: auto
-  device_train_microbatch_size: 4
+  device_train_microbatch_size: 2
   precision: bf16
 
   # FSDP
@@ -184,7 +182,7 @@ parameters:
     lr_monitor: {}
     memory_monitor: {}
     lm_eval_harness:
-      every_n_batches: 16
+      every_n_batches: 128
 
   loggers:
     wandb:
@@ -198,6 +196,6 @@ parameters:
   save_interval: 128ba
   save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
   save_folder: ./{run_name}/checkpoints
-  # load_object_store:
-  #   bucket: llm_models
-  # load_path: mosaic-gpt-760m-16-gpus-divergent/checkpoints/ep0-ba13312-rank0.pt
+  load_object_store:
+    bucket: llm_models
+  load_path: mosaic-gpt-760m-16-gpus-divergent/checkpoints/ep0-ba13312-rank0.pt
