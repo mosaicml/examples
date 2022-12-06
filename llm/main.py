@@ -210,8 +210,10 @@ def main(cfg):
     )
 
     import pprint
-    print(f"state: trainer.state: {pprint.pformat(vars(trainer.state))}")
-
+    print(f"trainer.state: {pprint.pformat(vars(trainer.state))}")
+    print(f"trainer.state.timestamp: {pprint.pformat(vars(trainer.state.timestamp))}")
+    trainer.state.timestamp.batch_in_epoch = cfg.get("resume_batch", None) or trainer.state.timestamp.batch_in_epoch
+        
     print("Logging config...")
     log_config(cfg)
 
