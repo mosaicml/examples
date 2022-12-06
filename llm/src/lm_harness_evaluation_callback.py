@@ -152,6 +152,14 @@ def pprint_results(results, indent=0):
 
 
 class EvaluationCallback(Callback):
+    """Callback that runs Elutheur's lm-eval harness.
+    
+    Currently only works for lambada. Different tasks may require different
+    strategies for sharding out data (successive rows in lambada need to be 
+    grouped together within a batch, e.g. [0, 1], [2, 3] but not [1, 2]).
+    Assertion for dataset length should be changed or removed if support for
+    other tasks is added. 
+    """
     def __init__(self, every_n_batches=1024):
         super().__init__()
         self.every_n_batches = every_n_batches
