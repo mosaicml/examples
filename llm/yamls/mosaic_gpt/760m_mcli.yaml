@@ -14,7 +14,7 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: gpt-760m-orthogonal-linear-embedding-gain-1
+run_name: gpt-760m-autoencoder-warmup
 
 gpu_type: a100_40gb
 gpu_num: 8
@@ -40,14 +40,12 @@ parameters:
     max_seq_len: *max_seq_len
     vocab_size: 50257
     init_std: 0.02
-    orthogonal_layers: # alt.: gaussian
-      - linear
-      - embedding
-    gain: 1.05
+    gain: 0.05
     attn_pdrop: 0.0
     resid_pdrop: 0.0
     emb_pdrop: 0.0
     attn_impl: flash
+    autoencoder_pretraining: true
 
   # Tokenizer
   tokenizer:
@@ -104,11 +102,11 @@ parameters:
     lr: 2.5e-4
     betas:
     - 0.9
-    - 0.95
+    - 0.9
     eps: 1.0e-08
     weight_decay: 0.0
 
-  max_duration: 600000ba # ~ 15.2B tokens
+  max_duration: 500ba # ~ 15.2B tokens
   eval_interval: 2000ba
   global_train_batch_size: 256
   grad_clip_norm: 1.0
@@ -146,10 +144,12 @@ parameters:
     wandb: {}
 
   # Checkpoint to local filesystem or remote object store
-  # save_interval: 2000ba
-  # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+  save_interval: 100ba
+  save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
   # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
+  # save_folder: s3://mosaicml-internal-checkpoints-shared/abhi/onboarding/{run_name}/checkpoints
+  save_folder: s3://mosaicml-internal-checkpoints-shared/jeremy/gpt-eval/{run_name}/checkpoints
 
   # Load from local filesystem or remote object store
   # load_path: ./gpt-760m/checkpoints/latest-rank{rank}.pt

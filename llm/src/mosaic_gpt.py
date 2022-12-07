@@ -283,6 +283,7 @@ class ComposerMosaicGPT(ComposerModel):
 
     def __init__(self, cfg):
         super().__init__()
+        self.autoencoder_pretraining = cfg.autoencoder_pretraining if hasattr(cfg, 'autoencoder_pretraining') else False
         self.model = MosaicGPT(cfg)
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
@@ -294,8 +295,11 @@ class ComposerMosaicGPT(ComposerModel):
         }
 
     def get_targets(self, batch):
-        targets = torch.roll(batch['labels'], shifts=-1)
-        targets[:, -1] = -100
+        if self.autoencoder_pretraining:
+            targets = batch['labels']
+        else:
+            targets = torch.roll(batch['labels'], shifts=-1)
+            targets[:, -1] = -100
         return targets
 
     def forward(self, batch):
