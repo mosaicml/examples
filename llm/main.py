@@ -206,11 +206,10 @@ def main(cfg):
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
-        load_object_store=build_object_store_loader(cfg.get('load_object_store', None))
+        load_object_store=build_object_store_loader(cfg.get('load_object_store', None)),
+        save_overwrite=cfg.get('save_overwrite', False),
     )
 
-    import pprint
-    print(f"trainer.state.timestamp: {pprint.pformat(vars(trainer.state.timestamp))}")
     while trainer.state.timestamp.batch < cfg.get("resume_batch", 0):
         trainer.state.timestamp = trainer.state.timestamp.to_next_batch()
         
