@@ -1,4 +1,4 @@
-# Copyright 2022 MosaicML Composer authors
+# Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
 import os
@@ -15,9 +15,9 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
-
 from src.data_c4 import build_c4_dataloader
 from src.lm_harness_evaluation_callback import EvaluationCallback
+from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.mosaic_gpt import ComposerMosaicGPT
 
 
@@ -58,6 +58,7 @@ def build_callback(name, kwargs):
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
+
 def build_optimizer(cfg, model):
     if cfg.name == 'decoupled_adamw':
         return DecoupledAdamW(
@@ -80,42 +81,52 @@ def build_algorithm(name, cfg):
 
 def build_scheduler(cfg):
     if cfg.name == 'constant_with_warmup':
-        return ConstantWithWarmupScheduler(
-            t_warmup=cfg.t_warmup)
+        return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
     elif cfg.name == 'cosine_with_warmup':
-        return CosineAnnealingWithWarmupScheduler(
-            t_warmup=cfg.t_warmup,
-            alpha_f=cfg.alpha_f)
+        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                                  alpha_f=cfg.alpha_f)
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
-# Coming soon: this conversion math will be done inside Composer Trainer rather than entrypoint
-def update_batch_size_info(cfg):
-    global_train_batch_size = cfg.global_train_batch_size
-    device_train_batch_size = global_train_batch_size // dist.get_world_size()
-    device_train_microbatch_size = cfg.device_train_microbatch_size
-    if device_train_microbatch_size == 'auto':
-        device_train_grad_accum = 'auto'
-        device_eval_microbatch_size = 'auto'
-        device_eval_batch_size = device_train_batch_size
-    elif isinstance(device_train_microbatch_size, int):
-        if device_train_microbatch_size > device_train_batch_size:
-            print (f"WARNING: device_train_microbatch_size > device_train_batch_size, will be reduced from {device_train_microbatch_size} -> {device_train_batch_size}.")
-            cfg.device_train_microbatch_size = device_train_batch_size
-            device_train_microbatch_size = device_train_batch_size
-        device_train_grad_accum = device_train_batch_size // device_train_microbatch_size
-        device_eval_microbatch_size = device_train_microbatch_size
-        device_eval_batch_size = device_eval_microbatch_size
-    else:
-        raise ValueError(
-            f'Not sure how to parse {device_train_microbatch_size=}')
 
+def calculate_batch_size_info(global_batch_size, device_microbatch_size):
+    if global_batch_size % dist.get_world_size() != 0:
+        raise ValueError(f'Global batch size {global_batch_size} is not divisible by {dist.get_world_size()} '
+                         'as a result, the batch size would be truncated, please adjust `global_batch_size` '
+                         f'to be divisible by world size, {dist.get_world_size()}.')
+    device_batch_size = global_batch_size // dist.get_world_size()
+    if device_microbatch_size == 'auto':
+        device_grad_accum = 'auto'
+    elif isinstance(device_microbatch_size, int):
+        if device_microbatch_size > device_batch_size:
+            print(
+                f'WARNING: device_microbatch_size > device_batch_size, '
+                f'will be reduced from {device_microbatch_size} -> {device_batch_size}.'
+            )
+            device_microbatch_size = device_batch_size
+        device_grad_accum = device_batch_size // device_microbatch_size
+    else:
+        raise ValueError(f'Not sure how to parse {device_microbatch_size=}')
+
+    return device_batch_size, device_microbatch_size, device_grad_accum
+
+
+# Coming soon: this conversion math will be done inside Composer Trainer
+def update_batch_size_info(cfg):
+    device_train_batch_size, device_train_microbatch_size, device_train_grad_accum = calculate_batch_size_info(
+        cfg.global_train_batch_size, cfg.device_train_microbatch_size)
     cfg.n_gpus = dist.get_world_size()
     cfg.device_train_batch_size = device_train_batch_size
+    cfg.device_train_microbatch_size = device_train_microbatch_size
     cfg.device_train_grad_accum = device_train_grad_accum
-    cfg.device_eval_batch_size = device_eval_batch_size
-    cfg.device_eval_microbatch_size = device_eval_microbatch_size
+    # Safely set `device_eval_batch_size` if not provided by user
+    if 'device_eval_batch_size' not in cfg:
+        if cfg.device_train_microbatch_size == 'auto':
+            cfg.device_eval_batch_size = 1  # TODO debug auto eval microbatching
+        else:
+            cfg.device_eval_batch_size = cfg.device_train_microbatch_size
     return cfg
+
 
 def log_config(cfg):
     print(om.to_yaml(cfg))
@@ -127,13 +138,16 @@ def log_config(cfg):
         if wandb.run:
             wandb.config.update(om.to_container(cfg, resolve=True))
 
-def build_composer_model(cfg):
-    warnings.filterwarnings(action='ignore', message='Torchmetrics v0.9 introduced a new argument class property')
 
-    if cfg.name == 'mosaic_gpt':
-        return ComposerMosaicGPT(cfg)
-    else:
+def build_composer_model(cfg):
+    warnings.filterwarnings(
+        action='ignore',
+        message='Torchmetrics v0.9 introduced a new argument class property')
+    try:
+        return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
+    except:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
+
 
 def build_dataloader(cfg, device_batch_size):
     if cfg.name == 'c4':
@@ -141,18 +155,21 @@ def build_dataloader(cfg, device_batch_size):
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
+
 def main(cfg):
     reproducibility.seed_all(cfg.seed)
 
     # Run Name
-    cfg.run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME', 'llm'))
+    cfg.run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME',
+                                                      'llm'))
 
     # Get batch size info
     cfg = update_batch_size_info(cfg)
 
     # Read FSDP Config as a dict
     fsdp_config = cfg.get('fsdp_config', None)
-    fsdp_config = om.to_container(fsdp_config, resolve=True) if fsdp_config else None
+    fsdp_config = om.to_container(fsdp_config,
+                                  resolve=True) if fsdp_config else None
 
     # Build Model
     # For fast initialization of MosaicGPT, use cfg.model.device='meta'
@@ -162,9 +179,10 @@ def main(cfg):
     print(f'{cfg.n_params=:.2e}')
 
     # Dataloaders
-    print("Building train loader...")
-    train_loader = build_dataloader(cfg.train_loader, cfg.device_train_batch_size)
-    print("Building eval loader...")
+    print('Building train loader...')
+    train_loader = build_dataloader(cfg.train_loader,
+                                    cfg.device_train_batch_size)
+    print('Building eval loader...')
     eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
 
     # Optimizer
@@ -174,10 +192,16 @@ def main(cfg):
     scheduler = build_scheduler(cfg.scheduler)
 
     # Loggers
-    loggers = [build_logger(name, logger_cfg) for name, logger_cfg in cfg.get('loggers', {}).items()]
+    loggers = [
+        build_logger(name, logger_cfg)
+        for name, logger_cfg in cfg.get('loggers', {}).items()
+    ]
 
     # Callbacks
-    callbacks = [build_callback(name, callback_cfg) for name, callback_cfg in cfg.get('callbacks', {}).items()]
+    callbacks = [
+        build_callback(name, callback_cfg)
+        for name, callback_cfg in cfg.get('callbacks', {}).items()
+    ]
 
     algorithms = [build_algorithm(name, algorithm_cfg) for name, algorithm_cfg in cfg.get("algorithms", {}).items()]
 
@@ -193,6 +217,8 @@ def main(cfg):
         schedulers=scheduler,
         max_duration=cfg.max_duration,
         eval_interval=cfg.eval_interval,
+        eval_subset_num_batches=cfg.eval_loader.get('eval_subset_num_batches',
+                                                    -1),
         progress_bar=cfg.progress_bar,
         log_to_console=cfg.log_to_console,
         loggers=loggers,
@@ -200,10 +226,11 @@ def main(cfg):
         precision=cfg.precision,
         grad_clip_norm=cfg.grad_clip_norm,
         grad_accum=cfg.device_train_grad_accum,
-        fsdp_config=fsdp_config,
+        fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
-        save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
+        save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
+                                             -1),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
         load_object_store=build_object_store_loader(cfg.get('load_object_store', None)),
@@ -216,8 +243,10 @@ def main(cfg):
     print("Logging config...")
     log_config(cfg)
 
-    print("Starting training...")
+    print('Starting training...')
     trainer.fit()
+
+    print('Done.')
 
 
 if __name__ == '__main__':

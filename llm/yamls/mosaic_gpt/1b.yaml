@@ -23,6 +23,13 @@ model:
   emb_pdrop: 0.0
   attn_impl: flash
 
+# Tokenizer
+tokenizer:
+  type: hftokenizer
+  args:
+    tokenizer_name: *tokenizer_name
+    max_seq_len: *max_seq_len
+
 # Dataloaders
 train_loader:
   name: c4
@@ -70,8 +77,8 @@ optimizer:
   name: decoupled_adamw
   lr: 2.0e-4
   betas:
-    - 0.9
-    - 0.95
+  - 0.9
+  - 0.95
   eps: 1.0e-08
   weight_decay: 0.0
 
@@ -82,6 +89,7 @@ grad_clip_norm: 1.0
 
 # System
 seed: 17
+device_eval_batch_size: 16
 device_train_microbatch_size: 16
 # device_train_microbatch_size: auto
 precision: bf16
@@ -106,7 +114,7 @@ callbacks:
   memory_monitor: {}
 
 # loggers:
-  # wandb: {}
+#   wandb: {}
 
 # Checkpoint to local filesystem or remote object store
 # save_interval: 2000ba
@@ -117,6 +125,3 @@ callbacks:
 # Load from local filesystem or remote object store
 # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
 # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
-
-
-
