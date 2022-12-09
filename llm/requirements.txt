@@ -2,7 +2,7 @@ torchvision<0.14
 torchtext<0.14
 torch<1.13
 mosaicml[libcloud]==0.11.0
-mosaicml-streaming<1
+mosaicml-streaming<0.2.0
 # flash_attn @ git+https://github.com/HazyResearch/flash-attention.git@main
 transformers<5
 omegaconf<3
