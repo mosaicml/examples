@@ -187,7 +187,7 @@ class EvaluationCallback(Callback):
                 }
             )
 
-            task_names = pattern_match(["lambada"], tasks.ALL_TASKS)
+            task_names = pattern_match(["lambada_openai"], tasks.ALL_TASKS)
             print(f"Selected Tasks: {task_names}")
 
             self.simple_evaluate_args = evaluator.simple_evaluate_args(
