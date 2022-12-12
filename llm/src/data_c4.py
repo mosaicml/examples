@@ -52,16 +52,16 @@ class StreamingC4(StreamingDataset):
         if group_method not in ['truncate', 'concat']:
             raise ValueError(f"group_method='{group_method}' must be one of ['truncate', 'concat'].")
 
-        # Build Dataset
+        # Build StreamingDataset
         super().__init__(remote=remote,
                          local=local,
                          split=split,
                          shuffle=shuffle,
-                        #  prefetch=prefetch,
-                        #  keep_zip=False,
-                         max_retries=retry,
+                         predownload=prefetch,
+                         keep_zip=False,
+                         download_retry=retry,
                          timeout=timeout,
-                        #  hash=None,
+                         validate_hash=None,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
