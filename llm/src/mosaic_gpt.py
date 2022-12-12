@@ -194,7 +194,7 @@ class MosaicGPT(nn.Module):
         else:
             x = tok_emb + pos_emb
             x = self.transformer.emb_drop(
-                x = x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
+                x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
             )
         for block in self.transformer.blocks:  # type: ignore
             x = block(x, key_padding_mask)
