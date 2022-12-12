@@ -145,6 +145,8 @@ class MosaicGPT(nn.Module):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
+        # CogView and GLM-130B papers both report this helping with stabilizing training
+        self.embedding_fraction = cfg.embedding_fraction if 0 < cfg.embedding_fraction < 1 else 1
         self.transformer = nn.ModuleDict(
             dict(
                 wte=nn.Embedding(cfg.vocab_size, cfg.d_model,
@@ -186,7 +188,13 @@ class MosaicGPT(nn.Module):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
         pos_emb = self.transformer.wpe(pos)  # type: ignore
-        x = self.transformer.emb_drop(tok_emb + pos_emb)  # type: ignore
+        if self.embedding_fraction == 1:
+            x = self.transformer.emb_drop(tok_emb + pos_emb)  # type: ignore
+        else:
+            x = tok_emb + pos_emb
+            x = self.transformer.emb_drop(
+                x = x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
+            )
         for block in self.transformer.blocks:  # type: ignore
             x = block(x, key_padding_mask)
         x = self.transformer.ln_f(x)  # type: ignore
