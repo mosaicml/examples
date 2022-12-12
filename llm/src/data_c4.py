@@ -60,7 +60,7 @@ class StreamingC4(StreamingDataset):
                          predownload=prefetch,
                          keep_zip=False,
                          download_retry=retry,
-                         timeout=timeout,
+                         download_timeout=timeout,
                          validate_hash=None,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
