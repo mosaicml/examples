@@ -45,7 +45,8 @@ class StreamingC4(StreamingDataset):
                  group_method: str = 'truncate',
                  retry: int = 2,
                  timeout: float = 120,
-                 batch_size: Optional[int] = None):
+                 batch_size: Optional[int] = None,
+                 shuffle_seed: Optional[int] = None):
         # Validation
         if split not in ['train', 'val']:
             raise ValueError(f"split='{split}' must be one of ['train', 'val'].")
@@ -62,7 +63,8 @@ class StreamingC4(StreamingDataset):
                          download_retry=retry,
                          download_timeout=timeout,
                          validate_hash=None,
-                         batch_size=batch_size)
+                         batch_size=batch_size,
+                         shuffle_seed=shuffle_seed)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
         self.group_method = group_method

@@ -149,9 +149,9 @@ def build_composer_model(cfg):
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
-def build_dataloader(cfg, device_batch_size):
+def build_dataloader(cfg, device_batch_size, shuffle_seed=None):
     if cfg.name == 'c4':
-        return build_c4_dataloader(cfg, device_batch_size)
+        return build_c4_dataloader(cfg, device_batch_size, shuffle_seed=shuffle_seed)
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
@@ -181,7 +181,8 @@ def main(cfg):
     # Dataloaders
     print('Building train loader...')
     train_loader = build_dataloader(cfg.train_loader,
-                                    cfg.device_train_batch_size)
+                                    cfg.device_train_batch_size,
+                                    shuffle_seed=cfg.seed)
     print('Building eval loader...')
     eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
 
