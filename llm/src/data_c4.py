@@ -12,11 +12,11 @@ from typing import Any, Dict, Iterator, Mapping, Optional
 
 import transformers
 from omegaconf import OmegaConf as om
-from streaming import Dataset
+from streaming import StreamingDataset
 from torch.utils.data import DataLoader
 
 
-class StreamingC4(Dataset):
+class StreamingC4(StreamingDataset):
     """
     Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using mosaicml-streaming's Dataset V2.
 
