@@ -57,11 +57,11 @@ class StreamingC4(StreamingDataset):
                          local=local,
                          split=split,
                          shuffle=shuffle,
-                         prefetch=prefetch,
-                         keep_zip=False,
-                         retry=retry,
+                        #  prefetch=prefetch,
+                        #  keep_zip=False,
+                         max_retries=retry,
                          timeout=timeout,
-                         hash=None,
+                        #  hash=None,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
