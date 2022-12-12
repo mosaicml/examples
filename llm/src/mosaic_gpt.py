@@ -145,7 +145,8 @@ class MosaicGPT(nn.Module):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
-        # CogView and GLM-130B papers both report this helping with stabilizing training
+        # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
+        # both report this helping with stabilizing training
         self.embedding_fraction = cfg.get("embedding_fraction", 1)
         assert 0 < self.embedding_fraction <= 1, "model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!"
         self.transformer = nn.ModuleDict(
@@ -193,6 +194,7 @@ class MosaicGPT(nn.Module):
             x = self.transformer.emb_drop(tok_emb + pos_emb)  # type: ignore
         else:
             x = tok_emb + pos_emb
+            # this implementation is proposed on page 7 of the GLM-130B paper https://arxiv.org/abs/2210.02414
             x = self.transformer.emb_drop(
                 x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
             )
