@@ -137,7 +137,7 @@ class StreamingC4(StreamingDataset):
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
 
 
-def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
+def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int, shuffle_seed: Optional[int]=None):
 
     assert cfg.name == 'c4', f'Tried to build c4 dataloader with cfg.name={cfg.name}'
     dataset = StreamingC4(split=cfg.dataset.split,
@@ -148,7 +148,8 @@ def build_c4_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
                             tokenizer_name=cfg.dataset.tokenizer_name,
                             max_seq_len=cfg.dataset.max_seq_len,
                             group_method=cfg.dataset.group_method,
-                            batch_size=device_batch_size)
+                            batch_size=device_batch_size,
+                            shuffle_seed=shuffle_seed)
 
     collate_fn = transformers.DataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer, mlm=False)
