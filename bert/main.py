@@ -184,7 +184,7 @@ def main(cfg):
 
     print('Logging config...')
     config_dict = om.to_container(cfg, resolve=True)
-    assert isinstance(config_dict, (Dict,)) # type checking
+    assert isinstance(config_dict, (Dict,))  # type checking
     config_dict.update({
         'n_gpus': dist.get_world_size(),
         'n_params': n_params,

@@ -199,10 +199,9 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str],
     return configs
 
 
-def run_job_worker(
-        config: om.DictConfig,
-        gpu_queue: Optional[mp.Queue] = None,
-        process_to_gpu: Optional[DictProxy] = None) -> Any:
+def run_job_worker(config: om.DictConfig,
+                   gpu_queue: Optional[mp.Queue] = None,
+                   process_to_gpu: Optional[DictProxy] = None) -> Any:
     """Instantiates the job object and runs it."""
     # need to set seed before model initialization for determinism
     reproducibility.seed_all(config.seed)

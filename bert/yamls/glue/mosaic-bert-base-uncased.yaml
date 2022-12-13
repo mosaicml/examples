@@ -19,7 +19,8 @@ model:
   tokenizer_name: *tokenizer_name
 
 # Loading
-starting_checkpoint_load_path: <checkpoint_from_pretraining> # Fill this in with the composer checkpoint from the end of pre-training a Mosaic BERT
+# (fill this in with the composer checkpoint from the end of pre-training a Mosaic BERT)
+starting_checkpoint_load_path: <checkpoint_from_pretraining>
 local_pretrain_checkpoint_folder: ./local-bert-checkpoints/
 
 # Saving

@@ -43,7 +43,7 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
 
         def num_shards(self):
             it = self.dataset._ex_iterable  # type: ignore
-            return len(it.kwargs['filepaths']) # type: ignore
+            return len(it.kwargs['filepaths'])  # type: ignore
 
         def __iter__(self):
             worker_info = get_worker_info()
@@ -53,7 +53,8 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
                 kwargs = self.dataset._ex_iterable.kwargs  # type: ignore
                 shards = kwargs['filepaths']  # type: ignore
                 assert len(shards) % num_workers == 0
-                kwargs['filepaths'] = shards[worker_id::num_workers]  # type: ignore  # noqa
+                kwargs['filepaths'] = shards[
+                    worker_id::num_workers]  # type: ignore  # noqa
             return iter(self.dataset)
 
     return ShardedC4()
@@ -70,7 +71,7 @@ def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
     """
     # Multiple workers is only supported on linux machines
     if 'linux' in platform.platform().lower():
-        num_workers = min(64, dataset.num_shards()) # type: ignore
+        num_workers = min(64, dataset.num_shards())  # type: ignore
     else:
         num_workers = 0
     batch_size = 512
