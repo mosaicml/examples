@@ -48,8 +48,7 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from transformers.activations import ACT2FN
 from transformers.modeling_outputs import (MaskedLMOutput,
                                            SequenceClassifierOutput)
-from transformers.models.bert.modeling_bert import (BertPredictionHeadTransform,
-                                                    BertPreTrainedModel)
+from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
 try:
     from src.flash_attn_triton import flash_attn_qkvpacked_func
@@ -60,13 +59,17 @@ logger = logging.getLogger(__name__)
 
 
 class BertEmbeddings(nn.Module):
-    """Construct the embeddings from word, NOT position since we use ALiBi and
-    token_type embeddings.
+    """Construct the embeddings for words, ignoring position.
 
-    This module is modeled after the Hugging Face BERT's :class:`~transformers.model.bert.modeling_bert.BertEmbeddings`,
-    but is modified as part of Mosaic BERT's ALiBi implementation.
-    The key change is that position embeddings are removed. Position information instead comes from attention biases
-    that scale linearly with the position distance between query and key tokens.
+    There are no positional embeddings since we use ALiBi and token_type
+    embeddings.
+
+    This module is modeled after the Hugging Face BERT's
+    :class:`~transformers.model.bert.modeling_bert.BertEmbeddings`, but is
+    modified as part of Mosaic BERT's ALiBi implementation. The key change is
+    that position embeddings are removed. Position information instead comes
+    from attention biases that scale linearly with the position distance
+    between query and key tokens.
 
     This module ignores the `position_ids` input to the `forward` method.
     """
@@ -80,8 +83,8 @@ class BertEmbeddings(nn.Module):
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size,
                                                   config.hidden_size)
 
-        # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
-        # any TensorFlow checkpoint file
+        # self.LayerNorm is not snake-cased to stick with TensorFlow model
+        # variable name and be able to load any TensorFlow checkpoint file
         self.LayerNorm = nn.LayerNorm(config.hidden_size,
                                       eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
@@ -186,14 +189,15 @@ class BertUnpadSelfAttention(nn.Module):
         The pad/unpad operations add overhead, but not sending pad tokens through ffs saves compute.
         It is possible to write an unpadded implementation of attention (in Triton and PyTorch), which we will eventually do.
 
-        Arguments:
+        Args:
             hidden_states: (total_nnz, dim)
             cu_seqlens: (batch + 1,)
             max_seqlen_in_batch: int
             indices: (total_nnz,)
             attn_mask: (batch, max_seqlen_in_batch)
             bias: (batch, heads, max_seqlen_in_batch, max_seqlen_in_batch)
-        Return:
+
+        Returns:
             attention: (total_nnz, dim)
         """
         qkv = self.Wqkv(hidden_states)
@@ -239,9 +243,12 @@ class BertUnpadSelfAttention(nn.Module):
 class BertSelfOutput(nn.Module):
     """Computes the output of the attention layer.
 
-    This module is modeled after the Hugging Face BERT's :class:`~transformers.model.bert.modeling_bert.BertSelfOutput`.
-    The implementation is identical. Rather than use the original module directly, we re-implement it here so that
-    Mosaic BERT's modules will not be affected by any Composer surgery algorithm that modifies Hugging Face BERT modules.
+    This module is modeled after the Hugging Face BERT's
+    :class:`~transformers.model.bert.modeling_bert.BertSelfOutput`.
+    The implementation is identical. Rather than use the original module
+    directly, we re-implement it here so that Mosaic BERT's modules will not
+    be affected by any Composer surgery algorithm that modifies Hugging Face
+    BERT modules.
     """
 
     def __init__(self, config):
@@ -260,8 +267,7 @@ class BertSelfOutput(nn.Module):
 
 
 class BertUnpadAttention(nn.Module):
-    """Combines the self-attention and self-output modules into the Mosaic BERT
-    attention layer."""
+    """Chains attention, Dropout, and LayerNorm for Mosaic BERT."""
 
     def __init__(self, config):
         super().__init__()
@@ -278,7 +284,8 @@ class BertUnpadAttention(nn.Module):
         attn_mask: Optional[torch.Tensor] = None,
         bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """
+        """Forward pass for scaled self-attention without padding.
+
         Arguments:
             input_tensor: (total_nnz, dim)
             cu_seqlens: (batch + 1,)
@@ -326,9 +333,11 @@ class BertGatedLinearUnitMLP(nn.Module):
                                       eps=config.layer_norm_eps)
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        """
+        """Compute new hidden states from current hidden states.
+
         Args:
-            hidden_states (torch.Tensor): The (unpadded) hidden states from the attention layer [nnz, dim].
+            hidden_states (torch.Tensor): The (unpadded) hidden states from
+                the attention layer [nnz, dim].
         """
         residual_connection = hidden_states
         # compute the activation
@@ -362,8 +371,9 @@ class BertLayer(nn.Module):
         attn_mask: Optional[torch.Tensor] = None,
         bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """
-        Arguments:
+        """Forward pass for a BERT layer, including both attention and MLP.
+
+        Args:
             hidden_states: (total_nnz, dim)
             cu_seqlens: (batch + 1,)
             seqlen: int
@@ -546,9 +556,11 @@ class BertPredictionHeadTransform(nn.Module):
 
 
 class BertModel(BertPreTrainedModel):
-    """BERT model ("Bidirectional Embedding Representations from a Transformer").
-    Params:
+    """Overall BERT model.
+
+    Args:
         config: a BertConfig class instance with the configuration to build a new model
+
     Inputs:
         `input_ids`: a torch.LongTensor of shape [batch_size, sequence_length]
             with the word token indices in the vocabulary(see the tokens preprocessing logic in the scripts
@@ -561,6 +573,7 @@ class BertModel(BertPreTrainedModel):
             input sequence length in the current batch. It's the mask that we typically use for attention when
             a batch has varying length sentences.
         `output_all_encoded_layers`: boolean which controls the content of the `encoded_layers` output as described below. Default: `True`.
+
     Outputs: Tuple of (encoded_layers, pooled_output)
         `encoded_layers`: controlled by `output_all_encoded_layers` argument:
             - `output_all_encoded_layers=True`: outputs a list of the full sequences of encoded-hidden-states at the end
@@ -571,6 +584,7 @@ class BertModel(BertPreTrainedModel):
         `pooled_output`: a torch.FloatTensor of size [batch_size, hidden_size] which is the output of a
             classifier pretrained on top of the hidden state associated to the first character of the
             input (`CLS`) to train on the Next-Sentence task (see BERT's paper).
+
     Example usage:
     ```python
     # Already been converted into WordPiece token ids
@@ -785,17 +799,17 @@ class BertForMaskedLM(BertPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple[torch.Tensor], MaskedLMOutput]:
-        r"""labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`,
-
-        *optional*): Labels for computing the masked language modeling loss.
-        Indices should be in `[-100, 0, ..., config.vocab_size]` (see
-        `input_ids` docstring) Tokens with indices set to `-100` are ignored
-        (masked), the loss is only computed for the tokens with labels in `[0,
-        ..., config.vocab_size]`
-
-        Prediction scores are only computed for masked tokens and the (bs,
-        seqlen) dimensions are flattened
-        """
+        # labels should be a `torch.LongTensor` of shape
+        # `(batch_size, sequence_length)`. These are used for computing the
+        #  masked language modeling loss.
+        #
+        # Indices should be in `[-100, 0, ..., config.vocab_size]` (see
+        # `input_ids` docstring) Tokens with indices set to `-100` are ignored
+        # (masked), the loss is only computed for the tokens with labels in `[0,
+        # ..., config.vocab_size]`
+        #
+        # Prediction scores are only computed for masked tokens and the (bs,
+        # seqlen) dimensions are flattened
         if (input_ids is not None) != (inputs_embeds is not None):
             raise ValueError('Must specify either input_ids or input_embeds!')
 
@@ -880,8 +894,11 @@ class BertForNextSentencePrediction(BertPreTrainedModel):
 
 
 class BertForSequenceClassification(BertPreTrainedModel):
-    """Bert Model transformer with a sequence classification/regression head on
-    top (a linear layer on top of the pooled output) e.g. for GLUE tasks."""
+    """Bert Model transformer with a sequence classification/regression head.
+
+    This head is just a linear layer on top of the pooled output. Used for,
+    e.g., GLUE tasks.
+    """
 
     def __init__(self, config):
         super().__init__(config)
@@ -943,13 +960,13 @@ class BertForSequenceClassification(BertPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple[torch.Tensor], SequenceClassifierOutput]:
-        r"""labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
-        Labels for computing the sequence classification/regression loss.
-        Indices should be in `[0, ...,
+        # labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
+        # Labels for computing the sequence classification/regression loss.
+        # Indices should be in `[0, ..., config.num_labels - 1]`.
+        # If `config.num_labels == 1` a regression loss is computed
+        # (mean-square loss). If `config.num_labels > 1` a classification loss
+        # is computed (cross-entropy).
 
-        config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss), If
-        `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
-        """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if labels is None:
@@ -1021,7 +1038,10 @@ class BertForTokenClassification(BertPreTrainedModel):
 
 
 class BertForQuestionAnswering(BertPreTrainedModel):
-    """Bert Model with a span classification head on top for extractive
-    question-answering tasks like SQuAD (a linear layers on top of the hidden-
-    states output to compute `span start logits` and `span end logits`)."""
+    """Bert Model with a span classification head.
+
+    This is used for extractive question-answering tasks like SQuAD (a linear
+    layers on top of the hidden states' output to compute `span start logits`
+    and `span end logits`).
+    """
     #TBD: Push in future commit

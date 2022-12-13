@@ -28,39 +28,39 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
 
      For more information, see `Transformers <https://huggingface.co/transformers/>`_.
 
-     Args:
-         pretrained_model_name (str): Name of the Hugging Face model to instantiate. Default: ``'bert-base-uncased'``.
-         use_pretrained (bool, optional): Whether to initialize the model with the pretrained weights. Default: ``False``.
-         model_config (dict): The settings used to create a Hugging Face BertConfig. BertConfig is used to specify the
-             architecture of a Hugging Face model.
-         tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset and validate the models inputs.
-         gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
+    Args:
+        pretrained_model_name (str): Name of the Hugging Face model to instantiate. Default: ``'bert-base-uncased'``.
+        use_pretrained (bool, optional): Whether to initialize the model with the pretrained weights. Default: ``False``.
+        model_config (dict): The settings used to create a Hugging Face BertConfig. BertConfig is used to specify the
+            architecture of a Hugging Face model.
+        tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset and validate the models inputs.
+        gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
 
-         .. code-block::
+        .. code-block::
 
-             {
-               "_name_or_path": "bert-base-uncased",
-               "architectures": ["BertForMaskedLM"],
-               "attention_probs_dropout_prob": 0.1,
-               "classifier_dropout": null,
-               "gradient_checkpointing": false,
-               "hidden_act": "gelu",
-               "hidden_dropout_prob": 0.1,
-               "hidden_size": 768,
-               "initializer_range": 0.02,
-               "intermediate_size": 3072,
-               "layer_norm_eps": 1e-12,
-               "max_position_embeddings": 512,
-               "model_type": "bert",
-               "num_attention_heads": 12,
-               "num_hidden_layers": 12,
-               "pad_token_id": 0,
-               "position_embedding_type": "absolute",
-               "transformers_version": "4.16.0",
-               "type_vocab_size": 2,
-               "use_cache": true,
-               "vocab_size": 30522
-             }
+            {
+              "_name_or_path": "bert-base-uncased",
+              "architectures": ["BertForMaskedLM"],
+              "attention_probs_dropout_prob": 0.1,
+              "classifier_dropout": null,
+              "gradient_checkpointing": false,
+              "hidden_act": "gelu",
+              "hidden_dropout_prob": 0.1,
+              "hidden_size": 768,
+              "initializer_range": 0.02,
+              "intermediate_size": 3072,
+              "layer_norm_eps": 1e-12,
+              "max_position_embeddings": 512,
+              "model_type": "bert",
+              "num_attention_heads": 12,
+              "num_hidden_layers": 12,
+              "pad_token_id": 0,
+              "position_embedding_type": "absolute",
+              "transformers_version": "4.16.0",
+              "type_vocab_size": 2,
+              "use_cache": true,
+              "vocab_size": 30522
+            }
 
     To create a |:hugging_face:| BERT model for Masked Language Model pretraining:
 

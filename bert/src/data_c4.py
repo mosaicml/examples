@@ -16,8 +16,7 @@ from torch.utils.data import DataLoader
 
 
 class StreamingC4(Dataset):
-    """Implementation of the C4 (Colossal Cleaned Common Crawl) dataset using
-    mosaicml-streaming's Dataset V2.
+    """Colossal Cleaned Common Crawl dataset using streaming datasets V2.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset is stored.

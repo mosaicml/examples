@@ -22,9 +22,10 @@ class IndexFirstAxis(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input: torch.Tensor,
                 indices: torch.Tensor) -> torch.Tensor:
-        """get just the values of `input` which are at `indices`
+        """Get just the values of `input` which are at `indices`.
 
         Arguments:
+            ctx: the autograd context object
             input: (b, ...) 2+ dimensional tensor
             indices: (num_idx) 1D tensor
         """
@@ -92,11 +93,13 @@ def unpad_input(
     hidden_states: torch.Tensor,
     attention_mask: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
-    """
+    """Remove padding from input sequences.
+
     Arguments:
         hidden_states: (batch, seqlen, ...)
         attention_mask: (batch, seqlen), bool / int, 1 means valid and 0 means not valid.
-    Return:
+
+    Returns:
         hidden_states: (total_nnz, ...), where total_nnz = number of tokens in selected in attention_mask.
         indices: (total_nnz)
         cu_seqlens: (batch + 1), the cumulative sequence lengths, used to index into hidden_states.
@@ -121,13 +124,15 @@ def unpad_input_only(
     hidden_states: torch.Tensor,
     attention_mask: torch.Tensor,
 ) -> torch.Tensor:
-    """like unpad_input, but only return the unpadded first tensor.
+    """Like unpad_input, but only return the unpadded first tensor.
 
     Save a small amount of overhead.
+
     Arguments:
         hidden_states: (batch, seqlen, ...)
         attention_mask: (batch, seqlen), bool / int, 1 means valid and 0 means not valid.
-    Return:
+
+    Returns:
         hidden_states: (total_nnz, ...), where total_nnz = number of tokens in selected in attention_mask.
     """
     indices = torch.nonzero(attention_mask.flatten(), as_tuple=False).flatten()
@@ -137,13 +142,15 @@ def unpad_input_only(
 
 def pad_input(hidden_states: torch.Tensor, indices: torch.Tensor, batch: int,
               seqlen: int) -> torch.Tensor:
-    """
+    """Add padding to sequences.
+
     Arguments:
         hidden_states: (total_nnz, ...), where total_nnz = number of tokens in selected in attention_mask.
         indices: (total_nnz)
         batch: int batch_size
         seqlen: int max sequence length
-    Return:
+
+    Returns:
         hidden_states: (batch, seqlen, ...)
     """
     output = index_put_first_axis(hidden_states, indices, batch * seqlen)

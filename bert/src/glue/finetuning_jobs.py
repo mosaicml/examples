@@ -124,13 +124,14 @@ class FineTuneJob:
             gpu_queue: Optional[mp.Queue] = None,
             process_to_gpu: Optional[managers.DictProxy] = None
            ) -> Dict[str, Any]:
-        """Trains the model, optionally pulling a GPU id from the queue. Returns
-        a dict with keys:
+        """Trains the model, optionally pulling a GPU id from the queue.
 
-        * 'checkpoints': list of saved_checkpoints, if any,
-        * 'metrics': nested dict of results, accessed by
-                     dataset and metric name, e.g.
-                     ``metrics['glue_mnli']['Accuracy']``.
+        Returns:
+            A dict with keys:
+            * 'checkpoints': list of saved_checkpoints, if any,
+            * 'metrics': nested dict of results, accessed by
+                        dataset and metric name, e.g.
+                        ``metrics['glue_mnli']['Accuracy']``.
         """
         if gpu_queue is None:
             if torch.cuda.device_count() > 0:

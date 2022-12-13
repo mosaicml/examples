@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""# coding=utf-8
+"""Triton implementation of Flash Attention.
 
 # Copyright (c) 2022, Tri Dao.
 #
@@ -20,6 +20,7 @@
 *Experimental* implementation of FlashAttention in Triton.
 We use the FlashAttention implementation from Phil Tillet a starting point.
 https://github.com/openai/triton/blob/master/python/tutorials/06-fused-attention.py
+
 Changes:
 - Implement both causal and non-causal attention.
 - Implement both self-attention and cross-attention.
@@ -30,6 +31,7 @@ Changes:
 - Make the backward for d=128 much faster by reducing register spilling.
 - Optionally parallelize the backward pass across seqlen_k, to deal with the case of
 small batch size * nheads.
+
 Caution:
 - If you plan to use headdim other than 64 and 128, you should test for race conditions
 (due to the Triton compiler), as done in tests/test_flash_attn.py
@@ -992,15 +994,20 @@ def _flash_attn_backward(do,
     dq.copy_(dq_accum)
 
 
-class FlashAttnQKVPackedFunc(torch.autograd.Function):
+class _FlashAttnQKVPackedFunc(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, qkv, bias=None, causal=False, softmax_scale=None):
-        """
+        """Forward pass for packed FlashAttention.
+
+        Args:
+            ctx: autograd context
             qkv: (batch, seqlen, 3, nheads, headdim)
             bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
                 For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
                 ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+            causal (bool): whether to incorporate causal attention masking
+            softmax_scale (float, optional): scale factor for softmax
         """
         # Make sure that the last dimension is contiguous
         if qkv.stride(-1) != 1:
@@ -1040,19 +1047,25 @@ class FlashAttnQKVPackedFunc(torch.autograd.Function):
         return dqkv, None, None, None
 
 
-flash_attn_qkvpacked_func = FlashAttnQKVPackedFunc.apply
+flash_attn_qkvpacked_func = _FlashAttnQKVPackedFunc.apply
 
 
-class FlashAttnFunc(torch.autograd.Function):
+class _FlashAttnFunc(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, q, k, v, bias=None, causal=False, softmax_scale=None):
-        """
+        """Forward pass for FlashAttention.
+
+        Args:
+            ctx: autograd context
             q: (batch_size, seqlen_q, nheads, headdim)
-            k, v: (batch_size, seqlen_k, nheads, headdim)
+            k: (batch_size, seqlen_k, nheads, headdim)
+            v: (batch_size, seqlen_k, nheads, headdim)
             bias: optional, shape broadcastible to (batch, nheads, seqlen_q, seqlen_k).
                 For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen_k).
                 ALiBi mask for non-causal would have shape (1, nheads, seqlen_q, seqlen_k)
+            causal (bool): whether to incorporate causal attention masking
+            softmax_scale (float, optional): scale factor for softmax
         """
         # Make sure that the last dimension is contiguous
         q, k, v = [
@@ -1090,4 +1103,4 @@ class FlashAttnFunc(torch.autograd.Function):
         return dq, dk, dv, None, None, None
 
 
-flash_attn_func = FlashAttnFunc.apply
+flash_attn_func = _FlashAttnFunc.apply

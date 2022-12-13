@@ -337,7 +337,8 @@ def _print_averaged_glue_results(glue_results: List[Tuple[str, float]]) -> None:
 
 
 def train(config: om.DictConfig) -> None:
-    """
+    """Main training logic.
+
     Args:
         config (DictConfig): Configuration composed by OmegaConf
     """
