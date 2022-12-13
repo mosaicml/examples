@@ -6,8 +6,8 @@ import atexit
 import copy
 import gc
 import multiprocessing as mp
-from multiprocessing import managers
 import os
+from multiprocessing import managers
 from typing import Any, Dict, List, Optional, Union, cast
 
 import torch
@@ -120,11 +120,10 @@ class FineTuneJob:
             return self._job_name
         return self.__class__.__name__
 
-    def run(
-        self,
-        gpu_queue: Optional[mp.Queue] = None,
-        process_to_gpu: Optional[managers.DictProxy] = None
-    ) -> Dict[str, Any]:
+    def run(self,
+            gpu_queue: Optional[mp.Queue] = None,
+            process_to_gpu: Optional[managers.DictProxy] = None
+           ) -> Dict[str, Any]:
         """Trains the model, optionally pulling a GPU id from the queue. Returns
         a dict with keys:
 

@@ -99,11 +99,11 @@ class BertEmbeddings(nn.Module):
         past_key_values_length: int = 0,
     ) -> torch.Tensor:
         if (input_ids is not None) != (inputs_embeds is not None):
-            raise ValueError("Must specify either input_ids or input_embeds!")
+            raise ValueError('Must specify either input_ids or input_embeds!')
         if input_ids is not None:
             input_shape = input_ids.size()
         else:
-            assert inputs_embeds is not None # just for type checking
+            assert inputs_embeds is not None  # just for type checking
             input_shape = inputs_embeds.size()[:-1]
 
         seq_length = input_shape[1]
@@ -122,7 +122,7 @@ class BertEmbeddings(nn.Module):
                 buffered_token_type_ids = self.token_type_ids[:, :seq_length]
                 buffered_token_type_ids_expanded = buffered_token_type_ids.expand(
                     input_shape[0], seq_length)
-                token_type_ids = buffered_token_type_ids_expanded # type: ignore
+                token_type_ids = buffered_token_type_ids_expanded  # type: ignore
             else:
                 token_type_ids = torch.zeros(input_shape,  # type: ignore
                                              dtype=torch.long,
@@ -797,7 +797,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         seqlen) dimensions are flattened
         """
         if (input_ids is not None) != (inputs_embeds is not None):
-            raise ValueError("Must specify either input_ids or input_embeds!")
+            raise ValueError('Must specify either input_ids or input_embeds!')
 
         masked_lm_labels = labels
         if masked_lm_labels is None:
@@ -832,7 +832,7 @@ class BertForMaskedLM(BertPreTrainedModel):
         masked_lm_loss = loss_fct(prediction_scores,
                                   masked_lm_labels.flatten()[masked_token_idx])
 
-        assert input_ids is not None, "Coding error; please open an issue"
+        assert input_ids is not None, 'Coding error; please open an issue'
         batch, seqlen = input_ids.shape[:2]
         prediction_scores = rearrange(index_put_first_axis(
             prediction_scores, masked_token_idx, batch * seqlen),

@@ -47,8 +47,8 @@ It is slightly slower when headdim=128 and batch * nheads is large.
 import math
 
 import torch
-import triton
-import triton.language as tl
+import triton  # type: ignore (reportMissingImports)
+import triton.language as tl  # type: ignore (reportMissingImports)
 from einops import repeat
 
 
@@ -212,7 +212,8 @@ def _fwd_kernel(
                                    ((start_n + offs_n)[None, :] < seqlen_k),
                                    other=0.0).to(tl.float32)
             else:
-                raise ValueError("BIAS_TYPE must be one of {'vector', 'matrix'}")
+                raise ValueError(
+                    "BIAS_TYPE must be one of {'vector', 'matrix'}")
             # Slightly faster to multiply the softmax_scale in the tl.exp below since the compiler
             # can then fuse the mult and add into an fma instruction. But if we have bias we need to
             # to multiply with softmax_scale here.
@@ -452,7 +453,8 @@ def _bwd_kernel_one_col_block(
                                    (offs_n[None, :] < seqlen_k),
                                    other=0.0).to(tl.float32)
             else:
-                raise ValueError("BIAS_TYPE must be one of {'vector', 'matrix'}")
+                raise ValueError(
+                    "BIAS_TYPE must be one of {'vector', 'matrix'}")
             qk = qk * softmax_scale + bias
         # There seems to be a race condition when headdim=48/96, and dq, dk, dv are wrong.
         # Also wrong for headdim=64.
@@ -799,7 +801,7 @@ def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
         assert bias.shape[:2] == (
             batch, nheads
         ), 'First 2 dimensions of bias must be broadcastible to (batch, nheads)'
-    assert bias is not None # for type checking
+    assert bias is not None  # for type checking
     bias_strides = (bias.stride(0), bias.stride(1),
                     bias.stride(2)) if has_bias else (0, 0, 0)
 
@@ -927,7 +929,7 @@ def _flash_attn_backward(do,
         assert bias.shape[:2] == (
             batch, nheads
         ), 'First 2 dimensions of bias must be broadcastible to (batch, nheads)'
-    assert bias is not None # type checking
+    assert bias is not None  # type checking
     bias_strides = (bias.stride(0), bias.stride(1),
                     bias.stride(2)) if has_bias else (0, 0, 0)
 
@@ -936,7 +938,7 @@ def _flash_attn_backward(do,
     # num_warps = 4
     grid = lambda META: (triton.cdiv(seqlen_k, META['BLOCK_N'])
                          if META['SEQUENCE_PARALLEL'] else 1, batch * nheads)
-    _bwd_kernel[grid]( # type: ignore
+    _bwd_kernel[grid](  # type: ignore
         q,
         k,
         v,
