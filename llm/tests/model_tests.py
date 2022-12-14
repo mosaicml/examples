@@ -1,7 +1,9 @@
 # Copyright 2022 MosaicML Benchmarks authors
 # SPDX-License-Identifier: Apache-2.0
 
+import copy
 import os
+import pytest
 import warnings
 from typing import cast
 
@@ -180,3 +182,43 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     optimizer.step()
     updated_params = next(model.parameters()).clone().data
     assert not torch.equal(original_params, updated_params)
+
+@pytest.mark.parametrize('attention_type', ['torch', 'flash'])
+def test_determinism(attention_type: str):
+    conf_path='yamls/mosaic_gpt/125m.yaml'
+    with open(conf_path) as f:
+        test_cfg = om.load(f)
+
+    test_cfg.model.attn_impl = attention_type
+    test_cfg.model.device = 'cuda:0'
+    test_cfg.device = 'cuda:0'
+
+    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model).to(test_cfg.model.device)
+    model_2 = copy.deepcopy(model_1)
+
+    optimizer_1 = DecoupledAdamW(model_1.parameters(),
+                               lr=test_cfg.optimizer.lr,
+                               betas=test_cfg.optimizer.betas,
+                               eps=test_cfg.optimizer.eps,
+                               weight_decay=test_cfg.optimizer.weight_decay)
+    optimizer_2 = DecoupledAdamW(model_2.parameters(),
+                               lr=test_cfg.optimizer.lr,
+                               betas=test_cfg.optimizer.betas,
+                               eps=test_cfg.optimizer.eps,
+                               weight_decay=test_cfg.optimizer.weight_decay)
+
+    for i in range(50):
+        with torch.cuda.amp.autocast(True, torch.float16):
+            batch = gen_random_batch(2, test_cfg)
+            output_1 = model_1(batch)
+            output_2 = model_2(batch)
+            assert output_1.allclose(output_2, rtol=0.0, atol=0.0), f'differed at step {i}'
+
+            loss_1 = model_1.loss(output_1, batch)
+            loss_2 = model_2.loss(output_2, batch)
+            loss_1.backward()
+            loss_2.backward()
+            optimizer_1.step()
+            optimizer_2.step()
+
+
