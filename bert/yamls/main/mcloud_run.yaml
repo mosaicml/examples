@@ -25,7 +25,8 @@ command: |
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
 # is the config that `main.py` uses in the above command.
 parameters:
-  data_remote: &data_remote # Supply a path to your remote dataset
+  # Supply a path to your remote dataset and, optionally, local dataset
+  data_remote:
   data_local: &data_local /tmp/mds-cache/
 
   max_seq_len: &max_seq_len 128
@@ -45,7 +46,7 @@ parameters:
   train_loader:
     name: c4
     dataset:
-      remote: *data_remote # Supply a path to your remote dataset
+      remote:
       local: *data_local
       split: train
       prefetch: 1_000_000
@@ -64,7 +65,7 @@ parameters:
   eval_loader:
     name: c4
     dataset:
-      remote: *data_remote # Supply a path to your remote dataset
+      remote:
       local: *data_local
       split: val
       prefetch: 1000
