@@ -194,7 +194,7 @@ def test_determinism(attention_type: str, precision):
     if not torch.cuda.is_available():
         pytest.skip('This test requires CUDA to be available in order to run with bfloat16 precision.')
     reproducibility.seed_all(1111)
-    reproducibility.configure_deterministic_mode()
+
     conf_path='yamls/mosaic_gpt/125m.yaml'
     with open(conf_path) as f:
         test_cfg = om.load(f)
@@ -217,7 +217,7 @@ def test_determinism(attention_type: str, precision):
                                eps=test_cfg.optimizer.eps,
                                weight_decay=test_cfg.optimizer.weight_decay)
 
-    for i in range(5):
+    for i in range(50):
         with torch.cuda.amp.autocast(True, precision):
             batch = gen_random_batch(2, test_cfg)
             output_1 = model_1(batch)
