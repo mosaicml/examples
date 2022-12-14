@@ -112,11 +112,15 @@ def main(cfg):
 
     # Get batch size info
     if cfg.global_train_batch_size % dist.get_world_size() != 0:
-        raise ValueError(f'Global batch size {cfg.global_train_batch_size} is not divisible by {dist.get_world_size()} '
-                         'as a result, the batch size would be truncated, please adjust `global_train_batch_size` '
-                         f'to be divisible by world size, {dist.get_world_size()}.')
-    device_train_batch_size = cfg.global_train_batch_size // dist.get_world_size()
-    device_eval_batch_size = cfg.get('global_eval_batch_size', cfg.global_train_batch_size) // dist.get_world_size()
+        raise ValueError(
+            f'Global batch size {cfg.global_train_batch_size} is not divisible by {dist.get_world_size()} '
+            'as a result, the batch size would be truncated, please adjust `global_train_batch_size` '
+            f'to be divisible by world size, {dist.get_world_size()}.')
+    device_train_batch_size = cfg.global_train_batch_size // dist.get_world_size(
+    )
+    device_eval_batch_size = cfg.get(
+        'global_eval_batch_size',
+        cfg.global_train_batch_size) // dist.get_world_size()
 
     # Dataloaders
     print('Building train loader...')
