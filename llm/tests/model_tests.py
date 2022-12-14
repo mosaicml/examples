@@ -208,7 +208,7 @@ def test_determinism(attention_type: str):
                                weight_decay=test_cfg.optimizer.weight_decay)
 
     for i in range(50):
-        with torch.cuda.amp.autocast(True, torch.float16):
+        with torch.cuda.amp.autocast(True, torch.bfloat16):
             batch = gen_random_batch(2, test_cfg)
             output_1 = model_1(batch)
             output_2 = model_2(batch)
@@ -216,6 +216,7 @@ def test_determinism(attention_type: str):
 
             loss_1 = model_1.loss(output_1, batch)
             loss_2 = model_2.loss(output_2, batch)
+            assert loss_1 == loss_2
             loss_1.backward()
             loss_2.backward()
             optimizer_1.step()
