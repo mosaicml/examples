@@ -26,7 +26,7 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                        gradient_checkpointing: Optional[bool] = False):
     """BERT model based on |:hugging_face:| Transformers.
 
-     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
+    For more information, see `Transformers <https://huggingface.co/transformers/>`_.
 
     Args:
         pretrained_model_name (str): Name of the Hugging Face model to instantiate. Default: ``'bert-base-uncased'``.
