@@ -187,7 +187,8 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     ('torch', torch.float16),
     ('torch', torch.bfloat16),
     ('flash', torch.float16),
-    # Note: Whether this test fails or not depends on the random seed, and how many steps are run for
+    # Note: Whether this test fails or not depends on the random seed, how many steps are run for,
+    # and possibly other stuff like torch/cuda version. It is flaky.
     pytest.param('flash', torch.bfloat16, marks=pytest.mark.xfail)
 ])
 def test_determinism(attention_type: str, precision):
@@ -217,7 +218,7 @@ def test_determinism(attention_type: str, precision):
                                eps=test_cfg.optimizer.eps,
                                weight_decay=test_cfg.optimizer.weight_decay)
 
-    for i in range(50):
+    for i in range(5):
         with torch.cuda.amp.autocast(True, precision):
             batch = gen_random_batch(2, test_cfg)
             output_1 = model_1(batch)
