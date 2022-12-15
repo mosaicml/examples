@@ -7,6 +7,7 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 """
 
 import math
+import warnings
 from functools import partial
 from typing import Optional
 
@@ -170,6 +171,9 @@ class MosaicGPT(nn.Module):
         self.transformer.wte._fsdp_wrap = False  # type: ignore
         self.lm_head._fsdp_wrap = False  # type: ignore
         self.lm_head.weight = self.transformer.wte.weight  # type: ignore
+        if cfg.device == 'meta':
+            # TODO: remove warning when fixed
+            warnings.warn(f'device={cfg.device} embedding weight tying will be broken by FSDP')
 
         if cfg.device != 'meta':
             self.apply(self.param_init_fn)
