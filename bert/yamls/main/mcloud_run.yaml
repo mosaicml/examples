@@ -26,7 +26,7 @@ command: |
 # is the config that `main.py` uses in the above command.
 parameters:
   # Supply a path to your remote dataset and, optionally, local dataset
-  data_remote:
+  data_remote: &data_remote ''
   data_local: &data_local /tmp/mds-cache/
 
   max_seq_len: &max_seq_len 128
@@ -46,7 +46,7 @@ parameters:
   train_loader:
     name: c4
     dataset:
-      remote:
+      remote: *data_remote
       local: *data_local
       split: train
       prefetch: 1_000_000
@@ -65,7 +65,7 @@ parameters:
   eval_loader:
     name: c4
     dataset:
-      remote:
+      remote: *data_remote
       local: *data_local
       split: val
       prefetch: 1000
