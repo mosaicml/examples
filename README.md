@@ -1,4 +1,4 @@
-# examples
+# Examples
 
 Fast reference examples for training ML models with recipes. Designed to be easily forked and modified.
 ## ResNet-50 + ImageNet
