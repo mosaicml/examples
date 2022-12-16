@@ -67,13 +67,15 @@ scheduler:
   alpha_f: 0.1
 
 optimizer:
-  name: decoupled_adamw
+  name: ope_step_adam
   lr: 2.5e-4
   betas:
-  - 0.9
-  - 0.95
+    - 0.9
+    - 0.95
   eps: 1.0e-08
-  weight_decay: 0.0
+  weight_decay: 0.0001
+  percentile_cutoff: 0.85
+  warmup: 5000
 
 algorithms:
   gradient_clipping:
