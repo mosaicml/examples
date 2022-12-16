@@ -28,7 +28,7 @@ cat /tmp/requirements.txt
 pip install -U -r /tmp/requirements.txt
 rm /tmp/requirements.txt
 
-pytest tests/*
+pytest tests
 
 echo "Cleaning up venv..."
 deactivate
