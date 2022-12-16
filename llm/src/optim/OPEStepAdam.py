@@ -49,7 +49,7 @@ class OPEStepAdam(DecoupledAdamW):
 
     
     @staticmethod
-    def fame_adam(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
+    def adam_step(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
               exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], state_steps: List[int], 
               online_percentile_estimates: List[OnlinePercentileEstimate], *,
               beta1: float, beta2: float, lr: float, initial_lr: float, weight_decay: float,
@@ -99,7 +99,7 @@ class OPEStepAdam(DecoupledAdamW):
             else:
                 update = (exp_avg_sq.sqrt()).add_(eps)
 
-            update.power_(-1).mul_(-lr*exp_avg)
+            update.pow_(-1).mul_(-lr*exp_avg)
             update_norm = torch.linalg.vector_norm(update)
             percentile_cutoff = ope.query_threshold()
             ope.push(update_norm)
@@ -172,7 +172,7 @@ class OPEStepAdam(DecoupledAdamW):
                 state['step'] += 1
                 # record the step after step update
                 state_steps.append(state['step'])
-            self.fame_adam(params_with_grad,
+            self.adam_step(params_with_grad,
                        grads,
                        exp_avgs,
                        exp_avg_sqs,
@@ -186,9 +186,7 @@ class OPEStepAdam(DecoupledAdamW):
                        weight_decay=weight_decay,
                        eps=eps,
                        warmup=self.warmup,
-                       amsgrad=amsgrad,
-                       lr_slowdown=self.lr_slowdown,
-                       skip_outliers=self.skip_outliers)
+                       amsgrad=amsgrad)
 
         return loss
 
