@@ -32,7 +32,7 @@ style:  ## Apply autoformating and run style checks via pre-commit
 	pre-commit run --all-files
 
 # we don't test the BERT examples since there are no tests yet...
-.PHONY: style
+.PHONY: test
 test:  ## Run all the tests
 	@echo "================================ Testing CIFAR examples"
 	bash scripts/test_benchmark.sh cifar
