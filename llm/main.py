@@ -13,7 +13,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
-from src.data import build_c4_dataloader, build_the_pile_dataloader, build_text_dataloader
+from src.text_data import build_c4_dataloader, build_the_pile_dataloader, build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
