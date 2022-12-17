@@ -122,7 +122,6 @@ class OPEStepAdam(DecoupledAdamW):
                     continue
                 else:
                     layerwise_lr.mul_(1+lr_decay)
-            breakpoint()
 
             param.add_(update)
           
