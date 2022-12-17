@@ -194,7 +194,6 @@ def build_the_pile_dataloader(cfg: DictConfig, device_batch_size: int):
 
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out
-# Currently tests c4 data but can be updated to use any dataset.
 if __name__ == '__main__':
     remote = sys.argv[1]
     ds_name = 'c4' if 'c4' in remote else 'the_pile' if 'pile' in remote else 'dataset'
