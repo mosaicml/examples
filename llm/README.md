@@ -16,7 +16,7 @@ We even packed in a few tricks (e.g. [FlashAttention](https://github.com/HazyRes
 
 You'll find in this folder:
 * `src/mosaic_gpt.py` - a simple PyTorch GPT model, wrapped in `ComposerModel`, that can scale up to 70B parameters
-* `src/data_c4.py` - a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
+* `src/data.py` - a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
 * `main.py` - a script that builds a [Composer](https://github.com/mosaicml/composer) Trainer and calls `trainer.fit()`.
 * `yamls/` - pre-baked configs for training compute-optimal LLMs from 125M up to 70B parameters.
 
@@ -87,12 +87,12 @@ To verify that the dataloader works, run a quick test on your `val` split like s
 # This will construct a `StreamingC4` dataset from your `val` split,
 # pass it into a PyTorch Dataloader, and iterate over it and print samples.
 # Since remote and local are set to the same path, no streaming/copying takes place.
-python src/data_c4.py ./my-copy-c4 ./my-copy-c4
+python src/data.py ./my-copy-c4 ./my-copy-c4
 
 # This will do the same thing, but stream data from {remote} -> {local}.
 # The remote path can be a filesystem or object store URI.
-python src/data_c4.py ./my-copy-c4 /tmp/cache-c4
-python src/data_c4.py s3://my-bucket/my-copy-c4 /tmp/cache-c4
+python src/data.py ./my-copy-c4 /tmp/cache-c4
+python src/data.py s3://my-bucket/my-copy-c4 /tmp/cache-c4
 ```
 
 # How to start training
