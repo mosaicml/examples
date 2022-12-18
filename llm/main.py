@@ -8,7 +8,6 @@ import warnings
 from composer import Trainer, algorithms
 from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
@@ -16,13 +15,7 @@ from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.speed_monitor_w_mfu import SpeedMonitorMFU
-from src.optim import OPEStepAdam
-
-
-OPTIMIZERS = {
-    "decoupled_adamw": DecoupledAdamW, 
-    "ope_step_adam": OPEStepAdam
-}
+from src.optim import OPTIMIZERS
 
 
 def build_logger(name, kwargs):

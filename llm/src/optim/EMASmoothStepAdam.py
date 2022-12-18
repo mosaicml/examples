@@ -9,7 +9,7 @@ class EMASmoothStepAdam(DecoupledAdamW):
     def __init__(self,
                 params: Union[Iterable[torch.Tensor], Iterable[dict]],
                 lr: float = 1e-3,
-                betas: Tuple[float, float] = (0.9, 0.95, 0.7),
+                betas: Tuple[float, float] = (0.9, 0.95, 0.95),
                 eps: float = 1e-8,
                 weight_decay: float = 1e-5):
         super().__init__(params=params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
@@ -73,8 +73,6 @@ class EMASmoothStepAdam(DecoupledAdamW):
             # adjust update norm
             param.add_(update, alpha=-1)
 
-
-          
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -152,6 +150,5 @@ class EMASmoothStepAdam(DecoupledAdamW):
         if param in self.state:
             param_optim_state = self.state[param]
             optimizer_metrics[f"update_norm_ema/{name}"] = param_optim_state['update_norm_ema']
-            
             
         return optimizer_metrics
