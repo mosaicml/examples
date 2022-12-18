@@ -5,7 +5,7 @@ from src.optim.EMASmoothStepAdam import EMASmoothStepAdam
 from composer.optim import DecoupledAdamW
 
 __all__ = [
-   "AdaBound", "EMASmoothStepAdam", "OPEStepAdam"
+   "AdaBound", "EMASmoothStepAdam", "OPEStepAdam", "DecoupledAdamW"
 ]
 
 OPTIMIZERS = {

@@ -149,6 +149,6 @@ class EMASmoothStepAdam(DecoupledAdamW):
         optimizer_metrics = super().report_per_parameter_metrics(param, name, optimizer_metrics)
         if param in self.state:
             param_optim_state = self.state[param]
-            optimizer_metrics[f"update_norm_ema/{name}"] = param_optim_state['update_norm_ema']
+            optimizer_metrics[f"update_norm_ema/{name}"] = param_optim_state['update_norm_ema'].item()
             
         return optimizer_metrics

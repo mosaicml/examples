@@ -214,9 +214,9 @@ class OPEStepAdam(DecoupledAdamW):
         optimizer_metrics = super().report_per_parameter_metrics(param, name, optimizer_metrics)
         if param in self.state:
             param_optim_state = self.state[param]
-            optimizer_metrics[f"layerwise_lr/{name}"] = param_optim_state['lr']
-            optimizer_metrics[f"ope/threshold_estimate/{name}"] = param_optim_state['ope'].query_threshold()
+            optimizer_metrics[f"layerwise_lr/{name}"] = param_optim_state['lr'].item()
+            optimizer_metrics[f"ope/threshold_estimate/{name}"] = param_optim_state['ope'].query_threshold().item()
             optimizer_metrics[f"ope/outlier_counter/{name}"] = param_optim_state['ope'].outlier_counter
-            optimizer_metrics[f"ope/ope_step_size/{name}"] = param_optim_state['ope'].step
+            optimizer_metrics[f"ope/ope_step_size/{name}"] = param_optim_state['ope'].step.item()
 
         return optimizer_metrics
