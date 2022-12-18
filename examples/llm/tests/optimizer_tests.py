@@ -4,7 +4,7 @@
 import os
 import warnings
 from typing import cast
-from src.optim import OPEStepAdam
+from src.optim import OPEStepAdam, AdaBound
 import torch
 from composer.utils import reproducibility
 from omegaconf import DictConfig
@@ -86,6 +86,35 @@ def test_full_ope_step_adam(batch_size=2):
                                skip_outliers=False,
                                lr_decay=0.02,
                                warmup=0)
+
+    for _ in range(2):
+        batch = gen_random_batch(batch_size, test_cfg)
+
+        assert batch['input_ids'].shape == torch.Size(
+            [batch_size, test_cfg.max_seq_len])
+        model.train()
+        original_params = next(model.parameters()).clone().data
+        outputs = model(batch)
+        loss = model.loss(outputs, batch)
+        loss.backward()
+        optimizer.step()
+        print(loss)
+        updated_params = next(model.parameters()).clone().data
+        assert not torch.equal(original_params, updated_params)
+
+
+def test_full_adabound(batch_size=2):
+    test_cfg, model = get_objs(
+        conf_path='yamls/mosaic_gpt/125m.yaml')
+
+    # Optimizer
+    optimizer = AdaBound(model.parameters(),
+                               lr=test_cfg.optimizer.lr,
+                               betas=test_cfg.optimizer.betas,
+                               eps=test_cfg.optimizer.eps,
+                               weight_decay=test_cfg.optimizer.weight_decay,
+                               target_lr=0.01,
+                               gamma=0.999)
 
     for _ in range(2):
         batch = gen_random_batch(batch_size, test_cfg)
