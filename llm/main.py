@@ -13,7 +13,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
-from src.text_data import build_c4_dataloader, build_the_pile_dataloader, build_text_dataloader
+from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
@@ -118,16 +118,11 @@ def build_composer_model(cfg):
 
 
 def build_dataloader(cfg, device_batch_size):
-    if cfg.name == 'c4':
-        return build_c4_dataloader(cfg, device_batch_size)
-    elif cfg.name == 'the_pile':
-        return build_the_pile_dataloader(cfg, device_batch_size)
-    else:
-        try:
-            # try building generic text dataloader
-            return build_text_dataloader(cfg, device_batch_size)
-        except:
-            raise ValueError(f'Not sure how to build model with name={cfg.name}')
+    try:
+        # try building generic text dataloader
+        return build_text_dataloader(cfg, device_batch_size)
+    except:
+        raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
 def main(cfg):

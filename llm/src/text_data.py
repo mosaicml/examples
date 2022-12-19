@@ -182,16 +182,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
     )
 
 
-def build_c4_dataloader(cfg: DictConfig, device_batch_size: int):
-    assert cfg.name == 'c4', f'Tried to build c4 dataloader with cfg.name={cfg.name}'
-    return build_text_dataloader(cfg, device_batch_size)
-
-
-def build_the_pile_dataloader(cfg: DictConfig, device_batch_size: int):
-    assert cfg.name == 'the_pile', f'Tried to build the_pile dataloader with cfg.name={cfg.name}'
-    return build_text_dataloader(cfg, device_batch_size)
-
-
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out
 if __name__ == '__main__':
@@ -203,10 +193,7 @@ if __name__ == '__main__':
         local = f'/tmp/{ds_name}' if 's3' in remote else remote
     print(f'Reading val split of {ds_name} dataset from {remote} -> {local}')
 
-    datalaoder_fn = build_c4_dataloader if 'c4' in remote else build_the_pile_dataloader if 'pile' in remote else build_text_dataloader
-
     cfg = {
-        'name': ds_name,
         'dataset': {
             'remote': remote,
             'local': local,
@@ -222,12 +209,12 @@ if __name__ == '__main__':
         'pin_memory': True,
         'prefetch_factor': 2,
         'persistent_workers': True,
-        'timeout': 30,
+        'timeout': 60,
     }
     cfg = om.create(cfg)
     device_batch_size = 2
 
-    loader = datalaoder_fn(cfg, device_batch_size)
+    loader = build_text_dataloader(cfg, device_batch_size)
     tokenizer = loader.dataset.tokenizer  # type: ignore
     for batch_ix, batch in enumerate(islice(loader, 5)):
         print('\n')

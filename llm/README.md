@@ -50,7 +50,7 @@ Here's what you need to get started with our LLM stack:
   * `omegaconf`
   * `wandb`
 
-* Prepare a local copy of the C4 dataset via instructions below.
+* Prepare a local copy of the dataset via instructions below.
 
 # Dataset preparation
 To run training, you'll need to make yourself a local copy of the pre-training dataset.
@@ -58,7 +58,7 @@ If you only want to profile these LLMs, we recommend that you **only download an
 and use it for both train and eval in your script. Just change `split: train` to `split: val` in your run YAML, [e.g. here](./yamls/mosaic_gpt/125m.yaml#L32).
 Alternatively, feel free to substitute our dataloader with one of your own in the entrypoint [main.py](./main.py#L93)!
 
-In this benchmark, we train LLMs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4).
+As an example, we train LLMs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4).
 We first convert the dataset from its native format (a collection of zipped JSONs)
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
@@ -84,7 +84,7 @@ python convert_c4.py --out_root ./my-copy-c4 --splits train
 To verify that the dataloader works, run a quick test on your `val` split like so:
 
 ```bash
-# This will construct a `StreamingC4` dataset from your `val` split,
+# This will construct a `StreamingTextDataset` dataset from your `val` split,
 # pass it into a PyTorch Dataloader, and iterate over it and print samples.
 # Since remote and local are set to the same path, no streaming/copying takes place.
 python src/text_data.py ./my-copy-c4 ./my-copy-c4
