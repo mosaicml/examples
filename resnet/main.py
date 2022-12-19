@@ -13,7 +13,7 @@ from composer.algorithms import (EMA, SAM, BlurPool, ChannelsLast, ColOut,
                                  LabelSmoothing, MixUp, ProgressiveResizing,
                                  RandAugment, StochasticDepth)
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import ProgressBarLogger, WandBLogger
+from composer.loggers import WandBLogger
 from composer.optim import CosineAnnealingWithWarmupScheduler, DecoupledSGDW
 from composer.utils import dist
 from data import build_imagenet_dataspec
@@ -22,11 +22,7 @@ from omegaconf import DictConfig, OmegaConf
 
 
 def build_logger(name: str, kwargs: Dict):
-    if name == 'progress_bar':
-        return ProgressBarLogger(
-            log_traces=kwargs.get('log_traces', False),
-        )
-    elif name == 'wandb':
+    if name == 'wandb':
         return WandBLogger(**kwargs)
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
@@ -188,6 +184,7 @@ def main(config):
     precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
+        progress_bar=config.progress_bar,
         model=composer_model,
         train_dataloader=train_dataspec,
         eval_dataloader=eval_dataspec,
