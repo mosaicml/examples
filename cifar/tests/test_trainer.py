@@ -1,4 +1,4 @@
-# Copyright 2022 MosaicML Benchmarks authors
+# Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
 import os
@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-# TODO: this should be removed when benchmarks has a setup.py i.e. installable
+# TODO: this should be removed when examples has a setup.py i.e. installable
 sys.path.append('.')
 
 import torch
@@ -37,6 +37,9 @@ def test_trainer(use_recipe):
         # Train
         trainer1 = main(config)
         model1 = trainer1.state.model.module
+
+        # TODO avoid tests taking a long time to exit without this
+        trainer1.state.dataloader._iterator._shutdown_workers()  # type: ignore
 
         # Check that the checkpoint was saved
         chkpt_path = os.path.join(tmp_datadir, 'ep0-ba1-rank0.pt')
