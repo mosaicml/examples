@@ -41,8 +41,6 @@ class OPEStepAdam(DecoupledAdamW):
                 skip_outliers: bool = False,
                 lr_decay: float = 0.02):
         super().__init__(params=params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad)
-        for group in self.param_groups:
-            group['initial_lr'] = group['lr']
         self.target_percentile_cutoff = percentile_cutoff
         self.warmup = max(warmup, 1)
         self.skip_outliers = skip_outliers
@@ -81,7 +79,6 @@ class OPEStepAdam(DecoupledAdamW):
             exp_avg_sq = exp_avg_sqs[i]
             step = state_steps[i]
             layerwise_lr = layerwise_lrs[i]
-          
             if step == 1:
                 beta1 = 0
                 beta2 = 0
@@ -151,7 +148,7 @@ class OPEStepAdam(DecoupledAdamW):
             beta1, beta2 = group['betas']
             amsgrad = group['amsgrad']
             eps = group['eps']
-            initial_lr = group['lr']
+            initial_lr = group['initial_lr']
             weight_decay = group['weight_decay']
 
             for p in group['params']:
