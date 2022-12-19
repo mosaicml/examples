@@ -86,7 +86,7 @@ def test_full_ope_step_adam(batch_size=4):
                                weight_decay=test_cfg.optimizer.weight_decay,
                                skip_outliers=False,
                                lr_decay=0.02,
-                               warmup=5000
+                               warmup=0
                             )
 
     for _ in range(2):

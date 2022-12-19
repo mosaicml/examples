@@ -50,9 +50,9 @@ class OPEStepAdam(DecoupledAdamW):
     
     @staticmethod
     def adam_step(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
-              exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], layerwise_lrs: List[torch.Tensor],
+              exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], layerwise_lr_scaling: List[torch.Tensor],
               state_steps: List[int], online_percentile_estimates: List[OnlinePercentileEstimate], *,
-              beta1: float, beta2: float, initial_lr: float, weight_decay: float,
+              beta1: float, beta2: float, lr: float, initial_lr: float, weight_decay: float,
               eps: float, warmup: int, amsgrad:bool, skip_outliers: bool,
               lr_decay: bool) -> None:
         r"""Functional API that performs AdamW algorithm computation with decoupled weight decay.
@@ -78,7 +78,8 @@ class OPEStepAdam(DecoupledAdamW):
             exp_avg = exp_avgs[i]
             exp_avg_sq = exp_avg_sqs[i]
             step = state_steps[i]
-            layerwise_lr = layerwise_lrs[i]
+            layerwise_lr_scale = layerwise_lr_scaling[i]
+            
             if step == 1:
                 beta1 = 0
                 beta2 = 0
@@ -94,12 +95,14 @@ class OPEStepAdam(DecoupledAdamW):
             else:
                 update = (exp_avg_sq.sqrt()).add_(eps)
 
+
+            effective_lr = lr * layerwise_lr_scale.item()
             # calculate the gradient-based update
-            update.pow_(-1).mul_(-layerwise_lr*exp_avg)
+            update.pow_(-1).mul_(exp_avg)
 
             # Perform stepweight decay
             if weight_decay != 0:
-                decay_factor = (layerwise_lr.item() / initial_lr) if initial_lr else 1.0
+                decay_factor = (effective_lr / initial_lr) if initial_lr else 1.0
                 update.add_(param, alpha=-decay_factor * weight_decay)
 
             update_norm = torch.linalg.vector_norm(update)
@@ -111,16 +114,17 @@ class OPEStepAdam(DecoupledAdamW):
                 if skip_outliers:
                     continue
                 else:
-                    layerwise_lr.mul_(1-lr_decay)
+                    layerwise_lr_scale.mul_(1-lr_decay)
             elif update_norm < percentile_cutoff and step > warmup and random.random() > ope.target_percentile:
                 # if we are under the percentile, decrease it only 1-percentile pctg of the time
                 # i.e. if percentile is 95%, decrease the percentile only 5% of the time
                 if skip_outliers:
                     continue
                 else:
-                    layerwise_lr.mul_(1+lr_decay)
-
-            param.add_(update)
+                    layerwise_lr_scale.mul_(1+lr_decay)
+            
+            
+            param.add_(update*-effective_lr)
           
 
     @torch.no_grad()
@@ -141,7 +145,7 @@ class OPEStepAdam(DecoupledAdamW):
             online_percentile_estimates = []
             grads = []
             exp_avgs = []
-            layerwise_lrs = []
+            layerwise_lr_scaling = []
             exp_avg_sqs = []
             max_exp_avg_sqs = []
             state_steps = []
@@ -149,6 +153,8 @@ class OPEStepAdam(DecoupledAdamW):
             amsgrad = group['amsgrad']
             eps = group['eps']
             initial_lr = group['initial_lr']
+            lr = group['lr']
+
             weight_decay = group['weight_decay']
 
             for p in group['params']:
@@ -173,10 +179,10 @@ class OPEStepAdam(DecoupledAdamW):
                         state['max_exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
 
                     state['ope'] = OnlinePercentileEstimate(self.target_percentile_cutoff)
-                    state['lr'] = torch.tensor(initial_lr)
+                    state['layerwise_lr_scaling'] = torch.tensor(1.0)
                 
                 online_percentile_estimates.append(state['ope'])
-                layerwise_lrs.append(state['lr'])
+                layerwise_lr_scaling.append(state['layerwise_lr_scaling'])
                 exp_avgs.append(state['exp_avg'])
                 exp_avg_sqs.append(state['exp_avg_sq'])
                 if amsgrad:
@@ -191,11 +197,12 @@ class OPEStepAdam(DecoupledAdamW):
                        exp_avgs,
                        exp_avg_sqs,
                        max_exp_avg_sqs,
-                       layerwise_lrs,
+                       layerwise_lr_scaling,
                        state_steps,
                        online_percentile_estimates,
                        beta1=beta1,
                        beta2=beta2,
+                       lr=lr,
                        initial_lr=initial_lr,
                        weight_decay=weight_decay,
                        eps=eps,
@@ -211,7 +218,7 @@ class OPEStepAdam(DecoupledAdamW):
         optimizer_metrics = super().report_per_parameter_metrics(param, name, optimizer_metrics)
         if param in self.state:
             param_optim_state = self.state[param]
-            optimizer_metrics[f"layerwise_lr/{name}"] = param_optim_state['lr'].item()
+            optimizer_metrics[f"layerwise_lr_scaling/{name}"] = param_optim_state['layerwise_lr_scaling'].item()
             optimizer_metrics[f"ope/threshold_estimate/{name}"] = param_optim_state['ope'].query_threshold().item()
             optimizer_metrics[f"ope/outlier_counter/{name}"] = param_optim_state['ope'].outlier_counter
             optimizer_metrics[f"ope/ope_step_size/{name}"] = param_optim_state['ope'].step.item()

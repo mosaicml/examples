@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterable, List, Tuple, Union
 from composer.optim import DecoupledAdamW
 import torch
-
+import math
 
 class EMASmoothStepAdam(DecoupledAdamW):
     def __init__(self,
@@ -68,7 +68,8 @@ class EMASmoothStepAdam(DecoupledAdamW):
             update_norm_ema.mul_(beta3).add_(update_norm, alpha=(1-beta3))
 
             # renormalize the update
-            update.div_(update_norm).mul_(update_norm_ema)
+            if update_norm > 0:
+                update.div_(update_norm).mul_(update_norm_ema)
 
             # adjust update norm
             param.add_(update, alpha=-1)
@@ -117,7 +118,7 @@ class EMASmoothStepAdam(DecoupledAdamW):
                     state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                     # Exponential moving average of squared gradient values
                     state['exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                    state['update_norm_ema'] = torch.tensor(0.0)
+                    state['update_norm_ema'] = torch.tensor(0.0).to(device=p.data.device)
 
                 exp_avgs.append(state['exp_avg'])
                 exp_avg_sqs.append(state['exp_avg_sq'])
@@ -146,9 +147,28 @@ class EMASmoothStepAdam(DecoupledAdamW):
 
 
     def report_per_parameter_metrics(self, param: torch.Tensor, name: str, optimizer_metrics: dict):
-        optimizer_metrics = super().report_per_parameter_metrics(param, name, optimizer_metrics)
+        
+        lr = self.param_groups[0]['lr']
+        eps = self.param_groups[0]['eps']
+        weight_decay = self.param_groups[0]['weight_decay']
+        initial_lr = self.param_groups[0]['initial_lr']
+
+        beta1, beta2, _ = self.param_groups[0]['betas']
         if param in self.state:
             param_optim_state = self.state[param]
             optimizer_metrics[f"update_norm_ema/{name}"] = param_optim_state['update_norm_ema'].item()
             
+            step = param_optim_state['step']
+            bias_correction1 = 1 - beta1**step
+            bias_correction2 = 1 - beta2**step
+            denom = (param_optim_state['exp_avg_sq'].sqrt() / math.sqrt(bias_correction2)).add_(eps)
+            step_size = lr / bias_correction1
+            step_tensor = step_size * param_optim_state['exp_avg'].div(denom)
+            decay_factor = (lr / initial_lr) if initial_lr else 1.0
+            step_tensor.add_(param, alpha=-weight_decay * decay_factor).div_(torch.linalg.vector_norm(step_tensor)).mul_(param_optim_state['update_norm_ema'])
+            for metric in self.metric_functions:
+                optimizer_metrics[f'{metric}/{name}'] = self.metric_functions[metric](param, param_optim_state,
+                                                                                      step_tensor).item()
         return optimizer_metrics
+
+       
