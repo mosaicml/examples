@@ -1,6 +1,7 @@
 seed: &seed 17
 data_remote: &data_remote ./my-copy-c4
 data_local: &data_local ./my-copy-c4
+num_canonical_nodes: &num_canonical_nodes 8
 max_seq_len: &max_seq_len 2048
 tokenizer_name: &tokenizer_name gpt2
 
@@ -42,6 +43,7 @@ train_loader:
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: concat
+    num_canonical_nodes: *num_canonical_nodes
   drop_last: true
   num_workers: 8
   pin_memory: true
@@ -60,6 +62,7 @@ eval_loader:
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: truncate
+    num_canonical_nodes: *num_canonical_nodes
   drop_last: false
   num_workers: 8
   pin_memory: true
