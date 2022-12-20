@@ -17,7 +17,7 @@ def get_config(conf_path='yamls/mosaic_gpt/125m.yaml'):
 
 
 def test_correct_padding(batch_size=32):
-    pytest.xfail('Streaming v0.2.0 as a bug...')
+    pytest.xfail('Streaming v0.2.0 has a bug...')
     if not os.path.isdir('./my-copy-c4/val'):
         pytest.xfail('c4 dataset not set up as expected')
 
