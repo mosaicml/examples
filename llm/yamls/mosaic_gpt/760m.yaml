@@ -1,3 +1,4 @@
+seed: &seed 17
 data_remote: &data_remote ./my-copy-c4
 data_local: &data_local ./my-copy-c4
 max_seq_len: &max_seq_len 2048
@@ -46,7 +47,8 @@ train_loader:
   pin_memory: true
   prefetch_factor: 2
   persistent_workers: true
-  timeout: 120
+  timeout: 300
+  seed: *seed
 
 eval_loader:
   dataset:
@@ -63,7 +65,8 @@ eval_loader:
   pin_memory: true
   prefetch_factor: 2
   persistent_workers: true
-  timeout: 120
+  timeout: 300
+  seed: *seed
 
 # Optimization
 scheduler:
@@ -86,7 +89,6 @@ global_train_batch_size: 256
 grad_clip_norm: 1.0
 
 # System
-seed: 17
 device_eval_batch_size: 4
 device_train_microbatch_size: 4
 # device_train_microbatch_size: auto
