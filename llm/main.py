@@ -118,11 +118,12 @@ def build_composer_model(cfg):
 
 
 def build_dataloader(cfg, device_batch_size):
+    return build_text_dataloader(cfg, device_batch_size)
     try:
         # try building generic text dataloader
         return build_text_dataloader(cfg, device_batch_size)
     except:
-        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+        raise ValueError(f'Not sure how to build dataloader')
 
 
 def main(cfg):
