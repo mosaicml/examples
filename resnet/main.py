@@ -185,6 +185,8 @@ def main(config):
     trainer = Trainer(
         run_name=config.run_name,
         progress_bar=config.progress_bar,
+        log_to_console=config.log_to_console,
+        console_log_interval=config.console_log_interval,
         model=composer_model,
         train_dataloader=train_dataspec,
         eval_dataloader=eval_dataspec,
