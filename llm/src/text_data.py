@@ -215,7 +215,8 @@ if __name__ == '__main__':
             'prefetch': 100,
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
-            'group_method': 'truncate'
+            'group_method': 'truncate',
+            'num_canonical_nodes': None,
         },
         'drop_last': False,
         'num_workers': 2,
@@ -224,7 +225,6 @@ if __name__ == '__main__':
         'persistent_workers': True,
         'timeout': 120,
         'seed': 17,
-        'num_canonical_nodes': None,
     }
     cfg = om.create(cfg)
     device_batch_size = 2
