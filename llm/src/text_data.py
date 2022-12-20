@@ -11,47 +11,62 @@ from typing import Any, Dict, Iterator, Optional
 import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from streaming import Dataset
-from torch.utils.data import DataLoader
+from streaming import StreamingDataset, StreamingDataLoader
+# from torch.utils.data import DataLoader
 
 
-class StreamingTextDataset(Dataset):
-    """Generic implementation of a text dataset using MosaicML's streaming Dataset V2.
+class StreamingTextDataset(StreamingDataset):
+    """Generic implementation of a streaming text dataset using MosaicML's StreamingDataset.
 
-    Args:
-        remote (str): Remote directory (S3 or local filesystem) where dataset
-            is stored.
-        local (str): Local filesystem directory where dataset is cached
-            during operation.
-        split (str): The dataset split to use, either 'train' or 'val'.
-        shuffle (bool): Whether to shuffle the samples in this dataset.
-        prefetch (int): Target number of samples remaining to prefetch
-            while iterating.
-        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
-            tokenize samples.
-        max_seq_len (int): The max sequence length of each sample.
-        group_method (str): How to group text samples into token samples.
-            Supports 'truncate' or 'concat'.
-        retry (int): Number of download re-attempts before giving up.
-            Default: 2.
-        timeout (float): How long to wait for shard to download before
-            raising an exception. Default: 120 sec.
-        batch_size (Optional[int]): Hint batch_size that will be used on
-            each device's DataLoader. Default: ``None``.
+    # Args:
+    #     remote (str): Remote directory (S3 or local filesystem) where dataset
+    #         is stored.
+    #     local (str): Local filesystem directory where dataset is cached
+    #         during operation.
+    #     split (str): The dataset split to use, either 'train' or 'val'.
+    #     shuffle (bool): Whether to shuffle the samples in this dataset.
+    #     prefetch (int): Target number of samples remaining to prefetch
+    #         while iterating.
+    #     tokenizer_name (str): The name of the HuggingFace tokenizer to use to
+    #         tokenize samples.
+    #     max_seq_len (int): The max sequence length of each sample.
+    #     group_method (str): How to group text samples into token samples.
+    #         Supports 'truncate' or 'concat'.
+    #     retry (int): Number of download re-attempts before giving up.
+    #         Default: 2.
+    #     timeout (float): How long to wait for shard to download before
+    #         raising an exception. Default: 120 sec.
+    #     batch_size (Optional[int]): Hint batch_size that will be used on
+    #         each device's DataLoader. Default: ``None``.
     """
 
     def __init__(self,
-                 remote: str,
-                 local: str,
-                 split: str,
-                 shuffle: bool,
-                 prefetch: int,
+                 local,
                  tokenizer_name: str,
                  max_seq_len: int,
                  group_method: str = 'truncate',
-                 retry: int = 2,
-                 timeout: float = 120,
+                 remote: Optional[str] = None,
+                 split: str = None,
+                 shuffle: bool = False,
+                 predownload: Optional[int] = 100000,
+                 download_retry: int = 2,
+                 download_timeout: float = 120,
+                 shuffle_seed: Optional[int] = None,
+                 num_canonical_nodes: Optional[int] = None,
                  batch_size: Optional[int] = None):
+                # (self,
+                #  remote: str,
+                #  local: str,
+                #  split: str,
+                #  shuffle: bool,
+                #  prefetch: int,
+                #  tokenizer_name: str,
+                #  max_seq_len: int,
+                #  group_method: str = 'truncate',
+                #  retry: int = 2,
+                #  timeout: float = 120,
+                #  batch_size: Optional[int] = None):
+                
         # Validation
         if split not in ['train', 'val']:
             raise ValueError(
@@ -62,16 +77,29 @@ class StreamingTextDataset(Dataset):
             )
 
         # Build Dataset
-        super().__init__(remote=remote,
-                         local=local,
+        super().__init__(local=local,
+                         remote=remote,
                          split=split,
                          shuffle=shuffle,
-                         prefetch=prefetch,
+                         predownload=predownload,
                          keep_zip=False,
-                         retry=retry,
-                         timeout=timeout,
-                         hash=None,
+                         download_retry=download_retry,
+                         download_timeout=download_timeout,
+                         validate_hash=None,
+                         shuffle_seed=shuffle_seed,
+                         num_canonical_nodes=num_canonical_nodes,
                          batch_size=batch_size)
+                        #  remote=remote,
+                        #  local=local,
+                        #  split=split,
+                        #  shuffle=shuffle,
+                        #  prefetch=prefetch,
+                        #  keep_zip=False,
+                        #  retry=retry,
+                        #  timeout=timeout,
+                        #  hash=None,
+                        #  batch_size=batch_size)
+
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
         self.group_method = group_method
@@ -153,15 +181,27 @@ class StreamingTextDataset(Dataset):
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
     dataset = StreamingTextDataset(
-        split=cfg.dataset.split,
-        remote=cfg.dataset.remote,
         local=cfg.dataset.local,
-        shuffle=cfg.dataset.shuffle,
-        prefetch=cfg.dataset.prefetch,
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
         group_method=cfg.dataset.group_method,
-        batch_size=device_batch_size
+        remote=cfg.dataset.remote,
+        split=cfg.dataset.split,
+        shuffle=cfg.dataset.shuffle,
+        predownload=cfg.dataset.prefetch,
+        download_timeout=cfg.timeout,
+        # shuffle_seed=,        TODO
+        # num_canonical_nodes=, TODO
+        batch_size=device_batch_size,
+        # split=cfg.dataset.split,
+        # remote=cfg.dataset.remote,
+        # local=cfg.dataset.local,
+        # shuffle=cfg.dataset.shuffle,
+        # prefetch=cfg.dataset.prefetch,
+        # tokenizer_name=cfg.dataset.tokenizer_name,
+        # max_seq_len=cfg.dataset.max_seq_len,
+        # group_method=cfg.dataset.group_method,
+        # batch_size=device_batch_size
     )
 
     collate_fn = transformers.DataCollatorForLanguageModeling(
@@ -169,7 +209,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         mlm=False
     )
 
-    return DataLoader(
+    return StreamingDataLoader(
         dataset,
         collate_fn=collate_fn,
         batch_size=device_batch_size,
