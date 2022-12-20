@@ -177,7 +177,6 @@ def main(cfg):
         callbacks=callbacks,
         precision=cfg.precision,
         device=cfg.get('device', None),
-        grad_clip_norm=cfg.grad_clip_norm,
         grad_accum=cfg.get('grad_accum', 'auto'),
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
