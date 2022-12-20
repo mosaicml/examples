@@ -27,7 +27,7 @@ train_loader:
     remote: *data_remote
     local: *data_local
     split: train
-    prefetch: 1_000_000
+    predownload: 1_000_000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: truncate
@@ -46,7 +46,7 @@ eval_loader:
     remote: *data_remote
     local: *data_local
     split: val
-    prefetch: 1000
+    predownload: 1000
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: truncate

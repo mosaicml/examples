@@ -11,11 +11,11 @@ from typing import Any, Dict, Iterator, Optional
 import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from streaming import Dataset
+from streaming import StreamingDataset
 from torch.utils.data import DataLoader
 
 
-class StreamingC4(Dataset):
+class StreamingC4(StreamingDataset):
     """Colossal Cleaned Common Crawl dataset using streaming datasets V2.
 
     Args:
@@ -23,12 +23,12 @@ class StreamingC4(Dataset):
         local (str): Local filesystem directory where dataset is cached during operation.
         split (str): The dataset split to use, either 'train' or 'val'.
         shuffle (bool): Whether to shuffle the samples in this dataset.
-        prefetch (int): Target number of samples remaining to prefetch while iterating.
+        predownload (int): Target number of samples remaining to prefetch while iterating.
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to tokenize samples.
         max_seq_len (int): The max sequence length of each token sample.
         group_method (str): How to group text samples into token samples. Supports 'truncate' or 'concat'.
-        retry (int): Number of download re-attempts before giving up. Default: 2.
-        timeout (float): How long to wait for shard to download before raising an exception. Default: 120 sec.
+        download_retry (int): Number of download re-attempts before giving up. Default: 2.
+        download_timeout (float): How long to wait for shard to download before raising an exception. Default: 120 sec.
         batch_size (Optional[int]): Hint batch_size that will be used on each device's DataLoader. Default: ``None``.
     """
 
@@ -37,12 +37,12 @@ class StreamingC4(Dataset):
                  local: str,
                  split: str,
                  shuffle: bool,
-                 prefetch: int,
+                 predownload: int,
                  tokenizer_name: str,
                  max_seq_len: int,
                  group_method: str = 'truncate',
-                 retry: int = 2,
-                 timeout: float = 120,
+                 download_retry: int = 2,
+                 download_timeout: float = 120,
                  batch_size: Optional[int] = None):
         # Validation
         if split not in ['train', 'val']:
@@ -58,10 +58,10 @@ class StreamingC4(Dataset):
                          local=local,
                          split=split,
                          shuffle=shuffle,
-                         prefetch=prefetch,
+                         predownload=predownload,
                          keep_zip=False,
-                         retry=retry,
-                         timeout=timeout,
+                         download_retry=download_retry,
+                         download_timeout=download_timeout,
                          hash=None,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
@@ -147,7 +147,7 @@ def build_c4_dataloader(cfg: DictConfig, device_batch_size: int):
                           remote=cfg.dataset.remote,
                           local=cfg.dataset.local,
                           shuffle=cfg.dataset.shuffle,
-                          prefetch=cfg.dataset.prefetch,
+                          predownload=cfg.dataset.predownload,
                           tokenizer_name=cfg.dataset.tokenizer_name,
                           max_seq_len=cfg.dataset.max_seq_len,
                           group_method=cfg.dataset.group_method,
@@ -188,7 +188,7 @@ if __name__ == '__main__':
             'local': local,
             'split': 'val',
             'shuffle': True,
-            'prefetch': 1000,
+            'predownload': 1000,
             'tokenizer_name': 'bert-base-uncased',
             'max_seq_len': 32,
             'group_method': 'truncate',
