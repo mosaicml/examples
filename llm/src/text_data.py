@@ -252,7 +252,7 @@ if __name__ == '__main__':
         'pin_memory': True,
         'prefetch_factor': 2,
         'persistent_workers': True,
-        'timeout': 60,
+        'timeout': 300,
     }
     cfg = om.create(cfg)
     device_batch_size = 2
