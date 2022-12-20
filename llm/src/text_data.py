@@ -48,7 +48,7 @@ class StreamingTextDataset(StreamingDataset):
                  remote: Optional[str] = None,
                  split: str = None,
                  shuffle: bool = False,
-                 predownload: Optional[int] = 100000,
+                 predownload: Optional[int] = 100_000,
                  download_retry: int = 2,
                  download_timeout: float = 120,
                  shuffle_seed: Optional[int] = None,
@@ -75,6 +75,8 @@ class StreamingTextDataset(StreamingDataset):
             raise ValueError(
                 f"group_method='{group_method}' must be one of ['truncate', 'concat']."
             )
+        
+        print(f'{local=}, {remote=}')
 
         # Build Dataset
         super().__init__(local=local,
@@ -180,6 +182,7 @@ class StreamingTextDataset(StreamingDataset):
 
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
+    print(cfg)
     dataset = StreamingTextDataset(
         local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
