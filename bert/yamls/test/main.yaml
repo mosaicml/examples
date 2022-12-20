@@ -75,8 +75,6 @@ optimizer:
   eps: 1.0e-08
   weight_decay: 0.0
 
-grad_clip_norm: -1.0
-
 # Training duration and evaluation frequency
 max_duration: 10ba
 eval_interval: 10ba
