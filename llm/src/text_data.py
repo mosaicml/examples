@@ -76,7 +76,7 @@ class StreamingTextDataset(StreamingDataset):
                 f"group_method='{group_method}' must be one of ['truncate', 'concat']."
             )
         
-        print(f'{local=}, {remote=}')
+        print(f'{local=}, {remote=}, {split=}')
 
         # Build Dataset
         super().__init__(local=local,
