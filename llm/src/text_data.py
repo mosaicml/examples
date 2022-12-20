@@ -171,8 +171,8 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         shuffle=cfg.dataset.shuffle,
         predownload=cfg.dataset.prefetch,
         download_timeout=cfg.timeout,
-        # shuffle_seed=cfg.seed,                                TODO
-        # num_canonical_nodes=cfg.dataset.num_canonical_nodes,  TODO
+        shuffle_seed=cfg.get('seed', None),
+        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', None),
         batch_size=device_batch_size,
     )
 
@@ -222,6 +222,8 @@ if __name__ == '__main__':
         'prefetch_factor': 2,
         'persistent_workers': True,
         'timeout': 120,
+        'seed': 17,
+        'num_canonical_nodes': None,
     }
     cfg = om.create(cfg)
     device_batch_size = 2
