@@ -161,7 +161,6 @@ class StreamingTextDataset(StreamingDataset):
 
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
-    print(cfg)
     dataset = StreamingTextDataset(
         local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
@@ -231,7 +230,7 @@ if __name__ == '__main__':
             'prefetch': 1000,
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
-            'group_method': 'concat'
+            'group_method': 'truncate'
         },
         'drop_last': False,
         'num_workers': 2,
