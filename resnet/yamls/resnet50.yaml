@@ -3,6 +3,9 @@ is_train: true             # Trains the model if true, otherwise runs evaluation
 seed: 17                   # Random seed
 max_duration: 90ep         # Duration to train specified as a Time string
 grad_accum: auto           # Amount of gradient accumulation, 'auto' means Composer will choose the optimal value
+progress_bar: false        # Prints TQDM logging progress bar if true
+log_to_console: true       # Prints metrics logging statements if true
+console_log_interval: 1ep  # Frequency of metric logging statements
 
 # Model
 model:
@@ -40,7 +43,6 @@ scheduler:
   alpha_f: 0.0  # Base learning rate multiplier to decay to
 
 loggers:
-  progress_bar: {}
   # wandb:     # Uncomment and fill below arguments to use WandB logger
   #   entity:  # Name of WandB entity, usually username or organization name
   #   project: # Name of WandB project

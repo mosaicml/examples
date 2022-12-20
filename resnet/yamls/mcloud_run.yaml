@@ -2,7 +2,7 @@ run_name: resnet_example
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_40gb # Type of GPU to use
 gpu_num: 8  # Number of GPUs to use
-image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
+image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
@@ -19,6 +19,9 @@ parameters:
   seed: 17                   # Random seed
   max_duration: 90ep         # Duration to train specified as a Time string
   grad_accum: auto           # Amount of gradient accumulation, 'auto' means Composer will choose the optimal value
+  progress_bar: false        # Prints TQDM logging progress bar if true
+  log_to_console: true       # Prints metrics logging statements if true
+  console_log_interval: 1ep  # Frequency of metric logging statements
 
   # Model
   model:
@@ -56,7 +59,6 @@ parameters:
     alpha_f: 0.0  # Base learning rate multiplier to decay to
 
   loggers:
-    progress_bar: {}
     # wandb:     # Uncomment and fill below arguments to use WandB logger
     #   entity:  # Name of WandB entity, usually username or organization name
     #   project: # Name of WandB project
