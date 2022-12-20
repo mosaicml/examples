@@ -205,29 +205,13 @@ if __name__ == '__main__':
         local = f'/tmp/{ds_name}' if 's3' in remote else remote
     print(f'Reading val split of {ds_name} dataset from {remote} -> {local}')
 
-    #     dataset:
-    #   remote: *data_remote
-    #   local: *data_local
-    #   split: val
-    #   shuffle: false
-    #   prefetch: 1000
-    #   tokenizer_name: *tokenizer_name
-    #   max_seq_len: *max_seq_len
-    #   group_method: truncate
-    # drop_last: false
-    # num_workers: 8
-    # pin_memory: true
-    # prefetch_factor: 2
-    # persistent_workers: true
-    # timeout: 60
-
     cfg = {
         'dataset': {
             'remote': remote,
             'local': local,
             'split': 'val',
             'shuffle': True,
-            'prefetch': 1000,
+            'prefetch': 100,
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
             'group_method': 'truncate'
@@ -237,7 +221,7 @@ if __name__ == '__main__':
         'pin_memory': True,
         'prefetch_factor': 2,
         'persistent_workers': True,
-        'timeout': 60,
+        'timeout': 120,
     }
     cfg = om.create(cfg)
     device_batch_size = 2

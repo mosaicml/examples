@@ -46,7 +46,7 @@ train_loader:
   pin_memory: true
   prefetch_factor: 2
   persistent_workers: true
-  timeout: 60
+  timeout: 120
 
 eval_loader:
   dataset:
@@ -63,7 +63,7 @@ eval_loader:
   pin_memory: true
   prefetch_factor: 2
   persistent_workers: true
-  timeout: 60
+  timeout: 120
 
 # Optimization
 scheduler:
