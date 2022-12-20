@@ -62,7 +62,7 @@ class StreamingC4(StreamingDataset):
                          keep_zip=False,
                          download_retry=download_retry,
                          download_timeout=download_timeout,
-                         hash=None,
+                         validate_hash=None,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
