@@ -7,7 +7,6 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 """
 
 import math
-import warnings
 from functools import partial
 from typing import Optional
 
