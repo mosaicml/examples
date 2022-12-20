@@ -148,6 +148,8 @@ def build_c4_dataloader(cfg: DictConfig, device_batch_size: int):
                           local=cfg.dataset.local,
                           shuffle=cfg.dataset.shuffle,
                           predownload=cfg.dataset.predownload,
+                          download_retry=cfg.dataset.download_retry,
+                          download_timeout=cfg.dataset.download_timeout,
                           tokenizer_name=cfg.dataset.tokenizer_name,
                           max_seq_len=cfg.dataset.max_seq_len,
                           group_method=cfg.dataset.group_method,
