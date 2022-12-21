@@ -11,13 +11,15 @@ from composer.core import Callback, State
 from composer.loggers import Logger
 from composer.utils import dist
 
+from composer.callbacks import SpeedMonitor
+
 GPU_AVAILABLE_FLOPS = 312_000_000_000_000
 
-__all__ = ['SpeedMonitor']
+__all__ = ['SpeedMonitorMFU']
 
 
-class SpeedMonitor(Callback):
-    """Logs the training throughput.
+class SpeedMonitorMFU(SpeedMonitor):
+    """Logs the training throughput and MFU.
 
     The training throughput in terms of number of samples per second is logged on the
     :attr:`.Event.BATCH_END` event if we have reached the ``window_size`` threshold.
@@ -51,6 +53,10 @@ class SpeedMonitor(Callback):
     | ``throughput/samples_per_sec``   | batches) of the number of samples processed per second      |
     |                                  |                                                             |
     +----------------------------------+-------------------------------------------------------------+
+    |                                  | Rolling average (over ``window_size`` most recent           |
+    | ``throughput/mfu``               | batches) of mfu                                             |
+    |                                  |                                                             |
+    +----------------------------------+-------------------------------------------------------------+
     | ``wall_clock/train``             | Total elapsed training time                                 |
     +----------------------------------+-------------------------------------------------------------+
     | ``wall_clock/val``               | Total elapsed validation time                               |
@@ -66,45 +72,8 @@ class SpeedMonitor(Callback):
     """
 
     def __init__(self, window_size: int = 100, model_flops: int = None):
-        # Track the batch num samples and wct to compute throughput over a window of batches
-        self.batch_start_num_samples = 0
-        self.batch_start_wct = 0.0
-        self.batch_wct_buffer: Deque[float] = deque(maxlen=window_size)
-        self.batch_num_samples_buffer: Deque[int] = deque(maxlen=window_size)
-        self.window_size = window_size
+        super().__init__(window_size=window_size)
         self.model_flops = model_flops
-
-        # Keep track of time spent evaluating
-        self.total_eval_wct = 0.0
-
-    def state_dict(self) -> Dict[str, Any]:
-        return {
-            'batch_start_num_samples': self.batch_start_num_samples,
-            'batch_start_wct': self.batch_start_wct,
-            'batch_wct_buffer': self.batch_wct_buffer,
-            'batch_num_samples_buffer': self.batch_num_samples_buffer,
-            # "window_wct": self.window_wct,
-            # "window_num_samples": self.window_num_samples,
-            'total_eval_wct': self.total_eval_wct,
-        }
-
-    def load_state_dict(self, state: Dict[str, Any]) -> None:
-        self.batch_start_num_samples = state['batch_start_num_samples']
-        self.batch_start_wct = state['batch_start_wct']
-        self.batch_wct_buffer = deque(
-            [x for x in state['batch_wct_buffer']],
-            maxlen=self.window_size,
-        )
-        self.batch_num_samples_buffer = deque(
-            [x for x in state['batch_num_samples_buffer']],
-            maxlen=self.window_size,
-        )
-        self.total_eval_wct = state['total_eval_wct']
-
-    def before_dataloader(self, state: State, logger: Logger) -> None:
-        del logger  # unused
-        self.batch_start_wct = state.timestamp.total_wct.total_seconds()
-        self.batch_start_num_samples = int(state.timestamp.sample)
 
     def batch_end(self, state: State, logger: Logger):
         batch_num_samples = int(state.timestamp.sample) - self.batch_start_num_samples
@@ -129,7 +98,3 @@ class SpeedMonitor(Callback):
             'wall_clock/val': self.total_eval_wct,
             'wall_clock/total': (state.timestamp.total_wct.total_seconds() + self.total_eval_wct),
         })
-
-    def eval_end(self, state: State, logger: Logger):
-        del logger  # unused
-        self.total_eval_wct += state.eval_timestamp.total_wct.total_seconds()
