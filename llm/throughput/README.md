@@ -1,10 +1,15 @@
 # MosaicGPT Throughput, MFU, and HFU
-Throughput, MFU, and HFU for different sized MosaicGPT models trained on MCloud.
-MFU and HFU are defined in https://arxiv.org/abs/2205.05198
-All FLOP calculations do not include norm, act, and residual.
+Throughput, MFU, and HFU for MosaicGPT models trained on [MosaicML Cloud](https://www.mosaicml.com/cloud).
+
+`run_all_configs.py` uses MosaicML Cloud's python api to run the specified configurations.  
+`parse_logs.py` uses MosaicML Cloud's python api to load and parse training logs and get training throughput numbers. Throughput numbers are used to calculate model FLOP utilization (MFU) and hardware FLOP utilization (HFU).
+
+## MFU and HFU
+
+MFU and HFU are defined in https://arxiv.org/abs/2205.05198. All FLOP calculations do not include norm, act, and residual.
 
 MFU approximation:
-Using only the parameters, per token, each parameter is used for a MAC (2 FLOPS) per network operation. Neural Network training has 4 network operations: forward pass, backward pass, and computation of parameter gradient.
+Per token, each parameter is used for a MAC (2 FLOPS) per network operation. Neural Network training has 3 network operations: forward pass, backward pass, and computation of parameter gradient.
 The attention mechanism forward pass FLOPS are: `attn_flops_per_seq = n_layers * 2 * 2 * (d_model * (seq_len**2))`
 ```
 flops_per_token = 2 * n_params
@@ -15,15 +20,21 @@ attn_flops_per_seq = n_layers * 2 * 2 * (d_model * (seq_len**2))
 mfu = (3 * flops_per_seq + 3 * attn_flops_per_seq) * throughput / (gpu_num * GPU_AVAILABLE_FLOPS)
 ```
 
-HFU is approximated using the fact that the networks use checkpointing for activation recomputation. This effectively requires an extra forward pass through the network.
+The HFU numbers shown below account for the fact that the networks use checkpointing for activation recomputation. This effectively requires an extra forward pass through the network.
 ```
 hfu* = 4 * flops_per_seq * throughput / (gpu_num * GPU_AVAILABLE_FLOPS)
 hfu = (4 * flops_per_seq + 4 * attn_flops_per_seq) * throughput / (gpu_num * GPU_AVAILABLE_FLOPS)
 ```
 
-These are approximations. Real HFU would be higher since it would include the FLOP usage of norm, act, residual, as well as account for ALL recomputation (the model uses FlashAttn which already does a recomputation in the fwd pass; in reality, the hfu attn multiplier should be 5 instaed of 3).
+These are approximations. Real HFU would be higher since it would include the FLOP usage of norm, act, residual, as well as account for ALL recomputation (Model's using FlashAttn would include an extra recompute factor given FlashAttn does a recomputation in the fwd pass; in reality, the mfu attn multiplier should be 4 instaed of 3 and 5 instead of 4 for hfu).
 
-Below we highlight some of the configurations, but the full tables can be found in [FULL_TABLES](./FULL_TABLES.md)
+Below we highlight some of the configurations, but the full tables can be found in [FULL_TABLES](./FULL_TABLES.md).  
+These tables are not exhaustive. If there is a setting you are interested in, try profiling it yourself. For example, using Mosaic Cloud, to test MosaicGPT {13B, 30B} on using fp16 with a batch size of 2M tokens and seq len {2k, 4k, 8k, 16k}:  
+(this will run 8 configs for 12 steps to get throughput numbers)  
+```
+python run_all_configs.py -m 13b.yaml 30b.yaml -t fp16 -b 21 21 -s 11 14 --RUN
+```
+`python parse_logs.py` can then be used to parse all output training logs and create the tables below.
 
 ## A100 80GB
 

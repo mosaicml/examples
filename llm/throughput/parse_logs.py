@@ -85,7 +85,6 @@ def parse_run(run):
     n_params = gpu_num = seq_len = global_batchsize_tokens = global_train_batch_size = micro_batchsize = precision = throughput = mfu = None
 
     model_name = [s for s in run.name.split('-') if 'gpt' in s][0]
-    cluster = run.config.cluster
     gpu_num = run.config.gpu_num
     gpu_type = run.config.gpu_type
 
@@ -173,8 +172,7 @@ def main(args):
 if __name__ == "__main__":
     args = parse_args()
     main(args)
-    
-    # TODO: mcli.sdk has a bug; remove everything below when bug is fixed
+
     from mcli.api.engine.engine import MAPIConnection
     MAPIConnection.get_current_connection().close()
 
