@@ -116,7 +116,7 @@ class SecondOrderAdaLR(DecoupledAdamW):
                     # if we are under the percentile, decrease it only 1-percentile pctg of the time
                     # i.e. if percentile is 95%, decrease the percentile only 5% of the time
                     scale_factor += alpha1
-                layerwise_lr_scaling.mul_(scale_factor)
+                layerwise_lr_scale.mul_(scale_factor)
             
             param.add_(update*-effective_lr)
           
