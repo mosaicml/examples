@@ -9,6 +9,7 @@ command: |
   python convert_c4.py --out_root ./my-copy-c4 --splits val
   composer main.py yamls/mosaic_gpt/1b.yaml \
     train_loader.dataset.split=val \
+    progress_bar=false \
     run_name=$COMPOSER_RUN_NAME
 
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
