@@ -43,7 +43,7 @@ def build_callback(name, kwargs, cfg):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitor(
+        return SpeedMonitorMFU(
             window_size=kwargs.get('window_size', 1),
             model_flops=get_model_fwd_flops(cfg),
         )
