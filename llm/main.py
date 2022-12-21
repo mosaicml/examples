@@ -121,7 +121,7 @@ def build_dataloader(cfg, device_batch_size):
     try:
         return build_text_dataloader(cfg, device_batch_size)
     except:
-        raise ValueError(f'Not sure how to build dataloader')
+        raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
 
 
 def main(cfg):
