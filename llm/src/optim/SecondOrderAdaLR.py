@@ -39,19 +39,20 @@ class SecondOrderAdaLR(DecoupledAdamW):
                 warmup: int = 5000,
                 amsgrad: bool = False,
                 alphas: Tuple[float, float] = (0.02, 0.02),
+                v1: bool= True
               ):
         super().__init__(params=params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad)
         self.target_percentile_cutoff = percentile_cutoff
         self.warmup = max(warmup, 1)
-        self.alpha1, self.alpha2 = alphas        
-
+        self.alpha1, self.alpha2 = alphas      
+        self.v1 = v1  
     
     @staticmethod
     def adam_step(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
               exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], layerwise_lr_scaling: List[torch.Tensor],
               state_steps: List[int], online_percentile_estimates: List[OnlinePercentileEstimate], *,
               beta1: float, beta2: float, lr: float, initial_lr: float, weight_decay: float,
-              eps: float, warmup: int, amsgrad:bool, alpha1: float, alpha2: float) -> None:
+              eps: float, warmup: int, amsgrad:bool, alpha1: float, alpha2: float, v1: bool) -> None:
         r"""Functional API that performs AdamW algorithm computation with decoupled weight decay.
 
         Args:
@@ -96,23 +97,22 @@ class SecondOrderAdaLR(DecoupledAdamW):
             effective_lr = lr * layerwise_lr_scale.item()
             # calculate the gradient-based update
             update.pow_(-1).mul_(exp_avg)
-
             # Perform stepweight decay
             if weight_decay != 0:
                 decay_factor = (effective_lr / initial_lr) if initial_lr else 1.0
                 update.add_(param, alpha=-decay_factor * weight_decay)
 
-            update_norm = torch.linalg.vector_norm(update)
+            update_norm = torch.linalg.vector_norm(update) if v1 else torch.linalg.vector_norm(update * effective_lr)
             ope.push(update_norm)
             percentile_cutoff = ope.query_threshold()
 
             if step > warmup:
-                scale_factor = 1 + alpha2*(initial_lr - layerwise_lr_scale)/initial_lr
+                scale_factor = 1 + alpha2*(1 - layerwise_lr_scale)
                 if update_norm > percentile_cutoff:
                     # if we are over the percentile always decrease LR
                     ope.outlier_counter += 1
                     scale_factor -= alpha1
-                elif update_norm < percentile_cutoff and random.random() > ope.target_percentile:
+                elif update_norm <= percentile_cutoff and random.random() > ope.target_percentile:
                     # if we are under the percentile, decrease it only 1-percentile pctg of the time
                     # i.e. if percentile is 95%, decrease the percentile only 5% of the time
                     scale_factor += alpha1
@@ -186,6 +186,7 @@ class SecondOrderAdaLR(DecoupledAdamW):
                 state['step'] += 1
                 # record the step after step update
                 state_steps.append(state['step'])
+            
             self.adam_step(params_with_grad,
                        grads,
                        exp_avgs,
@@ -203,7 +204,8 @@ class SecondOrderAdaLR(DecoupledAdamW):
                        warmup=self.warmup,
                        amsgrad=amsgrad,
                        alpha1=self.alpha1,
-                       alpha2=self.alpha2)
+                       alpha2=self.alpha2,
+                       v1=self.v1)
 
         return loss
 

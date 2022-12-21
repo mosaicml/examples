@@ -28,7 +28,7 @@ class OnlinePercentileEstimate:
 
 
 
-class OPEStepAdam(DecoupledAdamW):
+class AdaLR(DecoupledAdamW):
     def __init__(self,
                 params: Union[Iterable[torch.Tensor], Iterable[dict]],
                 lr: float = 1e-3,
@@ -38,23 +38,91 @@ class OPEStepAdam(DecoupledAdamW):
                 percentile_cutoff: float = 0.85,
                 warmup: int = 5000,
                 amsgrad: bool = False,
-                skip_outliers: bool = False,
-                lr_decay: float = 0.02):
+                lr_decay: float = 0.02,
+                v1: bool = True):
         super().__init__(params=params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad)
         self.target_percentile_cutoff = percentile_cutoff
         self.warmup = max(warmup, 1)
-        self.skip_outliers = skip_outliers
         self.lr_decay = lr_decay
+        self.v1 = v1
         
-
-    
     @staticmethod
-    def adam_step(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
+    def adam_step_v1(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
               exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], layerwise_lr_scaling: List[torch.Tensor],
               state_steps: List[int], online_percentile_estimates: List[OnlinePercentileEstimate], *,
               beta1: float, beta2: float, lr: float, initial_lr: float, weight_decay: float,
-              eps: float, warmup: int, amsgrad:bool, skip_outliers: bool,
-              lr_decay: bool) -> None:
+              eps: float, warmup: int, amsgrad:bool, lr_decay: bool) -> None:
+        r"""Functional API that performs AdamW algorithm computation with decoupled weight decay.
+
+        Args:
+            params (list): List of parameters to update.
+            grads (list): List of parameter gradients.
+            exp_avgs (list): List of average gradients.
+            exp_avg_sqs (list): List of average squared gradients.
+            max_exp_avg_sqs (list): List of max average squared gradients for amsgrad updates.
+            state_steps (list): List of steps taken for all parameters.
+            amsgrad (bool): Enables amsgrad variant of Adam.
+            beta1 (float): Coefficient for computing the moving average of gradient values.
+            beta2 (float): Coefficient for computing the moving average of squared gradient values.
+            initial_lr (float): Initial learning rate.
+            weight_decay (float): Factor for decoupled weight decay
+            eps (float): Term added to the denominator to improve numerical stability.
+        """
+
+        for i, param in enumerate(params):
+            ope = online_percentile_estimates[i]
+            grad = grads[i]
+            exp_avg = exp_avgs[i]
+            exp_avg_sq = exp_avg_sqs[i]
+            step = state_steps[i]
+            layerwise_lr_scale = layerwise_lr_scaling[i]
+            
+            if step == 1:
+                beta1 = 0
+                beta2 = 0
+
+            exp_avg.mul_(beta1).add_(grad, alpha=(1 - beta1))
+            exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=(1 - beta2))
+                
+            if amsgrad:
+                # Maintains the maximum of all 2nd moment running avg. till now
+                torch.maximum(max_exp_avg_sqs[i], exp_avg_sq, out=max_exp_avg_sqs[i])
+                # Use the max. for normalizing running avg. of gradient
+                update = (max_exp_avg_sqs[i].sqrt()).add_(eps)
+            else:
+                update = (exp_avg_sq.sqrt()).add_(eps)
+
+            effective_lr = lr * layerwise_lr_scale.item()
+            # calculate the gradient-based update
+            update.pow_(-1).mul_(exp_avg*-effective_lr)
+
+            # Perform stepweight decay
+            if weight_decay != 0:
+                decay_factor = (effective_lr / initial_lr) if initial_lr else 1.0
+                update.add_(param, alpha=-decay_factor * weight_decay)
+
+            update_norm = torch.linalg.vector_norm(update)
+            ope.push(update_norm)
+            percentile_cutoff = ope.query_threshold()
+            if update_norm > percentile_cutoff and step > warmup:
+                # if we are over the percentile always decrease LR
+                ope.outlier_counter += 1
+                layerwise_lr_scale.mul_(1-lr_decay)
+            elif update_norm < percentile_cutoff and step > warmup and random.random() > ope.target_percentile:
+                # if we are under the percentile, decrease it only 1-percentile pctg of the time
+                # i.e. if percentile is 95%, decrease the percentile only 5% of the time
+                layerwise_lr_scale.mul_(1+lr_decay)
+            
+            
+            param.add_(update)
+    
+    
+    @staticmethod
+    def adam_step_v2(params: List[torch.Tensor], grads: List[torch.Tensor], exp_avgs: List[torch.Tensor],
+              exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], layerwise_lr_scaling: List[torch.Tensor],
+              state_steps: List[int], online_percentile_estimates: List[OnlinePercentileEstimate], *,
+              beta1: float, beta2: float, lr: float, initial_lr: float, weight_decay: float,
+              eps: float, warmup: int, amsgrad:bool, lr_decay: bool) -> None:
         r"""Functional API that performs AdamW algorithm computation with decoupled weight decay.
 
         Args:
@@ -111,17 +179,11 @@ class OPEStepAdam(DecoupledAdamW):
             if update_norm > percentile_cutoff and step > warmup:
                 # if we are over the percentile always decrease LR
                 ope.outlier_counter += 1
-                if skip_outliers:
-                    continue
-                else:
-                    layerwise_lr_scale.mul_(1-lr_decay)
+                layerwise_lr_scale.mul_(1-lr_decay)
             elif update_norm < percentile_cutoff and step > warmup and random.random() > ope.target_percentile:
                 # if we are under the percentile, decrease it only 1-percentile pctg of the time
                 # i.e. if percentile is 95%, decrease the percentile only 5% of the time
-                if skip_outliers:
-                    continue
-                else:
-                    layerwise_lr_scale.mul_(1+lr_decay)
+                layerwise_lr_scale.mul_(1+lr_decay)
             
             
             param.add_(update*-effective_lr)
@@ -192,7 +254,9 @@ class OPEStepAdam(DecoupledAdamW):
                 state['step'] += 1
                 # record the step after step update
                 state_steps.append(state['step'])
-            self.adam_step(params_with_grad,
+
+            step_func = self.adam_step_v1 if self.v1 else self.adam_step_v2
+            step_func(params_with_grad,
                        grads,
                        exp_avgs,
                        exp_avg_sqs,
@@ -208,7 +272,6 @@ class OPEStepAdam(DecoupledAdamW):
                        eps=eps,
                        warmup=self.warmup,
                        amsgrad=amsgrad,
-                       skip_outliers=self.skip_outliers,
                        lr_decay=self.lr_decay)
 
         return loss
