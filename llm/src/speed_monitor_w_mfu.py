@@ -120,7 +120,7 @@ class SpeedMonitor(Callback):
             logger.log_metrics({'throughput/samples_per_sec': throughput})
             if self.model_flops is not None:
                 mfu = 3 * self.model_flops * throughput / (dist.get_world_size() * GPU_AVAILABLE_FLOPS)
-                logger.log_metrics({'mfu': mfu})
+                logger.log_metrics({'throughput/mfu': mfu})
 
         # Log the time
         # `state.timestamp` excludes any time spent in evaluation
