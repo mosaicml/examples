@@ -16,7 +16,7 @@ from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
-from src.speed_monitor_w_mfu import SpeedMonitor
+from src.speed_monitor_w_mfu import SpeedMonitorMFU
 
 
 def build_logger(name, kwargs):
