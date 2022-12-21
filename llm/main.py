@@ -37,7 +37,7 @@ def get_model_fwd_flops(cfg):
     return params_flops_per_seq + attn_flops_per_seq
 
 
-def build_callback(name, kwargs):
+def build_callback(name, kwargs, cfg):
     if name == 'lr_monitor':
         return LRMonitor()
     elif name == 'memory_monitor':
