@@ -6,7 +6,7 @@ import sys
 import warnings
 
 from composer import Trainer
-from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
+from composer.callbacks import LRMonitor, MemoryMonitor #, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
@@ -15,6 +15,8 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
+
+from src.speed_monitor_w_mfu import SpeedMonitor
 
 
 def build_logger(name, kwargs):
