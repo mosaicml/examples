@@ -6,7 +6,7 @@ Full documentation on MosaicML Cloud can be found here: https://mcli.docs.mosaic
 
 ## Using MCLI to launch runs
 
-We provide two MCLI examples, `mcli-1b.yaml` and `mcli-1b-custom.yaml` that demonstrate how to configure and launch training runs using our command-line tool, `mcli`.
+In this folder, we provide two MCLI examples, [`mcli-1b.yaml`](./mcli-1b.yaml) and [`mcli-1b-custom.yaml`](./mcli-1b-custom.yaml) that demonstrate how to configure and launch training runs using our command-line tool, `mcli`.
 
 The first example, `mcli-1b.yaml`, is minimal, and simply clones this repo (https://github.com/mosaicml/examples), checks out a particular tag, and runs the `main.py` training script. The workload configuration is read from a YAML sitting in the repo (`yamls/mosaic_gpt/1b.yaml`).
 
