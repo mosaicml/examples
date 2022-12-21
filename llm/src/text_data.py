@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Build a StreamingC4 dataset and dataloader for training."""
+"""Build a StreamingTextDataset dataset and dataloader for training."""
 
 import os
 import sys
