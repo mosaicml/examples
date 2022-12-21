@@ -202,7 +202,6 @@ class SecondOrderAdaLR(DecoupledAdamW):
                        eps=eps,
                        warmup=self.warmup,
                        amsgrad=amsgrad,
-                       skip_outliers=self.skip_outliers,
                        alpha1=self.alpha1,
                        alpha2=self.alpha2)
 
