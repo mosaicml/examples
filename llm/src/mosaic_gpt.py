@@ -193,6 +193,8 @@ class GPTBlock(nn.Module):
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
+        if cfg.get('alibi', False):
+            assert 'triton' in cfg.attn_impl, 'Only triton kernel supports alibi'
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         if cfg.attn_impl == 'torch':
             self.causal_attn = TorchCausalAttention(cfg, device)
@@ -231,20 +233,16 @@ class MosaicGPT(nn.Module):
         # both report this helping with stabilizing training
         self.embedding_fraction = cfg.get("embedding_fraction", 1)
         assert 0 < self.embedding_fraction <= 1, "model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!"
-        self.transformer = nn.ModuleDict(
-            dict(
-                wte=nn.Embedding(cfg.vocab_size, cfg.d_model,
-                                 device=cfg.device),
-                wpe=nn.Embedding(cfg.max_seq_len,
-                                 cfg.d_model,
-                                 device=cfg.device),
-                emb_drop=nn.Dropout(cfg.emb_pdrop),
-                blocks=nn.ModuleList([
+        
+        self.transformer = nn.ModuleDict({"wte": nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)})
+        if not cfg.get('alibi', False):
+            self.transformer.append({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
+        self.transformer.append({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
+        self.transformer.append({'blocks': nn.ModuleList([
                     GPTBlock(cfg, device=cfg.device)
                     for _ in range(cfg.n_layers)
-                ]),
-                ln_f=nn.LayerNorm(cfg.d_model, device=cfg.device),
-            ))
+                ])})
+        self.transformer.append({'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.device)})
 
         if cfg.device != 'meta':
             self.apply(self.param_init_fn)
