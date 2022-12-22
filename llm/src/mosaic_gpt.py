@@ -121,40 +121,26 @@ class TritonFlashCausalAttention(nn.Module):
         if self.alibi:
             self.register_buffer(
                 'attn_bias',
-                torch.empty((1, self.n_heads, self.seq_len, self.seq_len), device=device))
+                torch.empty((1, self.n_heads, 1, self.seq_len), device=device))
         else:
             self.register_buffer(
                 'attn_bias',
-                torch.empty((1, 1, self.seq_len, self.seq_len), device=device))
+                torch.empty((1, 1, 1, self.seq_len), device=device))
         self.attn_bias_initialized = False
 
         self.out_proj = nn.Linear(cfg.d_model, cfg.d_model, bias=True, device=device)
         self.out_proj._is_residual = True
 
     def _fill_attn_bias(self, bias_max: int = 8):
-        if self.alibi:
-            torch.full(size=self.attn_bias.shape,
-                        fill_value=float('inf'),
-                        out=self.attn_bias)
-            torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
+        self.attn_bias.zeros_()
 
-            # TODO I think this is correct, but is it correct????
+        if self.alibi:
             dtype, device = self.attn_bias.dtype, self.attn_bias.device
-            alibi_bias = torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
-            alibi_bias = alibi_bias - torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, self.seq_len, 1)
-            alibi_bias.abs_().mul_(-1.)  # negative distance / convert to -inf
+            alibi_bias = torch.arange(1 - self.seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
             m = torch.arange(1, self.n_heads + 1, dtype=dtype, device=device) * bias_max / self.n_heads
             alibi_bias = alibi_bias * (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
 
-            self.attn_bias.add_(1)
-            self.attn_bias.mul_(alibi_bias)
-
-            assert not self.attn_bias.isnan().any(), f"Attn bias shouldn't have NaNs"
-        else:
-            torch.full(size=self.attn_bias.shape,
-                        fill_value=float('-inf'),
-                        out=self.attn_bias)
-            torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
+            self.attn_bias.add_(alibi_bias)
 
         self.attn_bias_initialized = True
 
