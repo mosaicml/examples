@@ -129,26 +129,30 @@ class TritonFlashCausalAttention(nn.Module):
         self.out_proj = nn.Linear(cfg.d_model, cfg.d_model, bias=True, device=device)
         self.out_proj._is_residual = True
 
-    def _fill_alibi_attn_mask(self, bias_max: int = 8):
+    def _fill_attn_bias(self, bias_max: int = 8):
         assert isinstance(self.attn_bias, torch.Tensor)  # for type checking
+        torch.full(size=self.attn_bias.shape,
+                   fill_value=float('-inf'),
+                   out=self.attn_bias)
+        torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
+        self.attn_bias += 1
+
         if self.alibi:
-            # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
-            #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
-            #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
             dtype, device = self.attn_bias.dtype, self.attn_bias.device
-            torch.full(size=self.attn_bias.shape, fill_value=1, out=self.attn_bias)
-            self.attn_bias *= torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
-            self.attn_bias -= torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, self.seq_len, 1)
-            self.attn_bias.abs_().mul_(-1.).tril_()
+            alibi_bias = torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
+            alibi_bias -= torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, self.seq_len, 1)
+            alibi_bias.abs_().mul_(-1.).tril_()
             # TODO figure out if this is correct...
             m = torch.arange(1, self.n_heads + 1, dtype=dtype, device=device) * bias_max / self.n_heads
-            self.attn_bias *= (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
+            alibi_bias *= (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
+
+            self.attn_bias *= alibi_bias
 
         self.attn_bias_initialized = True
 
     def forward(self, x, key_padding_mask):
-        if not self.attn_bias_initialized and self.alibi:
-            self._fill_alibi_attn_mask()
+        if not self.attn_bias_initialized:
+            self._fill_attn_bias()
 
         qkv = self.Wqkv(x)
         qkv = rearrange(qkv,
@@ -158,18 +162,9 @@ class TritonFlashCausalAttention(nn.Module):
 
         if qkv.dtype not in [torch.float16, torch.bfloat16]:
             raise TypeError(f'Triton kernel only supports inputs of dtype torch.float16 and torch.bfloat16 (input dtype: {qkv.dtype})')
-        # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
-        #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
-        #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
-        bias = qkv.new_zeros(key_padding_mask.shape)
-        bias[key_padding_mask == 0] = float('-inf')
-        bias = bias.view(-1, 1, 1, self.seq_len)
-        if self.alibi:
-            bias = bias + self.attn_bias
-
         attention = self.mhsa(
             qkv,
-            bias,
+            self.attn_bias,
             True,
             None
         )
