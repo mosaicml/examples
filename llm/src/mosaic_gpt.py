@@ -123,7 +123,9 @@ class TritonFlashCausalAttention(nn.Module):
                 'attn_bias',
                 torch.empty((1, self.n_heads, self.seq_len, self.seq_len), device=device))
         else:
-            self.attn_bias = None
+            self.register_buffer(
+                'attn_bias',
+                torch.empty((1, 1, self.seq_len, self.seq_len), device=device))
         self.attn_bias_initialized = False
 
         self.out_proj = nn.Linear(cfg.d_model, cfg.d_model, bias=True, device=device)
@@ -149,11 +151,10 @@ class TritonFlashCausalAttention(nn.Module):
 
             assert not self.attn_bias.isnan().any(), f"Attn bias shouldn't have NaNs"
         else:
-            # torch.full(size=self.attn_bias.shape,
-            #             fill_value=float('-inf'),
-            #             out=self.attn_bias)
-            # torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
-            pass  # self.attn_bias = None
+            torch.full(size=self.attn_bias.shape,
+                        fill_value=float('-inf'),
+                        out=self.attn_bias)
+            torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
 
         self.attn_bias_initialized = True
 
