@@ -163,9 +163,9 @@ class TritonFlashCausalAttention(nn.Module):
             bais *= self.attn_bias
         attention = self.mhsa(
             qkv,
-            bias=bias,
-            causal=True,
-            softmax_scale=None
+            bias,
+            True,
+            None
         )
 
         return self.out_proj(rearrange(attention, 'nnz h d -> nnz (h d)')), None
