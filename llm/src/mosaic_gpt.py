@@ -142,8 +142,8 @@ class TritonFlashCausalAttention(nn.Module):
             torch.full(size=self.attn_bias.shape,
                    fill_value=1,
                    out=self.attn_bias)
-            self.attn_bias *= -torch.arange(self.seq_len).view(1, 1, 1, self.seq_len)
-            self.attn_bias *= (1 / torch.arange(self.n_heads).view(1, self.n_heads, 1, 1))  # TODO figure out if this is correct...
+            self.attn_bias *= -torch.arange(self.seq_len).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, 1, 1, self.seq_len)
+            self.attn_bias *= (1 / torch.arange(self.n_heads).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, self.n_heads, 1, 1))  # TODO figure out if this is correct...
             
         self.attn_bias_initialized = True
 
