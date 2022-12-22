@@ -2,7 +2,7 @@
 
 This folder contains some examples of how to use [MosaicML Cloud](https://www.mosaicml.com/cloud) to launch LLM training runs.
 
-Full documentation on MosaicML Cloud can be found here: https://mcli.docs.mosaicml.com/.
+Full documentation on MosaicML Cloud can be found at https://mcli.docs.mosaicml.com/.
 
 ## Using MCLI to launch runs
 
