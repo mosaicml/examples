@@ -112,19 +112,18 @@ class TritonFlashCausalAttention(nn.Module):
             raise ValueError(
                 f'The hidden size ({cfg.d_model}) is not a multiple of the number of attention '
                 f'heads ({cfg.n_heads})')
-            
-        self.ablibi = cfg.get('ablibi', False)
-        self.seq_len = cfg.max_seq_len
-
-        self.n_heads = cfg.n_heads
 
         self.Wqkv = nn.Linear(cfg.d_model, 3 * cfg.d_model, bias=True, device=device)
-        
-        self.attn_bias = None
+
+        self.ablibi = cfg.get('ablibi', False)
+        self.seq_len = cfg.max_seq_len
+        self.n_heads = cfg.n_heads
         if self.ablibi:
             self.register_buffer(
                 'attn_bias',
                 torch.empty((1, self.n_heads, 1, self.seq_len), device=device))
+        else:
+            self.attn_bias = None
         self.attn_bias_initialized = False
 
         self.out_proj = nn.Linear(cfg.d_model, cfg.d_model, bias=True, device=device)
@@ -133,10 +132,9 @@ class TritonFlashCausalAttention(nn.Module):
     def _fill_alibi_attn_mask(self):
         assert isinstance(self.bias, torch.Tensor)  # for type checking
         if self.ablibi:
-            # raise NotImplementedError()
-            # # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
-            # # For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
-            # # ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+            # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
+            #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
+            #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
             attn_bias = -torch.arange(self.seq_len).view(1, self.seq_len)  # should be of shape = (1, nheads, 1, seqlen)
             attn_bias *= (1 / torch.arange(self.n_heads).view(self.n_heads, 1))
             attn_bias = attn_bias.view(1, self.n_heads, 1, self.seq_len)
@@ -156,9 +154,9 @@ class TritonFlashCausalAttention(nn.Module):
 
         if qkv.dtype not in [torch.float16, torch.bfloat16]:
             raise TypeError(f'Triton kernel only supports inputs of dtype torch.float16 and torch.bfloat16 (input dtype: {qkv.dtype})')
-        #     bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
-        #         For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
-        #         ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+        # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
+        #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
+        #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
         bias = qkv.new_zeros(key_padding_mask.shape)
         bias[key_padding_mask == 0] = float('-inf')
         bias = bias.view(-1, 1, 1, self.seq_len)
