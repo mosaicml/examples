@@ -1,19 +1,9 @@
-<<<<<<< HEAD:examples/llm/requirements.txt
 torch==1.13.1
 einops==0.5.0
 mosaicml==0.12.0
 mosaicml-streaming==0.2.2
-=======
 torchvision==0.14.0
 torchtext==0.14.0
-torch==1.13.0
-<<<<<<< HEAD
-mosaicml==0.12.0
-=======
->>>>>>> 18f7680 (add optimization logger req)
-mosaicml-streaming==0.1.2
-mosaicml @ git+https://github.com/bmosaicml/composer.git@feature/optimization_logger
->>>>>>> e119509 (add optimization logger req):llm/requirements.txt
 flash-attn==0.2.2
 mosaicml-cli>=0.2.32,<1
 # need a newer version of triton
