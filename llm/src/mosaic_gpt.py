@@ -132,7 +132,7 @@ class TritonFlashCausalAttention(nn.Module):
     def _fill_attn_bias(self, bias_max: int = 8):
         assert isinstance(self.attn_bias, torch.Tensor)  # for type checking
         torch.full(size=self.attn_bias.shape,
-                   fill_value=float('-inf'),
+                   fill_value=float('inf'),
                    out=self.attn_bias)
         torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
         
@@ -140,17 +140,19 @@ class TritonFlashCausalAttention(nn.Module):
             dtype, device = self.attn_bias.dtype, self.attn_bias.device
             alibi_bias = torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
             alibi_bias = alibi_bias - torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, self.seq_len, 1)
-            alibi_bias.abs_().mul_(-1.)
+            alibi_bias.abs_().mul_(-1.)  # negative distance / convert to -inf
             # TODO figure out if this is correct...
             m = torch.arange(1, self.n_heads + 1, dtype=dtype, device=device) * bias_max / self.n_heads
             alibi_bias = alibi_bias * (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
 
-            self.attn_bias += 1
-            self.attn_bias *= alibi_bias
+            self.attn_bias.add_(1)
+            self.attn_bias.mul_(alibi_bias)
 
             assert not self.attn_bias.isnan().any(), f'attn bias has NaNs'
             print(self.attn_bias)
             exit()
+        else:
+            self.attn_bias.mul_(-1.)  # convert to -inf
 
         self.attn_bias_initialized = True
 
