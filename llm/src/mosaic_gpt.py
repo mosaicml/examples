@@ -147,8 +147,8 @@ class TritonFlashCausalAttention(nn.Module):
         self.attn_bias_initialized = True
 
     def forward(self, x, key_padding_mask):
-        if key_padding_mask.count_nonzero():
-            raise NotImplementedError(f'TritonFlashCausalAttention does not ignore any input tokens')
+        if key_padding_mask.count_nonzero() != key_padding_mask.numel():
+            raise NotImplementedError(f'TritonFlashCausalAttention does not ignore input tokens')
         if not self.attn_bias_initialized:
             self._fill_attn_bias()
 
