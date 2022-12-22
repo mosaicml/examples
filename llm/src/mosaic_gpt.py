@@ -113,7 +113,7 @@ class TritonFlashCausalAttention(nn.Module):
                 f'The hidden size ({cfg.d_model}) is not a multiple of the number of attention '
                 f'heads ({cfg.n_heads})')
             
-        self.ablibi = cfg.ablibi
+        self.ablibi = cfg.get('ablibi', False)
         self.seq_len = cfg.max_seq_len
 
         self.n_heads = cfg.n_heads
