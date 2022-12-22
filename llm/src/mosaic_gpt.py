@@ -166,7 +166,7 @@ class TritonFlashCausalAttention(nn.Module):
         bias[key_padding_mask == 0] = float('-inf')
         bias = bias.view(-1, 1, 1, self.seq_len)
         if self.alibi:
-            bias *= self.attn_bias
+            bias = bias * self.attn_bias
         attention = self.mhsa(
             qkv,
             bias,
