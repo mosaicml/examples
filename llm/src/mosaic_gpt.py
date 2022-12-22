@@ -236,13 +236,13 @@ class MosaicGPT(nn.Module):
         
         self.transformer = nn.ModuleDict({"wte": nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)})
         if not cfg.get('alibi', False):
-            self.transformer.append({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
-        self.transformer.append({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
-        self.transformer.append({'blocks': nn.ModuleList([
+            self.transformer.update({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
+        self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
+        self.transformer.update({'blocks': nn.ModuleList([
                     GPTBlock(cfg, device=cfg.device)
                     for _ in range(cfg.n_layers)
                 ])})
-        self.transformer.append({'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.device)})
+        self.transformer.update({'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.device)})
 
         if cfg.device != 'meta':
             self.apply(self.param_init_fn)
