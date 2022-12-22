@@ -131,12 +131,12 @@ class TritonFlashCausalAttention(nn.Module):
 
     def _fill_attn_bias(self, bias_max: int = 8):
         assert isinstance(self.attn_bias, torch.Tensor)  # for type checking
-        torch.full(size=self.attn_bias.shape,
-                   fill_value=float('inf'),
-                   out=self.attn_bias)
-        torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
-        
         if self.alibi:
+            torch.full(size=self.attn_bias.shape,
+                        fill_value=float('inf'),
+                        out=self.attn_bias)
+            torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
+
             # TODO I think this is correct, but is it correct????
             dtype, device = self.attn_bias.dtype, self.attn_bias.device
             alibi_bias = torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
@@ -150,7 +150,10 @@ class TritonFlashCausalAttention(nn.Module):
 
             assert not self.attn_bias.isnan().any(), f"Attn bias shouldn't have NaNs"
         else:
-            self.attn_bias.mul_(-1.)  # convert bias to -inf
+            torch.full(size=self.attn_bias.shape,
+                        fill_value=float('-inf'),
+                        out=self.attn_bias)
+            torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
 
         self.attn_bias_initialized = True
 
