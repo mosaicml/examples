@@ -95,7 +95,7 @@ grad_clip_norm: 1.0
 device_eval_batch_size: 4
 device_train_microbatch_size: 4
 # device_train_microbatch_size: auto
-precision: bf16
+precision: amp_bf16
 
 # FSDP
 fsdp_config:
