@@ -151,7 +151,7 @@ class TritonFlashCausalAttention(nn.Module):
                         h=self.n_heads)
 
         if qkv.dtype not in [torch.float16, torch.bfloat16]:
-            raise TypeError(f'Triton kernel only supports fp16 and bf16 inputs (input type: {qkv.dtype})')
+            raise TypeError(f'Triton kernel only supports inputs of dtype torch.float16 and torch.bfloat16 (input dtype: {qkv.dtype})')
         #     bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
         #         For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
         #         ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
