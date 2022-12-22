@@ -4,7 +4,7 @@ This folder contains examples of how to use [MosaicML Cloud](https://www.mosaicm
 
 Full documentation on MosaicML Cloud can be found at https://mcli.docs.mosaicml.com/.
 
-## Using MCLI to launch runs
+## Using MosaicML Command Line Interface (MCLI) to launch runs
 
 In this folder, we provide two MCLI examples, [`mcli-1b.yaml`](./mcli-1b.yaml) and [`mcli-1b-custom.yaml`](./mcli-1b-custom.yaml) that demonstrate how to configure and launch training runs using our command-line tool, `mcli`.
 
