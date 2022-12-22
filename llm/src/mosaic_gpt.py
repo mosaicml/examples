@@ -133,11 +133,15 @@ class TritonFlashCausalAttention(nn.Module):
     def _fill_alibi_attn_mask(self):
         assert isinstance(self.bias, torch.Tensor)  # for type checking
         if self.ablibi:
-            raise NotImplementedError()
-            #     bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
-            #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
-            #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
-            # self.attn_bias = stuff  # should be of shape = (1, nheads, 1, seqlen)
+            # raise NotImplementedError()
+            # # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
+            # # For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
+            # # ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+            attn_bias = -torch.arange(self.seq_len).view(1, self.seq_len)  # should be of shape = (1, nheads, 1, seqlen)
+            attn_bias *= (1 / torch.arange(self.n_heads).view(self.n_heads, 1))
+            attn_bias = attn_bias.view(1, self.n_heads, 1, self.seq_len)
+            self.attn_bias.fill_(attn_bias)
+            
         self.attn_bias_initialized = True
 
     def forward(self, x, key_padding_mask):
@@ -159,7 +163,6 @@ class TritonFlashCausalAttention(nn.Module):
         bias[key_padding_mask == 0] = float('-inf')
         bias = bias.view(-1, 1, 1, self.seq_len)
         if self.ablibi:
-            raise NotImplementedError
             bais *= self.attn_bias
         attention = self.mhsa(
             qkv,
