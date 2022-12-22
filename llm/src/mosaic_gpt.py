@@ -168,7 +168,7 @@ class TritonFlashCausalAttention(nn.Module):
             None
         )
 
-        return self.out_proj(rearrange(attention, 'nnz h d -> nnz (h d)')), None
+        return self.out_proj(rearrange(attention, 'b s h d -> b s (h d)')), None
 
 
 class GPTMLP(nn.Module):
