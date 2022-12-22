@@ -143,7 +143,7 @@ class TritonFlashCausalAttention(nn.Module):
                    fill_value=1,
                    out=self.attn_bias)
             self.attn_bias *= -torch.arange(self.seq_len).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, 1, 1, self.seq_len)
-            self.attn_bias *= (1. / torch.arange(self.n_heads).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, self.n_heads, 1, 1))  # TODO figure out if this is correct...
+            self.attn_bias *= (1. / (2 ** torch.arange(1, self.n_heads + 1).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, self.n_heads, 1, 1)))  # TODO figure out if this is correct...
             
         self.attn_bias_initialized = True
 
@@ -162,11 +162,13 @@ class TritonFlashCausalAttention(nn.Module):
         # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
         #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
         #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
-        bias = qkv.new_zeros(key_padding_mask.shape)
-        bias[key_padding_mask == 0] = float('-inf')
-        bias = bias.view(-1, 1, 1, self.seq_len)
         if self.alibi:
-            bias = bias * self.attn_bias
+            bias = self.attn_bias
+        else:
+            bias = qkv.new_zeros(key_padding_mask.shape)
+            bias[key_padding_mask == 0] = float('-inf')
+            bias = bias.view(-1, 1, 1, self.seq_len)
+
         attention = self.mhsa(
             qkv,
             bias,
