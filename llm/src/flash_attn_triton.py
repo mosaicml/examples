@@ -800,6 +800,9 @@ def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
             bias = repeat(bias, '1 h ... -> b h ...', b=batch)
         elif bias.shape[:2] == (batch, 1):
             bias = repeat(bias, 'b 1 ... -> b h ...', h=nheads)
+        elif bias.shape[:2] == (1, 1):
+            bias = repeat(bias, '1 h ... -> b h ...', b=batch)
+            bias = repeat(bias, 'b 1 ... -> b h ...', h=nheads)
         assert bias.shape[:2] == (
             batch, nheads
         ), f'First 2 dimensions of bias must be broadcastible to (batch, nheads) = ({batch, nheads}). Bias has shape: {bias.shape}'
