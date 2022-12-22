@@ -130,7 +130,7 @@ class TritonFlashCausalAttention(nn.Module):
         self.out_proj._is_residual = True
 
     def _fill_alibi_attn_mask(self):
-        assert isinstance(self.bias, torch.Tensor)  # for type checking
+        assert isinstance(self.attn_bias, torch.Tensor)  # for type checking
         if self.alibi:
             # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
             #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
