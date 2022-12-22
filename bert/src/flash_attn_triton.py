@@ -931,9 +931,12 @@ def _flash_attn_backward(do,
             bias = repeat(bias, '1 h ... -> b h ...', b=batch)
         elif bias.shape[:2] == (batch, 1):
             bias = repeat(bias, 'b 1 ... -> b h ...', h=nheads)
+        elif bias.shape[:2] == (1, 1):
+            bias = repeat(bias, '1 h ... -> b h ...', b=batch)
+            bias = repeat(bias, 'b 1 ... -> b h ...', h=nheads)
         assert bias.shape[:2] == (
             batch, nheads
-        ), 'First 2 dimensions of bias must be broadcastible to (batch, nheads)'
+        ), f'First 2 dimensions of bias must be broadcastible to (batch, nheads) = ({batch, nheads}). Bias has shape: {bias.shape}'
     assert bias is not None  # type checking
     bias_strides = (bias.stride(0), bias.stride(1),
                     bias.stride(2)) if has_bias else (0, 0, 0)
