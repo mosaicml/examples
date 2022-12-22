@@ -148,6 +148,10 @@ class TritonFlashCausalAttention(nn.Module):
             self.attn_bias += 1
             self.attn_bias *= alibi_bias
 
+            assert not self.attn_bias.isnan().any(), f'attn bias has NaNs'
+            print(self.attn_bias)
+            exit()
+
         self.attn_bias_initialized = True
 
     def forward(self, x, key_padding_mask):
