@@ -135,15 +135,13 @@ class TritonFlashCausalAttention(nn.Module):
             # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
             #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
             #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
-            # attn_bias = -torch.arange(self.seq_len).view(1, self.seq_len)  # should be of shape = (1, nheads, 1, seqlen)
-            # attn_bias = attn_bias * (1 / torch.arange(self.n_heads).view(self.n_heads, 1))  # TODO figure out if this is correct...
-            # attn_bias = attn_bias.view(1, self.n_heads, 1, self.seq_len)
-            # self.attn_bias.fill_(attn_bias)
-            torch.full(size=self.attn_bias.shape,
-                   fill_value=1,
-                   out=self.attn_bias)
-            self.attn_bias *= -torch.arange(self.seq_len).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, 1, 1, self.seq_len)
-            self.attn_bias *= (1. / (2 ** torch.arange(1, self.n_heads + 1).to(dtype=self.attn_bias.dtype, device=self.attn_bias.device).view(1, self.n_heads, 1, 1)))  # TODO figure out if this is correct...
+            dtype, device = self.attn_bias.dtype, self.attn_bias.device
+            torch.full(size=self.attn_bias.shape, fill_value=1, out=self.attn_bias)
+            self.attn_bias *= -torch.arange(self.seq_len, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
+            # TODO figure out if this is correct...
+            bias_max = 8
+            m = torch.arange(1, self.n_heads + 1, dtype=dtype, device=device) * bias_max / self.n_heads
+            self.attn_bias *= (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
             
         self.attn_bias_initialized = True
 
@@ -162,12 +160,11 @@ class TritonFlashCausalAttention(nn.Module):
         # bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
         #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
         #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+        bias = qkv.new_zeros(key_padding_mask.shape)
+        bias[key_padding_mask == 0] = float('-inf')
+        bias = bias.view(-1, 1, 1, self.seq_len)
         if self.alibi:
-            bias = self.attn_bias
-        else:
-            bias = qkv.new_zeros(key_padding_mask.shape)
-            bias[key_padding_mask == 0] = float('-inf')
-            bias = bias.view(-1, 1, 1, self.seq_len)
+            bias = bias + self.attn_bias
 
         attention = self.mhsa(
             qkv,
