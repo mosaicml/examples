@@ -234,8 +234,10 @@ class MosaicGPT(nn.Module):
         self.embedding_fraction = cfg.get("embedding_fraction", 1)
         assert 0 < self.embedding_fraction <= 1, "model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!"
         
+        self.alibi = cfg.get('alibi', False)
+        
         self.transformer = nn.ModuleDict({"wte": nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)})
-        if not cfg.get('alibi', False):
+        if not self.alibi:
             self.transformer.update({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
         self.transformer.update({'blocks': nn.ModuleList([
@@ -258,7 +260,9 @@ class MosaicGPT(nn.Module):
                            device=input_ids.device).unsqueeze(0)
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
-        pos_emb = self.transformer.wpe(pos)  # type: ignore
+        pos_emb = 0
+        if not self.alibi:
+            pos_emb = self.transformer.wpe(pos)  # type: ignore
         if self.embedding_fraction == 1:
             x = self.transformer.emb_drop(tok_emb + pos_emb)  # type: ignore
         else:
