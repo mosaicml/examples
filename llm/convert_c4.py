@@ -20,7 +20,22 @@ def parse_args() -> Namespace:
     args.add_argument('--splits', nargs='+', default=['train', 'val'])
 
     return args.parse_args()
+class ShardedC4(IterableDataset):
+        def __init__(self, split):
+            self.dataset = hf_datasets.load_dataset(path='c4', name='en', split=split, streaming=True)
 
+        def num_shards(self):
+            return len(self.dataset._ex_iterable.kwargs['filepaths'])
+
+        def __iter__(self):
+            worker_info = get_worker_info()
+            if worker_info:
+                num_workers = worker_info.num_workers
+                worker_id = worker_info.id
+                shards = self.dataset._ex_iterable.kwargs['filepaths']
+                assert len(shards) % num_workers == 0
+                self.dataset._ex_iterable.kwargs['filepaths'] = shards[worker_id::num_workers]
+            return iter(self.dataset)
 
 def build_hf_c4_dataset(split: str) -> IterableDataset:
     """Collect the samples for this dataset split.
@@ -32,32 +47,7 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
         An IterableDataset.
     """
 
-    class ShardedC4(IterableDataset):
-
-        def __init__(self):
-            self.dataset = hf_datasets.load_dataset(path='c4',
-                                                    name='en',
-                                                    split=split,
-                                                    streaming=True)
-
-        def num_shards(self):
-            it = self.dataset._ex_iterable  # type: ignore
-            return len(it.kwargs['filepaths'])  # type: ignore
-
-        def __iter__(self):
-            worker_info = get_worker_info()
-            if worker_info:
-                num_workers = worker_info.num_workers
-                worker_id = worker_info.id
-                it = self.dataset._ex_iterable  # type: ignore
-                shards = it.kwargs['filepaths']  # type: ignore
-                assert len(shards) % num_workers == 0
-                it.kwargs['filepaths'] = shards[  # type: ignore
-                    worker_id::num_workers]
-            return iter(self.dataset)
-
-    return ShardedC4()
-
+    return ShardedC4(split)
 
 def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
     """Generator over each dataset sample.

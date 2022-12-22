@@ -5,16 +5,35 @@ import os
 import sys
 import warnings
 
-from composer import Trainer, algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
+from composer import Trainer
+from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
+from composer.algorithms import GradientClipping
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
+from composer.datasets.in_context_learning_evaluation import get_lm_task_dataloader
+from composer.core import Evaluator
+from src.tokenizer import TOKENIZER_REGISTRY
+
+
+def get_evaluators(cfg, tokenizer, batch_size, seqlen):
+    evals = []
+    for icl_task in cfg:
+        dataset_uri = icl_task.get('dataset_uri', None)
+        name = icl_task.get('name', None)
+        metric_names = icl_task.get('metric_names', None)
+
+        assert dataset_uri and name and metric_names
+        dl = get_lm_task_dataloader(dataset_uri, tokenizer, batch_size=max(4, batch_size), max_seq_len=seqlen, eos_tok_id=tokenizer.tokenizer.eos_token_id)
+        evaluator = Evaluator(label=name, dataloader=dl, metric_names=list(metric_names))
+        evals.append(evaluator)
+
+    return evals
 
 
 def build_logger(name, kwargs):
@@ -31,6 +50,10 @@ def build_callback(name, kwargs):
         return MemoryMonitor()
     elif name == 'speed_monitor':
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
+    elif name == "optimizer_monitor":
+        return OptimizerMonitor(
+            log_optimizer_metrics=kwargs.get('log_optimizer_metrics')
+        )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -152,6 +175,13 @@ def main(cfg):
     model = build_composer_model(cfg.model)
     cfg.n_params = sum(p.numel() for p in model.parameters())
     print(f'{cfg.n_params=:.2e}')
+    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
+    evaluators = get_evaluators(
+        cfg.get('icl_tasks', {}),
+        tokenizer,
+        cfg.device_eval_batch_size,
+        cfg.max_seq_len
+    )
 
     # Dataloaders
     print('Building train loader...')
@@ -177,6 +207,8 @@ def main(cfg):
         build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
+    
+    
 
     # Algorithms
     algos = [
@@ -190,7 +222,7 @@ def main(cfg):
         seed=cfg.seed,
         model=model,
         train_dataloader=train_loader,
-        eval_dataloader=eval_loader,
+        eval_dataloader=[eval_loader] + evaluators,
         optimizers=optimizer,
         schedulers=scheduler,
         max_duration=cfg.max_duration,
@@ -203,8 +235,16 @@ def main(cfg):
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
+<<<<<<< HEAD
         algorithms=algos,
         device_train_microbatch_size=cfg.get('device_train_microbatch_size', 'auto'),
+=======
+        algorithms=[GradientClipping(
+            clipping_type='norm',
+            clipping_threshold=cfg.grad_clip_norm
+        )],
+        grad_accum=cfg.device_train_grad_accum,
+>>>>>>> 87f2fd6 (add lambada)
         fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
