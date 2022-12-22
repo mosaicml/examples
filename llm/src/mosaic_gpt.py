@@ -17,6 +17,8 @@ from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
 
+from einops import rearrange
+
 
 class TorchCausalAttention(nn.Module):
 
@@ -92,6 +94,83 @@ class FlashCausalAttention(nn.Module):
                          need_weights=False)
 
 
+class TritonFlashCausalAttention(nn.Module):
+    """Multi-headed self attention using triton FlashAttn kernel which includes bias for Alibi integration
+    """
+
+    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+        super().__init__()
+        try:
+            from src.flash_attn_triton import flash_attn_qkvpacked_func
+            self.mhsa = flash_attn_qkvpacked_func
+        except ImportError as e:
+            raise e
+        
+        assert not cfg.attn_pdrop, 'Triton kernel does not support attn dropout'
+            
+        if cfg.d_model % cfg.n_heads != 0:
+            raise ValueError(
+                f'The hidden size ({cfg.d_model}) is not a multiple of the number of attention '
+                f'heads ({cfg.n_heads})')
+            
+        self.ablibi = cfg.ablibi
+        self.seq_len = cfg.max_seq_len
+
+        self.n_heads = cfg.n_heads
+
+        self.Wqkv = nn.Linear(cfg.d_model, 3 * cfg.d_model, bias=True, device=device)
+        
+        self.attn_bias = None
+        if self.ablibi:
+            self.register_buffer(
+                'attn_bias',
+                torch.empty((1, self.n_heads, 1, self.seq_len), device=device))
+        self.attn_bias_initialized = False
+
+        self.out_proj = nn.Linear(cfg.d_model, cfg.d_model, bias=True, device=device)
+        self.out_proj._is_residual = True
+
+    def _fill_alibi_attn_mask(self):
+        assert isinstance(self.bias, torch.Tensor)  # for type checking
+        if self.ablibi:
+            raise NotImplementedError()
+            #     bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
+            #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
+            #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+            # self.attn_bias = stuff  # should be of shape = (1, nheads, 1, seqlen)
+        self.attn_bias_initialized = True
+
+    def forward(self, x, key_padding_mask):
+        if self.attn_bias and not self.attn_bias_initialized:
+            self._fill_alibi_attn_mask()
+
+        qkv = self.Wqkv(x)
+        qkv = rearrange(qkv,
+                        'b s (t h d) -> b s t h d',
+                        t=3,
+                        h=self.n_heads)
+
+        if qkv.dtype not in [torch.float16, torch.bfloat16]:
+            raise TypeError(f'Triton kernel only supports fp16 and bf16 inputs (input type: {qkv.dtype})')
+        #     bias: optional, shape broadcastible to (batch, nheads, seqlen, seqlen).
+        #         For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
+        #         ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
+        bias = qkv.new_zeros(key_padding_mask.shape)
+        bias[key_padding_mask == 0] = float('-inf')
+        bias = bias.view(-1, 1, 1, self.seq_len)
+        if self.ablibi:
+            raise NotImplementedError
+            bais *= self.attn_bias
+        attention = self.mhsa(
+            qkv,
+            bias=bias,
+            causal=True,
+            softmax_scale=None
+        )
+
+        return self.out_proj(rearrange(attention, 'nnz h d -> nnz (h d)')), None
+
+
 class GPTMLP(nn.Module):
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
@@ -118,6 +197,8 @@ class GPTBlock(nn.Module):
             self.causal_attn = TorchCausalAttention(cfg, device)
         elif cfg.attn_impl == 'flash':
             self.causal_attn = FlashCausalAttention(cfg, device)
+        elif 'triton' in cfg.attn_impl:
+            self.causal_attn = TritonFlashCausalAttention(cfg, device)
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
