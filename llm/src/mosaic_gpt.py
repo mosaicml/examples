@@ -136,7 +136,7 @@ class TritonFlashCausalAttention(nn.Module):
             #     For example, ALiBi mask for causal would have shape (1, nheads, 1, seqlen).
             #     ALiBi mask for non-causal would have shape (1, nheads, seqlen, seqlen)
             attn_bias = -torch.arange(self.seq_len).view(1, self.seq_len)  # should be of shape = (1, nheads, 1, seqlen)
-            attn_bias *= (1 / torch.arange(self.n_heads).view(self.n_heads, 1))
+            attn_bias *= (1 / torch.arange(self.n_heads).view(self.n_heads, 1))  # TODO figure out if this is correct...
             attn_bias = attn_bias.view(1, self.n_heads, 1, self.seq_len)
             self.attn_bias.fill_(attn_bias)
             
