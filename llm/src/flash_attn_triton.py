@@ -802,7 +802,7 @@ def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
             bias = repeat(bias, 'b 1 ... -> b h ...', h=nheads)
         assert bias.shape[:2] == (
             batch, nheads
-        ), f'First 2 dimensions of bias must be broadcastible to (batch, nheads). Bias has shape: {bias.shape}'
+        ), f'First 2 dimensions of bias must be broadcastible to (batch, nheads) = ({batch, nheads}). Bias has shape: {bias.shape}'
     assert bias is not None  # for type checking
     bias_strides = (bias.stride(0), bias.stride(1),
                     bias.stride(2)) if has_bias else (0, 0, 0)
