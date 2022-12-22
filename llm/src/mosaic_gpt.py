@@ -130,7 +130,6 @@ class TritonFlashCausalAttention(nn.Module):
         self.out_proj._is_residual = True
 
     def _fill_attn_bias(self, bias_max: int = 8):
-        assert isinstance(self.attn_bias, torch.Tensor)  # for type checking
         if self.alibi:
             torch.full(size=self.attn_bias.shape,
                         fill_value=float('inf'),
@@ -150,10 +149,11 @@ class TritonFlashCausalAttention(nn.Module):
 
             assert not self.attn_bias.isnan().any(), f"Attn bias shouldn't have NaNs"
         else:
-            torch.full(size=self.attn_bias.shape,
-                        fill_value=float('-inf'),
-                        out=self.attn_bias)
-            torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
+            # torch.full(size=self.attn_bias.shape,
+            #             fill_value=float('-inf'),
+            #             out=self.attn_bias)
+            # torch.triu(input=self.attn_bias, diagonal=1, out=self.attn_bias)
+            pass  # self.attn_bias = None
 
         self.attn_bias_initialized = True
 
