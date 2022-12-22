@@ -132,7 +132,7 @@ class TritonFlashCausalAttention(nn.Module):
         self.out_proj._is_residual = True
 
     def _fill_attn_bias(self, bias_max: int = 8):
-        self.attn_bias.zeros_()
+        self.attn_bias.zero_()
 
         if self.alibi:
             dtype, device = self.attn_bias.dtype, self.attn_bias.device
