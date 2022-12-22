@@ -136,7 +136,9 @@ class TritonFlashCausalAttention(nn.Module):
 
         if self.alibi:
             dtype, device = self.attn_bias.dtype, self.attn_bias.device
+            
             alibi_bias = torch.arange(1 - self.seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
+            
             m = torch.arange(1, self.n_heads + 1, dtype=dtype, device=device) * bias_max / self.n_heads
             alibi_bias = alibi_bias * (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
 
