@@ -264,6 +264,7 @@ class ComposerMosaicGPT(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
         self.model = MosaicGPT(cfg)
+        self.__num_fwd_flops = None
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
@@ -301,6 +302,8 @@ class ComposerMosaicGPT(ComposerModel):
 
     @property
     def num_fwd_flops(self):
+        if self.__num_fwd_flops:
+            return self.__num_fwd_flops
         n_params = sum(p.numel() for p in self.parameters())
         # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
         # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
@@ -309,7 +312,8 @@ class ComposerMosaicGPT(ComposerModel):
         params_flops_per_seq = params_flops_per_token * self.model.cfg.max_seq_len
         # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
         attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (self.model.cfg.d_model * (self.model.cfg.max_seq_len ** 2))
-        return params_flops_per_seq + attn_flops_per_seq
+        self.__num_fwd_flops =  params_flops_per_seq + attn_flops_per_seq
+        return self.__num_fwd_flops
 
     @property
     def num_eval_flops(self):
