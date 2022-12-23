@@ -32,11 +32,30 @@ class SpeedMonitorMFU(SpeedMonitor):
 
         # Log the throughput
         if len(self.batch_num_samples_buffer) == self.window_size:
+            world_size = dist.get_world_size()
             throughput = sum(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
             logger.log_metrics({'throughput/samples_per_sec': throughput})
+            logger.log_metrics({'throughput/batches_per_sec':  throughput / state.global_train_batch_size})
+
+            dev_samples_per_sec = throughput / world_size
+            logger.log_metrics({'throughput/device/samples_per_sec': dev_samples_per_sec})
+            logger.log_metrics({'throughput/device/batches_per_sec': dev_samples_per_sec / state.global_train_batch_size})
+
+            if hasattr(self.model.cfg, 'max_seq_len'):
+                # only applicable to seq data
+                logger.log_metrics({'throughput/tokens_per_sec': throughput * self.model.cfg.max_seq_len})
+                logger.log_metrics({'throughput/device/tokens_per_sec': throughput * self.model.cfg.max_seq_len / world_size})
+
+
             if hasattr(state.model, 'num_fwd_flops'):
-                mfu = (3 * state.model.num_fwd_flops) * throughput / (dist.get_world_size() * GPU_AVAILABLE_FLOPS)
-                logger.log_metrics({'throughput/mfu': mfu})
+                flops = (3 * state.model.num_fwd_flops) * throughput
+                logger.log_metrics({'throughput/flops': flops})
+                
+                device_flops = flops / world_size
+                logger.log_metrics({'throughput/device/flops': flops / world_size})
+
+                mfu = device_flops / GPU_AVAILABLE_FLOPS
+                logger.log_metrics({'throughput/device/mfu': mfu})
 
         # Log the time
         # `state.timestamp` excludes any time spent in evaluation
