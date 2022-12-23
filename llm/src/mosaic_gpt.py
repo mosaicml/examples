@@ -264,6 +264,7 @@ class ComposerMosaicGPT(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
         self.model = MosaicGPT(cfg)
+        self.__num_fwd_flops = None
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
@@ -272,7 +273,6 @@ class ComposerMosaicGPT(ComposerModel):
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
         }
-        self.__num_fwd_flops = None        
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
