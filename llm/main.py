@@ -5,8 +5,7 @@ import os
 import sys
 import warnings
 
-from composer import Trainer
-from composer.algorithms import GradientClipping
+from composer import Trainer, algorithms
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
@@ -34,6 +33,13 @@ def build_callback(name, kwargs):
         return SpeedMonitor(window_size=kwargs.get('window_size', 1))
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
+
+
+def build_algorithm(name, kwargs):
+    if name == 'gradient_clipping':
+        return algorithms.GradientClipping(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build algorithm: {name}')
 
 
 def build_optimizer(cfg, model):
@@ -172,6 +178,12 @@ def main(cfg):
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
 
+    # Algorithms
+    algos = [
+        build_algorithm(name, algorithm_cfg)
+        for name, algorithm_cfg in cfg.get('algorithms', {}).items()
+    ]
+
     # Build the Trainer
     trainer = Trainer(
         run_name=cfg.run_name,
@@ -191,10 +203,7 @@ def main(cfg):
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
-        algorithms=[GradientClipping(
-            clipping_type='norm',
-            clipping_threshold=cfg.grad_clip_norm
-        )],
+        algorithms=algos,
         device_train_microbatch_size=cfg.get('device_train_microbatch_size', 'auto'),
         fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
