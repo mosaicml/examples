@@ -26,21 +26,7 @@ def build_logger(name, kwargs):
         raise ValueError(f'Not sure how to build logger: {name}')
 
 
-def get_model_fwd_flops(cfg):
-    if cfg.model.name == 'mosaic_gpt':
-        # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
-        # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
-        # this gets us FLOPs / token
-        params_flops_per_token = 2 * cfg.n_params
-        params_flops_per_seq = params_flops_per_token * cfg.max_seq_len
-        # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
-        attn_flops_per_seq = cfg.model.n_layers * 2 * 2 * (cfg.model.d_model * (cfg.max_seq_len ** 2))
-        return params_flops_per_seq + attn_flops_per_seq
-    
-    return None
-
-
-def build_callback(name, kwargs, cfg):
+def build_callback(name, kwargs):
     if name == 'lr_monitor':
         return LRMonitor()
     elif name == 'memory_monitor':
@@ -48,7 +34,6 @@ def build_callback(name, kwargs, cfg):
     elif name == 'speed_monitor':
         return SpeedMonitorMFU(
             window_size=kwargs.get('window_size', 1),
-            model_flops=get_model_fwd_flops(cfg),
         )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
@@ -193,7 +178,7 @@ def main(cfg):
 
     # Callbacks
     callbacks = [
-        build_callback(name, callback_cfg, cfg)
+        build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
 

@@ -298,3 +298,30 @@ class ComposerMosaicGPT(ComposerModel):
         outputs = outputs.view(-1, outputs.size(-1))
         targets = self.get_targets(batch).view(-1)
         metric.update(outputs, targets)
+
+    @property
+    def num_fwd_flops(self):
+        n_params = sum(p.numel() for p in self.parameters())
+        # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
+        # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
+        # this gets us FLOPs / token
+        params_flops_per_token = 2 * n_params
+        params_flops_per_seq = params_flops_per_token * self.model.cfg.max_seq_len
+        # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
+        attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (self.model.cfg.d_model * (self.model.cfg.max_seq_len ** 2))
+        return params_flops_per_seq + attn_flops_per_seq
+
+    @property
+    def num_eval_flops(self):
+        return self.get_model_fwd_flops
+
+    @property
+    def num_train_flops(self):
+        # assumes fwd, bwd, and grad pass use an equivalent number of flops
+        return 3 * self.get_model_fwd_flops
+
+    @property
+    def num_train_flops_w_recomp(self):
+        # assumes fwd, bwd, and grad pass use an equivalent number of flops with an extra fwd pass
+        return 4 * self.get_model_fwd_flops
+
