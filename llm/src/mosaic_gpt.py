@@ -234,7 +234,7 @@ class MosaicGPT(nn.Module):
         
         self.alibi = cfg.get('alibi', False)
         
-        self.transformer = nn.ModuleDict({"wte": nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)})
+        self.transformer = nn.ModuleDict({'wte': nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)})
         if not self.alibi:
             self.transformer.update({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
@@ -258,13 +258,14 @@ class MosaicGPT(nn.Module):
                            device=input_ids.device).unsqueeze(0)
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
-        pos_emb = 0
         if not self.alibi:
             pos_emb = self.transformer.wpe(pos)  # type: ignore
-        if self.embedding_fraction == 1:
-            x = self.transformer.emb_drop(tok_emb + pos_emb)  # type: ignore
-        else:
             x = tok_emb + pos_emb
+        else:
+            x = tok_emb
+        if self.embedding_fraction == 1:
+            x = self.transformer.emb_drop(x)  # type: ignore
+        else:
             # this implementation is proposed on page 7 of the GLM-130B paper https://arxiv.org/abs/2210.02414
             x = self.transformer.emb_drop(
                 x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
