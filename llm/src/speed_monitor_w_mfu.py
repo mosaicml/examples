@@ -33,13 +33,14 @@ class SpeedMonitorMFU(SpeedMonitor):
         # Log the throughput
         if len(self.batch_num_samples_buffer) == self.window_size:
             world_size = dist.get_world_size()
+            global_batch_size = state.device_train_microbatch_size * state.grad_accum * world_size
             throughput = sum(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
             logger.log_metrics({'throughput/samples_per_sec': throughput})
-            logger.log_metrics({'throughput/batches_per_sec':  throughput / state.global_train_batch_size})
+            logger.log_metrics({'throughput/batches_per_sec':  throughput / global_batch_size})
 
             dev_samples_per_sec = throughput / world_size
             logger.log_metrics({'throughput/device/samples_per_sec': dev_samples_per_sec})
-            logger.log_metrics({'throughput/device/batches_per_sec': dev_samples_per_sec / state.global_train_batch_size})
+            logger.log_metrics({'throughput/device/batches_per_sec': dev_samples_per_sec / global_batch_size})
 
             if hasattr(self.model.cfg, 'max_seq_len'):
                 # only applicable to seq data
