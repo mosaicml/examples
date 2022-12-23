@@ -187,6 +187,7 @@ def main(cfg):
                                                     -1),
         progress_bar=cfg.progress_bar,
         log_to_console=cfg.log_to_console,
+        console_log_interval='1ba',
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
