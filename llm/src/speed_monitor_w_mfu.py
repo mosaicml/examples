@@ -34,8 +34,8 @@ class SpeedMonitorMFU(SpeedMonitor):
         if len(self.batch_num_samples_buffer) == self.window_size:
             throughput = sum(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
             logger.log_metrics({'throughput/samples_per_sec': throughput})
-            if hasattr('num_fwd_flops', state.model):
-                mfu = 3 * state.model.num_fwd_flops * throughput / (dist.get_world_size() * GPU_AVAILABLE_FLOPS)
+            if hasattr(state.model, 'num_fwd_flops'):
+                mfu = (3 * state.model.num_fwd_flops) * throughput / (dist.get_world_size() * GPU_AVAILABLE_FLOPS)
                 logger.log_metrics({'throughput/mfu': mfu})
 
         # Log the time
