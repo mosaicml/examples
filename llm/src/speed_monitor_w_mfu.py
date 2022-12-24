@@ -33,28 +33,25 @@ class SpeedMonitorMFU(SpeedMonitor):
         # Log the throughput
         if len(self.batch_num_samples_buffer) == self.window_size:
             world_size = dist.get_world_size()
-            global_batch_size = state.device_train_microbatch_size * state.grad_accum * world_size
+            grad_accum = state.grad_accum if state.grad_accum else 1
+            global_batch_size = state.device_train_microbatch_size * grad_accum * world_size
             throughput = sum(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
+            dev_throughput = throughput / world_size
             logger.log_metrics({'throughput/samples_per_sec': throughput})
             logger.log_metrics({'throughput/batches_per_sec':  throughput / global_batch_size})
-
-            dev_samples_per_sec = throughput / world_size
-            logger.log_metrics({'throughput/device/samples_per_sec': dev_samples_per_sec})
-            logger.log_metrics({'throughput/device/batches_per_sec': dev_samples_per_sec / global_batch_size})
+            logger.log_metrics({'throughput/device/samples_per_sec': dev_throughput})
+            logger.log_metrics({'throughput/device/batches_per_sec': dev_throughput / global_batch_size})
 
             if hasattr(self.model.cfg, 'max_seq_len'):
                 # only applicable to seq data
                 logger.log_metrics({'throughput/tokens_per_sec': throughput * self.model.cfg.max_seq_len})
-                logger.log_metrics({'throughput/device/tokens_per_sec': throughput * self.model.cfg.max_seq_len / world_size})
-
+                logger.log_metrics({'throughput/device/tokens_per_sec': dev_throughput * self.model.cfg.max_seq_len})
 
             if hasattr(state.model, 'num_fwd_flops'):
                 flops = (3 * state.model.num_fwd_flops) * throughput
                 logger.log_metrics({'throughput/flops': flops})
-                
                 device_flops = flops / world_size
                 logger.log_metrics({'throughput/device/flops': flops / world_size})
-
                 mfu = device_flops / GPU_AVAILABLE_FLOPS
                 logger.log_metrics({'throughput/device/mfu': mfu})
 
