@@ -42,10 +42,10 @@ class SpeedMonitorMFU(SpeedMonitor):
             logger.log_metrics({'throughput/device/samples_per_sec': dev_throughput})
             logger.log_metrics({'throughput/device/batches_per_sec': dev_throughput / global_batch_size})
 
-            if hasattr(self.model.cfg, 'max_seq_len'):
+            if hasattr(state.model.cfg, 'max_seq_len'):
                 # only applicable to seq data
-                logger.log_metrics({'throughput/tokens_per_sec': throughput * self.model.cfg.max_seq_len})
-                logger.log_metrics({'throughput/device/tokens_per_sec': dev_throughput * self.model.cfg.max_seq_len})
+                logger.log_metrics({'throughput/tokens_per_sec': throughput * state.model.cfg.max_seq_len})
+                logger.log_metrics({'throughput/device/tokens_per_sec': dev_throughput * state.model.cfg.max_seq_len})
 
             if hasattr(state.model, 'num_fwd_flops'):
                 flops = (3 * state.model.num_fwd_flops) * throughput
