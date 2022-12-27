@@ -9,7 +9,6 @@ from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
-from composer.algorithms import GradientClipping
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
@@ -19,7 +18,7 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 from composer.datasets.in_context_learning_evaluation import get_lm_task_dataloader
 from composer.core import Evaluator
 from src.tokenizer import TOKENIZER_REGISTRY
-
+from composer import algorithms
 
 def get_evaluators(cfg, tokenizer, batch_size, seqlen):
     evals = []
@@ -235,16 +234,8 @@ def main(cfg):
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
-<<<<<<< HEAD
         algorithms=algos,
         device_train_microbatch_size=cfg.get('device_train_microbatch_size', 'auto'),
-=======
-        algorithms=[GradientClipping(
-            clipping_type='norm',
-            clipping_threshold=cfg.grad_clip_norm
-        )],
-        grad_accum=cfg.device_train_grad_accum,
->>>>>>> 87f2fd6 (add lambada)
         fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
