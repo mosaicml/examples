@@ -8,12 +8,13 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 
 import math
 from functools import partial
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
+from torchmetrics import Metric
+from composer.metrics.nlp import LanguageCrossEntropy, Perplexity, InContextLearningLMAccuracy
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
 
@@ -283,7 +284,16 @@ class ComposerMosaicGPT(ComposerModel):
                           key_padding_mask=batch['attention_mask'].bool())
 
     def eval_forward(self, batch, outputs=None):
-        return outputs if outputs is not None else self.forward(batch)
+        if 'mode' in batch and batch['mode'] == 'lm_task':
+            self.labels = batch.pop('labels')
+            args = {'input_ids': batch['input_ids']}
+            args['attention_mask'] = ~(batch['input_ids'] == batch['eos_tok_id'])
+
+            with torch.no_grad():
+                outputs = self.forward(args)
+                return outputs
+        else:
+            return outputs if outputs is not None else self.forward(batch)
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
@@ -294,7 +304,10 @@ class ComposerMosaicGPT(ComposerModel):
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
 
-    def update_metric(self, batch, outputs, metric):
-        outputs = outputs.view(-1, outputs.size(-1))
-        targets = self.get_targets(batch).view(-1)
-        metric.update(outputs, targets)
+    def update_metric(self, batch: Any, outputs: Any, metric: Metric) -> None:
+        if isinstance(metric, InContextLearningLMAccuracy):
+            metric.update(batch, outputs, self.labels)
+        else:
+            outputs = outputs.view(-1, outputs.size(-1))
+            targets = self.get_targets(batch).view(-1)
+            metric.update(outputs, targets)

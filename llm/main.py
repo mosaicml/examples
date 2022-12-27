@@ -221,7 +221,7 @@ def main(cfg):
         seed=cfg.seed,
         model=model,
         train_dataloader=train_loader,
-        eval_dataloader=[eval_loader] + evaluators,
+        eval_dataloader=evaluators,
         optimizers=optimizer,
         schedulers=scheduler,
         max_duration=cfg.max_duration,

@@ -21,7 +21,7 @@ model:
   attn_pdrop: 0.0
   resid_pdrop: 0.0
   emb_pdrop: 0.0
-  attn_impl: torch
+  attn_impl: flash
 
 # Tokenizer
 tokenizer:
@@ -104,13 +104,13 @@ icl_tasks:
         - InContextLearningLMAccuracy
 
 # FSDP
-# fsdp_config:
-#   sharding_strategy: FULL_SHARD
-#   min_params: 1e8
-#   mixed_precision: DEFAULT
-#   activation_checkpointing: false
-#   activation_cpu_offload: false
-#   verbose: true
+fsdp_config:
+  sharding_strategy: FULL_SHARD
+  min_params: 1e8
+  mixed_precision: DEFAULT
+  activation_checkpointing: false
+  activation_cpu_offload: false
+  verbose: true
 
 # Logging
 progress_bar: true
