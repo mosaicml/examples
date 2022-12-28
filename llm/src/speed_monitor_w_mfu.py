@@ -23,6 +23,8 @@ class SpeedMonitorMFU(SpeedMonitor):
     """
 
     def batch_end(self, state: State, logger: Logger):
+        import ipdb; ipdb.set_trace()
+
         batch_num_samples = int(state.timestamp.sample) - self.batch_start_num_samples
         batch_wct = state.timestamp.total_wct.total_seconds() - self.batch_start_wct
 
@@ -42,10 +44,10 @@ class SpeedMonitorMFU(SpeedMonitor):
             logger.log_metrics({'throughput/device/samples_per_sec': dev_throughput})
             logger.log_metrics({'throughput/device/batches_per_sec': dev_throughput / global_batch_size})
 
-            if hasattr(state.model.model.cfg, 'max_seq_len'):
-                # only applicable to seq data
-                logger.log_metrics({'throughput/tokens_per_sec': throughput * state.model.model.cfg.max_seq_len})
-                logger.log_metrics({'throughput/device/tokens_per_sec': dev_throughput * state.model.model.cfg.max_seq_len})
+            if hasattr(state.dataloader.dataset, 'max_seq_len'):
+                # only applicable to seq data / models
+                logger.log_metrics({'throughput/tokens_per_sec': throughput * state.dataloader.dataset.max_seq_len})
+                logger.log_metrics({'throughput/device/tokens_per_sec': dev_throughput * state.dataloader.dataset.max_seq_len})
 
             if hasattr(state.model, 'num_fwd_flops'):
                 flops = (3 * state.model.num_fwd_flops) * throughput
