@@ -17,8 +17,6 @@ from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
 
-from einops import rearrange
-
 
 class TorchCausalAttention(nn.Module):
 
