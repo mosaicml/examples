@@ -33,6 +33,8 @@ class StreamingTextDataset(StreamingDataset):
             ``False``.
         predownload (int, optional): Target number of samples ahead to download the shards of while
             iterating. Defaults to ``100_000``.
+        keep_zip (bool): Whether to keep or delete the compressed file when
+            decompressing downloaded shards.
         download_retry (int): Number of download re-attempts before giving up. Defaults to ``2``.
         download_timeout (float): Number of seconds to wait for a shard to download before raising
             an exception. Defaults to ``60``.
@@ -53,6 +55,7 @@ class StreamingTextDataset(StreamingDataset):
                  split: str = None,
                  shuffle: bool = False,
                  predownload: Optional[int] = 100_000,
+                 keep_zip: bool = False,
                  download_retry: int = 2,
                  download_timeout: float = 120,
                  shuffle_seed: Optional[int] = None,
@@ -73,7 +76,7 @@ class StreamingTextDataset(StreamingDataset):
                          split=split,
                          shuffle=shuffle,
                          predownload=predownload,
-                         keep_zip=False,
+                         keep_zip=keep_zip,
                          download_retry=download_retry,
                          download_timeout=download_timeout,
                          validate_hash=None,
@@ -170,6 +173,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         split=cfg.dataset.split,
         shuffle=cfg.dataset.shuffle,
         predownload=cfg.dataset.prefetch,
+        keep_zip=cfg.dataset.get('keep_zip', False),
         download_timeout=cfg.timeout,
         shuffle_seed=cfg.get('seed', None),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', None),
@@ -217,6 +221,7 @@ if __name__ == '__main__':
             'max_seq_len': 32,
             'group_method': 'truncate',
             'num_canonical_nodes': None,
+            'keep_zip': True  # since we are just testing, do not delete originals
         },
         'drop_last': False,
         'num_workers': 2,
