@@ -33,37 +33,11 @@ class TorchCausalAttention(nn.Module):
             device=device,
         )
 
-        self.register_buffer(
-            'mask',
-            torch.empty((cfg.max_seq_len, cfg.max_seq_len), device=device))
-        self.mask_initialized = False
-        self.mhsa.out_proj._is_residual = True  # type: ignore
-
-    def _fill_causal_attn_mask(self):
-        assert isinstance(self.mask, torch.Tensor)  # for type checking
-        torch.full(size=self.mask.shape,
-                   fill_value=float('-inf'),
-                   out=self.mask)
-        torch.triu(input=self.mask, diagonal=1, out=self.mask)
-
-    def forward(self, x, key_padding_mask):
-        # Two important disclaimers
-        # 1. Torch uses additive attention. If your attn_mask/key_padding mask is a float tensor, it will add the floats
-        #   directly to your attention matrix. If they are boolean masks, True will be converted to -inf before adding the
-        #   mask to your attentions. See https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html#torch.nn.MultiheadAttention.forward
-        #   Basically True/-inf indicates tokens we do not want to attend to.
-        #
-        # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
-        #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
-        #
-        if not self.mask_initialized:
-            self._fill_causal_attn_mask()
-            self.mask_initialized = True
-
+    def forward(self, x, key_padding_mask, attn_mask=None):
         return self.mhsa(x,
                          x,
                          x,
-                         attn_mask=self.mask,
+                         attn_mask=attn_mask,
                          key_padding_mask=~key_padding_mask,
                          need_weights=True)
 
@@ -88,7 +62,8 @@ class FlashCausalAttention(nn.Module):
         )
         self.mhsa.out_proj._is_residual = True
 
-    def forward(self, x, key_padding_mask):
+    def forward(self, x, key_padding_mask, attn_mask=None):
+        assert attn_mask is None
         return self.mhsa(x,
                          key_padding_mask=key_padding_mask,
                          need_weights=False)
@@ -101,73 +76,28 @@ class TritonFlashCausalAttention(nn.Module):
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
         try:
-            from src.flash_attn_triton import flash_attn_qkvpacked_func
-            self.mhsa = flash_attn_qkvpacked_func
+            from src.flash_attention import FlashMHA  # type: ignore
         except ImportError as e:
             raise e
         
-        assert not cfg.attn_pdrop, 'Triton kernel does not support attn dropout'
-            
-        if cfg.d_model % cfg.n_heads != 0:
-            raise ValueError(
-                f'The hidden size ({cfg.d_model}) is not a multiple of the number of attention '
-                f'heads ({cfg.n_heads})')
-
-        self.Wqkv = nn.Linear(cfg.d_model, 3 * cfg.d_model, bias=True, device=device)
-
-        self.alibi = cfg.get('alibi', False)
-        self.seq_len = cfg.max_seq_len
-        self.n_heads = cfg.n_heads
-        if self.alibi:
-            self.register_buffer(
-                'attn_bias',
-                torch.empty((1, self.n_heads, 1, self.seq_len), device=device))
-        else:
-            self.register_buffer(
-                'attn_bias',
-                torch.empty((1, 1, 1, self.seq_len), device=device))
-        self.attn_bias_initialized = False
-
-        self.out_proj = nn.Linear(cfg.d_model, cfg.d_model, bias=True, device=device)
-        self.out_proj._is_residual = True
-
-    def _fill_attn_bias(self, bias_max: int = 8):
-        self.attn_bias.zero_()
-
-        if self.alibi:
-            dtype, device = self.attn_bias.dtype, self.attn_bias.device
-            
-            alibi_bias = torch.arange(1 - self.seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, self.seq_len)
-            
-            m = torch.arange(1, self.n_heads + 1, dtype=dtype, device=device) * bias_max / self.n_heads
-            alibi_bias = alibi_bias * (1. / (2 ** m.view(1, self.n_heads, 1, 1)))
-
-            self.attn_bias.add_(alibi_bias)
-
-        self.attn_bias_initialized = True
-
-    def forward(self, x, key_padding_mask):
-        if key_padding_mask.bool().logical_not().any():
-            raise NotImplementedError(f'triton attn does not support key_padding_mask')
-        if not self.attn_bias_initialized:
-            self._fill_attn_bias()
-
-        qkv = self.Wqkv(x)
-        qkv = rearrange(qkv,
-                        'b s (t h d) -> b s t h d',
-                        t=3,
-                        h=self.n_heads)
-
-        if qkv.dtype not in [torch.float16, torch.bfloat16]:
-            raise TypeError(f'Triton kernel only supports inputs of dtype torch.float16 and torch.bfloat16 (input dtype: {qkv.dtype})')
-        attention = self.mhsa(
-            qkv,
-            self.attn_bias,
-            True,
-            None
+        self.mhsa = FlashMHA(
+            embed_dim=cfg.d_model,
+            num_heads=cfg.n_heads,
+            attention_dropout=cfg.attn_pdrop,
+            bias=True,
+            batch_first=True,
+            causal=True,
+            device=device,
         )
+        self.mhsa.out_proj._is_residual = True
 
-        return self.out_proj(rearrange(attention, 'b s h d -> b s (h d)')), None
+    def forward(self, x, key_padding_mask=None, attn_mask=None):
+        assert key_padding_mask is None
+        return self.mhsa(
+            x,
+            key_padding_mask=None,
+            attn_mask=attn_mask,
+            need_weights=False)
 
 
 class GPTMLP(nn.Module):
@@ -210,10 +140,11 @@ class GPTBlock(nn.Module):
     def forward(
             self,
             x: torch.Tensor,
-            key_padding_mask: Optional[torch.ByteTensor] = None
+            key_padding_mask: Optional[torch.ByteTensor] = None,
+            attn_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         a = self.ln_1(x)
-        b, _ = self.causal_attn(a, key_padding_mask)
+        b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
         x = x + self.resid_attn_dropout(b)
         m = self.ln_2(x)
         n = self.mlp(m)
@@ -227,13 +158,13 @@ class MosaicGPT(nn.Module):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
+        self.alibi = cfg.get("alibi", None)
+        self.alibi_bias_max = cfg.get("alibi_bias_max", 8 if self.alibi else None)
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
         self.embedding_fraction = cfg.get("embedding_fraction", 1)
         assert 0 < self.embedding_fraction <= 1, "model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!"
-        
-        self.alibi = cfg.get('alibi', False)
-        
+
         self.transformer = nn.ModuleDict({'wte': nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)})
         if not self.alibi:
             self.transformer.update({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
@@ -247,6 +178,108 @@ class MosaicGPT(nn.Module):
         if cfg.device != 'meta':
             self.apply(self.param_init_fn)
 
+        # define attn mask
+        self._attn_mask_initialized = False
+        mask_shape = None
+        if cfg.attn_impl == 'torch':
+            mask_shape = (cfg.max_seq_len, cfg.max_seq_len)
+        elif 'triton' in cfg.attn_impl:
+            mask_shape = (1, cfg.n_heads, 1, cfg.max_seq_len) if self.alibi else (1, 1, 1, cfg.max_seq_len)
+        elif cfg.attn_impl == 'flash':
+            pass
+        else:
+            raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
+
+        if mask_shape:
+            self.register_buffer('attn_mask', torch.empty(mask_shape, device=cfg.device))
+        else:
+            self.attn_mask = None
+
+    def _alibi(self, dtype, device, S, n_heads, full=False):
+        alibi_bias = torch.arange(1 - S, 1, dtype=dtype, device=device).view(1, 1, 1, S)
+        if full:
+            # if full, the generated alibi mask is 1 x Heads x S x S else mask is 1 x Heads x 1 x S (which is braodcasted up)
+            alibi_bias = alibi_bias + torch.arange(1 - S, 1, dtype=dtype, device=device).view(1, 1, S, 1)
+
+        m = torch.arange(1, n_heads + 1, dtype=dtype, device=device) * self.alibi_bias_max / n_heads
+        alibi_bias = alibi_bias * (1. / (2 ** m.view(1, n_heads, 1, 1)))
+        return alibi_bias
+
+    def _triton_attn_mask(self, x, S=None, key_padding_mask=None):
+        if self._attn_mask_initialized and key_padding_mask is None:
+            return self.attn_mask
+
+        if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
+            # Triton kernel does not handel key_padding_mask
+            # key_padding_mask must be handeled by setting mask to -inf
+            dtype, device = x.dtype, x.device
+
+            B = x.size(0)
+            S = max(x.size(1), S) if S else x.size(1)
+            n_heads = self.cfg.n_heads if self.alibi else 1
+
+            attn_mask = torch.zeros((B, n_heads, S, S), dtype=dtype, device=device)
+            
+            m = (~key_padding_mask).reshape(B, 1, 1, S)
+            m = m * (~key_padding_mask).reshape(B, 1, S, 1)
+            m[m == 1] = float('-inf')
+            attn_mask += m
+
+            if self.alibi:
+                attn_mask.add_(self._alibi(dtype, device, S, n_heads, full=True))
+
+            return attn_mask
+
+        # default when no elems are 0 in key_padding_mask
+        if self._attn_mask_initialized:
+            return self.attn_mask
+
+        self.attn_mask.zero_()
+
+        if self.alibi:
+            dtype, device = self.attn_mask.dtype, self.attn_mask.device
+
+            if self.alibi:
+                self.attn_mask.add_(self._alibi(dtype, device, S, self.cfg.n_heads, full=False))
+        
+        self._attn_mask_initialized = True
+        
+        return self.attn_mask
+
+    def _torch_attn_mask(self, x, S=None):
+        # Two important disclaimers
+        # 1. Torch uses additive attention. If your attn_mask/key_padding mask is a float tensor, it will add the floats
+        #   directly to your attention matrix. If they are boolean masks, True will be converted to -inf before adding the
+        #   mask to your attentions. See https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html#torch.nn.MultiheadAttention.forward
+        #   Basically True/-inf indicates tokens we do not want to attend to.
+        #
+        # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
+        #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
+        if self._attn_mask_initialized:
+            return self.attn_mask
+        
+        if not S:
+            S = x.size(1)
+        self.attn_mask = torch.full(size=self.attn_mask.shape, fill_value=float('-inf'), out=self.attn_mask)
+        torch.triu(input=self.attn_mask, diagonal=1, out=self.attn_mask)
+
+        if self.alibi:
+            raise NotImplementedError()
+        
+        self._attn_mask_initialized = True
+
+        return self.attn_mask
+
+    def _attn_mask(self, x, S=None, key_padding_mask=None):
+        if self.cfg.attn_impl == 'torch':
+            return self._torch_attn_mask(x, S=self.cfg.max_seq_len)
+        elif self.cfg.attn_impl == 'flash':
+            return None
+        elif 'triton' in self.cfg.attn_impl:
+            return self._triton_attn_mask(x, S=self.cfg.max_seq_len, key_padding_mask=key_padding_mask)
+        else:
+            raise ValueError(f'Unknown attn_impl={self.cfgcfg.attn_impl}')
+
     def forward(self,
                 input_ids: torch.LongTensor,
                 key_padding_mask: Optional[torch.ByteTensor] = None):
@@ -258,11 +291,18 @@ class MosaicGPT(nn.Module):
                            device=input_ids.device).unsqueeze(0)
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
-        if not self.alibi:
+
+        attn_mask = self._attn_mask(tok_emb, S=self.cfg.max_seq_len, key_padding_mask=key_padding_mask)
+        if 'triton' in self.cfg.attn_impl:
+            # handled in attn_mask if needed
+            key_padding_mask = None
+
+        if self.alibi:
+            x = tok_emb
+        else:
             pos_emb = self.transformer.wpe(pos)  # type: ignore
             x = tok_emb + pos_emb
-        else:
-            x = tok_emb
+
         if self.embedding_fraction == 1:
             x = self.transformer.emb_drop(x)  # type: ignore
         else:
@@ -271,7 +311,7 @@ class MosaicGPT(nn.Module):
                 x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
             )
         for block in self.transformer.blocks:  # type: ignore
-            x = block(x, key_padding_mask)
+            x = block(x, key_padding_mask, attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         logits = F.linear(x, self.transformer.wte.weight, None)
