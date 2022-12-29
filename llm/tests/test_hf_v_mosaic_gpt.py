@@ -11,7 +11,13 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
 @pytest.mark.parametrize('dropout', [0.0, 0.1])
-def test_compare_hf_v_mosaic_gpt(dropout):
+@pytest.mark.parametrize(
+    'attn_impl,strict',
+    [
+        ("flash", True),
+        ("triton", False),  # requires strict=False to skip loading model.attn_mask
+    ])
+def test_compare_hf_v_mosaic_gpt(dropout, attn_impl, strict):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -57,6 +63,8 @@ def test_compare_hf_v_mosaic_gpt(dropout):
 
     # extract model cfg
     cfg = cfg.model
+    # use triton attn implementation
+    cfg.attn_impl = attn_impl
     # modify cfg for HF GPT2 compatibility
     cfg.max_seq_len = hf_model.model.config.n_ctx
     cfg.device = device
@@ -141,7 +149,7 @@ def test_compare_hf_v_mosaic_gpt(dropout):
             _hf_model_statedict[k] = v
 
     # load hf model weights into mosaic gpt model
-    model.load_state_dict(_hf_model_statedict)
+    model.load_state_dict(_hf_model_statedict, strict=strict)
 
     with torch.autocast(device_type=device, dtype=torch.float16):
         torch.manual_seed(seed)
