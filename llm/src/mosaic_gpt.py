@@ -30,6 +30,7 @@ class TorchCausalAttention(nn.Module):
             batch_first=True,
             device=device,
         )
+        self.mhsa.out_proj._is_residual = True  # type: ignore
 
     def forward(self, x, key_padding_mask, attn_mask=None):
         return self.mhsa(x,
