@@ -260,7 +260,7 @@ class MosaicGPT(nn.Module):
         if not S:
             S = x.size(1)
         self.attn_mask = torch.full(size=self.attn_mask.shape, fill_value=float('-inf'), out=self.attn_mask)
-        torch.triu(input=self.attn_mask, diagonal=1, out=self.attn_mask)
+        torch.tril(input=self.attn_mask, diagonal=1, out=self.attn_mask)
 
         if self.alibi:
             raise NotImplementedError()
