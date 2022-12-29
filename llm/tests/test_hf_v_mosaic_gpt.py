@@ -10,14 +10,16 @@ from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
-@pytest.mark.parametrize('dropout', [0.0, 0.1])
 @pytest.mark.parametrize(
-    'attn_impl,strict',
+    'attn_impl,dropout,strict',
     [
-        ("flash", True),
-        ("triton", False),  # requires strict=False to skip loading model.attn_mask
+        ("flash", 0.0, True),
+        ("flash", 0.1, True),
+        ("torch", 0.0, False),  # requires strict=False to skip loading model.attn_mask
+        ("triton", 0.0, False),  # requires strict=False to skip loading model.attn_mask
+        ("triton", 0.1, False),  # requires strict=False to skip loading model.attn_mask
     ])
-def test_compare_hf_v_mosaic_gpt(dropout, attn_impl, strict):
+def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -87,16 +89,17 @@ def test_compare_hf_v_mosaic_gpt(dropout, attn_impl, strict):
 
     # generate random input branch
     batch = {}
-    batch['input_ids'] = torch.randint(low=0,
-                                       high=cfg.vocab_size,
-                                       size=(batch_size,
-                                             cfg.max_seq_len)).to(device)
-    batch['labels'] = torch.randint(low=0,
-                                    high=cfg.vocab_size,
-                                    size=(batch_size,
-                                          cfg.max_seq_len)).to(device)
-    batch['attention_mask'] = torch.ones(size=(batch_size, cfg.max_seq_len),
-                                         dtype=torch.int64).to(device)
+    batch['input_ids'] = torch.randint(
+        low=0,
+        high=cfg.vocab_size,
+        size=(batch_size, cfg.max_seq_len)).to(device)
+    batch['labels'] = torch.randint(
+        low=0,
+        high=cfg.vocab_size,
+        size=(batch_size, cfg.max_seq_len)).to(device)
+    batch['attention_mask'] = torch.ones(
+        size=(batch_size, cfg.max_seq_len),
+        dtype=torch.int64).to(device)
 
     hf_model.train()
     model.train()
@@ -124,11 +127,16 @@ def test_compare_hf_v_mosaic_gpt(dropout, attn_impl, strict):
     # HF keys which need to be replaced by the associated value
     hf_2_mosaic_key_mods = {
         'model.transformer.h.': 'model.transformer.blocks.',
-        '.attn.c_attn.': '.causal_attn.mhsa.Wqkv.',
-        '.attn.c_proj.': '.causal_attn.mhsa.out_proj.',
         '.mlp.c_fc.': '.mlp.mlp_up.',
         '.mlp.c_proj.': '.mlp.mlp_down.',
     }
+    if attn_impl == "torch":
+        hf_2_mosaic_key_mods['.attn.c_attn.weight'] = '.causal_attn.mhsa.in_proj_weight'
+        hf_2_mosaic_key_mods['.attn.c_attn.bias'] = '.causal_attn.mhsa.in_proj_bias'
+        hf_2_mosaic_key_mods['.attn.c_proj.'] = '.causal_attn.mhsa.out_proj.'
+    else:
+        hf_2_mosaic_key_mods['.attn.c_attn.'] = '.causal_attn.mhsa.Wqkv.'
+        hf_2_mosaic_key_mods['.attn.c_proj.'] = '.causal_attn.mhsa.out_proj.'
 
     # convert hf gpt statedict to mosaic gpt statedict using the dict and list above
     _hf_model_statedict = {}
