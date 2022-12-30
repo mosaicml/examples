@@ -30,14 +30,16 @@ class TorchCausalAttention(nn.Module):
             batch_first=True,
             device=device,
         )
+        self.mhsa.out_proj._is_residual = True  # type: ignore
 
     def forward(self, x, key_padding_mask, attn_mask=None):
-        return self.mhsa(x,
-                         x,
-                         x,
-                         attn_mask=attn_mask,
-                         key_padding_mask=~key_padding_mask,
-                         need_weights=True)
+        return self.mhsa(
+            x,
+            x,
+            x,
+            attn_mask=attn_mask,
+            key_padding_mask=~key_padding_mask,
+            need_weights=True)
 
 
 class FlashCausalAttention(nn.Module):
@@ -62,9 +64,10 @@ class FlashCausalAttention(nn.Module):
 
     def forward(self, x, key_padding_mask, attn_mask=None):
         assert attn_mask is None
-        return self.mhsa(x,
-                         key_padding_mask=key_padding_mask,
-                         need_weights=False)
+        return self.mhsa(
+            x,
+            key_padding_mask=key_padding_mask,
+            need_weights=False)
 
 
 class TritonFlashCausalAttention(nn.Module):
@@ -285,8 +288,7 @@ class MosaicGPT(nn.Module):
         assert (
             S <= self.cfg.max_seq_len
         ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
-        pos = torch.arange(0, S, dtype=torch.long,
-                           device=input_ids.device).unsqueeze(0)
+        pos = torch.arange(0, S, dtype=torch.long, device=input_ids.device).unsqueeze(0)
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
 
@@ -317,9 +319,7 @@ class MosaicGPT(nn.Module):
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
-        init_fn = partial(torch.nn.init.normal_,
-                          mean=0.0,
-                          std=self.cfg.init_std)
+        init_fn = partial(torch.nn.init.normal_, mean=0.0, std=self.cfg.init_std)
         # Linear
         if isinstance(module, nn.Linear):
             init_fn(module.weight)
