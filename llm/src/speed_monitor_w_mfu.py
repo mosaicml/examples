@@ -17,45 +17,56 @@ from composer.callbacks import SpeedMonitor
 
 GPU_AVAILABLE_FLOPS = {
     # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
-    'h100-sxm':     1.979e15 / 2,   # nvidia publishes spec sheet with a 2x sparsity factor
-    'h100-pcie':    1.513e15 / 2,   # nvidia publishes spec sheet with a 2x sparsity factor
+    # nvidia publishes spec sheet with a 2x sparsity factor
+    'h100-sxm':     {'fp64': 67e12, 'fp32': 67e12, 'tf32': 989e12 / 2, 'fp16': 1.979e15 / 2, 'amp_fp16': 1.979e15 / 2, 'bf16': 1.979e15 / 2, 'amp_bf16': 1.979e15 / 2, 'fp8': 3_958 / 2, 'int8': 3_958 / 2},
+    'h100-pcie':    {'fp64': 51e12, 'fp32': 51e12, 'tf32': 756e12 / 2, 'fp16': 1.513e15 / 2, 'amp_fp16': 1.513e15 / 2, 'bf16': 1.513e15 / 2, 'amp_bf16': 1.513e15 / 2, 'fp8': 3_026 / 2, 'int8': 3_026 / 2},
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
-    'a100':         312e12,         # sxm and pcie have same flop counts
-    # source: https://images.nvidia.com/content/technologies/volta/pdf/tesla-volta-v100-datasheet-letter-fnl-web.pdf
-    'v100-sxm':     125e12,
-    'v100-pcie':    112e12,
+    # sxm and pcie have same flop counts
+    'a100':         {'fp64': 19.5e12, 'fp32': 19.5e12, 'tf32': 156e12, 'fp16': 312e12, 'amp_fp16': 312e12, 'bf16': 312e12, 'amp_bf16': 312e12},
+    # source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
+    'v100-sxm':     {'fp64': 7.8e12, 'fp32': 15.7e12, 'fp16': 125e12, 'amp_fp16': 125e12},
+    'v100-pcie':    {'fp64': 7e12, 'fp32': 14e12, 'fp16': 112e12, 'amp_fp16': 112e12},
+    'v100s-pcie':   {'fp64': 8.2e12, 'fp32': 16.4e12, 'fp16': 130e12, 'amp_fp16': 130e12},
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
-    't4':           65e12,          # sxm and pcie have same flop counts
+    't4':           {'fp32': 8.1e12, 'fp16': 65e12, 'amp_fp16': 65e12, 'int8': 130e12, 'int4': 260e12},          # sxm and pcie have same flop counts
 }
 
 __all__ = ['SpeedMonitorMFU']
 
 
-def get_gpu_flops_available():
+def get_gpu_flops_available(state):
     gpu_flops_available = None
 
     # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB' 
     dev_name = torch.cuda.get_device_name().lower()
     if 'h100-sxm' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['h100-sxm']
+        dev_name = 'h100-sxm'
     elif 'h100-pcie' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['h100-pcie']
+        dev_name = 'h100-pcie'
     elif 'a100' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['a100']
+        dev_name = 'a100'
     elif 'v100-sxm' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['v100-sxm']
+        dev_name = 'v100-sxm'
     elif 'v100-pcie' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['v100-pcie']
+        dev_name = 'v100-pcie'
     elif 't4' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['t4']
-    
-    if gpu_flops_available:
-        warnings.warn(
-            f'Using {gpu_flops_available=} when calculate MFU (assumes fp16 or bf16 precision using {dev_name}).'
+        dev_name = 't4'
+    else: 
+        dev_name = None
+
+    if dev_name:
+        try:
+            gpu_flops_available = int(GPU_AVAILABLE_FLOPS[dev_name][state.precision.value])
+        except:
+            gpu_flops_available = None
+
+    if gpu_flops_available is not None:
+        print(
+            f'Using {gpu_flops_available=} when calculate MFU (assumes {state.precision.value} precision using {torch.cuda.get_device_name()}).'
         )
     else:
         warnings.warn(
-            f'gpu_flop count not found for {dev_name=}. '
+            f'gpu_flop count not found for {dev_name=} with precision: {state.precision.value}; MFU cannot be calculated and reported. '
             f'gpu_flops_available can be manually overridden by setting gpu_flops_available in SpeedMonitorMFU()'
         )
 
@@ -71,15 +82,19 @@ class SpeedMonitorMFU(SpeedMonitor):
         gpu_flops_available: Union[float, int] = None
     ):
         super().__init__(window_size=window_size)
+        self.set_gpu_flops_available = False
+        self.gpu_flops_available = gpu_flops_available
         if gpu_flops_available:
-            self.gpu_flops_available = gpu_flops_available
-            warnings.warn(
-                f'gpu_flops_available is manaually set to {gpu_flops_available} when calculate MFU.'
+            print(
+                f'gpu_flops_available is manaually set to {gpu_flops_available} for calculating MFU.'
             )
-        else:
-            self.gpu_flops_available = get_gpu_flops_available()
+            self.set_gpu_flops_available = True
 
     def batch_end(self, state: State, logger: Logger):
+        if not self.set_gpu_flops_available:
+            self.gpu_flops_available = get_gpu_flops_available(state)
+            self.set_gpu_flops_available = True
+
         batch_num_samples = int(state.timestamp.sample) - self.batch_start_num_samples
         batch_wct = state.timestamp.total_wct.total_seconds() - self.batch_start_wct
 
