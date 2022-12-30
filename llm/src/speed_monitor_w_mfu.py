@@ -42,8 +42,10 @@ def get_gpu_flops_available():
         gpu_flops_available = GPU_AVAILABLE_FLOPS['h100-pcie']
     elif 'a100' in dev_name:
         gpu_flops_available = GPU_AVAILABLE_FLOPS['a100']
-    elif 'v100' in dev_name:
-        gpu_flops_available = GPU_AVAILABLE_FLOPS['v100']
+    elif 'v100-sxm' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['v100-sxm']
+    elif 'v100-pcie' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['v100-pcie']
     elif 't4' in dev_name:
         gpu_flops_available = GPU_AVAILABLE_FLOPS['t4']
     
