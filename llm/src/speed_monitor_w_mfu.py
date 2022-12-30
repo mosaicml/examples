@@ -28,7 +28,8 @@ GPU_AVAILABLE_FLOPS = {
     'v100-pcie':    {'fp64': 7e12, 'fp32': 14e12, 'fp16': 112e12, 'amp_fp16': 112e12},
     'v100s-pcie':   {'fp64': 8.2e12, 'fp32': 16.4e12, 'fp16': 130e12, 'amp_fp16': 130e12},
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
-    't4':           {'fp32': 8.1e12, 'fp16': 65e12, 'amp_fp16': 65e12, 'int8': 130e12, 'int4': 260e12},          # sxm and pcie have same flop counts
+    # sxm and pcie have same flop counts
+    't4':           {'fp32': 8.1e12, 'fp16': 65e12, 'amp_fp16': 65e12, 'int8': 130e12, 'int4': 260e12},
 }
 
 __all__ = ['SpeedMonitorMFU']
