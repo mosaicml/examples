@@ -16,12 +16,16 @@ from composer.utils import dist
 from composer.callbacks import SpeedMonitor
 
 GPU_AVAILABLE_FLOPS = {
+    # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
     'h100-sxm':     1.979e15 / 2,   # nvidia publishes spec sheet with a 2x sparsity factor
     'h100-pcie':    1.513e15 / 2,   # nvidia publishes spec sheet with a 2x sparsity factor
-    'a100':         312e12,
+    # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+    'a100':         312e12,         # sxm and pcie have same flop counts
+    # source: https://images.nvidia.com/content/technologies/volta/pdf/tesla-volta-v100-datasheet-letter-fnl-web.pdf
     'v100-sxm':     125e12,
     'v100-pcie':    112e12,
-    't4':           65e12,
+    # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
+    't4':           65e12,          # sxm and pcie have same flop counts
 }
 
 __all__ = ['SpeedMonitorMFU']
@@ -45,7 +49,7 @@ def get_gpu_flops_available():
     
     if gpu_flops_available:
         warnings.warn(
-            f'Using {gpu_flops_available=} when calculate MFU (assumed from {dev_name=}).'
+            f'Using {gpu_flops_available=} when calculate MFU (assumes fp16 or bf16 precision using {dev_name}).'
         )
     else:
         warnings.warn(
