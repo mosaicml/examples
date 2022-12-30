@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, Deque, Dict
+from typing import Any, Deque, Dict, Union
+import warnings
+import torch
 
 from composer.core import Callback, State
 from composer.loggers import Logger
@@ -13,14 +15,63 @@ from composer.utils import dist
 
 from composer.callbacks import SpeedMonitor
 
-GPU_AVAILABLE_FLOPS = 312_000_000_000_000
+GPU_AVAILABLE_FLOPS = {
+    'h100-sxm':     1.979e15 / 2,   # nvidia publishes spec sheet with a 2x sparsity factor
+    'h100-pcie':    1.513e15 / 2,   # nvidia publishes spec sheet with a 2x sparsity factor
+    'a100':         312e12,
+    'v100-sxm':     125e12,
+    'v100-pcie':    112e12,
+    't4':           65e12,
+}
 
 __all__ = ['SpeedMonitorMFU']
+
+
+def get_gpu_flops_available():
+    gpu_flops_available = None
+
+    # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB' 
+    dev_name = torch.cuda.get_device_name().lower()
+    if 'h100-sxm' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['h100-sxm']
+    elif 'h100-pcie' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['h100-pcie']
+    elif 'a100' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['a100']
+    elif 'v100' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['v100']
+    elif 't4' in dev_name:
+        gpu_flops_available = GPU_AVAILABLE_FLOPS['t4']
+    
+    if gpu_flops_available:
+        warnings.warn(
+            f'Using {gpu_flops_available=} when calculate MFU (assumed from {dev_name=}).'
+        )
+    else:
+        warnings.warn(
+            f'gpu_flop count not found for {dev_name=}. '
+            f'gpu_flops_available can be manually overridden by setting gpu_flops_available in SpeedMonitorMFU()'
+        )
+
+    return gpu_flops_available
 
 
 class SpeedMonitorMFU(SpeedMonitor):
     """Logs the training throughput and MFU.
     """
+    def __init__(
+        self,
+        window_size: int = 100,
+        gpu_flops_available: Union[float, int] = None
+    ):
+        super().__init__(window_size=window_size)
+        if gpu_flops_available:
+            self.gpu_flops_available = gpu_flops_available
+            warnings.warn(
+                f'gpu_flops_available is manaually set to {gpu_flops_available} when calculate MFU.'
+            )
+        else:
+            self.gpu_flops_available = get_gpu_flops_available()
 
     def batch_end(self, state: State, logger: Logger):
         batch_num_samples = int(state.timestamp.sample) - self.batch_start_num_samples
@@ -50,10 +101,11 @@ class SpeedMonitorMFU(SpeedMonitor):
             if hasattr(state.model, 'num_fwd_flops'):
                 flops = (3 * state.model.num_fwd_flops) * throughput
                 logger.log_metrics({'throughput/flops': flops})
-                device_flops = flops / world_size
-                logger.log_metrics({'throughput/device/flops': flops / world_size})
-                mfu = device_flops / GPU_AVAILABLE_FLOPS
-                logger.log_metrics({'throughput/device/mfu': mfu})
+                dev_flops = flops / world_size
+                logger.log_metrics({'throughput/device/flops': dev_flops})
+                if self.gpu_flops_available:
+                    mfu = dev_flops / self.gpu_flops_available
+                    logger.log_metrics({'throughput/device/mfu': mfu})
 
         # Log the time
         # `state.timestamp` excludes any time spent in evaluation
