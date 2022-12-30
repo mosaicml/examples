@@ -31,7 +31,9 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1))
+        return SpeedMonitorMFU(
+            window_size=kwargs.get('window_size', 1),
+            gpu_flops_available=kwargs.get('gpu_flops_available', None))
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
