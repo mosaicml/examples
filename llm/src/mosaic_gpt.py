@@ -123,13 +123,13 @@ class GPTBlock(nn.Module):
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
-            assert 'triton' in cfg.attn_impl, 'Only triton kernel supports alibi'
+            assert cfg.attn_impl == 'triton', 'Only triton kernel supports alibi'
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         if cfg.attn_impl == 'torch':
             self.causal_attn = TorchCausalAttention(cfg, device)
         elif cfg.attn_impl == 'flash':
             self.causal_attn = FlashCausalAttention(cfg, device)
-        elif 'triton' in cfg.attn_impl:
+        elif cfg.attn_impl == 'triton':
             self.causal_attn = TritonFlashCausalAttention(cfg, device)
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
@@ -159,7 +159,7 @@ class MosaicGPT(nn.Module):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
-        self.alibi = cfg.get("alibi", None)
+        self.alibi = cfg.get("alibi", False)
         self.alibi_bias_max = cfg.get("alibi_bias_max", 8 if self.alibi else None)
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
@@ -184,7 +184,7 @@ class MosaicGPT(nn.Module):
         mask_shape = None
         if cfg.attn_impl == 'torch':
             mask_shape = (cfg.max_seq_len, cfg.max_seq_len)
-        elif 'triton' in cfg.attn_impl:
+        elif cfg.attn_impl == 'triton':
             mask_shape = (1, cfg.n_heads, 1, cfg.max_seq_len) if self.alibi else (1, 1, 1, cfg.max_seq_len)
         elif cfg.attn_impl == 'flash':
             pass
@@ -196,17 +196,17 @@ class MosaicGPT(nn.Module):
         else:
             self.attn_mask = None
 
-    def _alibi(self, dtype, device, S, n_heads, full=False):
-        alibi_bias = torch.arange(1 - S, 1, dtype=dtype, device=device).view(1, 1, 1, S)
+    def _alibi(self, dtype, device, full=False):
+        alibi_bias = torch.arange(1 - self.cfg.max_seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, self.cfg.max_seq_len)
         if full:
-            # if full, the generated alibi mask is 1 x Heads x S x S else mask is 1 x Heads x 1 x S (which is braodcasted up)
-            alibi_bias = alibi_bias + torch.arange(1 - S, 1, dtype=dtype, device=device).view(1, 1, S, 1)
+            # if full, the generated alibi mask is 1 x Heads x SeqLen x SeqLen else mask is 1 x Heads x 1 x SeqLen (which is braodcasted up)
+            alibi_bias = alibi_bias + torch.arange(1 - self.cfg.max_seq_len, 1, dtype=dtype, device=device).view(1, 1, self.cfg.max_seq_len, 1)
 
-        m = torch.arange(1, n_heads + 1, dtype=dtype, device=device) * self.alibi_bias_max / n_heads
-        alibi_bias = alibi_bias * (1. / (2 ** m.view(1, n_heads, 1, 1)))
+        m = torch.arange(1, self.cfg.n_heads + 1, dtype=dtype, device=device) * self.alibi_bias_max / self.cfg.n_heads
+        alibi_bias = alibi_bias * (1. / (2 ** m.view(1, self.cfg.n_heads, 1, 1)))
         return alibi_bias
 
-    def _triton_attn_mask(self, x, S=None, key_padding_mask=None):
+    def _triton_attn_mask(self, x, key_padding_mask=None):
         if self._attn_mask_initialized and key_padding_mask is None:
             return self.attn_mask
 
@@ -216,7 +216,7 @@ class MosaicGPT(nn.Module):
             dtype, device = x.dtype, x.device
 
             B = x.size(0)
-            S = max(x.size(1), S) if S else x.size(1)
+            S = self.cfg.max_seq_len
             n_heads = self.cfg.n_heads if self.alibi else 1
 
             attn_mask = torch.zeros((B, n_heads, S, S), dtype=dtype, device=device)
@@ -227,7 +227,7 @@ class MosaicGPT(nn.Module):
             attn_mask += m
 
             if self.alibi:
-                attn_mask.add_(self._alibi(dtype, device, S, n_heads, full=True))
+                attn_mask.add_(self._alibi(dtype, device, full=True))
 
             return attn_mask
 
@@ -241,13 +241,13 @@ class MosaicGPT(nn.Module):
             dtype, device = self.attn_mask.dtype, self.attn_mask.device
 
             if self.alibi:
-                self.attn_mask.add_(self._alibi(dtype, device, S, self.cfg.n_heads, full=False))
+                self.attn_mask.add_(self._alibi(dtype, device, full=False))
         
         self._attn_mask_initialized = True
         
         return self.attn_mask
 
-    def _torch_attn_mask(self, x, S=None):
+    def _torch_attn_mask(self):
         # Two important disclaimers
         # 1. Torch uses additive attention. If your attn_mask/key_padding mask is a float tensor, it will add the floats
         #   directly to your attention matrix. If they are boolean masks, True will be converted to -inf before adding the
@@ -258,9 +258,7 @@ class MosaicGPT(nn.Module):
         #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
         if self._attn_mask_initialized:
             return self.attn_mask
-        
-        if not S:
-            S = x.size(1)
+
         self.attn_mask = torch.full(size=self.attn_mask.shape, fill_value=float('-inf'), out=self.attn_mask)
         torch.triu(input=self.attn_mask, diagonal=1, out=self.attn_mask)
 
@@ -271,15 +269,15 @@ class MosaicGPT(nn.Module):
 
         return self.attn_mask
 
-    def _attn_mask(self, x, S=None, key_padding_mask=None):
+    def _attn_mask(self, x, key_padding_mask=None):
         if self.cfg.attn_impl == 'torch':
-            return self._torch_attn_mask(x, S=self.cfg.max_seq_len)
+            return self._torch_attn_mask()
         elif self.cfg.attn_impl == 'flash':
             return None
-        elif 'triton' in self.cfg.attn_impl:
-            return self._triton_attn_mask(x, S=self.cfg.max_seq_len, key_padding_mask=key_padding_mask)
+        elif self.cfg.attn_impl == 'triton':
+            return self._triton_attn_mask(x, key_padding_mask=key_padding_mask)
         else:
-            raise ValueError(f'Unknown attn_impl={self.cfgcfg.attn_impl}')
+            raise ValueError(f'Unknown attn_impl={self.cfg.attn_impl}')
 
     def forward(self,
                 input_ids: torch.LongTensor,
@@ -292,10 +290,9 @@ class MosaicGPT(nn.Module):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
 
-        attn_mask = self._attn_mask(tok_emb, S=self.cfg.max_seq_len, key_padding_mask=key_padding_mask)
-        if 'triton' in self.cfg.attn_impl:
-            # handled in attn_mask if needed
-            key_padding_mask = None
+        attn_mask = self._attn_mask(tok_emb, key_padding_mask=key_padding_mask)
+        if self.cfg.attn_impl == 'triton':
+            key_padding_mask = None  # handled in attn_mask if needed
 
         if self.alibi:
             x = tok_emb
