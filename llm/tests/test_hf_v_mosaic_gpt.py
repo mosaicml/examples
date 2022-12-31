@@ -11,15 +11,16 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
 @pytest.mark.parametrize(
-    'attn_impl,dropout,strict',
+    'attn_impl,dropout,strict,alibi',
     [
-        ("flash", 0.0, True),
-        ("flash", 0.1, True),
-        ("torch", 0.0, False),  # requires strict=False to skip loading model.attn_mask
-        ("triton", 0.0, False),  # requires strict=False to skip loading model.attn_mask
-        ("triton", 0.1, False),  # requires strict=False to skip loading model.attn_mask
+        ("flash", 0.0, True, False),
+        ("flash", 0.1, True, False),
+        ("torch", 0.0, False, False),  # requires strict=False to skip loading model.attn_mask
+        ("triton", 0.0, False, False),  # requires strict=False to skip loading model.attn_mask
+        ("triton", 0.1, False, False),  # requires strict=False to skip loading model.attn_mask
+        pytest.param("triton", 0.1, False, True, marks=pytest.mark.xfail(reason="hf model is not implemented with alibi")),
     ])
-def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict):
+def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict, alibi):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -67,6 +68,7 @@ def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict):
     cfg = cfg.model
     # use triton attn implementation
     cfg.attn_impl = attn_impl
+    cfg.alibi = alibi
     # modify cfg for HF GPT2 compatibility
     cfg.max_seq_len = hf_model.model.config.n_ctx
     cfg.device = device
@@ -85,7 +87,10 @@ def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict):
     model = COMPOSER_MODEL_REGISTRY[cfg.name](cfg).to(device)
     n_params = sum(p.numel() for p in model.parameters())
 
-    assert hf_n_params == n_params
+    if alibi:
+        assert hf_n_params != n_params
+    else:
+        assert hf_n_params == n_params
 
     # generate random input branch
     batch = {}
