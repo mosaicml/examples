@@ -6,7 +6,12 @@ import pathlib
 import sys
 import warnings
 
-from composer import Trainer
+from composer import Trainer, algorithms
+from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
+from composer.loggers import WandBLogger
+from composer.optim import DecoupledAdamW
+from composer.optim.scheduler import (ConstantWithWarmupScheduler,
+                                      CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
@@ -15,6 +20,57 @@ sys.path.append(str(pathlib.Path(__file__).parent.parent / 'common'))
 from builders import (build_algorithm, build_callback, build_dataloader,
                       build_logger, build_optimizer, build_scheduler)
 from logging_utils import log_config
+
+def build_logger(name, kwargs):
+    if name == 'wandb':
+        return WandBLogger(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build logger: {name}')
+
+
+def build_callback(name, kwargs):
+    if name == 'lr_monitor':
+        return LRMonitor()
+    elif name == 'memory_monitor':
+        return MemoryMonitor()
+    elif name == 'speed_monitor':
+        return SpeedMonitorMFU(
+            window_size=kwargs.get('window_size', 1),
+            gpu_flops_available=kwargs.get('gpu_flops_available', None))
+    elif name == 'optimizer_monitor':
+        return OptimizerMonitor(
+            log_layer_grad_norms=kwargs.get('log_optimizer_metrics'),
+        )
+    else:
+        raise ValueError(f'Not sure how to build callback: {name}')
+
+
+def build_algorithm(name, kwargs):
+    if name == 'gradient_clipping':
+        return algorithms.GradientClipping(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build algorithm: {name}')
+
+
+def build_optimizer(cfg, model):
+    if cfg.name == 'decoupled_adamw':
+        return DecoupledAdamW(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              eps=cfg.eps,
+                              weight_decay=cfg.weight_decay)
+    else:
+        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
+
+
+def build_scheduler(cfg):
+    if cfg.name == 'constant_with_warmup':
+        return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
+    elif cfg.name == 'cosine_with_warmup':
+        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                                  alpha_f=cfg.alpha_f)
+    else:
+        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):
