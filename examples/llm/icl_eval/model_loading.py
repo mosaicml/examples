@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 from urllib.parse import urlparse
 
 import torch
@@ -10,10 +10,10 @@ from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 from omegaconf import OmegaConf as om
+from src.model_registry import COMPOSER_MODEL_REGISTRY
+from src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
-from examples.llm.src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
+from composer.models.gpt2 import create_gpt2
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
     'cpu')
@@ -52,16 +52,14 @@ def download_starting_checkpoints(path_to_download: str) -> str:
 
 
 def init_huggingface_causal_lm(
-        checkpoint: str
+        config: str
 ) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
-    model = AutoModelForCausalLM.from_pretrained(checkpoint)
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-    return {'model': model, 'tokenizer': tokenizer}
-
+    return  create_gpt2(use_pretrained=True, pretrained_model_name=config)
 
 def init_composer_ckpt_from_yaml(
-        checkpoint: str,
-        config: str) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
+        config: str,
+        checkpoint: Optional[str] = None
+) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
     """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
 
     Constructs the MosaicGPT model and LLMTokenizer from the yaml config and
@@ -75,7 +73,7 @@ def init_composer_ckpt_from_yaml(
         config (str): YAML config. Must be an absolute path
 
     Returns:
-        model, tok, precision (Dict[str, Union[MosaicGPT, LLMTokenizer, str]]):
+        model [MosaicGPT]:
             Model and tokenizer to be used to build the lm_eval.base.LM wrapper
             as well as precision context.
     """
@@ -90,28 +88,24 @@ def init_composer_ckpt_from_yaml(
     print('Initializing model...')
     cfg.model.device = str(DEVICE)
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
-    pre = next(model.parameters()).clone().data
 
-    if checkpoint.startswith('s3://'):
-        checkpoint = download_starting_checkpoints(checkpoint)
-        print(f'Downloaded from s3 to local path {checkpoint}')
+    if checkpoint is not None:
+        pre = next(model.parameters()).clone().data
+        if checkpoint.startswith('s3://'):
+            checkpoint = download_starting_checkpoints(checkpoint)
+            print(f'Downloaded from s3 to local path {checkpoint}')
 
-    model.load_state_dict(
-        torch.load(f'{CHECKPOINT_DIR}/{checkpoint}',
-                   map_location=DEVICE)['state']['model'])
-    post = next(model.parameters()).clone().data
-    assert not torch.equal(pre, post)
-    print('Successfully loaded model weights')
+        model.load_state_dict(
+            torch.load(f'{CHECKPOINT_DIR}/{checkpoint}',
+                    map_location=DEVICE)['state']['model'])
+        post = next(model.parameters()).clone().data
+        assert not torch.equal(pre, post)
+        print('Successfully loaded model weights')
 
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
-    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
-    return {
-        'model': model.model,
-        'tokenizer': tokenizer,
-        'precision': cfg.precision
-    }
+    return model
 
 
 MODEL_LOADERS = {

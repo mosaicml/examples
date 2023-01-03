@@ -17,6 +17,7 @@ import torch.nn.functional as F
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
+from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 
 
 class TorchCausalAttention(nn.Module):
@@ -488,11 +489,21 @@ class ComposerMosaicGPT(ComposerModel):
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
 
-    def update_metric(self, batch, outputs, metric):
+    def update_metric(self, batch, outputs, metric) -> None:
         outputs = outputs.view(-1, outputs.size(-1))
         targets = self.get_targets(batch).view(-1)
-        metric.update(outputs, targets)
+        if isinstance(metric, InContextLearningMetric):
+            metric.update(batch, outputs, targets)
+        else:
+            metric.update(outputs, targets)
 
+    def add_eval_metrics(self, evaluator):
+        evaluator_metrics = {m: METRIC_DEFAULT_CTORS[m]() for m in evaluator.metric_names}
+        if self.val_metrics is not None:
+            self.val_metrics.update(evaluator_metrics)
+        else:
+            self.val_metrics = evaluator_metrics
+            
     @property
     def num_fwd_flops(self):
         if self.__num_fwd_flops:
@@ -508,3 +519,5 @@ class ComposerMosaicGPT(ComposerModel):
             self.model.cfg.d_model * (self.model.cfg.max_seq_len**2))
         self.__num_fwd_flops = params_flops_per_seq + attn_flops_per_seq
         return self.__num_fwd_flops
+
+    

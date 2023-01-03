@@ -1,0 +1,59 @@
+
+
+# Tokenizer
+tokenizer:
+  type: hftokenizer
+  args:
+    tokenizer_name: gpt2
+    max_seq_len: 2048
+
+model: 
+  type: pretrained_hf
+  config: EleutherAI/gpt-neo-1.3B
+
+icl_tasks:
+  -
+    label: hellaswag
+    dataset_uri: s3://mosaicml-internal-dataset-hellaswag/hellaswag.jsonz
+    num_fewshot: 
+     - 0
+     - 1
+     - 5
+    batch_size: 16
+    type: multiple_choice
+    metrics:
+      - InContextLearningMultipleChoiceAccuracy
+    formatting_options:
+      preamble_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter: " "  
+  -
+    label: piqa
+    dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
+    num_fewshot: 
+     - 0
+     - 1
+     - 5
+    batch_size: 16
+    type: multiple_choice
+    metrics:
+      - InContextLearningMultipleChoiceAccuracy
+    formatting_options:
+      preamble_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter: " "  
+  -
+    label: lambada
+    dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
+    num_fewshot: 
+     - 0
+     - 1
+     - 5
+    batch_size: 16
+    type: language_modeling
+    metrics:
+      - InContextLearningLMAccuracy
+    formatting_options:
+      preamble_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter: ""  

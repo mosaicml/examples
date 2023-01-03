@@ -1,0 +1,50 @@
+
+
+model: 
+  type: composer_checkpoint
+  checkpoint: s3://mosaicml-internal-checkpoints-shared/jeremy/gpt-eval/gpt-neo-125m-5rbfZF/checkpoints/ep0-ba80000-rank0.pt
+  config: yamls/mosaic_gpt/125m.yaml
+  
+icl_tasks:
+  -
+    name: hellaswag
+    file_uri: s3://mosaicml-internal-dataset-hellaswag/hellaswag.jsonz
+    num_fewshot: 
+     - 0
+     - 1
+     - 5
+    batch_size: 16
+    metrics:
+      - InContextLearningMultipleChoiceAccuracy
+    formatting_options:
+      preamble_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter=': " "  
+  -
+    name: piqa
+    file_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
+    num_fewshot: 
+     - 0
+     - 1
+     - 5
+    batch_size: 16
+    metrics:
+      - InContextLearningMultipleChoiceAccuracy
+    formatting_options:
+      preamble_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter=': " "  
+  -
+    name: lambada
+    file_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
+    num_fewshot: 
+     - 0
+     - 1
+     - 5
+    batch_size: 16
+    metrics:
+      - InContextLearningLMAccuracy
+    formatting_options:
+      preamble_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter=': ""  
