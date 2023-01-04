@@ -196,14 +196,14 @@ class MosaicGPT(nn.Module):
         else:
             self.attn_mask = None
 
-    def _alibi(self, dtype, device, seq_len, full=False):
+    def _alibi(self, n_heads, seq_len, full=False, alibi_bias_max=8, device=None, dtype=None):
         alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
         if full:
             # if full, the generated alibi mask is 1 x Heads x SeqLen x SeqLen else mask is 1 x Heads x 1 x SeqLen (which is braodcasted up)
             alibi_bias = alibi_bias + torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
 
-        m = torch.arange(1, self.cfg.n_heads + 1, dtype=dtype, device=device) * self.alibi_bias_max / self.cfg.n_heads
-        alibi_bias = alibi_bias * (1. / (2 ** m.view(1, self.cfg.n_heads, 1, 1)))
+        m = torch.arange(1, n_heads + 1, dtype=dtype, device=device) * alibi_bias_max / n_heads
+        alibi_bias = alibi_bias * (1. / (2 ** m.view(1, n_heads, 1, 1)))
         return alibi_bias
 
     def _triton_attn_mask(self, x, key_padding_mask=None):
@@ -217,9 +217,9 @@ class MosaicGPT(nn.Module):
 
             B = x.size(0)
             seq_len = x.size(1)
-            n_heads = self.cfg.n_heads if self.alibi else 1
+            _n_heads = self.cfg.n_heads if self.alibi else 1
 
-            attn_mask = torch.zeros((B, n_heads, seq_len, seq_len), dtype=dtype, device=device)
+            attn_mask = torch.zeros((B, _n_heads, seq_len, seq_len), dtype=dtype, device=device)
             
             m = (~key_padding_mask).reshape(B, 1, 1, seq_len)
             m = m * (~key_padding_mask).reshape(B, 1, seq_len, 1)
@@ -227,7 +227,7 @@ class MosaicGPT(nn.Module):
             attn_mask += m
 
             if self.alibi:
-                attn_mask.add_(self._alibi(dtype, device, seq_len, full=True))
+                attn_mask.add_(self._alibi(_n_heads, seq_len, full=True, alibi_bias_max=self.alibi_bias_max, device=dtype, dtype=device))
 
             return attn_mask
 
@@ -241,7 +241,7 @@ class MosaicGPT(nn.Module):
             dtype, device = self.attn_mask.dtype, self.attn_mask.device
 
             if self.alibi:
-                self.attn_mask.add_(self._alibi(dtype, device, self.cfg.max_seq_len, full=False))
+                self.attn_mask.add_(self._alibi(self.cfg.n_heads, self.cfg.max_seq_len, full=False, alibi_bias_max=self.alibi_bias_max, device=dtype, dtype=device))
         
         self._attn_mask_initialized = True
         
