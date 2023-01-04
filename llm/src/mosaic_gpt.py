@@ -213,7 +213,7 @@ class MosaicGPT(nn.Module):
         if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
             # Triton kernel does not handel key_padding_mask
             # key_padding_mask must be handeled by setting mask to -inf
-            dtype, device = x.dtype, x.device
+            device, dtype = x.device, x.dtype
 
             B = x.size(0)
             seq_len = x.size(1)
@@ -227,7 +227,7 @@ class MosaicGPT(nn.Module):
             attn_mask += m
 
             if self.alibi:
-                attn_mask.add_(self._alibi(_n_heads, seq_len, full=True, alibi_bias_max=self.alibi_bias_max, device=dtype, dtype=device))
+                attn_mask.add_(self._alibi(_n_heads, seq_len, full=True, alibi_bias_max=self.alibi_bias_max, device=device, dtype=dtype))
 
             return attn_mask
 
@@ -238,10 +238,10 @@ class MosaicGPT(nn.Module):
         self.attn_mask.zero_()
 
         if self.alibi:
-            dtype, device = self.attn_mask.dtype, self.attn_mask.device
+            device, dtype = self.attn_mask.device, self.attn_mask.dtype
 
             if self.alibi:
-                self.attn_mask.add_(self._alibi(self.cfg.n_heads, self.cfg.max_seq_len, full=False, alibi_bias_max=self.alibi_bias_max, device=dtype, dtype=device))
+                self.attn_mask.add_(self._alibi(self.cfg.n_heads, self.cfg.max_seq_len, full=False, alibi_bias_max=self.alibi_bias_max, device=device, dtype=dtype))
         
         self._attn_mask_initialized = True
         
