@@ -6,34 +6,15 @@ import sys
 import warnings
 
 from composer import Trainer
-from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
-from src.speed_monitor_w_mfu import SpeedMonitorMFU
 
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_algorithm, build_logger, build_optimizer, build_scheduler
+from common.builders import build_algorithm, build_logger, build_optimizer, build_scheduler, build_callback
 from common.logging import log_config
-
-
-def build_callback(name, kwargs):
-    if name == 'lr_monitor':
-        return LRMonitor()
-    elif name == 'memory_monitor':
-        return MemoryMonitor()
-    elif name == 'speed_monitor':
-        return SpeedMonitorMFU(
-            window_size=kwargs.get('window_size', 1),
-            gpu_flops_available=kwargs.get('gpu_flops_available', None))
-    elif name == 'optimizer_monitor':
-        return OptimizerMonitor(
-            log_optimizer_metrics=kwargs.get('log_optimizer_metrics', True),
-        )
-    else:
-        raise ValueError(f'Not sure how to build callback: {name}')
 
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):

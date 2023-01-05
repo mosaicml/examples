@@ -1,9 +1,31 @@
 from composer import algorithms
+from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 
+import pathlib
+import sys
+sys.path.append(str(pathlib.Path(__file__).parent))
+from speed_monitor_w_mfu import SpeedMonitorMFU
+
+
+def build_callback(name, kwargs):
+    if name == 'lr_monitor':
+        return LRMonitor()
+    elif name == 'memory_monitor':
+        return MemoryMonitor()
+    elif name == 'speed_monitor':
+        return SpeedMonitorMFU(
+            window_size=kwargs.get('window_size', 1),
+            gpu_flops_available=kwargs.get('gpu_flops_available', None))
+    elif name == 'optimizer_monitor':
+        return OptimizerMonitor(
+            log_optimizer_metrics=kwargs.get('log_optimizer_metrics', True),
+        )
+    else:
+        raise ValueError(f'Not sure how to build callback: {name}')
 
 def build_logger(name, kwargs):
     if name == 'wandb':
