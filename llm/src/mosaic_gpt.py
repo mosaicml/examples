@@ -60,8 +60,8 @@ class TorchCausalAttention(nn.Module):
         #
         # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
         #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
-        torch.full(size=attn_mask.shape, fill_value=float('-inf'), out=attn_mask)
-        torch.triu(input=attn_mask, diagonal=1, out=attn_mask)
+        attn_mask.fill_(float('-inf'))
+        attn_mask.triu_(diagonal=1)
 
         if alibi:
             # device, dtype = attn_mask.device, attn_mask.dtype
@@ -155,13 +155,13 @@ class TritonFlashCausalAttention(nn.Module):
 
     @staticmethod
     def attn_mask(key_padding_mask, batch_size, n_heads, seq_len, alibi=False, alibi_bias_max=8, device=None, dtype=None):
-        # Triton kernel does not handel key_padding_mask
-        # key_padding_mask must be handeled by setting mask to -inf
         _n_heads = n_heads if alibi else 1
 
         attn_mask = torch.full(size=(batch_size, _n_heads, seq_len, seq_len), fill_value=float('-inf'), device=device, dtype=dtype)
         attn_mask.triu_(diagonal=1)
 
+        # Triton kernel does not handel key_padding_mask
+        # key_padding_mask must be handeled by masking values with -inf bias
         attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, 1, seq_len), float('-inf'))
         # masking along -2 dim not needed since those tensors don't matter anyway
 
@@ -171,14 +171,16 @@ class TritonFlashCausalAttention(nn.Module):
         return attn_mask
 
 
-def alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=8, device=None, dtype=None):
-    alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
+def alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=8, batch_size=1, device=None, dtype=None):
+    alibi_bias = torch.arange(seq_len, dtype=dtype, device=device).view(1, 1, 1, seq_len)
     if full:
         # if full, the generated alibi mask is 1 x Heads x SeqLen x SeqLen else mask is 1 x Heads x 1 x SeqLen (which is braodcasted up)
-        alibi_bias = alibi_bias + torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
+        alibi_bias = alibi_bias - torch.arange(seq_len, dtype=dtype, device=device).view(batch_size, 1, seq_len, 1)
+        alibi_bias.abs_().mul_(-1)
 
-    m = torch.arange(1, n_heads + 1, dtype=dtype, device=device) * alibi_bias_max / n_heads
-    alibi_bias = alibi_bias * (1. / (2 ** m.view(1, n_heads, 1, 1)))
+    m = torch.arange(1, n_heads + 1, dtype=dtype, device=device)
+    m.mul_(alibi_bias_max / n_heads)
+    alibi_bias = alibi_bias * (1. / (2 ** m.view(batch_size, n_heads, 1, 1)))
     return alibi_bias
 
 
