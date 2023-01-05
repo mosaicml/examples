@@ -265,7 +265,6 @@ class MosaicGPT(nn.Module):
         # define attn mask
         self._attn_mask_initialized = False
         mask_shape = self.causal_attn_cls.mask_shape(cfg.n_heads, cfg.max_seq_len, self.alibi)
-
         if mask_shape:
             self.register_buffer('attn_mask', torch.empty(mask_shape, device=cfg.device))
         else:
@@ -276,12 +275,23 @@ class MosaicGPT(nn.Module):
             if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
                 # run if key_padding_mask signifies any tokens are invalid
                 return self.causal_attn_cls.attn_mask(
-                    key_padding_mask, x.size(0), self.cfg.n_heads, x.size(1), alibi=self.alibi, alibi_bias_max=self.alibi_bias_max, device=x.device, dtype=x.dtype)
+                    key_padding_mask,
+                    x.size(0),
+                    self.cfg.n_heads,
+                    x.size(1),
+                    alibi=self.alibi,
+                    alibi_bias_max=self.alibi_bias_max,
+                    device=x.device,
+                    dtype=x.dtype)
 
         if self._attn_mask_initialized:
             return self.attn_mask
         self.causal_attn_cls.attn_mask_(
-            self.attn_mask, self.cfg.n_heads, self.cfg.max_seq_len, alibi=self.alibi, alibi_bias_max=self.alibi_bias_max)
+            self.attn_mask,
+            self.cfg.n_heads,
+            self.cfg.max_seq_len,
+            alibi=self.alibi,
+            alibi_bias_max=self.alibi_bias_max)
         self._attn_mask_initialized = True
         return self.attn_mask
 
