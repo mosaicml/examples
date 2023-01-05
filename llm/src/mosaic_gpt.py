@@ -40,7 +40,7 @@ class TorchCausalAttention(nn.Module):
             attn_mask=attn_mask,
             key_padding_mask=~key_padding_mask,
             need_weights=True)
-    
+
     @staticmethod
     def mask_shape(n_heads, seq_len, alibi):
         if alibi:
@@ -98,13 +98,13 @@ class FlashCausalAttention(nn.Module):
             x,
             key_padding_mask=key_padding_mask,
             need_weights=False)
-    
+
     @staticmethod
-    def mask_shape(n_heads, seq_len, alibi):
+    def mask_shape(*args, **kwargs):
         return None
 
     @staticmethod
-    def attn_mask_(attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
+    def attn_mask_(*args, **kwargs):
         return None
 
 
@@ -137,7 +137,7 @@ class TritonFlashCausalAttention(nn.Module):
             key_padding_mask=None,
             attn_mask=attn_mask,
             need_weights=False)
-    
+
     @staticmethod
     def mask_shape(n_heads, seq_len, alibi):
         return (1, n_heads, 1, seq_len) if alibi else (1, 1, 1, seq_len)
@@ -150,21 +150,21 @@ class TritonFlashCausalAttention(nn.Module):
         if alibi:
             device, dtype = attn_mask.device, attn_mask.dtype
             attn_mask.add_(alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=alibi_bias_max, device=device, dtype=dtype))
-        
+
         return attn_mask
 
     @staticmethod
     def attn_mask(key_padding_mask, batch_size, n_heads, seq_len, alibi=False, alibi_bias_max=8, device=None, dtype=None):
         # Triton kernel does not handel key_padding_mask
         # key_padding_mask must be handeled by setting mask to -inf
+        neg_inf = torch.finfo(dtype).min  # numerically stable -inf
         _n_heads = n_heads if alibi else 1
 
-        attn_mask = torch.full(size=(1, 1, seq_len, seq_len), fill_value=float('-inf'), device=device, dtype=dtype)
-        torch.triu(input=attn_mask, diagonal=1, out=attn_mask)
-        attn_mask = attn_mask.expand(batch_size, _n_heads, seq_len, seq_len)
+        attn_mask = torch.full(size=(batch_size, _n_heads, seq_len, seq_len), fill_value=neg_inf, device=device, dtype=dtype)
+        attn_mask.triu_(diagonal=1)
 
-        attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, 1, seq_len), float('-inf'))
-        attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, seq_len, 1), float('-inf'))
+        attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, 1, seq_len), neg_inf)
+        attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, seq_len, 1), neg_inf)
 
         if alibi:
             attn_mask.add_(alibi_bias(_n_heads, seq_len, full=True, alibi_bias_max=alibi_bias_max, device=device, dtype=dtype))
@@ -308,8 +308,6 @@ class MosaicGPT(nn.Module):
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
 
         attn_mask = self._attn_mask(tok_emb, key_padding_mask=key_padding_mask)
-        if self.cfg.attn_impl == 'triton':
-            key_padding_mask = None  # handled in attn_mask if needed
 
         if self.alibi:
             x = tok_emb
@@ -325,7 +323,10 @@ class MosaicGPT(nn.Module):
                 x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
             )
         for block in self.transformer.blocks:  # type: ignore
-            x = block(x, key_padding_mask, attn_mask)
+            x = block(
+                x,
+                None if self.cfg.attn_impl == 'triton' else key_padding_mask,
+                attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         logits = F.linear(x, self.transformer.wte.weight, None)
