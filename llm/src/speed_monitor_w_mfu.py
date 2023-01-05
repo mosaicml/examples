@@ -4,16 +4,16 @@
 """Monitor throughput during training."""
 from __future__ import annotations
 
+import warnings
 from collections import deque
 from typing import Any, Deque, Dict, Union
-import warnings
+
 import torch
 
+from composer.callbacks import SpeedMonitor
 from composer.core import Callback, State
 from composer.loggers import Logger
 from composer.utils import dist
-
-from composer.callbacks import SpeedMonitor
 
 GPU_AVAILABLE_FLOPS = {
     # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
@@ -38,7 +38,7 @@ __all__ = ['SpeedMonitorMFU']
 def get_gpu_flops_available(state):
     gpu_flops_available = None
 
-    # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB' 
+    # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB'
     dev_name = torch.cuda.get_device_name().lower()
     if 'h100-sxm' in dev_name:
         dev_name = 'h100-sxm'
@@ -52,7 +52,7 @@ def get_gpu_flops_available(state):
         dev_name = 'v100-pcie'
     elif 't4' in dev_name:
         dev_name = 't4'
-    else: 
+    else:
         dev_name = None
 
     if dev_name:
@@ -61,11 +61,7 @@ def get_gpu_flops_available(state):
         except:
             gpu_flops_available = None
 
-    if gpu_flops_available is not None:
-        print(
-            f'Using {gpu_flops_available=} when calculate MFU (assumes {state.precision.value} precision using {torch.cuda.get_device_name()}).'
-        )
-    else:
+    if gpu_flops_available is None:
         warnings.warn(
             f'gpu_flop count not found for {dev_name=} with precision: {state.precision.value}; MFU cannot be calculated and reported. '
             f'gpu_flops_available can be manually overridden by setting gpu_flops_available in SpeedMonitorMFU()'
@@ -108,25 +104,27 @@ class SpeedMonitorMFU(SpeedMonitor):
             world_size = dist.get_world_size()
             grad_accum = state.grad_accum if state.grad_accum else 1
             global_batch_size = state.device_train_microbatch_size * grad_accum * world_size
-            throughput = sum(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
-            dev_throughput = throughput / world_size
-            logger.log_metrics({'throughput/samples_per_sec': throughput})
-            logger.log_metrics({'throughput/batches_per_sec':  throughput / global_batch_size})
-            logger.log_metrics({'throughput/device/samples_per_sec': dev_throughput})
-            logger.log_metrics({'throughput/device/batches_per_sec': dev_throughput / global_batch_size})
+            batches_per_sec = len(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
+            samples_per_sec = sum(self.batch_num_samples_buffer) / sum(self.batch_wct_buffer)
+            dev_batches_per_sec = batches_per_sec / world_size
+            dev_samples_per_sec = samples_per_sec / world_size
+            logger.log_metrics({'throughput/batches_per_sec':  batches_per_sec})
+            logger.log_metrics({'throughput/samples_per_sec': samples_per_sec})
+            logger.log_metrics({'throughput/device/batches_per_sec': dev_batches_per_sec})
+            logger.log_metrics({'throughput/device/samples_per_sec': dev_samples_per_sec})
 
             if hasattr(state.dataloader.dataset, 'max_seq_len'):
                 # only applicable to seq data / models
-                logger.log_metrics({'throughput/tokens_per_sec': throughput * state.dataloader.dataset.max_seq_len})
-                logger.log_metrics({'throughput/device/tokens_per_sec': dev_throughput * state.dataloader.dataset.max_seq_len})
+                logger.log_metrics({'throughput/tokens_per_sec': samples_per_sec * state.dataloader.dataset.max_seq_len})
+                logger.log_metrics({'throughput/device/tokens_per_sec': dev_samples_per_sec * state.dataloader.dataset.max_seq_len})
 
             if hasattr(state.model, 'num_fwd_flops'):
-                flops = (3 * state.model.num_fwd_flops) * throughput
-                logger.log_metrics({'throughput/flops': flops})
-                dev_flops = flops / world_size
-                logger.log_metrics({'throughput/device/flops': dev_flops})
+                flops_per_sec = (3 * state.model.num_fwd_flops) * samples_per_sec
+                logger.log_metrics({'throughput/flops_per_sec': flops_per_sec})
+                dev_flops_per_sec = flops_per_sec / world_size
+                logger.log_metrics({'throughput/device/flops_per_sec': dev_flops_per_sec})
                 if self.gpu_flops_available:
-                    mfu = dev_flops / self.gpu_flops_available
+                    mfu = dev_flops_per_sec / self.gpu_flops_available
                     logger.log_metrics({'throughput/device/mfu': mfu})
 
         # Log the time
