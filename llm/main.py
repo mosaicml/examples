@@ -5,7 +5,7 @@ import os
 import sys
 import warnings
 
-from composer import Trainer, algorithms
+from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
@@ -16,6 +16,10 @@ from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.speed_monitor_w_mfu import SpeedMonitorMFU
+
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+from common.builders import build_algorithm
 
 
 def build_logger(name, kwargs):
@@ -40,13 +44,6 @@ def build_callback(name, kwargs):
         )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
-
-
-def build_algorithm(name, kwargs):
-    if name == 'gradient_clipping':
-        return algorithms.GradientClipping(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build algorithm: {name}')
 
 
 def build_optimizer(cfg, model):
