@@ -159,8 +159,9 @@ class TritonFlashCausalAttention(nn.Module):
         # key_padding_mask must be handeled by setting mask to -inf
         _n_heads = n_heads if alibi else 1
 
-        attn_mask = torch.full(size=(batch_size, _n_heads, seq_len, seq_len), fill_value=float('-inf'), device=device, dtype=dtype)
+        attn_mask = torch.full(size=(1, 1, seq_len, seq_len), fill_value=float('-inf'), device=device, dtype=dtype)
         torch.triu(input=attn_mask, diagonal=1, out=attn_mask)
+        attn_mask = attn_mask.expand(batch_size, _n_heads, seq_len, seq_len)
 
         attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, 1, seq_len), float('-inf'))
         attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, seq_len, 1), float('-inf'))
