@@ -13,7 +13,7 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_algorithm, build_logger, build_optimizer, build_scheduler, build_callback
+from common.builders import build_algorithm, build_logger, build_optimizer, build_scheduler, build_callback, build_dataloader
 from common.logging import log_config
 
 
@@ -65,13 +65,6 @@ def build_composer_model(cfg):
         return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
     except:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
-
-
-def build_dataloader(cfg, device_batch_size):
-    try:
-        return build_text_dataloader(cfg, device_batch_size)
-    except:
-        raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
 
 
 def main(cfg):

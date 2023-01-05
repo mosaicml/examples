@@ -9,6 +9,7 @@ import pathlib
 import sys
 sys.path.append(str(pathlib.Path(__file__).parent))
 from speed_monitor_w_mfu import SpeedMonitorMFU
+from text_data import build_text_dataloader
 
 
 def build_callback(name, kwargs):
@@ -58,3 +59,9 @@ def build_scheduler(cfg):
                                                   alpha_f=cfg.alpha_f)
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+
+def build_dataloader(cfg, device_batch_size):
+    try:
+        return build_text_dataloader(cfg, device_batch_size)
+    except:
+        raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
