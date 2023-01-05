@@ -44,7 +44,7 @@ class TorchCausalAttention(nn.Module):
     @staticmethod
     def mask_shape(n_heads, seq_len, alibi):
         if alibi:
-            # return (batch_size * n_heads, seq_len, seq_len)
+            # return (1, n_heads, seq_len, seq_len)
             raise NotImplementedError
         return (seq_len, seq_len)
 
@@ -153,34 +153,22 @@ class TritonFlashCausalAttention(nn.Module):
 
         return attn_mask
 
-    @staticmethod
-    def attn_mask(key_padding_mask, batch_size, n_heads, seq_len, alibi=False, alibi_bias_max=8, device=None, dtype=None):
-        _n_heads = n_heads if alibi else 1
 
-        attn_mask = torch.full(size=(batch_size, _n_heads, seq_len, seq_len), fill_value=float('-inf'), device=device, dtype=dtype)
-        attn_mask.triu_(diagonal=1)
-
-        # Triton kernel does not handel key_padding_mask
-        # key_padding_mask must be handeled by masking values with -inf bias
-        attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, 1, seq_len), float('-inf'))
-        # masking along -2 dim not needed since those tensors don't matter anyway
-
-        if alibi:
-            attn_mask.add_(alibi_bias(_n_heads, seq_len, full=True, alibi_bias_max=alibi_bias_max, device=device, dtype=dtype))
-
-        return attn_mask
-
-
-def alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=8, batch_size=1, device=None, dtype=None):
-    alibi_bias = torch.arange(seq_len, dtype=dtype, device=device).view(1, 1, 1, seq_len)
+def alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=8, device=None, dtype=None):
     if full:
-        # if full, the generated alibi mask is 1 x Heads x SeqLen x SeqLen else mask is 1 x Heads x 1 x SeqLen (which is braodcasted up)
-        alibi_bias = alibi_bias - torch.arange(seq_len, dtype=dtype, device=device).view(batch_size, 1, seq_len, 1)
+        # generate 1 x Heads x SeqLen x SeqLen alibi bias mask
+        # potentially usable for torch.nn.MultiheadAttention
+        # (this would require static batch size or generating mask at every itr)
+        alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
+        alibi_bias = alibi_bias - torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
         alibi_bias.abs_().mul_(-1)
+    else:
+        # otherwise the mask is 1 x Heads x 1 x SeqLen (which is braodcasted up to the approproate size)
+        alibi_bias = torch.arange(0, -seq_len, -1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
 
     m = torch.arange(1, n_heads + 1, dtype=dtype, device=device)
     m.mul_(alibi_bias_max / n_heads)
-    alibi_bias = alibi_bias * (1. / (2 ** m.view(batch_size, n_heads, 1, 1)))
+    alibi_bias = alibi_bias * (1. / (2 ** m.view(1, n_heads, 1, 1)))
     return alibi_bias
 
 
@@ -273,28 +261,18 @@ class MosaicGPT(nn.Module):
             self.attn_mask = None
 
     def _attn_mask(self, x, key_padding_mask=None):
-        if self.cfg.attn_impl == 'triton':
-            if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
-                # run if key_padding_mask signifies any tokens are invalid
-                return self.causal_attn_cls.attn_mask(
-                    key_padding_mask,
-                    x.size(0),
-                    self.cfg.n_heads,
-                    x.size(1),
-                    alibi=self.alibi,
-                    alibi_bias_max=self.alibi_bias_max,
-                    device=x.device,
-                    dtype=x.dtype)
 
-        if self._attn_mask_initialized:
-            return self.attn_mask
-        self.causal_attn_cls.attn_mask_(
-            self.attn_mask,
-            self.cfg.n_heads,
-            self.cfg.max_seq_len,
-            alibi=self.alibi,
-            alibi_bias_max=self.alibi_bias_max)
-        self._attn_mask_initialized = True
+        if not self._attn_mask_initialized:
+            self.causal_attn_cls.attn_mask_(
+                self.attn_mask,
+                self.cfg.n_heads,
+                self.cfg.max_seq_len,
+                alibi=self.alibi,
+                alibi_bias_max=self.alibi_bias_max)
+            self._attn_mask_initialized = True
+
+        if self.cfg.attn_impl == 'triton' and key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
+            return self.attn_mask.masked_fill(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
         return self.attn_mask
 
     def forward(self,
