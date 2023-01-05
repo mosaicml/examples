@@ -11,16 +11,19 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
 @pytest.mark.parametrize(
-    'attn_impl,dropout,strict,alibi',
+    'attn_impl,dropout,strict,alibi,mask_val',
     [
-        ("flash", 0.0, True, False),
-        ("flash", 0.1, True, False),
-        ("torch", 0.0, False, False),  # requires strict=False to skip loading model.attn_mask
-        ("triton", 0.0, False, False),  # requires strict=False to skip loading model.attn_mask
-        ("triton", 0.1, False, False),  # requires strict=False to skip loading model.attn_mask
-        pytest.param("triton", 0.1, False, True, marks=pytest.mark.xfail(reason="hf model is not implemented with alibi")),
+        ("flash", 0.0, True, False, 1),
+        ("flash", 0.1, True, False, 1),
+        ("torch", 0.0, False, False, 1),  # requires strict=False to skip loading model.attn_mask
+        ("triton", 0.0, False, False, 1),  # requires strict=False to skip loading model.attn_mask
+        ("triton", 0.1, False, False, 1),  # requires strict=False to skip loading model.attn_mask
+        pytest.param("triton", 0.1, False, True, 1, marks=pytest.mark.xfail(reason="hf model is not implemented with alibi")),
+        ("torch", 0.0, False, False, 0),  # requires strict=False to skip loading model.attn_mask, testing case where key_pad_mask is 0
+        ("triton", 0.0, False, False, 0),  # requires strict=False to skip loading model.attn_mask, testing case where key_pad_mask is 0
+        ("triton", 0.1, False, False, 0),  # requires strict=False to skip loading model.attn_mask, testing case where key_pad_mask is 0
     ])
-def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict, alibi):
+def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict, alibi, mask_val):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -105,6 +108,8 @@ def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict, alibi):
     batch['attention_mask'] = torch.ones(
         size=(batch_size, cfg.max_seq_len),
         dtype=torch.int64).to(device)
+
+    batch['attention_mask'][:, cfg.max_seq_len // 2 :] = mask_val
 
     hf_model.train()
     model.train()
