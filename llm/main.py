@@ -8,7 +8,6 @@ import warnings
 from composer import Trainer
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
-from src.text_data import build_text_dataloader
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 import pathlib
