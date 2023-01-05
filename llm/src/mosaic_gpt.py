@@ -43,10 +43,13 @@ class TorchCausalAttention(nn.Module):
     
     @staticmethod
     def mask_shape(n_heads, seq_len, alibi):
-        return (1, n_heads, seq_len, seq_len) if alibi else (seq_len, seq_len)
+        if alibi:
+            # return (batch_size * n_heads, seq_len, seq_len)
+            raise NotImplementedError
+        return (seq_len, seq_len)
 
     @staticmethod
-    def attn_mask_(attn_mask, alibi=False):
+    def attn_mask_(attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
         # in-place fill causal attn mask
         #
         # Two important disclaimers
@@ -61,7 +64,10 @@ class TorchCausalAttention(nn.Module):
         torch.triu(input=attn_mask, diagonal=1, out=attn_mask)
 
         if alibi:
-            raise NotImplementedError()
+            # device, dtype = attn_mask.device, attn_mask.dtype
+            # a_bias = alibi_bias(n_heads, seq_len, full=True, alibi_bias_max=alibi_bias_max, device=device, dtype=dtype)
+            # attn_mask.add_(a_bias.expand(attn_mask.size(0) // n_heads, n_heads, seq_len, seq_len).reshape(-1, seq_len, seq_len))
+            raise NotImplementedError
 
         return attn_mask
 
@@ -98,7 +104,7 @@ class FlashCausalAttention(nn.Module):
         return None
 
     @staticmethod
-    def attn_mask_(attn_mask, alibi=False):
+    def attn_mask_(attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
         return None
 
 
@@ -148,14 +154,14 @@ class TritonFlashCausalAttention(nn.Module):
         return attn_mask
 
     @staticmethod
-    def attn_mask(key_padding_mask, batch_size, n_heads, seq_len, alibi=False, alibi_bias_max=8, dtype=None, device=None):
+    def attn_mask(key_padding_mask, batch_size, n_heads, seq_len, alibi=False, alibi_bias_max=8, device=None, dtype=None):
         # Triton kernel does not handel key_padding_mask
         # key_padding_mask must be handeled by setting mask to -inf
         _n_heads = n_heads if alibi else 1
 
-        attn_mask = torch.full(size=(batch_size, _n_heads, seq_len, seq_len), fill_value=float('-inf'), dtype=dtype, device=device)
+        attn_mask = torch.full(size=(batch_size, _n_heads, seq_len, seq_len), fill_value=float('-inf'), device=device, dtype=dtype)
         torch.triu(input=attn_mask, diagonal=1, out=attn_mask)
-        
+
         attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, 1, seq_len), float('-inf'))
         attn_mask.masked_fill_(~key_padding_mask.reshape(batch_size, 1, seq_len, 1), float('-inf'))
 
@@ -266,29 +272,18 @@ class MosaicGPT(nn.Module):
             self.attn_mask = None
 
     def _attn_mask(self, x, key_padding_mask=None):
-        if self.cfg.attn_impl == 'torch':
-            if self._attn_mask_initialized:
-                return self.attn_mask
-            self.causal_attn_cls.attn_mask_(self.attn_mask, self.alibi)
-            self._attn_mask_initialized = True
-            return self.attn_mask
-        elif self.cfg.attn_impl == 'flash':
-            return self.attn_mask
-        elif self.cfg.attn_impl == 'triton':
+        if self.cfg.attn_impl == 'triton':
             if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
                 # run if key_padding_mask signifies any tokens are invalid
                 return self.causal_attn_cls.attn_mask(
-                    key_padding_mask, x.size(0), self.cfg.n_heads, x.size(1), alibi=self.alibi, alibi_bias_max=self.alibi_bias_max, dtype=x.dtype, device=x.device)
+                    key_padding_mask, x.size(0), self.cfg.n_heads, x.size(1), alibi=self.alibi, alibi_bias_max=self.alibi_bias_max, device=x.device, dtype=x.dtype)
 
-            if self._attn_mask_initialized:
-                return self.attn_mask
-
-            self.causal_attn_cls.attn_mask_(
-                self.attn_mask, self.cfg.n_heads, self.cfg.max_seq_len, alibi=self.alibi, alibi_bias_max=self.alibi_bias_max)
-            self._attn_mask_initialized = True
+        if self._attn_mask_initialized:
             return self.attn_mask
-        else:
-            raise ValueError(f'Unknown attn_impl={self.cfg.attn_impl}')
+        self.causal_attn_cls.attn_mask_(
+            self.attn_mask, self.cfg.n_heads, self.cfg.max_seq_len, alibi=self.alibi, alibi_bias_max=self.alibi_bias_max)
+        self._attn_mask_initialized = True
+        return self.attn_mask
 
     def forward(self,
                 input_ids: torch.LongTensor,
