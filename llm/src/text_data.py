@@ -11,11 +11,11 @@ from typing import Any, Dict, Iterator, Optional
 import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from streaming import Dataset
+from streaming import StreamingDataset
 from torch.utils.data import DataLoader
 
 
-class StreamingTextDataset(Dataset):
+class StreamingTextDataset(StreamingDataset):
     """Generic implementation of a text dataset using MosaicML's streaming Dataset V2.
 
     Args:
@@ -47,14 +47,18 @@ class StreamingTextDataset(Dataset):
                  local: str,
                  split: str,
                  shuffle: bool,
-                 prefetch: int,
-                 tokenizer_name: str,
-                 max_seq_len: int,
+                 predownload: int = 100_000,
+                 tokenizer_name: str = 'gpt2',
+                 max_seq_len: int = '2048',
                  group_method: str = 'truncate',
                  keep_zip: bool = False,
-                 retry: int = 2,
-                 timeout: float = 120,
+                 download_retry: int = 2,
+                 download_timeout: float = 120,
+                 validate_hash: Optional[str] = None,
+                 shuffle_seed: Optional[int] = None,
+                 num_canonical_nodes: Optional[int] = None,
                  batch_size: Optional[int] = None):
+
         # Validation
         if split not in ['train', 'val']:
             raise ValueError(
@@ -65,15 +69,17 @@ class StreamingTextDataset(Dataset):
             )
 
         # Build Dataset
-        super().__init__(remote=remote,
-                         local=local,
+        super().__init__(local=local,
+                         remote=remote,
                          split=split,
                          shuffle=shuffle,
-                         prefetch=prefetch,
+                         predownload=predownload,
                          keep_zip=keep_zip,
-                         retry=retry,
-                         timeout=timeout,
-                         hash=None,
+                         download_retry=download_retry,
+                         download_timeout=download_timeout,
+                         validate_hash=validate_hash,
+                         shuffle_seed=shuffle_seed,
+                         num_canonical_nodes=num_canonical_nodes,
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
@@ -156,15 +162,20 @@ class StreamingTextDataset(Dataset):
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
     dataset = StreamingTextDataset(
-        split=cfg.dataset.split,
         remote=cfg.dataset.remote,
         local=cfg.dataset.local,
+        split=cfg.dataset.split,
         shuffle=cfg.dataset.shuffle,
-        prefetch=cfg.dataset.prefetch,
-        tokenizer_name=cfg.dataset.tokenizer_name,
-        max_seq_len=cfg.dataset.max_seq_len,
-        group_method=cfg.dataset.group_method,
+        predownload=cfg.dataset.get('predownload', 100_000),
+        tokenizer_name=cfg.dataset.get('tokenizer_name', 'gpt2'),
+        max_seq_len=cfg.dataset.get('max_seq_len', 2048),
+        group_method=cfg.dataset.get('group_method', 'truncate'),
         keep_zip=cfg.dataset.get('keep_zip', False),
+        download_retry=cfg.dataset.get('download_retry', 2),
+        download_timeout=cfg.dataset.get('download_timeout', 120),
+        validate_hash=cfg.dataset.get('validate_hash', None),
+        shuffle_seed=cfg.dataset.get('shuffle_seed', None),
+        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', None),
         batch_size=device_batch_size
     )
 
@@ -203,7 +214,7 @@ if __name__ == '__main__':
             'local': local,
             'split': 'val',
             'shuffle': True,
-            'prefetch': 1000,
+            'predownload': 1000,
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
             'group_method': 'concat',
