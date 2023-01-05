@@ -7,10 +7,6 @@ import warnings
 
 from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
-from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW
-from composer.optim.scheduler import (ConstantWithWarmupScheduler,
-                                      CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.text_data import build_text_dataloader
@@ -19,14 +15,8 @@ from src.speed_monitor_w_mfu import SpeedMonitorMFU
 
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_algorithm
-
-
-def build_logger(name, kwargs):
-    if name == 'wandb':
-        return WandBLogger(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build logger: {name}')
+from common.builders import build_algorithm, build_logger, build_optimizer, build_scheduler
+from common.logging import log_config
 
 
 def build_callback(name, kwargs):
@@ -44,27 +34,6 @@ def build_callback(name, kwargs):
         )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
-
-
-def build_optimizer(cfg, model):
-    if cfg.name == 'decoupled_adamw':
-        return DecoupledAdamW(model.parameters(),
-                              lr=cfg.lr,
-                              betas=cfg.betas,
-                              eps=cfg.eps,
-                              weight_decay=cfg.weight_decay)
-    else:
-        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
-
-
-def build_scheduler(cfg):
-    if cfg.name == 'constant_with_warmup':
-        return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
-    elif cfg.name == 'cosine_with_warmup':
-        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
-                                                  alpha_f=cfg.alpha_f)
-    else:
-        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):
@@ -105,17 +74,6 @@ def update_batch_size_info(cfg):
         else:
             cfg.device_eval_batch_size = cfg.device_train_microbatch_size
     return cfg
-
-
-def log_config(cfg):
-    print(om.to_yaml(cfg))
-    if 'wandb' in cfg.get('loggers', {}):
-        try:
-            import wandb
-        except ImportError as e:
-            raise e
-        if wandb.run:
-            wandb.config.update(om.to_container(cfg, resolve=True))
 
 
 def build_composer_model(cfg):
