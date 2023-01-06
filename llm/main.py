@@ -5,17 +5,19 @@ import os
 import sys
 import warnings
 
-from composer import Trainer, algorithms
+from omegaconf import OmegaConf as om
+from src.model_registry import COMPOSER_MODEL_REGISTRY
+from src.speed_monitor_w_mfu import SpeedMonitorMFU
+from src.text_data import build_text_dataloader
+
+from composer import Trainer
+from composer.algorithms import GradientClipping
 from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 from composer.utils import dist, reproducibility
-from omegaconf import OmegaConf as om
-from src.text_data import build_text_dataloader
-from src.model_registry import COMPOSER_MODEL_REGISTRY
-from src.speed_monitor_w_mfu import SpeedMonitorMFU
 
 
 def build_logger(name, kwargs):
@@ -44,7 +46,7 @@ def build_callback(name, kwargs):
 
 def build_algorithm(name, kwargs):
     if name == 'gradient_clipping':
-        return algorithms.GradientClipping(**kwargs)
+        return GradientClipping(**kwargs)
     else:
         raise ValueError(f'Not sure how to build algorithm: {name}')
 
@@ -188,7 +190,7 @@ def main(cfg):
     ]
 
     # Algorithms
-    algos = [
+    algorithms = [
         build_algorithm(name, algorithm_cfg)
         for name, algorithm_cfg in cfg.get('algorithms', {}).items()
     ]
@@ -204,21 +206,19 @@ def main(cfg):
         schedulers=scheduler,
         max_duration=cfg.max_duration,
         eval_interval=cfg.eval_interval,
-        eval_subset_num_batches=cfg.eval_loader.get('eval_subset_num_batches',
-                                                    -1),
+        eval_subset_num_batches=cfg.eval_subset_num_batches,
         progress_bar=cfg.progress_bar,
         log_to_console=cfg.log_to_console,
-        console_log_interval='1ba',
+        console_log_interval=cfg.console_log_interval,
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
-        algorithms=algos,
-        device_train_microbatch_size=cfg.get('device_train_microbatch_size', 'auto'),
+        algorithms=algorithms,
+        device_train_microbatch_size=cfg.device_train_microbatch_size,
         fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
-        save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
-                                             -1),
+        save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep', -1),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
     )
