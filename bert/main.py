@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import pathlib
 import sys
 from typing import Dict
 
@@ -18,9 +19,9 @@ from omegaconf import OmegaConf as om
 from src.hf_bert import create_hf_bert_mlm
 from src.mosaic_bert import create_mosaic_bert_mlm
 
-import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_dataloader, build_logger, build_callback, build_algorithm, build_optimizer, build_scheduler
+from common.builders import (build_algorithm, build_callback, build_dataloader,
+                             build_logger, build_optimizer, build_scheduler)
 
 
 def build_model(cfg):

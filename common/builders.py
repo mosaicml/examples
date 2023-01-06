@@ -1,3 +1,9 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
+import pathlib
+import sys
+
 from composer import algorithms
 from composer.callbacks import LRMonitor, MemoryMonitor
 from composer.loggers import WandBLogger
@@ -5,8 +11,6 @@ from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler)
 
-import pathlib
-import sys
 sys.path.append(str(pathlib.Path(__file__).parent))
 from speed_monitor_w_mfu import SpeedMonitorMFU
 from text_data import build_text_dataloader
@@ -18,25 +22,26 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitorMFU(
-            window_size=kwargs.get('window_size', 1),
-            gpu_flops_available=kwargs.get('gpu_flops_available', None))
+        return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
+                               gpu_flops_available=kwargs.get(
+                                   'gpu_flops_available', None))
     elif name == 'optimizer_monitor':
         try:
             from composer.callbacks import OptimizerMonitor
-            return OptimizerMonitor(
-                log_optimizer_metrics=kwargs.get('log_optimizer_metrics', True),
-            )
+            return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
+                'log_optimizer_metrics', True),)
         except:
             raise ValueError(f'Not sure how to build callback: {name}')
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
+
 
 def build_logger(name, kwargs):
     if name == 'wandb':
         return WandBLogger(**kwargs)
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
+
 
 def build_algorithm(name, kwargs):
     if name == 'gradient_clipping':
@@ -49,6 +54,7 @@ def build_algorithm(name, kwargs):
         return algorithms.GatedLinearUnits(**kwargs)
     else:
         raise ValueError(f'Not sure how to build algorithm: {name}')
+
 
 def build_optimizer(cfg, model):
     if cfg.name == 'decoupled_adamw':
@@ -72,6 +78,7 @@ def build_scheduler(cfg):
                                          alpha_f=cfg.alpha_f)
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+
 
 def build_dataloader(cfg, device_batch_size):
     try:

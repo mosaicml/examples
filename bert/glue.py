@@ -5,6 +5,7 @@ import copy
 import gc
 import multiprocessing as mp
 import os
+import pathlib
 import sys
 import time
 from collections import defaultdict
@@ -29,10 +30,9 @@ from src.glue.finetuning_jobs import (TASK_NAME_TO_NUM_LABELS, COLAJob, MNLIJob,
 from src.hf_bert import create_hf_bert_classification
 from src.mosaic_bert import create_mosaic_bert_classification
 
-import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_dataloader, build_logger, build_callback, build_algorithm, build_optimizer, build_scheduler
-
+from common.builders import (build_algorithm, build_callback, build_dataloader,
+                             build_logger, build_optimizer, build_scheduler)
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import pathlib
 import sys
 import warnings
 
@@ -10,9 +11,9 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
-import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_algorithm, build_logger, build_optimizer, build_scheduler, build_callback, build_dataloader
+from common.builders import (build_algorithm, build_callback, build_dataloader,
+                             build_logger, build_optimizer, build_scheduler)
 from common.logging import log_config
 
 
@@ -141,7 +142,8 @@ def main(cfg):
         callbacks=callbacks,
         precision=cfg.precision,
         algorithms=algos,
-        device_train_microbatch_size=cfg.get('device_train_microbatch_size', 'auto'),
+        device_train_microbatch_size=cfg.get('device_train_microbatch_size',
+                                             'auto'),
         fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),

@@ -1,4 +1,8 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 from omegaconf import OmegaConf as om
+
 
 def log_config(cfg):
     print(om.to_yaml(cfg))

@@ -16,7 +16,8 @@ from torch.utils.data import DataLoader
 
 
 class StreamingTextDataset(Dataset):
-    """Generic implementation of a text dataset using MosaicML's streaming Dataset V2.
+    """Generic implementation of a text dataset using MosaicML's streaming
+    Dataset V2.
 
     Args:
         remote (str): Remote directory (S3 or local filesystem) where dataset
@@ -155,25 +156,22 @@ class StreamingTextDataset(Dataset):
 
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
-    dataset = StreamingTextDataset(
-        split=cfg.dataset.split,
-        remote=cfg.dataset.remote,
-        local=cfg.dataset.local,
-        shuffle=cfg.dataset.shuffle,
-        prefetch=cfg.dataset.prefetch,
-        tokenizer_name=cfg.dataset.tokenizer_name,
-        max_seq_len=cfg.dataset.max_seq_len,
-        group_method=cfg.dataset.group_method,
-        keep_zip=cfg.dataset.get('keep_zip', False),
-        batch_size=device_batch_size
-    )
+    dataset = StreamingTextDataset(split=cfg.dataset.split,
+                                   remote=cfg.dataset.remote,
+                                   local=cfg.dataset.local,
+                                   shuffle=cfg.dataset.shuffle,
+                                   prefetch=cfg.dataset.prefetch,
+                                   tokenizer_name=cfg.dataset.tokenizer_name,
+                                   max_seq_len=cfg.dataset.max_seq_len,
+                                   group_method=cfg.dataset.group_method,
+                                   keep_zip=cfg.dataset.get('keep_zip', False),
+                                   batch_size=device_batch_size)
 
-    mlm_probability = cfg.dataset.get('mlm_probability', None) 
+    mlm_probability = cfg.dataset.get('mlm_probability', None)
     collate_fn = transformers.DataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer,
         mlm=mlm_probability is not None,
-        mlm_probability=mlm_probability
-    )
+        mlm_probability=mlm_probability)
 
     return DataLoader(
         dataset,
@@ -209,7 +207,8 @@ if __name__ == '__main__':
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
             'group_method': 'concat',
-            'keep_zip': True  # since we are just testing, do not delete originals
+            'keep_zip':
+                True  # since we are just testing, do not delete originals
         },
         'drop_last': False,
         'num_workers': 4,
