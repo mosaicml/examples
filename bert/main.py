@@ -13,8 +13,8 @@ from omegaconf import OmegaConf as om
 from src.hf_bert import create_hf_bert_mlm
 from src.mosaic_bert import create_mosaic_bert_mlm
 
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import (build_algorithm, build_callback, build_dataloader,
+sys.path.append(str(pathlib.Path(__file__).parent.parent / 'common'))
+from builders import (build_algorithm, build_callback, build_dataloader,
                              build_logger, build_optimizer, build_scheduler)
 
 

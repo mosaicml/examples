@@ -11,10 +11,10 @@ from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import (build_algorithm, build_callback, build_dataloader,
+sys.path.append(str(pathlib.Path(__file__).parent.parent / 'common'))
+from builders import (build_algorithm, build_callback, build_dataloader,
                              build_logger, build_optimizer, build_scheduler)
-from common.logging_utils import log_config
+from logging_utils import log_config
 
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):
