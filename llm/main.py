@@ -13,7 +13,7 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 sys.path.append(str(pathlib.Path(__file__).parent.parent / 'common'))
 from builders import (build_algorithm, build_callback, build_dataloader,
-                             build_logger, build_optimizer, build_scheduler)
+                      build_logger, build_optimizer, build_scheduler)
 from logging_utils import log_config
 
 
