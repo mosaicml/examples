@@ -44,8 +44,7 @@ class TorchCausalAttention(nn.Module):
     @staticmethod
     def mask_shape(n_heads, seq_len, alibi):
         if alibi:
-            # return (1, n_heads, seq_len, seq_len)
-            raise NotImplementedError
+            return (n_heads, seq_len, seq_len)
         return (seq_len, seq_len)
 
     @staticmethod
@@ -64,10 +63,9 @@ class TorchCausalAttention(nn.Module):
         attn_mask.triu_(diagonal=1)
 
         if alibi:
-            # device, dtype = attn_mask.device, attn_mask.dtype
-            # a_bias = alibi_bias(n_heads, seq_len, full=True, alibi_bias_max=alibi_bias_max, device=device, dtype=dtype)
-            # attn_mask.add_(a_bias.expand(attn_mask.size(0) // n_heads, n_heads, seq_len, seq_len).reshape(-1, seq_len, seq_len))
-            raise NotImplementedError
+            device, dtype = attn_mask.device, attn_mask.dtype
+            a_bias = alibi_bias(n_heads, seq_len, full=True, alibi_bias_max=alibi_bias_max, device=device, dtype=dtype)
+            attn_mask.add_(a_bias.squeeze())
 
         return attn_mask
 
@@ -157,8 +155,6 @@ class TritonFlashCausalAttention(nn.Module):
 def alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=8, device=None, dtype=None):
     if full:
         # generate 1 x Heads x SeqLen x SeqLen alibi bias mask
-        # potentially usable for torch.nn.MultiheadAttention
-        # (this would require static batch size or generating mask at every itr)
         alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
         alibi_bias = alibi_bias - torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
         alibi_bias.abs_().mul_(-1)
@@ -194,7 +190,7 @@ class GPTBlock(nn.Module):
     def __init__(self, cfg: DictConfig, causal_attn_cls, device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
-            assert cfg.attn_impl == 'triton', 'Only triton kernel supports alibi'
+            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
@@ -273,6 +269,14 @@ class MosaicGPT(nn.Module):
 
         if self.cfg.attn_impl == 'triton' and key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
             return self.attn_mask.masked_fill(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
+
+        if self.cfg.attn_impl == 'torch' and len(self.attn_mask.shape) == 3:
+            # WARNING: Alibi with torch attn is not thoroughly tested
+            # torch mask is supposed to be of shape nzz x SeqLen x SeqLen
+            # we must braodcast to batch size then flatten batchsize * n_heads dim
+            batch_size = x.size(0)
+            return self.attn_mask.expand(batch_size, *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
+            
         return self.attn_mask
 
     def forward(self,

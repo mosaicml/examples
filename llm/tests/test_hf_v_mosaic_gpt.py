@@ -18,6 +18,7 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
         ("torch", 0.0, False, False, 1),  # requires strict=False to skip loading model.attn_mask
         ("triton", 0.0, False, False, 1),  # requires strict=False to skip loading model.attn_mask
         ("triton", 0.1, False, False, 1),  # requires strict=False to skip loading model.attn_mask
+        pytest.param("torch", 0.0, False, True, 1, marks=pytest.mark.xfail(reason="hf model is not implemented with alibi")),
         pytest.param("triton", 0.1, False, True, 1, marks=pytest.mark.xfail(reason="hf model is not implemented with alibi")),
         ("torch", 0.0, False, False, 0),  # requires strict=False to skip loading model.attn_mask, testing case where key_pad_mask is 0
         ("triton", 0.0, False, False, 0),  # requires strict=False to skip loading model.attn_mask, testing case where key_pad_mask is 0
