@@ -280,7 +280,6 @@ class MosaicGPT(nn.Module):
                 # Note: if key_padding_mask is triggered, the needed expansion is already done.
                 attn_mask = attn_mask.expand(x.size(0), *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
 
-
             return attn_mask
             
         return self.attn_mask
