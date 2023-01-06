@@ -49,7 +49,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           tags: mosaicml/examples:${{ matrix.example }}-latest,mosaicml/examples:${{ matrix.example }}-${{ env.IMAGE_TAG }}
-          push: ${{ github.ref == "refs/heads/main" }}
+          push: ${{ contains(github.ref, 'refs/heads/main') }}
           cache-from: type=registry,ref=mosaicml/examples:${{ matrix.example }}-buildcache
           cache-to: type=registry,ref=mosaicml/examples:${{ matrix.example }}-buildcache,mode=max
           build-args: EXAMPLE=${{ matrix.example }}
