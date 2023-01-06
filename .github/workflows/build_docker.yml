@@ -14,15 +14,6 @@ jobs:
         example:
           - llm
     steps:
-
-      # - name: Maximize Build Space on Worker
-      #   uses: easimon/maximize-build-space@v6
-      #   with:
-      #     overprovision-lvm: true
-      #     remove-dotnet: true
-      #     remove-android: true
-      #     remove-haskell: true
-
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -48,6 +39,7 @@ jobs:
       - name: Build and Push the Docker Image
         uses: docker/build-push-action@v3
         with:
+          context: .
           tags: mosaicml/examples:${{ matrix.example }}-latest,mosaicml/examples:${{ matrix.example }}-${{ env.IMAGE_TAG }}
           push: ${{ contains(github.ref, 'refs/heads/main') }}
           cache-from: type=registry,ref=mosaicml/examples:${{ matrix.example }}-buildcache
