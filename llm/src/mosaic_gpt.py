@@ -266,7 +266,7 @@ class MosaicGPT(nn.Module):
         else:
             self.attn_mask = None
 
-    def _attn_mask(self, batch_size=None, key_padding_mask=None):
+    def _attn_mask(self, batch_size=None, seq_len=None, key_padding_mask=None):
         if not self._attn_mask_initialized:
             self.causal_attn_cls.attn_mask_(
                 self.attn_mask,
@@ -275,43 +275,46 @@ class MosaicGPT(nn.Module):
                 alibi=self.alibi,
                 alibi_bias_max=self.alibi_bias_max)
             self._attn_mask_initialized = True
+        
+        if self.cfg.attn_impl == 'flash':
+            return self.attn_mask
+        
+        # select seq_len subset of attn mask
+        attn_mask = self.attn_mask[..., :seq_len, :seq_len]
 
         if self.cfg.attn_impl == 'triton' and key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
-            return self.attn_mask.masked_fill(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
+            return attn_mask.masked_fill(~key_padding_mask.view(-1, 1, 1, seq_len), float('-inf'))
 
         if self.cfg.attn_impl == 'torch':
-            attn_mask = self.attn_mask
             if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
-                attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads, *self.attn_mask.shape[-2:]).clone()
-                attn_mask.masked_fill_(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
-                attn_mask = attn_mask.reshape(-1, *self.attn_mask.shape[-2:])
+                attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads, seq_len, seq_len).clone()
+                attn_mask.masked_fill_(~key_padding_mask.view(-1, 1, 1, seq_len), float('-inf'))
+                attn_mask = attn_mask.reshape(-1, seq_len, seq_len)
             elif self.alibi:
                 # WARNING: Alibi with torch attn is not thoroughly tested
                 # torch mask is supposed to be of shape nzz x SeqLen x SeqLen
                 # we must braodcast to batch size then flatten batchsize * n_heads dim
                 # Note: if key_padding_mask is triggered, the needed expansion is already done.
-                attn_mask = attn_mask.expand(batch_size, *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
+                attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads, seq_len, seq_len).reshape(-1, seq_len, seq_len)
 
             return attn_mask
             
-        return self.attn_mask
+        return attn_mask
 
     def forward(self,
                 input_ids: torch.LongTensor,
                 key_padding_mask: Optional[torch.ByteTensor] = None):
-        _, S = input_ids.size()
+        B, S = input_ids.size()
         assert (
             S <= self.cfg.max_seq_len
         ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
-        pos = torch.arange(0, S, dtype=torch.long, device=input_ids.device).unsqueeze(0)
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
-
-        attn_mask = self._attn_mask(tok_emb.size(0), key_padding_mask=key_padding_mask)
 
         if self.alibi:
             x = tok_emb
         else:
+            pos = torch.arange(0, S, dtype=torch.long, device=input_ids.device).unsqueeze(0)
             pos_emb = self.transformer.wpe(pos)  # type: ignore
             x = tok_emb + pos_emb
 
@@ -322,6 +325,8 @@ class MosaicGPT(nn.Module):
             x = self.transformer.emb_drop(
                 x * self.embedding_fraction + x.detach() * (1 - self.embedding_fraction)
             )
+        
+        attn_mask = self._attn_mask(batch_size=B, seq_len=S, key_padding_mask=key_padding_mask)
         for block in self.transformer.blocks:  # type: ignore
             x = block(
                 x,
