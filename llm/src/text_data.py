@@ -25,21 +25,26 @@ class StreamingTextDataset(StreamingDataset):
             during operation.
         split (str): The dataset split to use, either 'train' or 'val'.
         shuffle (bool): Whether to shuffle the samples in this dataset.
-        prefetch (int): Target number of samples remaining to prefetch
-            while iterating.
+        predownload (int, optional): Target number of samples ahead to download the shards of while
+            iterating. Defaults to ``100_000``.
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to
             tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
         group_method (str): How to group text samples into token samples.
             Supports 'truncate' or 'concat'.
         keep_zip (bool): Whether to keep or delete the compressed file when
-            decompressing downloaded shards.
-        retry (int): Number of download re-attempts before giving up.
-            Default: 2.
-        timeout (float): How long to wait for shard to download before
-            raising an exception. Default: 120 sec.
-        batch_size (Optional[int]): Hint batch_size that will be used on
-            each device's DataLoader. Default: ``None``.
+            decompressing downloaded shards. If set to None, keep iff remote is local. Defaults to
+            ``None``.
+        download_retry (int): Number of download re-attempts before giving up. Defaults to ``2``.
+        download_timeout (float): Number of seconds to wait for a shard to download before raising
+            an exception. Defaults to ``60``.
+        validate_hash (str, optional): Optional hash or checksum algorithm to use to validate
+            shards. Defaults to ``None``.
+        shuffle_seed (int): Seed for Deterministic data shuffling. Defaults to ``9176``.
+        num_canonical_nodes (int, optional): Canonical number of nodes for shuffling with resumption.
+            Defaults to ``None``, which is interpreted as the number of nodes of the initial run.
+        batch_size (int, optional): Batch size of its DataLoader, which affects how the dataset is
+            partitioned over the workers. Defaults to ``None``.
     """
 
     def __init__(self,
@@ -55,7 +60,7 @@ class StreamingTextDataset(StreamingDataset):
                  download_retry: int = 2,
                  download_timeout: float = 120,
                  validate_hash: Optional[str] = None,
-                 shuffle_seed: Optional[int] = None,
+                 shuffle_seed: int = 9176,
                  num_canonical_nodes: Optional[int] = None,
                  batch_size: Optional[int] = None):
 
@@ -190,10 +195,10 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         batch_size=device_batch_size,
         drop_last=cfg.drop_last,
         num_workers=cfg.num_workers,
-        pin_memory=cfg.pin_memory,
-        prefetch_factor=cfg.prefetch_factor,
-        persistent_workers=cfg.persistent_workers,
-        timeout=cfg.timeout,
+        pin_memory=cfg.get('pin_memory', True),
+        prefetch_factor=cfg.get('prefetch_factor', 2),
+        persistent_workers=cfg.get('persistent_workers', True),
+        timeout=cfg.get('timeout', 0),
     )
 
 
