@@ -3,10 +3,11 @@
 
 import pathlib
 import sys
+from packaging import version
 
 import composer
 from composer import algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor
+from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
