@@ -277,18 +277,18 @@ class MosaicGPT(nn.Module):
             self._attn_mask_initialized = True
         
         if self.cfg.attn_impl == 'flash':
-            return self.attn_mask
+            return self.attn_mask  # None
         
         # select seq_len subset of attn mask
         attn_mask = self.attn_mask[..., :seq_len, :seq_len]
 
         if self.cfg.attn_impl == 'triton' and key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
-            return attn_mask.masked_fill(~key_padding_mask.view(-1, 1, 1, seq_len), float('-inf'))
+            attn_mask = attn_mask.masked_fill(~key_padding_mask.view(batch_size, 1, 1, seq_len), float('-inf'))
 
         if self.cfg.attn_impl == 'torch':
             if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
                 attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads, seq_len, seq_len).clone()
-                attn_mask.masked_fill_(~key_padding_mask.view(-1, 1, 1, seq_len), float('-inf'))
+                attn_mask.masked_fill_(~key_padding_mask.view(batch_size, 1, 1, seq_len), float('-inf'))
                 attn_mask = attn_mask.reshape(-1, seq_len, seq_len)
             elif self.alibi:
                 # WARNING: Alibi with torch attn is not thoroughly tested
@@ -297,8 +297,6 @@ class MosaicGPT(nn.Module):
                 # Note: if key_padding_mask is triggered, the needed expansion is already done.
                 attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads, seq_len, seq_len).reshape(-1, seq_len, seq_len)
 
-            return attn_mask
-            
         return attn_mask
 
     def forward(self,
