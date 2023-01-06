@@ -101,7 +101,7 @@ class BertEmbeddings(nn.Module):
         inputs_embeds: Optional[torch.FloatTensor] = None,
         past_key_values_length: int = 0,
     ) -> torch.Tensor:
-        if (input_ids is not None) != (inputs_embeds is not None):
+        if (input_ids is not None) == (inputs_embeds is not None):
             raise ValueError('Must specify either input_ids or input_embeds!')
         if input_ids is not None:
             input_shape = input_ids.size()
