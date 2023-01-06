@@ -9,7 +9,8 @@ from composer.callbacks import LRMonitor, MemoryMonitor
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
-                                      CosineAnnealingWithWarmupScheduler)
+                                      CosineAnnealingWithWarmupScheduler,
+                                      LinearWithWarmupScheduler)
 
 sys.path.append(str(pathlib.Path(__file__).parent))
 from speed_monitor_w_mfu import SpeedMonitorMFU
