@@ -310,7 +310,6 @@ class MosaicGPT(nn.Module):
         ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
-
         if self.alibi:
             x = tok_emb
         else:
