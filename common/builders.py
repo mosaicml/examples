@@ -41,6 +41,12 @@ def build_logger(name, kwargs):
 def build_algorithm(name, kwargs):
     if name == 'gradient_clipping':
         return algorithms.GradientClipping(**kwargs)
+    elif name == 'alibi':
+        return algorithms.Alibi(**kwargs)
+    elif name == 'fused_layernorm':
+        return algorithms.FusedLayerNorm(**kwargs)
+    elif name == 'gated_linear_units':
+        return algorithms.GatedLinearUnits(**kwargs)
     else:
         raise ValueError(f'Not sure how to build algorithm: {name}')
 
@@ -61,6 +67,9 @@ def build_scheduler(cfg):
     elif cfg.name == 'cosine_with_warmup':
         return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
                                                   alpha_f=cfg.alpha_f)
+    elif cfg.name == 'linear_decay_with_warmup':
+        return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                         alpha_f=cfg.alpha_f)
     else:
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 

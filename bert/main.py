@@ -20,60 +20,7 @@ from src.mosaic_bert import create_mosaic_bert_mlm
 
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import build_dataloader
-
-
-def build_logger(name, kwargs):
-    if name == 'wandb':
-        return WandBLogger(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build logger: {name}')
-
-
-def build_callback(name, kwargs):
-    if name == 'lr_monitor':
-        return LRMonitor()
-    elif name == 'memory_monitor':
-        return MemoryMonitor()
-    elif name == 'speed_monitor':
-        return SpeedMonitor(window_size=kwargs.get('window_size', 1))
-    else:
-        raise ValueError(f'Not sure how to build callback: {name}')
-
-
-def build_algorithm(name, kwargs):
-    if name == 'alibi':
-        return algorithms.Alibi(**kwargs)
-    elif name == 'fused_layernorm':
-        return algorithms.FusedLayerNorm(**kwargs)
-    elif name == 'gated_linear_units':
-        return algorithms.GatedLinearUnits(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build algorithm: {name}')
-
-
-def build_optimizer(cfg, model):
-    if cfg.name == 'decoupled_adamw':
-        return DecoupledAdamW(model.parameters(),
-                              lr=cfg.lr,
-                              betas=cfg.betas,
-                              eps=cfg.eps,
-                              weight_decay=cfg.weight_decay)
-    else:
-        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
-
-
-def build_scheduler(cfg):
-    if cfg.name == 'constant_with_warmup':
-        return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
-    elif cfg.name == 'linear_decay_with_warmup':
-        return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup,
-                                         alpha_f=cfg.alpha_f)
-    elif cfg.name == 'cosine_with_warmup':
-        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
-                                                  alpha_f=cfg.alpha_f)
-    else:
-        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+from common.builders import build_dataloader, build_logger, build_callback, build_algorithm, build_optimizer, build_scheduler
 
 
 def build_model(cfg):
