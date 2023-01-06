@@ -7,13 +7,7 @@ import sys
 from typing import Dict
 
 import wandb
-from composer import Trainer, algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW
-from composer.optim.scheduler import (ConstantWithWarmupScheduler,
-                                      CosineAnnealingWithWarmupScheduler,
-                                      LinearWithWarmupScheduler)
+from composer import Trainer
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
 from src.hf_bert import create_hf_bert_mlm
