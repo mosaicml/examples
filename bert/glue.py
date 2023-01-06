@@ -17,10 +17,6 @@ from urllib.parse import urlparse
 import numpy as np
 import omegaconf as om
 import torch
-from composer.algorithms import Alibi, FusedLayerNorm, GatedLinearUnits
-from composer.callbacks import LRMonitor, SpeedMonitor
-from composer.loggers import WandBLogger
-from composer.optim import LinearWithWarmupScheduler
 from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
@@ -31,8 +27,8 @@ from src.hf_bert import create_hf_bert_classification
 from src.mosaic_bert import create_mosaic_bert_classification
 
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from common.builders import (build_algorithm, build_callback, build_dataloader,
-                             build_logger, build_optimizer, build_scheduler)
+from common.builders import (build_algorithm, build_callback, build_logger,
+                             build_scheduler)
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,
