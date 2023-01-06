@@ -255,7 +255,6 @@ class MosaicGPT(nn.Module):
             self.attn_mask = None
 
     def _attn_mask(self, x, key_padding_mask=None):
-
         if not self._attn_mask_initialized:
             self.causal_attn_cls.attn_mask_(
                 self.attn_mask,
@@ -268,12 +267,23 @@ class MosaicGPT(nn.Module):
         if self.cfg.attn_impl == 'triton' and key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
             return self.attn_mask.masked_fill(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
 
-        if self.cfg.attn_impl == 'torch' and len(self.attn_mask.shape) == 3:
-            # WARNING: Alibi with torch attn is not thoroughly tested
-            # torch mask is supposed to be of shape nzz x SeqLen x SeqLen
-            # we must braodcast to batch size then flatten batchsize * n_heads dim
-            batch_size = x.size(0)
-            return self.attn_mask.expand(batch_size, *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
+        if self.cfg.attn_impl == 'torch':
+            attn_mask = self.attn_mask
+            if self.alibi:
+                # WARNING: Alibi with torch attn is not thoroughly tested
+                # torch mask is supposed to be of shape nzz x SeqLen x SeqLen
+                # we must braodcast to batch size then flatten batchsize * n_heads dim
+                attn_mask = attn_mask.expand(x.size(0), *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
+
+            if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
+                if self.alibi:
+                    attn_mask = attn_mask.view(x.size(0), self.cfg.n_heads, *self.attn_mask.shape[-2:])
+                else:
+                    attn_mask = attn_mask.expand(x.size(0), self.cfg.n_heads, *self.attn_mask.shape[-2:]).clone()
+                attn_mask.masked_fill_(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
+                attn_mask = attn_mask.reshape(-1, *self.attn_mask.shape[-2:])
+
+            return attn_mask
             
         return self.attn_mask
 
