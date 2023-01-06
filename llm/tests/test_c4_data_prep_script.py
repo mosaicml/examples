@@ -5,7 +5,10 @@ import os
 import shutil
 from argparse import Namespace
 
-from convert_c4 import main
+import pathlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
+from scripts.convert_c4 import main
 
 
 def test_download_script_from_api():
@@ -21,6 +24,6 @@ def test_download_script_from_cmdline():
     # test calling it via the cmd line interface
     path = os.path.join(os.getcwd(), 'my-copy-c4-2')
     shutil.rmtree(path, ignore_errors=True)
-    os.system('python convert_c4.py --out_root ./my-copy-c4-2 --splits val')
+    os.system('python ../scripts/convert_c4.py --out_root ./my-copy-c4-2 --splits val')
     assert os.path.exists(path)
     shutil.rmtree(path, ignore_errors=False)
