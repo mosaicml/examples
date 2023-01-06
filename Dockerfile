@@ -8,4 +8,4 @@ COPY ${EXAMPLE} ${EXAMPLE}
 
 WORKDIR ${EXAMPLE}
 
-RUN pwd; ls -ltrha; pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
