@@ -39,7 +39,7 @@ jobs:
       - name: Build and Push the Docker Image
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./examples
           tags: mosaicml/examples:${{ matrix.example }}-latest,mosaicml/examples:${{ matrix.example }}-${{ env.IMAGE_TAG }}
           push: ${{ contains(github.ref, 'refs/heads/main') }}
           cache-from: type=registry,ref=mosaicml/examples:${{ matrix.example }}-buildcache
