@@ -4,8 +4,8 @@
 FROM mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
 
 ARG EXAMPLE
-COPY ${EXAMPLE} .
+COPY ${EXAMPLE} ${EXAMPLE}
 
 WORKDIR ${EXAMPLE}
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pwd; ls -ltrha; pip install --no-cache-dir -r requirements.txt
