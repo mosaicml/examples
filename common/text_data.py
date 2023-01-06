@@ -168,9 +168,11 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         batch_size=device_batch_size
     )
 
+    mlm_probability = cfg.dataset.get('mlm_probability', None) 
     collate_fn = transformers.DataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer,
-        mlm=False
+        mlm=mlm_probability is not None,
+        mlm_probability=mlm_probability
     )
 
     return DataLoader(

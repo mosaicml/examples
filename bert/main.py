@@ -15,9 +15,12 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
-from src.data_c4 import build_c4_dataloader
 from src.hf_bert import create_hf_bert_mlm
 from src.mosaic_bert import create_mosaic_bert_mlm
+
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
+from common.builders import build_dataloader
 
 
 def build_logger(name, kwargs):
@@ -88,13 +91,6 @@ def build_model(cfg):
             model_config=cfg.get('model_config', None),
             tokenizer_name=cfg.get('tokenizer_name', None),
             gradient_checkpointing=cfg.get('gradient_checkpointing', None))
-    else:
-        raise ValueError(f'Not sure how to build model with name={cfg.name}')
-
-
-def build_dataloader(cfg, device_batch_size):
-    if cfg.name == 'c4':
-        return build_c4_dataloader(cfg, device_batch_size)
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
