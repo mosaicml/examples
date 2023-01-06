@@ -7,6 +7,7 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 """
 
 import math
+import warnings
 from functools import partial
 from typing import Optional
 
@@ -31,6 +32,11 @@ class TorchCausalAttention(nn.Module):
             device=device,
         )
         self.mhsa.out_proj._is_residual = True  # type: ignore
+
+        warnings.warn(
+            DeprecationWarning(
+                'Using `attn_impl: torch` is deprecated; recommened using `attn_impl: triton`.'
+            ))
 
     def forward(self, x, key_padding_mask, attn_mask=None):
         return self.mhsa(
@@ -90,6 +96,11 @@ class FlashCausalAttention(nn.Module):
         )
         self.mhsa.out_proj._is_residual = True
 
+        warnings.warn(
+            DeprecationWarning(
+                'Using `attn_impl: flash` is deprecated; recommened using `attn_impl: triton`.'
+            ))
+
     def forward(self, x, key_padding_mask, attn_mask=None):
         assert attn_mask is None
         return self.mhsa(
@@ -116,11 +127,12 @@ class TritonFlashCausalAttention(nn.Module):
             from src.flash_attention import FlashMHA  # type: ignore
         except ImportError as e:
             raise e
+
+        assert cfg.attn_pdrop == 0, "triton kernel does not support attn_dropout"
         
         self.mhsa = FlashMHA(
             embed_dim=cfg.d_model,
             num_heads=cfg.n_heads,
-            attention_dropout=cfg.attn_pdrop,
             bias=True,
             batch_first=True,
             causal=True,
@@ -254,7 +266,7 @@ class MosaicGPT(nn.Module):
         else:
             self.attn_mask = None
 
-    def _attn_mask(self, x, key_padding_mask=None):
+    def _attn_mask(self, batch_size=None, key_padding_mask=None):
         if not self._attn_mask_initialized:
             self.causal_attn_cls.attn_mask_(
                 self.attn_mask,
@@ -270,7 +282,7 @@ class MosaicGPT(nn.Module):
         if self.cfg.attn_impl == 'torch':
             attn_mask = self.attn_mask
             if key_padding_mask is not None and key_padding_mask.bool().logical_not().any():
-                attn_mask = attn_mask.expand(x.size(0), self.cfg.n_heads, *self.attn_mask.shape[-2:]).clone()
+                attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads, *self.attn_mask.shape[-2:]).clone()
                 attn_mask.masked_fill_(~key_padding_mask.view(-1, 1, 1, self.cfg.max_seq_len), float('-inf'))
                 attn_mask = attn_mask.reshape(-1, *self.attn_mask.shape[-2:])
             elif self.alibi:
@@ -278,7 +290,7 @@ class MosaicGPT(nn.Module):
                 # torch mask is supposed to be of shape nzz x SeqLen x SeqLen
                 # we must braodcast to batch size then flatten batchsize * n_heads dim
                 # Note: if key_padding_mask is triggered, the needed expansion is already done.
-                attn_mask = attn_mask.expand(x.size(0), *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
+                attn_mask = attn_mask.expand(batch_size, *self.attn_mask.shape).reshape(-1, *self.attn_mask.shape[-2:])
 
             return attn_mask
             
@@ -295,7 +307,7 @@ class MosaicGPT(nn.Module):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
 
-        attn_mask = self._attn_mask(tok_emb, key_padding_mask=key_padding_mask)
+        attn_mask = self._attn_mask(tok_emb.size(0), key_padding_mask=key_padding_mask)
 
         if self.alibi:
             x = tok_emb
