@@ -4,6 +4,7 @@
 import pathlib
 import sys
 
+import composer
 from composer import algorithms
 from composer.callbacks import LRMonitor, MemoryMonitor
 from composer.loggers import WandBLogger
@@ -23,6 +24,8 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
+        if version.parse(composer.__version__) < version.parse('0.12.0'):
+            return SpeedMonitor(window_size=kwargs.get('window_size', 1))
         return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
                                gpu_flops_available=kwargs.get(
                                    'gpu_flops_available', None))
