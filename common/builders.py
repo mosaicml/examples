@@ -3,7 +3,6 @@
 
 import pathlib
 import sys
-from packaging import version
 
 import composer
 from composer import algorithms
@@ -13,6 +12,7 @@ from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
+from packaging import version
 
 sys.path.append(str(pathlib.Path(__file__).parent))
 from speed_monitor_w_mfu import SpeedMonitorMFU
