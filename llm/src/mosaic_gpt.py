@@ -153,14 +153,12 @@ class TritonFlashCausalAttention(nn.Module):
 
 
 def alibi_bias(n_heads, seq_len, full=False, alibi_bias_max=8, device=None, dtype=None):
+    alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
     if full:
         # generate 1 x Heads x SeqLen x SeqLen alibi bias mask
-        alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
-        alibi_bias = alibi_bias - torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
-        alibi_bias.abs_().mul_(-1)
-    else:
         # otherwise the mask is 1 x Heads x 1 x SeqLen (which is braodcasted up to the approproate size)
-        alibi_bias = torch.arange(0, -seq_len, -1, dtype=dtype, device=device).view(1, 1, 1, seq_len)
+        alibi_bias = alibi_bias - torch.arange(1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
+        alibi_bias.abs_().mul_(-1)  # since we're using causal flag, this isn't really needed, but why not include it
 
     m = torch.arange(1, n_heads + 1, dtype=dtype, device=device)
     m.mul_(alibi_bias_max / n_heads)
