@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 
 class StreamingTextDataset(Dataset):
     """Generic implementation of a text dataset using MosaicML's streaming
+    
     Dataset V2.
 
     Args:
