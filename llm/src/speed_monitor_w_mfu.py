@@ -10,7 +10,6 @@ from typing import Any, Deque, Dict, Union
 
 import torch
 
-from composer.callbacks import SpeedMonitor
 from composer.core import Callback, State
 from composer.loggers import Logger
 from composer.utils import dist
@@ -70,7 +69,7 @@ def get_gpu_flops_available(state):
     return gpu_flops_available
 
 
-class SpeedMonitorMFU(SpeedMonitor):
+class SpeedMonitorMFU(Callback):
     """Logs the training throughput and MFU.
     """
     def __init__(
@@ -78,20 +77,49 @@ class SpeedMonitorMFU(SpeedMonitor):
         window_size: int = 100,
         gpu_flops_available: Union[float, int] = None
     ):
-        super().__init__(window_size=window_size)
-        self.set_gpu_flops_available = False
+        # Track the batch num samples and wct to compute throughput over a window of batches
+        self.batch_start_num_samples = 0
+        self.batch_start_wct = 0.0
+        self.batch_wct_buffer: Deque[float] = deque(maxlen=window_size)
+        self.batch_num_samples_buffer: Deque[int] = deque(maxlen=window_size)
+        self.window_size = window_size
         self.gpu_flops_available = gpu_flops_available
-        if gpu_flops_available:
-            print(
-                f'gpu_flops_available is manaually set to {gpu_flops_available} for calculating MFU.'
-            )
-            self.set_gpu_flops_available = True
+
+        # Keep track of time spent evaluating
+        self.total_eval_wct = 0.0
+
+    def state_dict(self) -> Dict[str, Any]:
+        return {
+            'batch_start_num_samples': self.batch_start_num_samples,
+            'batch_start_wct': self.batch_start_wct,
+            'batch_wct_buffer': self.batch_wct_buffer,
+            'batch_num_samples_buffer': self.batch_num_samples_buffer,
+            'total_eval_wct': self.total_eval_wct,
+        }
+
+    def load_state_dict(self, state: Dict[str, Any]) -> None:
+        self.batch_start_num_samples = state['batch_start_num_samples']
+        self.batch_start_wct = state['batch_start_wct']
+        self.batch_wct_buffer = deque(
+            [x for x in state['batch_wct_buffer']],
+            maxlen=self.window_size,
+        )
+        self.batch_num_samples_buffer = deque(
+            [x for x in state['batch_num_samples_buffer']],
+            maxlen=self.window_size,
+        )
+        self.total_eval_wct = state['total_eval_wct']
+
+    def before_dataloader(self, state: State, logger: Logger) -> None:
+        del logger  # unused
+        self.batch_start_wct = state.timestamp.total_wct.total_seconds()
+        self.batch_start_num_samples = int(state.timestamp.sample)
+
+        # Get available GPU FLOPS
+        if not self.gpu_flops_available:
+            self.gpu_flops_available = get_gpu_flops_available(state)
 
     def batch_end(self, state: State, logger: Logger):
-        if not self.set_gpu_flops_available:
-            self.gpu_flops_available = get_gpu_flops_available(state)
-            self.set_gpu_flops_available = True
-
         batch_num_samples = int(state.timestamp.sample) - self.batch_start_num_samples
         batch_wct = state.timestamp.total_wct.total_seconds() - self.batch_start_wct
 
@@ -134,3 +162,7 @@ class SpeedMonitorMFU(SpeedMonitor):
             'wall_clock/val': self.total_eval_wct,
             'wall_clock/total': (state.timestamp.total_wct.total_seconds() + self.total_eval_wct),
         })
+
+    def eval_end(self, state: State, logger: Logger):
+        del logger  # unused
+        self.total_eval_wct += state.eval_timestamp.total_wct.total_seconds()
