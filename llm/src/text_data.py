@@ -19,12 +19,11 @@ class StreamingTextDataset(StreamingDataset):
     """Generic implementation of a text dataset using MosaicML's streaming Dataset V2.
 
     Args:
-        remote (str): Remote directory (S3 or local filesystem) where dataset
-            is stored.
-        local (str): Local filesystem directory where dataset is cached
-            during operation.
-        split (str): The dataset split to use, either 'train' or 'val'.
-        shuffle (bool): Whether to shuffle the samples in this dataset.
+        local (str): Local dataset directory where shards are cached by split.
+        remote (str, optional): Download shards from this remote path or directory. If None, this
+            rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
+        split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
+        shuffle (bool): Whether to iterate over the samples in randomized order. Defaults to ``False``.
         predownload (int, optional): Target number of samples ahead to download the shards of while
             iterating. Defaults to ``100_000``.
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to
@@ -48,10 +47,10 @@ class StreamingTextDataset(StreamingDataset):
     """
 
     def __init__(self,
-                 remote: str,
                  local: str,
-                 split: str,
-                 shuffle: bool,
+                 remote: Optional[str] = None,
+                 split: Optional[str] = None,
+                 shuffle: bool = False,
                  predownload: int = 100_000,
                  tokenizer_name: str = 'gpt2',
                  max_seq_len: int = '2048',
@@ -65,9 +64,6 @@ class StreamingTextDataset(StreamingDataset):
                  batch_size: Optional[int] = None):
 
         # Validation
-        if split not in ['train', 'val']:
-            raise ValueError(
-                f"split='{split}' must be one of ['train', 'val'].")
         if group_method not in ['truncate', 'concat']:
             raise ValueError(
                 f"group_method='{group_method}' must be one of ['truncate', 'concat']."
@@ -167,8 +163,8 @@ class StreamingTextDataset(StreamingDataset):
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
     dataset = StreamingTextDataset(
-        remote=cfg.dataset.remote,
         local=cfg.dataset.local,
+        remote=cfg.dataset.remote,
         split=cfg.dataset.split,
         shuffle=cfg.dataset.shuffle,
         predownload=cfg.dataset.get('predownload', 100_000),
@@ -205,18 +201,19 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out
 if __name__ == '__main__':
-    remote = sys.argv[1]
-    ds_name = 'c4' if 'c4' in remote else 'the_pile' if 'pile' in remote else 'dataset'
+
     if len(sys.argv) > 2:
-        local = sys.argv[2]
+        local, remote = sys.argv[1:2]
     else:
-        local = f'/tmp/{ds_name}' if 's3' in remote else remote
+        local = sys.argv[1]
+        remote = None
+    ds_name = 'c4' if 'c4' in remote else 'the_pile' if 'pile' in remote else 'dataset'
     print(f'Reading val split of {ds_name} dataset from {remote} -> {local}')
 
     cfg = {
         'dataset': {
-            'remote': remote,
             'local': local,
+            'remote': remote,
             'split': 'val',
             'shuffle': True,
             'predownload': 1000,

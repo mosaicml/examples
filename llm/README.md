@@ -86,13 +86,14 @@ To verify that the dataloader works, run a quick test on your `val` split like s
 ```bash
 # This will construct a `StreamingTextDataset` dataset from your `val` split,
 # pass it into a PyTorch Dataloader, and iterate over it and print samples.
-# Since remote and local are set to the same path, no streaming/copying takes place.
-python src/text_data.py ./my-copy-c4 ./my-copy-c4
+# Since we only provide a local path, no streaming/copying takes place.
+python src/text_data.py ./my-copy-c4
 
-# This will do the same thing, but stream data from {remote} -> {local}.
+# This will do the same thing, but stream data from local to remote.
+# The argument order is {local} {remote}.
 # The remote path can be a filesystem or object store URI.
-python src/text_data.py ./my-copy-c4 /tmp/cache-c4
-python src/text_data.py s3://my-bucket/my-copy-c4 /tmp/cache-c4
+python src/text_data.py /tmp/cache-c4 ./my-copy-c4
+python src/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4
 ```
 
 # How to start training

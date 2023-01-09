@@ -1,5 +1,5 @@
-data_remote: &data_remote ./my-copy-c4
 data_local: &data_local ./my-copy-c4
+data_remote: &data_remote null
 max_seq_len: &max_seq_len 2048
 tokenizer_name: &tokenizer_name gpt2
 global_seed: &global_seed 17
@@ -34,8 +34,8 @@ tokenizer:
 # Dataloaders
 train_loader:
   dataset:
-    remote: *data_remote
     local: *data_local
+    remote: *data_remote
     split: train
     shuffle: true
     predownload: 1_000_000
@@ -48,8 +48,8 @@ train_loader:
 
 eval_loader:
   dataset:
-    remote: *data_remote
     local: *data_local
+    remote: *data_remote
     split: val
     shuffle: false
     predownload: 1000
