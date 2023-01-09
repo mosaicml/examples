@@ -207,8 +207,7 @@ if __name__ == '__main__':
     else:
         local = sys.argv[1]
         remote = None
-    ds_name = 'c4' if 'c4' in remote else 'the_pile' if 'pile' in remote else 'dataset'
-    print(f'Reading val split of {ds_name} dataset from {remote} -> {local}')
+    print(f'Reading val split dataset from {remote} -> {local}')
 
     cfg = {
         'dataset': {
