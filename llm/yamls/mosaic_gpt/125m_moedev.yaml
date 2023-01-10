@@ -16,6 +16,7 @@ model:
   n_layers: 12
   moe:
     num_experts: 8  # on 4 gpus runs with: 2 experts (ie 2 gpus share an expert) and 8 (ie each gpu has 2 experts)
+    l_aux_wt: 0.01
   mlp_ratio: 4
   max_seq_len: *max_seq_len
   vocab_size: 50257

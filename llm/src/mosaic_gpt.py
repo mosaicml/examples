@@ -470,9 +470,17 @@ class ComposerMosaicGPT(ComposerModel):
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
-        return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
+        loss = F.cross_entropy(outputs.view(-1, outputs.size(-1)),
                                targets.view(-1),
                                ignore_index=-100)
+
+        if self.model.cfg.get('moe', None) is not None:
+            for n, m in self.named_modules():
+                # pretty bad way to identify MoE layer, but it is what it is...
+                if n[-len('.moe'):] == '.moe':
+                    loss += self.model.cfg.moe.l_aux_wt * m.l_aux
+
+        return loss
 
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
