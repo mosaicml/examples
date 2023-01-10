@@ -220,7 +220,7 @@ class GPTMLPMoE(nn.Module):
                 'count_per_node': num_local_experts,
                 'type': cfg.moe.get('experts_type', 'ffn'),
                 'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
-                'activation_fn': lambda x: F.relu(x)},
+                'activation_fn': lambda x: F.gelu(x, approximate='none')},
             scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
             result_func=cfg.moe.get('result_func', None),
             group=cfg.moe.get('group', None),
@@ -233,11 +233,6 @@ class GPTMLPMoE(nn.Module):
             parallel_type=cfg.moe.get('parallel_type', 'auto'),
             use_2dh=cfg.moe.get('use_2dh', False),
         )
-
-        # Summary of different parameter types: gate, local_experts
-        local_count = sum([torch.numel(param) for name, param in self.moe.get_parameter_iterator(param_type='local_experts')])
-        shared_count = sum([torch.numel(param) for name, param in self.moe.get_parameter_iterator(param_type='gate')])
-        print('[Statistics] param count for MoE local_experts = %s, param count for MoE gate = %s.\n' % (local_count, shared_count))
 
     def forward(self, x):
         return self.moe(x)
@@ -450,6 +445,7 @@ class ComposerMosaicGPT(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
         self.model = MosaicGPT(cfg)
+        self.__param_count = None
         self.__num_fwd_flops = None
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
@@ -487,14 +483,46 @@ class ComposerMosaicGPT(ComposerModel):
         metric.update(outputs, targets)
 
     @property
+    def param_count(self):
+        if self.__param_count:
+            return self.__param_count
+
+        if self.model.cfg.get('moe', None) is not None:
+            n_params_experts = 0
+            for n, m in self.named_modules():
+                # pretty bad way to identify MoE layer, but it is what it is...
+                if n[-len('.moe'):] == '.moe':
+                    _n_params_expert = sum(p.numel() for _n, p in m.named_parameters() if 'expert' in _n)
+                    n_params_experts += _n_params_expert // m.num_local_experts * m.sharded_count * m.num_global_experts
+
+            n_params_other = sum(p.numel() for n, p in self.named_parameters() if 'expert' not in n)
+            self.__param_count = n_params_other + n_params_experts
+        else:
+            self.__param_count = sum(p.numel() for p in self.parameters())
+
+        return self.__param_count
+
+    @property
     def num_fwd_flops(self):
         if self.__num_fwd_flops:
             return self.__num_fwd_flops
-        n_params = sum(p.numel() for p in self.parameters())
+
+        if self.model.cfg.get('moe', None) is not None:
+            n_params_expert = 0
+            for n, m in self.named_modules():
+                # pretty bad way to identify MoE layer, but it is what it is...
+                if n[-len('.moe'):] == '.moe':
+                    _n_params_expert = sum(p.numel() for _n, p in m.named_parameters() if 'expert' in _n)
+                    n_params_expert += _n_params_expert // m.num_local_experts * m.sharded_count
+            n_params_other = sum(p.numel() for n, p in self.named_parameters() if 'expert' not in n)
+            n_active_params = n_params_other + n_params_expert
+        else:
+            n_active_params = self.param_count
+
         # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
         # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
         # this gets us FLOPs / token
-        params_flops_per_token = 2 * n_params
+        params_flops_per_token = 2 * n_active_params
         params_flops_per_seq = params_flops_per_token * self.model.cfg.max_seq_len
         # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
         attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (self.model.cfg.d_model * (self.model.cfg.max_seq_len ** 2))

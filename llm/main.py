@@ -96,7 +96,7 @@ def main(cfg):
     # For fast initialization of MosaicGPT, use cfg.model.device='meta'
     print('Initializing model...')
     model = build_composer_model(cfg.model)
-    cfg.n_params = sum(p.numel() for p in model.parameters())
+    cfg.n_params = model.param_count if hasattr(model, 'param_count') else sum(p.numel() for p in model.parameters())
     print(f'{cfg.n_params=:.2e}')
     if hasattr(model, 'num_fwd_flops'):
         print(f'{model.num_fwd_flops=:.2e}')
