@@ -16,7 +16,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
+from composer.utils import dist
 from omegaconf import DictConfig
+from tutel import moe as tutel_moe
 
 
 class TorchCausalAttention(nn.Module):
@@ -195,6 +197,52 @@ class GPTMLP(nn.Module):
         return self.mlp_down(self.mlp_act(self.mlp_up(x)))
 
 
+class GPTMLPMoE(nn.Module):
+
+    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+        super().__init__()
+        world_size = dist.get_world_size()
+        num_experts = cfg.moe.get('num_experts', world_size)
+        if num_experts >= world_size:
+            assert num_experts % world_size == 0
+            num_local_experts = num_experts // world_size
+        else:
+            assert world_size % num_experts == 0
+            num_local_experts = - world_size // num_experts
+
+        self.moe = tutel_moe.moe_layer(
+            gate_type={
+                'type': cfg.moe.get('gate_type', 'top'),
+                'k': cfg.moe.get('gate_k', 1),
+                'fp32_gate': cfg.moe.get('fp32_gate', True)},
+            model_dim=cfg.d_model,
+            experts={
+                'count_per_node': num_local_experts,
+                'type': cfg.moe.get('experts_type', 'ffn'),
+                'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
+                'activation_fn': lambda x: F.relu(x)},
+            scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
+            result_func=cfg.moe.get('result_func', None),
+            group=cfg.moe.get('group', None),
+            seeds=(cfg.get('seed', 1), dist.get_global_rank(), cfg.get('seed', 1)),
+            a2a_ffn_overlap_degree=cfg.moe.get('a2a_ffn_overlap_degree', 1),
+            is_postscore=cfg.moe.get('is_postscore', True),
+            batch_prioritized_routing=cfg.moe.get('batch_prioritized_routing', False),
+            normalize_gate=cfg.moe.get('normalize_gate', True),
+            is_gshard_loss=cfg.moe.get('is_gshard_loss', True),
+            parallel_type=cfg.moe.get('parallel_type', 'auto'),
+            use_2dh=cfg.moe.get('use_2dh', False),
+        )
+
+        # Summary of different parameter types: gate, local_experts
+        local_count = sum([torch.numel(param) for name, param in self.moe.get_parameter_iterator(param_type='local_experts')])
+        shared_count = sum([torch.numel(param) for name, param in self.moe.get_parameter_iterator(param_type='gate')])
+        print('[Statistics] param count for MoE local_experts = %s, param count for MoE gate = %s.\n' % (local_count, shared_count))
+
+    def forward(self, x):
+        return self.moe(x)
+
+
 class GPTBlock(nn.Module):
 
     def __init__(self, cfg: DictConfig, causal_attn_cls, device: Optional[str] = None):
@@ -204,7 +252,7 @@ class GPTBlock(nn.Module):
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        self.mlp = GPTMLP(cfg, device=device)
+        self.mlp = GPTMLPMoE(cfg, device=device) if cfg.get('moe', None) else GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 
