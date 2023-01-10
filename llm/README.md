@@ -89,8 +89,7 @@ To verify that the dataloader works, run a quick test on your `val` split like s
 # Since we only provide a local path, no streaming/copying takes place.
 python src/text_data.py ./my-copy-c4
 
-# This will do the same thing, but stream data from local to remote.
-# The argument order is {local} {remote}.
+# This will do the same thing, but stream data to {local} from {remote}.
 # The remote path can be a filesystem or object store URI.
 python src/text_data.py /tmp/cache-c4 ./my-copy-c4
 python src/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4
