@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
@@ -9,7 +12,6 @@ from collections import deque
 from typing import Any, Deque, Dict, Union
 
 import torch
-
 from composer.core import Callback, State
 from composer.loggers import Logger
 from composer.utils import dist
@@ -17,18 +19,67 @@ from composer.utils import dist
 GPU_AVAILABLE_FLOPS = {
     # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
     # nvidia publishes spec sheet with a 2x sparsity factor
-    'h100-sxm':     {'fp64': 67e12, 'fp32': 67e12, 'tf32': 989e12 / 2, 'fp16': 1.979e15 / 2, 'amp_fp16': 1.979e15 / 2, 'bf16': 1.979e15 / 2, 'amp_bf16': 1.979e15 / 2, 'fp8': 3_958 / 2, 'int8': 3_958 / 2},
-    'h100-pcie':    {'fp64': 51e12, 'fp32': 51e12, 'tf32': 756e12 / 2, 'fp16': 1.513e15 / 2, 'amp_fp16': 1.513e15 / 2, 'bf16': 1.513e15 / 2, 'amp_bf16': 1.513e15 / 2, 'fp8': 3_026 / 2, 'int8': 3_026 / 2},
+    'h100-sxm': {
+        'fp64': 67e12,
+        'fp32': 67e12,
+        'tf32': 989e12 / 2,
+        'fp16': 1.979e15 / 2,
+        'amp_fp16': 1.979e15 / 2,
+        'bf16': 1.979e15 / 2,
+        'amp_bf16': 1.979e15 / 2,
+        'fp8': 3_958 / 2,
+        'int8': 3_958 / 2
+    },
+    'h100-pcie': {
+        'fp64': 51e12,
+        'fp32': 51e12,
+        'tf32': 756e12 / 2,
+        'fp16': 1.513e15 / 2,
+        'amp_fp16': 1.513e15 / 2,
+        'bf16': 1.513e15 / 2,
+        'amp_bf16': 1.513e15 / 2,
+        'fp8': 3_026 / 2,
+        'int8': 3_026 / 2
+    },
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
     # sxm and pcie have same flop counts
-    'a100':         {'fp64': 19.5e12, 'fp32': 19.5e12, 'tf32': 156e12, 'fp16': 312e12, 'amp_fp16': 312e12, 'bf16': 312e12, 'amp_bf16': 312e12},
+    'a100': {
+        'fp64': 19.5e12,
+        'fp32': 19.5e12,
+        'tf32': 156e12,
+        'fp16': 312e12,
+        'amp_fp16': 312e12,
+        'bf16': 312e12,
+        'amp_bf16': 312e12
+    },
     # source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
-    'v100-sxm':     {'fp64': 7.8e12, 'fp32': 15.7e12, 'fp16': 125e12, 'amp_fp16': 125e12},
-    'v100-pcie':    {'fp64': 7e12, 'fp32': 14e12, 'fp16': 112e12, 'amp_fp16': 112e12},
-    'v100s-pcie':   {'fp64': 8.2e12, 'fp32': 16.4e12, 'fp16': 130e12, 'amp_fp16': 130e12},
+    'v100-sxm': {
+        'fp64': 7.8e12,
+        'fp32': 15.7e12,
+        'fp16': 125e12,
+        'amp_fp16': 125e12
+    },
+    'v100-pcie': {
+        'fp64': 7e12,
+        'fp32': 14e12,
+        'fp16': 112e12,
+        'amp_fp16': 112e12
+    },
+    'v100s-pcie': {
+        'fp64': 8.2e12,
+        'fp32': 16.4e12,
+        'fp16': 130e12,
+        'amp_fp16': 130e12
+    },
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
     # sxm and pcie have same flop counts
-    't4':           {'fp32': 8.1e12, 'fp16': 65e12, 'amp_fp16': 65e12, 'int8': 130e12, 'int4': 260e12},
+    't4': {
+        'fp32': 8.1e12,
+        'fp16': 65e12,
+        'amp_fp16': 65e12,
+        'int8': 130e12,
+        'int4': 260e12
+    },
 }
 
 __all__ = ['SpeedMonitorMFU']
@@ -56,7 +107,8 @@ def get_gpu_flops_available(state):
 
     if dev_name:
         try:
-            gpu_flops_available = int(GPU_AVAILABLE_FLOPS[dev_name][state.precision.value])
+            gpu_flops_available = int(
+                GPU_AVAILABLE_FLOPS[dev_name][state.precision.value])
         except:
             gpu_flops_available = None
 
@@ -83,6 +135,8 @@ class SpeedMonitorMFU(Callback):
         self.batch_wct_buffer: Deque[float] = deque(maxlen=window_size)
         self.batch_num_samples_buffer: Deque[int] = deque(maxlen=window_size)
         self.window_size = window_size
+
+        self.set_gpu_flops_available = False
         self.gpu_flops_available = gpu_flops_available
 
         # Keep track of time spent evaluating
@@ -158,9 +212,13 @@ class SpeedMonitorMFU(Callback):
         # Log the time
         # `state.timestamp` excludes any time spent in evaluation
         logger.log_metrics({
-            'wall_clock/train': state.timestamp.total_wct.total_seconds(),
-            'wall_clock/val': self.total_eval_wct,
-            'wall_clock/total': (state.timestamp.total_wct.total_seconds() + self.total_eval_wct),
+            'wall_clock/train':
+                state.timestamp.total_wct.total_seconds(),
+            'wall_clock/val':
+                self.total_eval_wct,
+            'wall_clock/total':
+                (state.timestamp.total_wct.total_seconds() + self.total_eval_wct
+                ),
         })
 
     def eval_end(self, state: State, logger: Logger):

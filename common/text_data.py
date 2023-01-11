@@ -20,18 +20,18 @@ class StreamingTextDataset(StreamingDataset):
 
     Args:
         local (str): Local dataset directory where shards are cached by split.
+        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
+            tokenize samples.
+        max_seq_len (int): The max sequence length of each sample.
+        group_method (str): How to group text samples into token samples.
+            Supports 'truncate' or 'concat'.
         remote (str, optional): Download shards from this remote path or directory. If None, this
             rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
         split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
         shuffle (bool): Whether to iterate over the samples in randomized order. Defaults to ``False``.
         predownload (int, optional): Target number of samples ahead to download the shards of while
             iterating. Defaults to ``100_000``.
-        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
-            tokenize samples.
-        max_seq_len (int): The max sequence length of each sample.
-        group_method (str): How to group text samples into token samples.
-            Supports 'truncate' or 'concat'.
-        keep_zip (bool): Whether to keep or delete the compressed file when
+        keep_zip (bool, optional): Whether to keep or delete the compressed file when
             decompressing downloaded shards. If set to None, keep iff remote is local. Defaults to
             ``None``.
         download_retry (int): Number of download re-attempts before giving up. Defaults to ``2``.
@@ -48,14 +48,14 @@ class StreamingTextDataset(StreamingDataset):
 
     def __init__(self,
                  local: str,
+                 tokenizer_name: str,
+                 max_seq_len: int,
+                 group_method: str,
                  remote: Optional[str] = None,
                  split: Optional[str] = None,
                  shuffle: bool = False,
-                 predownload: int = 100_000,
-                 tokenizer_name: str = 'gpt2',
-                 max_seq_len: int = '2048',
-                 group_method: str = 'truncate',
-                 keep_zip: bool = False,
+                 predownload: Optional[int] = 100_000,
+                 keep_zip: Optional[bool] = None,
                  download_retry: int = 2,
                  download_timeout: float = 120,
                  validate_hash: Optional[str] = None,
@@ -180,10 +180,11 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         batch_size=device_batch_size
     )
 
+    mlm_probability = cfg.get('mlm_probability', None)
     collate_fn = transformers.DataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer,
-        mlm=False
-    )
+        mlm=mlm_probability is not None,
+        mlm_probability=mlm_probability)
 
     return DataLoader(
         dataset,
@@ -219,7 +220,8 @@ if __name__ == '__main__':
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
             'group_method': 'concat',
-            'keep_zip': True  # since we are just testing, do not delete originals
+            'keep_zip':
+                True  # since we are just testing, do not delete originals
         },
         'drop_last': False,
         'num_workers': 4,
