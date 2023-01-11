@@ -177,8 +177,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         validate_hash=cfg.dataset.get('validate_hash', None),
         shuffle_seed=cfg.dataset.get('shuffle_seed', None),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', None),
-        batch_size=device_batch_size
-    )
+        batch_size=device_batch_size)
 
     mlm_probability = cfg.get('mlm_probability', None)
     collate_fn = transformers.DataCollatorForLanguageModeling(
@@ -221,7 +220,7 @@ if __name__ == '__main__':
             'max_seq_len': 32,
             'group_method': 'concat',
             'keep_zip':
-                True  # since we are just testing, do not delete originals
+                True,  # since we are just testing, do not delete originals
         },
         'drop_last': False,
         'num_workers': 4,

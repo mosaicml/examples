@@ -33,6 +33,7 @@ tokenizer:
 
 # Dataloaders
 train_loader:
+  name: text
   dataset:
     local: *data_local
     remote: *data_remote
@@ -47,6 +48,7 @@ train_loader:
   num_workers: 8
 
 eval_loader:
+  name: text
   dataset:
     local: *data_local
     remote: *data_remote
