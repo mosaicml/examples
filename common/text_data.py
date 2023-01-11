@@ -162,6 +162,7 @@ class StreamingTextDataset(StreamingDataset):
 
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
+    assert cfg.name == 'text', f'Tried to build text dataloader with cfg.name={cfg.name}'
     dataset = StreamingTextDataset(
         local=cfg.dataset.local,
         remote=cfg.dataset.remote,
@@ -210,15 +211,16 @@ if __name__ == '__main__':
     print(f'Reading val split dataset from {remote} -> {local}')
 
     cfg = {
+        'name': 'text',
         'dataset': {
             'local': local,
             'remote': remote,
             'split': 'val',
-            'shuffle': True,
+            'shuffle': False,
             'predownload': 1000,
             'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
-            'group_method': 'concat',
+            'group_method': 'truncate',
             'keep_zip':
                 True,  # since we are just testing, do not delete originals
         },
