@@ -443,7 +443,10 @@ class MosaicGPT(nn.Module):
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        return isinstance(module, GPTBlock)
+        if not self.cfg.get('moe', None):
+            return isinstance(module, GPTBlock)
+        else:
+            return isinstance(module, (TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention, GPTMLP, nn.LayerNorm))
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
