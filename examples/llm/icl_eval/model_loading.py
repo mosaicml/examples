@@ -107,8 +107,12 @@ def init_composer_ckpt_from_yaml(
 
     return model
 
+def load_model(model_type: str, config: str, checkpoint: Optional[str] = None):
+    if  model_type == 'pretrained_hf':
+        return init_huggingface_causal_lm(config)
+    elif model_type == 'mosaic_gpt':
+        return init_composer_ckpt_from_yaml(config, checkpoint)
+    else:
+        raise Exception(f"Unrecogized model type: {model_type}")
 
-MODEL_LOADERS = {
-    'composer_checkpoint': init_composer_ckpt_from_yaml,
-    'pretrained_hf': init_huggingface_causal_lm,
-}
+
