@@ -210,17 +210,27 @@ class GPTMLPMoE(nn.Module):
             assert world_size % num_experts == 0
             num_local_experts = - world_size // num_experts
 
+        gate_type = {
+            'type': cfg.moe.get('gate_type', 'top'),
+            'k': cfg.moe.get('gate_k', 1),
+            'fp32_gate': cfg.moe.get('fp32_gate', True)}
+
+        if cfg.moe.get('capacity_factor', None) is not None:
+            gate_type['capacity_factor'] = cfg.moe.get('capacity_factor')
+
+        if cfg.moe.get('gate_noise', None) is not None:
+            gate_type['gate_noise'] = cfg.moe.get('gate_noise')
+
+        experts = {
+            'count_per_node': num_local_experts,
+            'type': cfg.moe.get('experts_type', 'ffn'),
+            'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
+            'activation_fn': lambda x: F.gelu(x, approximate='none')}
+
         self.moe = tutel_moe.moe_layer(
-            gate_type={
-                'type': cfg.moe.get('gate_type', 'top'),
-                'k': cfg.moe.get('gate_k', 1),
-                'fp32_gate': cfg.moe.get('fp32_gate', True)},
+            gate_type=gate_type,
             model_dim=cfg.d_model,
-            experts={
-                'count_per_node': num_local_experts,
-                'type': cfg.moe.get('experts_type', 'ffn'),
-                'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
-                'activation_fn': lambda x: F.gelu(x, approximate='none')},
+            experts=experts,
             scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
             result_func=cfg.moe.get('result_func', None),
             group=cfg.moe.get('group', None),
@@ -504,6 +514,7 @@ class ComposerMosaicGPT(ComposerModel):
                     n_params_experts += _n_params_expert // m.num_local_experts * m.sharded_count * m.num_global_experts
 
             n_params_other = sum(p.numel() for n, p in self.named_parameters() if 'expert' not in n)
+            print(f'{n_params_other=}; {n_params_experts=}')
             self.__param_count = n_params_other + n_params_experts
         else:
             self.__param_count = sum(p.numel() for p in self.parameters())
