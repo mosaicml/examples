@@ -65,7 +65,7 @@ optimizer:
 
 algorithms:
   gradient_clipping:
-    clipping_type: 'norm'
+    clipping_type: norm
     clipping_threshold: 1.0
 
 max_duration: 4800ba # ~ 2.5B tokens
