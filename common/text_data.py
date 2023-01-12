@@ -32,7 +32,7 @@ class StreamingTextDataset(StreamingDataset):
         predownload (int, optional): Target number of samples ahead to download the shards of while
             iterating. Defaults to ``100_000``.
         keep_zip (bool, optional): Whether to keep or delete the compressed file when
-            decompressing downloaded shards. If set to None, keep iff remote is local. Defaults to
+            decompressing downloaded shards. If set to None, keep if remote is local. Defaults to
             ``None``.
         download_retry (int): Number of download re-attempts before giving up. Defaults to ``2``.
         download_timeout (float): Number of seconds to wait for a shard to download before raising
