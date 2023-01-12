@@ -1,7 +1,7 @@
 data_local: &data_local ./my-copy-c4
 data_remote: &data_remote null
-max_seq_len: &max_seq_len 2048
 tokenizer_name: &tokenizer_name gpt2
+max_seq_len: &max_seq_len 2048
 global_seed: &global_seed 17
 
 # Run Name

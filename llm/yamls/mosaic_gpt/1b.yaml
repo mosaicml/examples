@@ -1,7 +1,8 @@
-data_remote: &data_remote ./my-copy-c4
 data_local: &data_local ./my-copy-c4
-max_seq_len: &max_seq_len 2048
+data_remote: &data_remote null
 tokenizer_name: &tokenizer_name gpt2
+max_seq_len: &max_seq_len 2048
+global_seed: &global_seed 17
 
 # Run Name
 run_name: gpt-1b
