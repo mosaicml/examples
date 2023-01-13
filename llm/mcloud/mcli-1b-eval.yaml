@@ -14,13 +14,13 @@ integrations:
 # to convert and host the full 'train' dataset.
 command: |
   cd examples/llm
-  python -m icl_eval.evaluate_model /mnt/config/parameters.yaml
+  composer -m icl_eval.evaluate_model /mnt/config/parameters.yaml
 
 image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
 run_name: mosaic-gpt-1b-eval
-gpu_num: 64
+gpu_num: 8
 gpu_type: a100_40gb
 cluster: r7z2 # replace with your cluster here!
 
@@ -44,20 +44,20 @@ parameters:
       dataset_uri: s3://mosaicml-internal-dataset-hellaswag/hellaswag.jsonz
       num_fewshot: 
       - 5
-      batch_size: 16
+      batch_size: 8
       type: multiple_choice
       metrics:
         - InContextLearningMultipleChoiceAccuracy
       formatting_options:
         prompt_string: ""
         example_delimiter: "\n"
-        continuation_delimiter=': " "  
+        continuation_delimiter: " "  
     -
       label: piqa
       dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
       num_fewshot: 
       - 5
-      batch_size: 16
+      batch_size: 8
       type: multiple_choice
       metrics:
         - InContextLearningMultipleChoiceAccuracy
@@ -71,7 +71,7 @@ parameters:
       num_fewshot: 
       - 0
       - 1
-      batch_size: 16
+      batch_size: 8
       type: language_modeling
       metrics:
         - InContextLearningLMAccuracy

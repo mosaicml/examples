@@ -13,7 +13,7 @@ model:
   
 icl_tasks:
   -
-    name: hellaswag
+    label: hellaswag
     dataset_uri: s3://mosaicml-internal-dataset-hellaswag/hellaswag.jsonz
     num_fewshot: 
      - 5
@@ -24,7 +24,7 @@ icl_tasks:
     formatting_options:
       prompt_string: ""
       example_delimiter: "\n"
-      continuation_delimiter=': " "  
+      continuation_delimiter: " "  
   -
     label: piqa
     dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz

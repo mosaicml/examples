@@ -1,19 +1,28 @@
-import os
 from src.tokenizer import TOKENIZER_REGISTRY
 
-import pytest
-import transformers
+
 
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import get_icl_task_dataloader
 
 from composer.loggers import InMemoryLogger
-from composer.models.gpt2 import create_gpt2
 from composer.trainer import Trainer
 from omegaconf import OmegaConf as om
 import sys
 from icl_eval.model_loading import load_model
 
+
+def validate_cfg(eval_cfg):
+    assert eval_cfg.has("dataset_uri")
+    assert eval_cfg.has("type")
+    assert eval_cfg.has("num_fewshot")
+    assert eval_cfg.has("batch_size")
+    assert eval_cfg.has("metrics")
+    assert eval_cfg.has("formatting_options")
+    assert eval_cfg.get("formatting_options").has("prompt_string")
+    assert eval_cfg.get("formatting_options").has("example_delimiter")
+    assert eval_cfg.get("formatting_options").has("continuation_delimiter")
+    assert eval_cfg.has('label')
 
 def build_evaluators(cfg):
     
@@ -21,10 +30,10 @@ def build_evaluators(cfg):
     evaluators = []
     logger_keys = []
     for eval_cfg in cfg.icl_tasks:
+
         dataset_uri = eval_cfg.get("dataset_uri")
         type = eval_cfg.get("type")
         num_fewshots = eval_cfg.get("num_fewshot")
-
         batch_size = eval_cfg.get("batch_size")
         metrics = list(eval_cfg.get("metrics"))
         prompt_string = eval_cfg.get("formatting_options").get("prompt_string")
@@ -60,10 +69,11 @@ if __name__ == '__main__':
 
     model = load_model(**cfg.get("model"))
     evaluators, logger_keys = build_evaluators(cfg)
-    breakpoint()
     in_memory_logger = InMemoryLogger()  # track the logged metrics in the in_memory_logger
    
     trainer = Trainer(model=model, max_duration='1ba', loggers=in_memory_logger)
+    for evaluator in evaluators:
+        model.add_eval_metrics(evaluator)
     trainer.eval(eval_dataloader=evaluators)
 
     for key in logger_keys:
