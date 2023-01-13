@@ -499,10 +499,10 @@ class ComposerMosaicGPT(ComposerModel):
 
     def add_eval_metrics(self, evaluator):
         evaluator_metrics = {m: METRIC_DEFAULT_CTORS[m]() for m in evaluator.metric_names}
-        if self.val_metrics is not None:
-            self.val_metrics.update(evaluator_metrics)
+        if self.eval_metrics is not None:
+            self.eval_metrics.update(evaluator_metrics)
         else:
-            self.val_metrics = evaluator_metrics
+            self.eval_metrics = evaluator_metrics
             
     @property
     def num_fwd_flops(self):
