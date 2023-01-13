@@ -449,9 +449,15 @@ class MosaicGPT(nn.Module):
         if not self.cfg.get('moe', None):
             return isinstance(module, GPTBlock)
         else:
-            if isinstance(module, FusedExpertsNetwork):
+            # MoE wrapping fn
+            if isinstance(module, (FusedExpertsNetwork, tutel_moe.moe_layer)):
                 return False
-            return isinstance(module, (TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention, GPTMLP, nn.LayerNorm, CosineTopKGate, LinearTopKGate))
+            wrapable_cls = (
+                nn.Embedding,
+                TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention,
+                GPTMLP, nn.Linear, nn.LayerNorm, CosineTopKGate, LinearTopKGate
+            )
+            return isinstance(module, wrapable_cls)
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
