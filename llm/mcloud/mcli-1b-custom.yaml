@@ -29,7 +29,7 @@ parameters:
   data_local: &data_local ./my-copy-c4
   data_remote: &data_remote null
   tokenizer_name: &tokenizer_name gpt2
-  max_seq_len: &max_seq_len 2048
+  max_seq_len: &max_seq_len 8192
   global_seed: &global_seed 17
 
   # Model
@@ -37,9 +37,9 @@ parameters:
     name: mosaic_gpt
     device: meta
     tokenizer_name: *tokenizer_name
-    d_model: 768
-    n_heads: 12
-    n_layers: 12
+    d_model: 2048
+    n_heads: 16 # Modified 24->16 so that d_head == 128 to statisfy FlashAttention
+    n_layers: 24
     mlp_ratio: 4
     max_seq_len: *max_seq_len
     vocab_size: 50257
@@ -62,7 +62,7 @@ parameters:
     dataset:
       local: *data_local
       remote: *data_remote
-      split: val # Using the 'val' split for this demo
+      split: train
       shuffle: true
       tokenizer_name: *tokenizer_name
       max_seq_len: *max_seq_len
@@ -93,36 +93,31 @@ parameters:
 
   optimizer:
     name: decoupled_adamw
-    lr: 6.0e-4
+    lr: 2.0e-4
     betas:
     - 0.9
     - 0.95
     eps: 1.0e-08
     weight_decay: 0.0
 
-  algorithms:
-    gradient_clipping:
-      clipping_type: norm
-      clipping_threshold: 1.0
-
-  max_duration: 4800ba # ~ 2.5B tokens
-  eval_interval: 500ba
+  max_duration: 24800ba # ~ 26B tokens
+  eval_interval: 2000ba
   eval_subset_num_batches: -1
-  global_train_batch_size: 256
+  global_train_batch_size: 128 # ~1M tokens
+  grad_clip_norm: 1.0
 
   # System
-  seed: *global_seed
-  device_eval_batch_size: 16
-  device_train_microbatch_size: 16
-  # device_train_microbatch_size: auto
-  precision: amp_bf16
+  seed: 17
+  device_eval_batch_size: 2
+  device_train_microbatch_size: auto
+  precision: bf16
 
   # FSDP
   fsdp_config:
     sharding_strategy: FULL_SHARD
-    min_params: 1e8
+    min_params: 2e8
     mixed_precision: DEFAULT
-    activation_checkpointing: false
+    activation_checkpointing: true
     activation_cpu_offload: false
     verbose: true
 
@@ -141,11 +136,11 @@ parameters:
   #   wandb: {}
 
   # Checkpoint to local filesystem or remote object store
-  # save_interval: 500ba
+  # save_interval: 2000ba
   # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
   # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
   # Load from local filesystem or remote object store
-  # load_path: ./gpt-125m/checkpoints/latest-rank{rank}.pt
-  # load_path: s3://my-bucket/my-folder/gpt-125m/checkpoints/latest-rank{rank}.pt
+  # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
+  # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
