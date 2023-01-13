@@ -14,6 +14,7 @@ from typing import Any, Deque, Dict, Union
 import torch
 from composer.core import Callback, State
 from composer.loggers import Logger
+from composer.models.base import ComposerModel
 from composer.utils import dist
 
 GPU_AVAILABLE_FLOPS = {
@@ -200,8 +201,11 @@ class SpeedMonitorMFU(Callback):
                 logger.log_metrics({'throughput/tokens_per_sec': samples_per_sec * state.dataloader.dataset.max_seq_len})
                 logger.log_metrics({'throughput/device/tokens_per_sec': dev_samples_per_sec * state.dataloader.dataset.max_seq_len})
 
-            if hasattr(state.model, 'num_fwd_flops'):
-                flops_per_sec = (3 * state.model.num_fwd_flops) * samples_per_sec
+            composer_model = state.model
+            if not isinstance(composer_model, ComposerModel):
+                composer_model = composer_model.module # Handles DDP case until Composer fixes this
+            if hasattr(composer_model, 'num_fwd_flops'):
+                flops_per_sec = (3 * composer_model.num_fwd_flops) * samples_per_sec
                 logger.log_metrics({'throughput/flops_per_sec': flops_per_sec})
                 dev_flops_per_sec = flops_per_sec / world_size
                 logger.log_metrics({'throughput/device/flops_per_sec': dev_flops_per_sec})
