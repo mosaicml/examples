@@ -20,7 +20,7 @@ def parse_args() -> Namespace:
     args.add_argument('--compression', type=str, default=None)
     args.add_argument('--splits',
                       nargs='+',
-                      default=['train', 'train-small', 'val'])
+                      default=['train', 'train_small', 'val'])
 
     return args.parse_args()
 
@@ -115,7 +115,7 @@ def main(args: Namespace) -> None:
 
     for (split, split_new_name, expected_num_samples) in [
         ('train', 'train', 364868892),
-        ('train', 'train-small', 327680),
+        ('train', 'train_small', 327680),
         ('validation', 'val', 364608),
     ]:
         # Only generate the splits requested

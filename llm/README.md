@@ -51,9 +51,9 @@ Here's what you need to get started with our LLM stack:
 
 # Dataset preparation
 To run training, you'll need to make yourself aå copy of the pre-training dataset.
-If you only want to profile these LLMs, we recommend that you **download and prepare the `train-small` and `val` splits**,
-and skip the full `train` split. You'll just need to replace `split: train` with `split: train-small` in your run YAML, [e.g. here](./yamls/mosaic_gpt/125m.yaml#L40).
-You can also accomplish this in your CLI command like so: `composer main.py ... train_loader.split=train-small`
+If you only want to profile these LLMs, we recommend that you **download and prepare the `train_small` and `val` splits**,
+and skip the full `train` split. You'll just need to replace `split: train` with `split: train_small` in your run YAML, [e.g. here](./yamls/mosaic_gpt/125m.yaml#L40).
+You can also accomplish this in your CLI command like so: `composer main.py ... train_loader.split=train_small`
 Alternatively, feel free to substitute our dataloader with one of your own in [main.py](./main.py#L96)!
 
 As an example, we train LLMs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4).
@@ -66,10 +66,10 @@ You can read more about [the benefits of using mosaicml-streaming here](https://
 ### Converting C4 to streaming dataset `.mds` format
 To make yourself a copy of C4, use `convert_c4.py` like so:
 ```bash
-# Download the 'train-small', 'val' splits and convert to StreamingDataset format
+# Download the 'train_small', 'val' splits and convert to StreamingDataset format
 # This will take 20 sec to 1 min depending on your Internet bandwidth
-# You should see two folders `./my-copy-c4/train-small` and `./my-copy-c4/val` that are each ~0.5GB
-python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train-small val
+# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
@@ -104,7 +104,7 @@ Now that you've installed dependencies and built a local copy of the C4 dataset,
 **Please remember** to edit the `data_local` and (optionally) `data_remote` paths in your YAML.
 Our streaming dataloader always streams to `data_local` <- from <- `data_remote`, and if the remote path is missing, the files are expected to be present in `data_local`.
 
-**Also remember** that if you only downloaded the `train-small` split, you need to make sure your train_loader uses that split. Just change `split: train` to `split: train-small` in your YAML, [e.g. here](./yamls/mosaic_gpt/125m.yaml#L40). Or alternatively, pass it in via CLI arg: `composer main.py ... train_loader.split=train-small`.
+**Also remember** that if you only downloaded the `train_small` split, you need to make sure your train_loader uses that split. Just change `split: train` to `split: train_small` in your YAML, [e.g. here](./yamls/mosaic_gpt/125m.yaml#L40). Or alternatively, pass it in via CLI arg: `composer main.py ... train_loader.split=train_small`.
 
 
 ### Single-Node training
