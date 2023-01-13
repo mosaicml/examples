@@ -17,6 +17,7 @@ def parse_args() -> Namespace:
     """Parse commandline arguments."""
     args = ArgumentParser()
     args.add_argument('--out_root', type=str, required=True)
+    args.add_argument('--compression', type=str, default=None)
     args.add_argument('--splits',
                       nargs='+',
                       default=['train', 'train-small', 'val'])
@@ -128,7 +129,8 @@ def main(args: Namespace) -> None:
 
         # Write samples
         with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
-                       columns=columns) as out:
+                       columns=columns,
+                       compression=args.compression) as out:
             for sample in tqdm(samples,
                                desc=split_new_name,
                                total=expected_num_samples):
