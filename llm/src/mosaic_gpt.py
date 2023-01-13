@@ -19,6 +19,9 @@ from composer.models.base import ComposerModel
 from composer.utils import dist
 from omegaconf import DictConfig
 from tutel import moe as tutel_moe
+from tutel.experts.ffn import FusedExpertsNetwork
+from tutel.gates.cosine_top import CosineTopKGate
+from tutel.gates.top import LinearTopKGate
 
 
 class TorchCausalAttention(nn.Module):
@@ -446,7 +449,9 @@ class MosaicGPT(nn.Module):
         if not self.cfg.get('moe', None):
             return isinstance(module, GPTBlock)
         else:
-            return isinstance(module, (TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention, GPTMLP, nn.LayerNorm))
+            if isinstance(module, FusedExpertsNetwork):
+                return False
+            return isinstance(module, (TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention, GPTMLP, nn.LayerNorm, CosineTopKGate, LinearTopKGate))
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
