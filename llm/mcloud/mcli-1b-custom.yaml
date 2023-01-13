@@ -1,8 +1,8 @@
 integrations:
-- integration_type: git_repo
-  git_repo: mosaicml/examples
-  git_branch: v0.0.2
-  pip_install: -r llm/requirements.txt
+  - integration_type: git_repo
+    git_repo: mosaicml/examples
+    git_branch: v0.0.2
+    pip_install: -r llm/requirements.txt
 
 # We are fetching, converting, and training on the 'val' split
 # as it is small and quick to get going for this demo.
@@ -26,11 +26,10 @@ cluster: r0z0 # replace with your cluster here!
 # and referenced in our `command` above
 # We use this to customize hparams like `max_seq_len=8192` at runtime
 parameters:
+  data_remote: &data_remote ./my-copy-c4
   data_local: &data_local ./my-copy-c4
-  data_remote: &data_remote null
-  tokenizer_name: &tokenizer_name gpt2
   max_seq_len: &max_seq_len 8192
-  global_seed: &global_seed 17
+  tokenizer_name: &tokenizer_name gpt2
 
   # Model
   model:
@@ -58,32 +57,38 @@ parameters:
 
   # Dataloaders
   train_loader:
-    name: text
     dataset:
-      local: *data_local
       remote: *data_remote
-      split: train
+      local: *data_local
+      split: val # Using the 'val' split for this demo
       shuffle: true
+      prefetch: 1_000_000
       tokenizer_name: *tokenizer_name
       max_seq_len: *max_seq_len
       group_method: concat
-      shuffle_seed: *global_seed
     drop_last: true
     num_workers: 8
+    pin_memory: true
+    prefetch_factor: 2
+    persistent_workers: true
+    timeout: 0
 
   eval_loader:
-    name: text
     dataset:
-      local: *data_local
       remote: *data_remote
+      local: *data_local
       split: val
       shuffle: false
+      prefetch: 1000
       tokenizer_name: *tokenizer_name
       max_seq_len: *max_seq_len
       group_method: truncate
-      shuffle_seed: *global_seed
     drop_last: false
     num_workers: 8
+    pin_memory: true
+    prefetch_factor: 2
+    persistent_workers: true
+    timeout: 0
 
   # Optimization
   scheduler:
@@ -102,7 +107,6 @@ parameters:
 
   max_duration: 24800ba # ~ 26B tokens
   eval_interval: 2000ba
-  eval_subset_num_batches: -1
   global_train_batch_size: 128 # ~1M tokens
   grad_clip_norm: 1.0
 
@@ -124,7 +128,6 @@ parameters:
   # Logging
   progress_bar: false
   log_to_console: true
-  console_log_interval: 1ba
 
   callbacks:
     speed_monitor:
