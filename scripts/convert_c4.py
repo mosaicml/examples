@@ -17,7 +17,9 @@ def parse_args() -> Namespace:
     """Parse commandline arguments."""
     args = ArgumentParser()
     args.add_argument('--out_root', type=str, required=True)
-    args.add_argument('--splits', nargs='+', default=['train', 'train-small', 'val'])
+    args.add_argument('--splits',
+                      nargs='+',
+                      default=['train', 'train-small', 'val'])
 
     return args.parse_args()
 
@@ -59,7 +61,8 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
     return ShardedC4()
 
 
-def generate_samples(dataset: IterableDataset, expected_num_samples: int) -> Iterable[Dict[str, bytes]]:
+def generate_samples(dataset: IterableDataset,
+                     expected_num_samples: int) -> Iterable[Dict[str, bytes]]:
     """Generator over each dataset sample.
 
     Args:
@@ -101,7 +104,6 @@ def generate_samples(dataset: IterableDataset, expected_num_samples: int) -> Ite
                 return
 
 
-
 def main(args: Namespace) -> None:
     """Main: create C4 streaming dataset.
 
@@ -121,10 +123,8 @@ def main(args: Namespace) -> None:
 
         # Get samples
         dataset = build_hf_c4_dataset(split=split)
-        samples = generate_samples(
-                    dataset=dataset,
-                    expected_num_samples=expected_num_samples
-        )
+        samples = generate_samples(dataset=dataset,
+                                   expected_num_samples=expected_num_samples)
 
         # Write samples
         with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
