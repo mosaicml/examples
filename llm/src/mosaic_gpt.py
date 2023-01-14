@@ -19,6 +19,7 @@ from composer.models.base import ComposerModel
 from composer.utils import dist
 from omegaconf import DictConfig
 from tutel import moe as tutel_moe
+from tutel.impls.moe_layer import MOELayer
 from tutel.experts.ffn import FusedExpertsNetwork
 from tutel.gates.cosine_top import CosineTopKGate
 from tutel.gates.top import LinearTopKGate
@@ -216,7 +217,8 @@ class GPTMLPMoE(nn.Module):
         gate_type = {
             'type': cfg.moe.get('gate_type', 'top'),
             'k': cfg.moe.get('gate_k', 1),
-            'fp32_gate': cfg.moe.get('fp32_gate', True)}
+            'fp32_gate': cfg.moe.get('fp32_gate', True),
+            'device': device}
 
         if cfg.moe.get('capacity_factor', None) is not None:
             gate_type['capacity_factor'] = cfg.moe.get('capacity_factor')
@@ -246,6 +248,8 @@ class GPTMLPMoE(nn.Module):
             parallel_type=cfg.moe.get('parallel_type', 'auto'),
             use_2dh=cfg.moe.get('use_2dh', False),
         )
+
+        self.moe.experts.batched_fc2_w._is_residual = True  # type: ignore
 
     def forward(self, x):
         return self.moe(x)
@@ -444,18 +448,47 @@ class MosaicGPT(nn.Module):
             if module.out_proj.bias is not None:
                 torch.nn.init.zeros_(module.out_proj.bias)
 
+        if isinstance(module, MOELayer):
+            # TODO: check init of buffers
+            pass
+
+        if isinstance(module, FusedExpertsNetwork):
+            init_fn(module.batched_fc1_w)
+            module.batched_fc2_w.data.normal_(
+                mean=0.0,
+                std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+            torch.nn.init.zeros_(module.batched_fc1_bias)
+            torch.nn.init.zeros_(module.batched_fc2_bias)
+
+        if isinstance(module, CosineTopKGate):
+            # Linear handeled by nn.Linear
+            raise NotImplementedError('check init of buffers')
+
+        if isinstance(module, LinearTopKGate):
+            # Linear handeled by nn.Linear
+            pass
+
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
         if not self.cfg.get('moe', None):
             return isinstance(module, GPTBlock)
         else:
             # MoE wrapping fn
-            if isinstance(module, (FusedExpertsNetwork, tutel_moe.moe_layer)):
+            # modules not wrapped:
+            #   FusedExpertsNetwork: sharding handled by tutel
+            #                        this helps guarentee FSDP does not touch these weights
+            #                        experts are part of GPTMLPMoE to it is excluded as well
+            #   nn.Embedding: weights are shared with output embedding layer and must be
+            #                 handled as part of the main model
+            #   nn.LayerNorm: such a small portion of weights that they can be part of any
+            #                 block including the main model fsdp block
+            #   nn.Linear: already part of GPTMLP, Attnetion layer or gate layer
+            #   every other type of layer not in model
+            if isinstance(module, (GPTMLPMoE, MOELayer, FusedExpertsNetwork)):
                 return False
             wrapable_cls = (
-                nn.Embedding,
-                TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention,
-                GPTMLP, nn.Linear, nn.LayerNorm, CosineTopKGate, LinearTopKGate
+                TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention, GPTMLP,
+                CosineTopKGate, LinearTopKGate,
             )
             return isinstance(module, wrapable_cls)
 

@@ -169,6 +169,36 @@ def main(cfg):
     print('Logging config...')
     log_config(cfg)
 
+    world_size = dist.get_world_size()
+
+    sharded_ignored_params = 0
+    for m in trainer.state.model.model._ignored_modules:
+        for p in m.parameters():
+            sharded_ignored_params += p.numel()
+    print(f'{sharded_ignored_params=}')
+    if world_size > 1:
+        print(f'{sharded_ignored_params * world_size=}')
+
+    sharded_total_params = sum(p.numel() for p in trainer.state.model.model.parameters())
+    print(f'{sharded_total_params=}')
+    if world_size > 1:
+        print(f'{sharded_total_params * dist.get_world_size()=}')
+
+    sharded_num_wrapped_params = 0
+    for n, p in trainer.state.model.named_parameters():
+        if 'flat_param' in n:
+            sharded_num_wrapped_params += p.numel()
+    print(f'{sharded_num_wrapped_params=}')
+    if world_size > 1:
+        print(f'{sharded_num_wrapped_params * dist.get_world_size()=}')
+
+    print(f'{sharded_ignored_params + sharded_num_wrapped_params=}')
+    if world_size > 1:
+        print(f'{(sharded_ignored_params + sharded_num_wrapped_params) * dist.get_world_size()=}')
+
+    # for p in trainer.state.optimizers[0].param_groups[0]['params']:
+    #     print(p.shape, p.device, p.dtype)
+
     print('Starting training...')
     trainer.fit()
 

@@ -12,4 +12,4 @@ omegaconf==2.2.3
 wandb==0.13.4
 lm-eval @ git+https://github.com/bmosaicml/lm-evaluation-harness-composergpt-integration.git@master
 pytest
-tutel @ git+https://github.com/microsoft/tutel@main  # ==0.2.0
+tutel @ git+https://github.com/vchiley/tutel@main  # ==0.2.0
