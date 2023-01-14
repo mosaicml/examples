@@ -232,6 +232,7 @@ class GPTMLPMoE(nn.Module):
             'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
             'activation_fn': lambda x: F.gelu(x, approximate='none')}
 
+        rank_seed = dist.get_global_rank() + cfg.get('seed', 1)
         self.moe = tutel_moe.moe_layer(
             gate_type=gate_type,
             model_dim=cfg.d_model,
@@ -239,7 +240,7 @@ class GPTMLPMoE(nn.Module):
             scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
             result_func=cfg.moe.get('result_func', None),
             group=cfg.moe.get('group', None),
-            seeds=(cfg.get('seed', 1), dist.get_global_rank(), cfg.get('seed', 1)),
+            seeds=(rank_seed, rank_seed, rank_seed),
             a2a_ffn_overlap_degree=cfg.moe.get('a2a_ffn_overlap_degree', 1),
             is_postscore=cfg.moe.get('is_postscore', True),
             batch_prioritized_routing=cfg.moe.get('batch_prioritized_routing', False),
