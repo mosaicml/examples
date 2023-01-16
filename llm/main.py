@@ -20,6 +20,7 @@ sys.path.append(str(pathlib.Path(__file__).parent.parent / 'common'))
 from builders import (build_algorithm, build_callback, build_dataloader,
                       build_logger, build_optimizer, build_scheduler)
 from logging_utils import log_config
+from speed_monitor_w_mfu import SpeedMonitorMFU
 
 def build_logger(name, kwargs):
     if name == 'wandb':
