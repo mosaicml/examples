@@ -42,7 +42,7 @@ parameters:
     
   icl_tasks:
     -
-      name: hellaswag
+      label: hellaswag
       dataset_uri: s3://mosaicml-internal-dataset-hellaswag/hellaswag.jsonz
       num_fewshot: 
       - 5
