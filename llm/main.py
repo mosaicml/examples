@@ -5,7 +5,7 @@ import os
 import pathlib
 import sys
 import warnings
-
+from icl_eval.evaluate_model import build_evaluators
 from composer import Trainer, algorithms
 from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.loggers import WandBLogger
@@ -165,6 +165,11 @@ def main(cfg):
     print('Building eval loader...')
     eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
 
+    if 'icl_tasks' in cfg:
+        icl_task_evaluators, _ = build_evaluators(cfg)
+        for evaluator in icl_task_evaluators:
+            model.add_eval_metrics(evaluator)
+
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)
 
@@ -195,7 +200,7 @@ def main(cfg):
         seed=cfg.seed,
         model=model,
         train_dataloader=train_loader,
-        eval_dataloader=eval_loader,
+        eval_dataloader=[eval_loader] + icl_task_evaluators,
         optimizers=optimizer,
         schedulers=scheduler,
         max_duration=cfg.max_duration,

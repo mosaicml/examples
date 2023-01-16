@@ -124,3 +124,18 @@ callbacks:
 # Load from local filesystem or remote object store
 # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
 # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
+
+icl_tasks:
+  -
+    label: lambada
+    dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
+    num_fewshot: 
+     - 0
+    batch_size: 16
+    type: language_modeling
+    metrics:
+      - InContextLearningLMAccuracy
+    formatting_options:
+      prompt_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter: ""  

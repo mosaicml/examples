@@ -11,7 +11,6 @@ from omegaconf import OmegaConf as om
 import sys
 from icl_eval.model_loading import load_model
 
-
 def validate_cfg(eval_cfg):
     assert "dataset_uri" in eval_cfg
     assert "type" in eval_cfg
@@ -22,40 +21,40 @@ def validate_cfg(eval_cfg):
     assert "prompt_string" in eval_cfg.get("formatting_options")
     assert "example_delimiter" in eval_cfg.get("formatting_options")
     assert "continuation_delimiter" in eval_cfg.get("formatting_options")
-    assert 'label' in eval_cfg
+    assert "label" in eval_cfg
 
 def build_evaluators(cfg):
-    
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
     evaluators = []
     logger_keys = []
-    for eval_cfg in cfg.icl_tasks:
-        validate_cfg(eval_cfg)
-        dataset_uri = eval_cfg.get("dataset_uri")
-        type = eval_cfg.get("type")
-        num_fewshots = eval_cfg.get("num_fewshot")
-        batch_size = eval_cfg.get("batch_size")
-        metrics = list(eval_cfg.get("metrics"))
-        prompt_string = eval_cfg.get("formatting_options").get("prompt_string")
-        example_delimiter = eval_cfg.get("formatting_options").get("example_delimiter")
-        continuation_delimiter = eval_cfg.get("formatting_options").get("continuation_delimiter")
+    if 'icl_tasks' in cfg:
+        for eval_cfg in cfg.icl_tasks:
+            validate_cfg(eval_cfg)
+            dataset_uri = eval_cfg.get("dataset_uri")
+            type = eval_cfg.get("type")
+            num_fewshots = eval_cfg.get("num_fewshot")
+            batch_size = eval_cfg.get("batch_size")
+            metrics = list(eval_cfg.get("metrics"))
+            prompt_string = eval_cfg.get("formatting_options").get("prompt_string")
+            example_delimiter = eval_cfg.get("formatting_options").get("example_delimiter")
+            continuation_delimiter = eval_cfg.get("formatting_options").get("continuation_delimiter")
 
-        for num_fewshot in num_fewshots:
-            label = f"{eval_cfg.get('label')}_{num_fewshot}-shot"
-            dl = get_icl_task_dataloader(
-                type,
-                dataset_uri,
-                tokenizer,
-                batch_size=batch_size,
-                max_seq_len=cfg.tokenizer.args.max_seq_len,
-                eos_tok_id=tokenizer.pad_token_id,
-                num_fewshot=num_fewshot,
-                prompt_string=prompt_string,
-                example_delimiter=example_delimiter,
-                continuation_delimiter=continuation_delimiter
-            )
-            logger_keys.extend([f"metrics/{label}/{metric}" for metric in metrics])
-            evaluators.append(Evaluator(label=label, dataloader=dl, metric_names=metrics))
+            for num_fewshot in num_fewshots:
+                label = f"{eval_cfg.get('label')}_{num_fewshot}-shot"
+                dl = get_icl_task_dataloader(
+                    type,
+                    dataset_uri,
+                    tokenizer,
+                    batch_size=batch_size,
+                    max_seq_len=cfg.tokenizer.args.max_seq_len,
+                    eos_tok_id=tokenizer.pad_token_id,
+                    num_fewshot=num_fewshot,
+                    prompt_string=prompt_string,
+                    example_delimiter=example_delimiter,
+                    continuation_delimiter=continuation_delimiter
+                )
+                logger_keys.extend([f"metrics/{label}/{metric}" for metric in metrics])
+                evaluators.append(Evaluator(label=label, dataloader=dl, metric_names=metrics))
 
     return evaluators, logger_keys
 
