@@ -13,16 +13,16 @@ from icl_eval.model_loading import load_model
 
 
 def validate_cfg(eval_cfg):
-    assert eval_cfg.has("dataset_uri")
-    assert eval_cfg.has("type")
-    assert eval_cfg.has("num_fewshot")
-    assert eval_cfg.has("batch_size")
-    assert eval_cfg.has("metrics")
-    assert eval_cfg.has("formatting_options")
-    assert eval_cfg.get("formatting_options").has("prompt_string")
-    assert eval_cfg.get("formatting_options").has("example_delimiter")
-    assert eval_cfg.get("formatting_options").has("continuation_delimiter")
-    assert eval_cfg.has('label')
+    assert "dataset_uri" in eval_cfg
+    assert "type" in eval_cfg
+    assert "num_fewshot" in eval_cfg
+    assert "batch_size" in eval_cfg
+    assert "metrics" in eval_cfg
+    assert "formatting_options" in eval_cfg
+    assert "prompt_string" in eval_cfg.get("formatting_options")
+    assert "example_delimiter" in eval_cfg.get("formatting_options")
+    assert "continuation_delimiter" in eval_cfg.get("formatting_options")
+    assert 'label' in eval_cfg
 
 def build_evaluators(cfg):
     
@@ -30,7 +30,7 @@ def build_evaluators(cfg):
     evaluators = []
     logger_keys = []
     for eval_cfg in cfg.icl_tasks:
-
+        validate_cfg(eval_cfg)
         dataset_uri = eval_cfg.get("dataset_uri")
         type = eval_cfg.get("type")
         num_fewshots = eval_cfg.get("num_fewshot")
