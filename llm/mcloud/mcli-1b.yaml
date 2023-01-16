@@ -10,7 +10,7 @@ integrations:
 # to convert and host the full 'train' dataset.
 command: |
   cd examples/llm
-  python convert_c4.py --out_root ./my-copy-c4 --splits val
+  python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits val
   composer main.py yamls/mosaic_gpt/1b.yaml \
     train_loader.dataset.split=val \
     progress_bar=false \
@@ -19,11 +19,11 @@ command: |
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 optimization_level: 0
 
-run_name: mosaic-gpt-1b-gpus-8
+run_name: mosaic-gpt-1b-icl_eval
 
 gpu_num: 8
-gpu_type: a100_40gb
-cluster: r0z0 # replace with your cluster here!
+gpu_type: a100_80gb
+cluster: r1z1 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # but is not used in this example.

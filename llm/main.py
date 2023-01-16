@@ -39,7 +39,7 @@ def build_callback(name, kwargs):
             gpu_flops_available=kwargs.get('gpu_flops_available', None))
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(
-            log_layer_grad_norms=kwargs.get('log_optimizer_metrics'),
+            log_optimizer_metrics=kwargs.get('log_optimizer_metrics'),
         )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
