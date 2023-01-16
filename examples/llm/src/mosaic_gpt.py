@@ -489,12 +489,12 @@ class ComposerMosaicGPT(ComposerModel):
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
 
-    def update_metric(self, batch, outputs, metric) -> None:
-        outputs = outputs.view(-1, outputs.size(-1))
-        targets = self.get_targets(batch).view(-1)
+    def update_metric(self, batch, outputs, metric) -> None:    
         if isinstance(metric, InContextLearningMetric):
-            metric.update(batch, outputs, targets)
+            metric.update(batch, outputs, batch['labels'])
         else:
+            outputs = outputs.view(-1, outputs.size(-1))
+            targets = self.get_targets(batch).view(-1)
             metric.update(outputs, targets)
 
     def add_eval_metrics(self, evaluator):
