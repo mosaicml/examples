@@ -67,11 +67,11 @@ repos:
   hooks:
   - id: pyright
     name: pyright
-    entry: pyright .
+    entry: pyright
     language: node
     types: [python]
-    pass_filenames: false
-    additional_dependencies: [pyright@1.1.281]
+    pass_filenames: true
+    additional_dependencies: ['pyright@1.1.281']
 - repo: https://github.com/PyCQA/docformatter
   rev: v1.5.0
   hooks:
@@ -97,9 +97,3 @@ repos:
     entry: yamllint
     language: python
     types: [file, yaml]
-
-- repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
-  rev: 0.2.1
-  hooks:
-  - id: yamlfmt
-    args: [--mapping, '2', --sequence, '2', --offset, '0', --width, '120', --implicit_start]  # yamllint disable-line

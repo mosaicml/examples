@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """C4 streaming dataset conversion scripts."""
-
 import os
+import platform
 from argparse import ArgumentParser, Namespace
 from typing import Dict, Iterable
 
@@ -17,7 +17,10 @@ def parse_args() -> Namespace:
     """Parse commandline arguments."""
     args = ArgumentParser()
     args.add_argument('--out_root', type=str, required=True)
-    args.add_argument('--splits', nargs='+', default=['train', 'val'])
+    args.add_argument('--compression', type=str, default=None)
+    args.add_argument('--splits',
+                      nargs='+',
+                      default=['train', 'train_small', 'val'])
 
     return args.parse_args()
 
@@ -59,7 +62,8 @@ def build_hf_c4_dataset(split: str) -> IterableDataset:
     return ShardedC4()
 
 
-def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
+def generate_samples(dataset: IterableDataset,
+                     expected_num_samples: int) -> Iterable[Dict[str, bytes]]:
     """Generator over each dataset sample.
 
     Args:
@@ -68,7 +72,11 @@ def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
     Yields:
         Sample dicts.
     """
-    num_workers = min(64, dataset.num_shards())  # type: ignore
+    # Multiple workers is only supported on linux machines
+    if 'linux' in platform.platform().lower():
+        num_workers = min(64, dataset.num_shards())  # type: ignore
+    else:
+        num_workers = 0
     batch_size = 512
     # If using multiple workers, configure each worker to prefetch as many samples as it can, up to the aggregate device batch size
     # If not using workers, the torch DataLoader expects the default value for prefetch_factor, which non-intuitively must be 2.
@@ -82,6 +90,8 @@ def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
         num_workers=num_workers,
         prefetch_factor=prefetch_factor,
     )
+
+    n_samples = 0
     for batch in loader:
         keys = list(batch.keys())
         current_bs = len(batch[keys[0]])
@@ -90,6 +100,9 @@ def generate_samples(dataset: IterableDataset) -> Iterable[Dict[str, bytes]]:
                 key: batch_values[idx].encode('utf-8')
                 for key, batch_values in batch.items()
             }
+            n_samples += 1
+            if n_samples == expected_num_samples:
+                return
 
 
 def main(args: Namespace) -> None:
@@ -102,6 +115,7 @@ def main(args: Namespace) -> None:
 
     for (split, split_new_name, expected_num_samples) in [
         ('train', 'train', 364868892),
+        ('train', 'train_small', 327680),
         ('validation', 'val', 364608),
     ]:
         # Only generate the splits requested
@@ -110,11 +124,13 @@ def main(args: Namespace) -> None:
 
         # Get samples
         dataset = build_hf_c4_dataset(split=split)
-        samples = generate_samples(dataset)
+        samples = generate_samples(dataset=dataset,
+                                   expected_num_samples=expected_num_samples)
 
         # Write samples
         with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
-                       columns=columns) as out:
+                       columns=columns,
+                       compression=args.compression) as out:
             for sample in tqdm(samples,
                                desc=split_new_name,
                                total=expected_num_samples):
