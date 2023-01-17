@@ -121,8 +121,10 @@ class FlashCausalAttention(nn.Module):
 
 
 class TritonFlashCausalAttention(nn.Module):
-    """Multi-headed self attention using triton FlashAttn kernel which includes
-    bias for Alibi integration."""
+    """Multi-headed self attention using triton FlashAttn kernel.
+
+    This also includes bias for Alibi integration.
+    """
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()

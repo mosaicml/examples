@@ -22,8 +22,8 @@ except ImportError as e:
 
 class FlashAttention(nn.Module):
     """Implement the scaled dot product attention with softmax.
-    Arguments
-    ---------
+
+    Args:
         softmax_scale: The temperature to use for the softmax attention.
                       (default: 1/sqrt(d_keys) where d_keys is computed at
                       runtime)
@@ -43,9 +43,9 @@ class FlashAttention(nn.Module):
             need_weights: bool = False,
             average_attn_weights: bool = True
     ) -> Tuple[Tensor, Optional[Tensor]]:
-        """Implements the multihead softmax attention.
-        Arguments
-        ---------
+        r"""Multiheaded softmax attention.
+
+        Arguments:
             qkv: The tensor containing the query, key, and value. (B, S, 3, H, D) if key_padding_mask is None
                 if unpadded: (nnz, 3, h, d)
             key_padding_mask: If specified, a mask of shape :math:`(N, S)` indicating which elements within ``key``
@@ -121,11 +121,24 @@ class FlashMHA(nn.Module):
 
     def forward(self,
                 x,
-                key_padding_mask=None,
-                attn_mask=None,
-                need_weights=False):
-        """x: (batch, seqlen, hidden_dim) (where hidden_dim = num heads * head dim)
-        key_padding_mask: bool tensor of shape (batch, seqlen)
+                key_padding_mask: torch.Tensor = None,
+                attn_mask: torch.Tensor = None,
+                need_weights: bool = False):
+        r"""Multiheaded softmax attention.
+
+        Args:
+            x: (batch, seqlen, hidden_dim) (where hidden_dim = num heads * head dim)
+            key_padding_mask: bool tensor of shape (batch, seqlen)
+            attn_mask: If specified, a 2D or 3D mask preventing attention to certain positions. Must be of shape
+                :math:`(L, S)` or :math:`(N\cdot\text{num\_heads}, L, S)`, where :math:`N` is the batch size,
+                :math:`L` is the target sequence length, and :math:`S` is the source sequence length. A 2D mask will be
+                broadcasted across the batch while a 3D mask allows for a different mask for each entry in the batch.
+                Binary, byte, and float masks are supported. For a binary mask, a ``True`` value indicates that the
+                corresponding position is not allowed to attend. For a byte mask, a non-zero value indicates that the
+                corresponding position is not allowed to attend. For a float mask, the mask values will be added to
+                the attention weight.
+            need_weights: If specified, returns ``attn_output_weights`` in addition to ``attn_outputs``.
+                Default: ``True``.
         """
         qkv = self.Wqkv(x)
         context, attn_weights = self.inner_attn(
