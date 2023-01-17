@@ -66,7 +66,16 @@ def main(cfg):
     train_loader = build_dataloader(cfg.train_loader,
                                     cfg.device_train_batch_size)
     print('Building eval loader...')
-    eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
+    evaluators = []
+    if 'eval_loader' in cfg:
+        eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
+        evaluators.append(eval_loader)
+
+    if 'icl_tasks' in cfg:
+        icl_task_evaluators, _ = build_evaluators(cfg)
+        for evaluator in icl_task_evaluators:
+            model.add_eval_metrics(evaluator)
+        evaluators.extend(icl_task_evaluators)
 
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)
@@ -100,7 +109,7 @@ def main(cfg):
         seed=cfg.seed,
         model=model,
         train_dataloader=train_loader,
-        eval_dataloader=eval_loader,
+        eval_dataloader=evaluators,
         optimizers=optimizer,
         schedulers=scheduler,
         max_duration=cfg.max_duration,
