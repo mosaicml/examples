@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
-from composer.utils import dist
+from composer.utils import get_device, dist
 from omegaconf import DictConfig
 from tutel import moe as tutel_moe
 from tutel.impls.moe_layer import MOELayer
@@ -205,6 +205,7 @@ class GPTMLPMoE(nn.Module):
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
+        dist.initialize_dist(get_device(None), timeout=1800)
         world_size = dist.get_world_size()
         num_experts = cfg.moe.get('num_experts', world_size)
         if num_experts >= world_size:
@@ -232,7 +233,12 @@ class GPTMLPMoE(nn.Module):
             'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
             'activation_fn': lambda x: F.gelu(x, approximate='none')}
 
-        rank_seed = dist.get_global_rank() + cfg.get('seed', 1)
+        cpu_rng_state = torch.get_rng_state()
+        if torch.cuda.is_initialized():
+            from torch.utils.checkpoint import get_device_states, set_device_states
+            gpu_devices, gpu_rng_states = get_device_states(dist.get_global_rank())
+
+        rank_seed = torch.initial_seed() + dist.get_global_rank()
         self.moe = tutel_moe.moe_layer(
             gate_type=gate_type,
             model_dim=cfg.d_model,
@@ -249,6 +255,10 @@ class GPTMLPMoE(nn.Module):
             parallel_type=cfg.moe.get('parallel_type', 'auto'),
             use_2dh=cfg.moe.get('use_2dh', False),
         )
+
+        torch.set_rng_state(cpu_rng_state)
+        if torch.cuda.is_initialized():
+            set_device_states(gpu_devices, gpu_rng_states)
 
         self.moe.experts.batched_fc2_w._is_residual = True  # type: ignore
 
@@ -454,12 +464,34 @@ class MosaicGPT(nn.Module):
             pass
 
         if isinstance(module, FusedExpertsNetwork):
-            init_fn(module.batched_fc1_w)
-            module.batched_fc2_w.data.normal_(
-                mean=0.0,
-                std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+            # although the module is supposed to be ignored by FSDP,
+            # model.apply will still run param_init_fn on the entire model
+            # so FusedExpertsNetwork must be initialized here
+            cpu_rng_state = torch.get_rng_state()
+            if torch.cuda.is_initialized():
+                from torch.utils.checkpoint import get_device_states, set_device_states
+                gpu_devices, gpu_rng_states = get_device_states(
+                    module.batched_fc1_w, module.batched_fc2_w)
+
+            # guarentee init seeds are different for all devices
+            torch.manual_seed(torch.initial_seed() + dist.get_global_rank())
+
+            if self.cfg.get('init_experts', False):
+                init_fn(module.batched_fc1_w)
+                module.batched_fc2_w.data.normal_(
+                    mean=0.0,
+                    std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+            else:
+                # use default linear init since that is what is used by tutel
+                # still zero init bias)
+                torch.nn.init.kaiming_uniform_(module.batched_fc1_w, a=math.sqrt(5))
+                torch.nn.init.kaiming_uniform_(module.batched_fc2_w, a=math.sqrt(5))
             torch.nn.init.zeros_(module.batched_fc1_bias)
             torch.nn.init.zeros_(module.batched_fc2_bias)
+
+            torch.set_rng_state(cpu_rng_state)
+            if torch.cuda.is_initialized():
+                set_device_states(gpu_devices, gpu_rng_states)
 
         if isinstance(module, CosineTopKGate):
             # Linear handeled by nn.Linear
