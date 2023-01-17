@@ -436,8 +436,8 @@ class ComposerMosaicGPT(ComposerModel):
 
     def update_metric(self, batch, outputs, metric) -> None:  
         if isinstance(metric, InContextLearningMetric):
-            if batch.get('mode', None) != 'icl_task':
-                # only apply ICL metricts to specially constructed
+            if batch.get('mode', None) == 'icl_task':
+                # only apply ICL metrics to specially constructed
                 # icl_task batches
                 metric.update(batch, outputs, batch['labels'])
         else:
