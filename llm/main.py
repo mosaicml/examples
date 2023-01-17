@@ -87,10 +87,9 @@ def main(cfg):
     # Also 'meta' is only valid when using FSDP
     assert cfg.model.device in ['meta', 'cpu']
     if fsdp_config is None and cfg.model.device == 'meta':
-        print (
+        print(
             "Using init device `cfg.model.device='meta'` is only valid when using FSDP! "
-            "Reverting to `cfg.model.device='cpu'`."
-        )
+            "Reverting to `cfg.model.device='cpu'`.")
         cfg.model.device = 'cpu'
 
     # Build Model
