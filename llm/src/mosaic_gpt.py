@@ -203,11 +203,14 @@ class GPTMLP(nn.Module):
 
 class GPTMLPMoE(nn.Module):
 
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+    def __init__(self, cfg: DictConfig, block_idx: int, device: Optional[str] = None):
         super().__init__()
         dist.initialize_dist(get_device(None), timeout=1800)
         world_size = dist.get_world_size()
-        num_experts = cfg.moe.get('num_experts', world_size)
+        num_experts = cfg.moe.get('num_experts')
+        if isinstance(num_experts, list):
+            # enables pyramid moe
+            num_experts = num_experts[block_idx]
         if num_experts >= world_size:
             assert num_experts % world_size == 0
             num_local_experts = num_experts // world_size
@@ -268,14 +271,14 @@ class GPTMLPMoE(nn.Module):
 
 class GPTBlock(nn.Module):
 
-    def __init__(self, cfg: DictConfig, causal_attn_cls, device: Optional[str] = None):
+    def __init__(self, cfg: DictConfig, causal_attn_cls: nn.Module, block_idx: int, device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
             assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        self.mlp = GPTMLPMoE(cfg, device=device) if cfg.get('moe', None) else GPTMLP(cfg, device=device)
+        self.mlp = GPTMLPMoE(cfg, block_idx, device=device) if cfg.get('moe', None) else GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 
@@ -321,8 +324,8 @@ class MosaicGPT(nn.Module):
             self.transformer.update({'wpe': nn.Embedding(cfg.max_seq_len, cfg.d_model, device=cfg.device)})
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
         self.transformer.update({'blocks': nn.ModuleList([
-                    GPTBlock(cfg, causal_attn_cls=self.causal_attn_cls, device=cfg.device)
-                    for _ in range(cfg.n_layers)
+                    GPTBlock(cfg, causal_attn_cls=self.causal_attn_cls, block_idx=idx, device=cfg.device)
+                    for idx in range(cfg.n_layers)
                 ])})
         self.transformer.update({'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.device)})
 
@@ -460,8 +463,8 @@ class MosaicGPT(nn.Module):
                 torch.nn.init.zeros_(module.out_proj.bias)
 
         if isinstance(module, MOELayer):
-            # TODO: check init of buffers
-            pass
+            # set buffer
+            module._num_global_experts = torch.tensor(module.global_expert_count(module.num_local_experts, module.group))
 
         if isinstance(module, FusedExpertsNetwork):
             # although the module is supposed to be ignored by FSDP,
