@@ -18,6 +18,7 @@ from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from composer.utils import get_device, dist
 from omegaconf import DictConfig
+from omegaconf.listconfig import ListConfig
 from tutel import moe as tutel_moe
 from tutel.impls.moe_layer import MOELayer
 from tutel.experts.ffn import FusedExpertsNetwork
@@ -208,7 +209,7 @@ class GPTMLPMoE(nn.Module):
         dist.initialize_dist(get_device(None), timeout=1800)
         world_size = dist.get_world_size()
         num_experts = cfg.moe.get('num_experts')
-        if isinstance(num_experts, list):
+        if isinstance(num_experts, ListConfig):
             # enables pyramid moe
             num_experts = num_experts[block_idx]
         if num_experts >= world_size:
