@@ -26,17 +26,19 @@ args = parser.parse_args()
 
 
 def main(args):
-    model = build_stable_diffusion_model(model_name=args.model_name)
+    model = build_stable_diffusion_model(model_name_or_path=args.model_name,
+                                         train_text_encoder=False,
+                                         image_key='image_tensor',
+                                         caption_key='input_ids')
+    train_dataspec = build_pokemon_datapsec(tokenizer=model.tokenizer,
+                                            resolution=args.image_size,
+                                            batch_size=args.batch_size //
+                                            dist.get_world_size())
 
     optimizer = torch.optim.AdamW(params=model.parameters(),
                                   lr=1.0e-4,
                                   weight_decay=0.001)
     lr_scheduler = composer.optim.ConstantScheduler()
-
-    train_dataspec = build_pokemon_datapsec(tokenizer=model.tokenizer,
-                                            resoltion=args.image_size,
-                                            batch_size=args.batch_size //
-                                            dist.get_world_size())
 
     speed_monitor = composer.callbacks.SpeedMonitor(window_size=100)
 
@@ -44,14 +46,12 @@ def main(args):
                                           project=args.wandb_project,
                                           group=args.wandb_group)
 
-
     device_train_microbatch_size = 'auto'
     if args.device_train_microbatch_size:
         device_train_microbatch_size = args.device_train_microbatch_size
 
     # callback to visualize images in w&b
     class LogDiffusionImages(Callback):
-
         def __init__(self, n_imgs):
             self.n_imgs = n_imgs
 
@@ -62,7 +62,8 @@ def main(args):
                 table = _make_input_images(images, self.n_imgs)
                 for destination in ensure_tuple(logger.destinations):
                     if isinstance(destination, WandBLogger):
-                        destination.log_metrics({'Image': table}, state.timestamp.batch.value)
+                        destination.log_metrics({'Image': table},
+                                                state.timestamp.batch.value)
 
     log_images = LogDiffusionImages(n_imgs=4)
 
@@ -74,7 +75,7 @@ def main(args):
         callbacks=[speed_monitor, log_images],
         loggers=logger,
         max_duration='5ep',
-        device_train_microbatch_size=device_train_microbatch_size,
+        device_train_microbatch_size=1,
     )
     trainer.fit()
 

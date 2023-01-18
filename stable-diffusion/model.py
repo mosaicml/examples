@@ -27,7 +27,7 @@ class StableDiffusion(ComposerModel):
                  vae: torch.nn.Module,
                  text_encoder: torch.nn.Module,
                  tokenizer: callable,
-                 noise_scheduler: diffusers.scheduler,
+                 noise_scheduler: diffusers.schedulers,
                  pipeline: diffusers.pipelines,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
@@ -104,12 +104,12 @@ class StableDiffusion(ComposerModel):
         return self.forward(batch)
 
     def generate(self,
-                 prompt: list(str),
+                 prompt: list[str],
                  height: int = None,
                  width: int = None,
                  num_inference_steps: int = 50,
                  guidance_scale: float = 7.5,
-                 negative_prompt: list(str) = None,
+                 negative_prompt: list[str] = None,
                  num_images_per_prompt: int = 1,
                  eta: float = 1):
         """Generate images from noise using the backward diffusion process.
@@ -176,7 +176,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                                     subfolder='scheduler')
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder="tokenizer")
-    pipeline = StableDiffusionPipeline(model_name_or_path,
+    pipeline = StableDiffusionPipeline.from_pretrained(model_name_or_path,
                                        text_encoder=text_encoder,
                                        vae=vae,
                                        unet=unet)
