@@ -279,7 +279,15 @@ class GPTBlock(nn.Module):
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        self.mlp = GPTMLPMoE(cfg, block_idx, device=device) if cfg.get('moe', None) else GPTMLP(cfg, device=device)
+
+        use_moe = False
+        if cfg.get('moe', None):
+            num_experts = cfg.moe.get('num_experts')
+            if isinstance(num_experts, ListConfig):
+                num_experts = num_experts[block_idx]
+            use_moe = True if num_experts > 1 else False
+
+        self.mlp = GPTMLPMoE(cfg, block_idx, device=device) if use_moe else GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 
@@ -465,7 +473,8 @@ class MosaicGPT(nn.Module):
 
         if isinstance(module, MOELayer):
             # set buffer
-            module._num_global_experts = torch.tensor(module.global_expert_count(module.num_local_experts, module.group))
+            local_expert = -module.sharded_count if module.sharded_count > 1 else module.num_local_experts
+            module._num_global_experts = torch.tensor(module.global_expert_count(local_expert, module.group))
 
         if isinstance(module, FusedExpertsNetwork):
             # although the module is supposed to be ignored by FSDP,
