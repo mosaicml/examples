@@ -1,0 +1,23 @@
+# --------- pytorch --------- #
+torch>=1.10.0
+torchvision>=0.11.0
+mosaicml[all]==0.12.0
+# using a feature in dev post 0.9.0 will bump in next version
+torchmetrics>=0.7.0
+
+
+# --------- loggers --------- #
+wandb
+# neptune-client
+# mlflow
+# comet-ml
+# torch_tb_profiler
+
+
+# --------- others --------- #
+omegaconf
+
+
+# -------- diffusion -------- #
+diffusers [torch]
+transformers [torch]

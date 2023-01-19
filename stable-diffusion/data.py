@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 
 import numpy as np
+from composer.utils import dist
+
 
 from datasets import load_dataset
 from torchvision import transforms
@@ -30,9 +32,6 @@ def build_pokemon_datapsec(tokenizer: callable,
                            shuffle: bool = True,
                            seed: int = 1337,
                            **dataloader_kwargs):
-    dataset = load_dataset("lambdalabs/pokemon-blip-captions", split='train')
-    image_column = 'image'
-
     train_transforms = transforms.Compose([
         transforms.Resize(resolution,
                           interpolation=transforms.InterpolationMode.BILINEAR),
@@ -67,20 +66,24 @@ def build_pokemon_datapsec(tokenizer: callable,
         return inputs.input_ids
 
     def preprocess(examples: dict):
-        images = [image.convert("RGB") for image in examples[image_column]]
+        images = [image.convert("RGB") for image in examples['image']]
         examples["image_tensor"] = [
             train_transforms(image) for image in images
         ]
         examples["input_ids"] = tokenize_captions(examples)
         return examples
 
-    if shuffle:
-        dataset = dataset.shuffle(seed=seed)
+    with dist.run_local_rank_zero_first():
+        dataset = load_dataset("lambdalabs/pokemon-blip-captions", split='train')
 
     # add pixel_values and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)
+    sampler = dist.get_sampler(dataset,
+                            drop_last=drop_last,
+                            shuffle=shuffle)
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
+                                          sampler=sampler,
                                           drop_last=drop_last,
                                           collate_fn=collate_fn,
                                           **dataloader_kwargs))
