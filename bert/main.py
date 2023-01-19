@@ -10,6 +10,8 @@ import wandb
 from composer import Trainer
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf as om
+from omegaconf import DictConfig
+
 from src.hf_bert import create_hf_bert_mlm
 from src.mosaic_bert import create_mosaic_bert_mlm
 
@@ -18,7 +20,7 @@ from builders import (build_algorithm, build_callback, build_dataloader,
                       build_logger, build_optimizer, build_scheduler)
 
 
-def build_model(cfg):
+def build_model(cfg: DictConfig):
     if cfg.name == 'hf_bert':
         return create_hf_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,
@@ -37,7 +39,7 @@ def build_model(cfg):
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
-def main(cfg):
+def main(cfg: DictConfig):
     print('Training using config: ')
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
