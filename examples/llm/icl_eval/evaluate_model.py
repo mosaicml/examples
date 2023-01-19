@@ -79,7 +79,7 @@ if __name__ == '__main__':
     a = time.time()
     trainer.eval(eval_dataloader=evaluators)
     b = time.time()
-    print(f"{','.join([e.label for e in evaluator])}: Ran eval in: {b-a} seconds")
+    print(f"Ran eval in: {b-a} seconds")
 
     for key in logger_keys:
         if key in in_memory_logger.data:
