@@ -12,3 +12,4 @@ omegaconf==2.2.3
 wandb==0.13.4
 lm-eval @ git+https://github.com/bmosaicml/lm-evaluation-harness-composergpt-integration.git@master
 pytest
+pandas

@@ -10,6 +10,7 @@ from composer.trainer import Trainer
 from omegaconf import OmegaConf as om
 import sys
 from icl_eval.model_loading import load_model
+import time
 
 def validate_cfg(eval_cfg):
     assert "dataset_uri" in eval_cfg
@@ -73,7 +74,11 @@ if __name__ == '__main__':
     trainer = Trainer(model=model, max_duration='1ba', loggers=in_memory_logger)
     for evaluator in evaluators:
         model.add_eval_metrics(evaluator)
+    
+    a = time.time()
     trainer.eval(eval_dataloader=evaluators)
+    b = time.time()
+    print(f"{','.join([e.label for e in evaluator])}: Ran eval in: {b-a} seconds")
 
     for key in logger_keys:
         if key in in_memory_logger.data:
