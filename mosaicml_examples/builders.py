@@ -1,7 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-import pathlib
 import sys
 
 import composer
@@ -14,8 +13,8 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from packaging import version
 
-from speed_monitor_w_mfu import SpeedMonitorMFU
-from text_data import build_text_dataloader
+from mosaicml_examples.speed_monitor_w_mfu import SpeedMonitorMFU
+from mosaicml_examples.text_data import build_text_dataloader
 
 
 def build_callback(name, kwargs):
