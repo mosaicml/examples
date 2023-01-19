@@ -18,11 +18,11 @@ print('_project_root:', _project_root)
 # Read the repo version
 # We can't use `.__version__` from the library since it's not installed yet
 with open(os.path.join(_project_root, 'mosaicml_examples', '__init__.py')) as f:
-    lines = [line for line in f.readlines() if '__version__' in line]
-assert len(lines) == 1, "Ill-formed version file; must specify __version__"
+    content = f.read()
 # regex: '__version__', whitespace?, '=', whitespace, quote, version, quote
 # we put parens around the version so that it becomes elem 1 of the match
-repo_version = re.match("""__version__\W+=\W+['"]([0-9\.]*)['"]""", lines[0])[1]
+expr = re.compile(r"""^__version__\W+=\W+['"]([0-9\.]*)['"]""", re.MULTILINE)
+repo_version = expr.findall(content)[0]
 
 # Use repo README for PyPi description
 with open('README.md', 'r', encoding='utf-8') as fh:
@@ -85,9 +85,6 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/mosaicml/examples/',
-    # packages={_PACKAGE_NAME.replace('-', '_'): _PACKAGE_NAME.replace('-', '_')},
-    # packages=setuptools.find_packages('mosaicml_examples*'),
-    # packages=['mosaicml_examples'],
     package_dir={_PACKAGE_DIR: f'./{_PACKAGE_DIR}'},
     classifiers=classifiers,
     install_requires=install_requires,
