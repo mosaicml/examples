@@ -23,10 +23,12 @@ def parse_logs(logs):
     for line in logs:
         lines += line
     lines = lines.split('\n')
-    for line in lines.reverse():
-        match = re.search('Ran eval in: (\d+) seconds', line)
+
+    lines.reverse()
+    for line in lines:
+        match = re.search('Ran eval in: ((\d+)\.?(\d*)) seconds', line)
         if match:
-            return match.group(1)
+            return float(match.group(1))
     
     return None
 
@@ -39,4 +41,5 @@ if __name__ == "__main__":
     for run in runs:
         logs = msdk.get_run_logs(run)
         result = parse_logs(logs)
+        print(f"{run.name}: {result}")
 

@@ -8,6 +8,7 @@ import sys
 from mcli.sdk import RunConfig, create_run
 import time
 import pandas as pd
+import os
 
 def insert_subconfig(base_config, path, subconfig):
     recursive_parent_config = base_config
@@ -91,5 +92,10 @@ if __name__ == "__main__":
     sweep_configs = build_sweep_configs(yaml_cfg)
     jobs = launch_jobs("gpt_eval", sweep_configs)
     df = pd.DataFrame(jobs)
-    with open(out_path, 'w') as f:
-        df.to_csv(f, sep='\t', index=None)
+
+    if os.path.exists(out_path):
+        with open(out_path, 'a') as f:
+            df.to_csv(f, sep='\t', index=None, header=None)
+    else:
+        with open(out_path, 'w') as f:
+            df.to_csv(f, sep='\t', index=None)
