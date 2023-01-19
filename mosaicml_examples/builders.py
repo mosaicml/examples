@@ -14,7 +14,6 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from packaging import version
 
-sys.path.append(str(pathlib.Path(__file__).parent))
 from speed_monitor_w_mfu import SpeedMonitorMFU
 from text_data import build_text_dataloader
 
