@@ -1,8 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-import sys
-
 import composer
 from composer import algorithms
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor

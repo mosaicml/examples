@@ -2,19 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import pathlib
 import sys
 import warnings
 
 from composer import Trainer
 from composer.utils import dist, reproducibility
+from logging_utils import log_config  # type: ignore (reportMissingImports)
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 from mosaicml_examples.builders import (build_algorithm, build_callback,
                                         build_dataloader, build_logger,
                                         build_optimizer, build_scheduler)
-from logging_utils import log_config  # type: ignore (reportMissingImports)
 
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):

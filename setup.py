@@ -1,8 +1,8 @@
 """MosaicML examples package setup."""
 
-from typing import Dict, List
 import os
 import re
+from typing import Dict, List
 
 import setuptools
 from setuptools import setup
@@ -40,7 +40,8 @@ while True:
         break
     else:
         assert end != -1, 'there should be a balanced number of start and ends'
-        long_description = long_description[:start] + long_description[end + len(end_tag):]
+        long_description = long_description[:start] + long_description[
+            end + len(end_tag):]
 
 classifiers = [
     'Programming Language :: Python :: 3',
@@ -63,7 +64,7 @@ def _dependencies_as_dict(deps: List[str]) -> Dict[str, str]:
 
 
 def _merge_dependencies(deps_base: List[str], deps_update: List[str]):
-    """Subdir requirements.txt supersedes repo requirements"""
+    """Subdir requirements.txt supersedes repo requirements."""
     base_dict = _dependencies_as_dict(deps_base)
     base_dict.update(_dependencies_as_dict(deps_update))
     base_dict.pop(_PACKAGE_NAME, None)  # avoid circular dependencies

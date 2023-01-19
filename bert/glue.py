@@ -5,7 +5,6 @@ import copy
 import gc
 import multiprocessing as mp
 import os
-import pathlib
 import sys
 import time
 from collections import defaultdict

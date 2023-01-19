@@ -3,9 +3,12 @@
 
 __version__ = '0.0.1'
 
-from . import builders
-from . import text_data
-from . import speed_monitor_w_mfu
-from . import logging_utils
+from . import builders, logging_utils, speed_monitor_w_mfu, text_data
 
-__all__ = ['__version__', 'builders', 'text_data', 'speed_monitor_w_mfu', 'logging_utils']
+__all__ = [
+    '__version__',
+    'builders',
+    'text_data',
+    'speed_monitor_w_mfu',
+    'logging_utils',
+]
