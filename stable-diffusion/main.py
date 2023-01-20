@@ -48,6 +48,8 @@ def main(config):
         raise ValueError(
             'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
         )
+    # Divide batch sizes by number of devices if running multi-gpu training
+    batch_size = config.dataset.batch_size 
 
     # Initialize dist to ensure dataset is only downloaded by rank 0
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
@@ -62,8 +64,6 @@ def main(config):
                                         image_key=config.model.image_key,
                                         caption_key=config.model.caption_key)
 
-    # Divide batch sizes by number of devices if running multi-gpu training
-    batch_size = config.dataset.batch_size
 
     # Train dataset
     print('Building dataloader')
