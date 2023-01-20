@@ -46,4 +46,4 @@ jobs:
           python -m pip install -e .${{ matrix.install_version }}
       - name: Linting
         run: |
-          make lint
+          make style
