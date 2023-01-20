@@ -95,6 +95,7 @@ if __name__ == "__main__":
 
     if os.path.exists(out_path):
         with open(out_path, 'a') as f:
+            f.write('\n')
             df.to_csv(f, sep='\t', index=None, header=None)
     else:
         with open(out_path, 'w') as f:
