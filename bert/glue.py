@@ -19,12 +19,12 @@ import torch
 from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
+from omegaconf import DictConfig
 from src.glue.finetuning_jobs import (TASK_NAME_TO_NUM_LABELS, COLAJob, MNLIJob,
                                       MRPCJob, QNLIJob, QQPJob, RTEJob, SST2Job,
                                       STSBJob)
 from src.hf_bert import create_hf_bert_classification
 from src.mosaic_bert import create_mosaic_bert_classification
-from omegaconf import DictConfig
 
 from mosaicml_examples.builders import (build_algorithm, build_callback,
                                         build_logger, build_scheduler)

@@ -3,14 +3,13 @@
 
 import os
 import sys
-from typing import Dict
+from typing import cast, Dict
 
 import wandb
 from composer import Trainer
 from composer.utils import dist, reproducibility
-from omegaconf import OmegaConf as om
 from omegaconf import DictConfig
-
+from omegaconf import OmegaConf as om
 from src.hf_bert import create_hf_bert_mlm
 from src.mosaic_bert import create_mosaic_bert_mlm
 
@@ -116,7 +115,6 @@ def main(cfg: DictConfig):
         callbacks=callbacks,
         precision=cfg.precision,
         device=cfg.get('device', None),
-        grad_clip_norm=cfg.grad_clip_norm,
         grad_accum=cfg.get('grad_accum', 'auto'),
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
@@ -148,4 +146,5 @@ if __name__ == '__main__':
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
+    cfg = cast(DictConfig, cfg)  # for type checking
     main(cfg)
