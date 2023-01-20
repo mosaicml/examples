@@ -10,4 +10,42 @@ integrations:
 command: |
   cd examples/stable-diffusion
   pip install -r requirements.txt
-  composer main.py yamls/stable-diffusion-finetune.yaml
+  composer main.py /mnt/config/parameters.yaml
+
+parameters:
+  run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
+  seed: 42               # Random seed
+  max_duration: 1500ba    # Duration to train specified as a Time string
+  grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
+  use_ema: false
+
+  dataset:
+    batch_size: 4    # Training dataloader batch size per device
+    resolution: 512             # Local cache location when streaming data
+
+  model:
+    name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"
+    train_text_encoder: false
+    image_key: "image_tensor"
+    caption_key: "input_ids"
+
+
+  optimizer:
+    lr: 1.0e-04
+    weight_decay: 1.0e-2
+
+
+  loggers:
+    progress_bar: {}
+    wandb:     # Uncomment and fill below arguments to use WandB logger
+      entity:  # Name of WandB entity, usually username or organization name
+      project: 'stable-diffusion-finetune' # Name of WandB project
+      group:   # Name of WandB group
+
+  # Save checkpoint parameters
+  save_folder:                    # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+  save_interval: 10ep             # Interval to checkpoint based on time string
+  save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
+
+  # Load checkpoint parameters
+  load_path:      # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)

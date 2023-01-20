@@ -21,7 +21,7 @@ optimizer:
 
 
 loggers:
-  progress_bar: {}
+  # progress_bar: {}
   wandb:     # Uncomment and fill below arguments to use WandB logger
     entity:  # Name of WandB entity, usually username or organization name
     project: 'stable-diffusion-finetune' # Name of WandB project
