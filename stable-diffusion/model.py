@@ -158,7 +158,7 @@ class StableDiffusion(ComposerModel):
         uncond_input = self.tokenizer([""] * batch_size, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
 
         # concat these into one batch to avoid 2x forwards?
-        text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0])
+        text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0]
         uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(device))[0]   
 
         # concat uncond + prompt
