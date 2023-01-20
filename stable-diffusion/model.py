@@ -193,10 +193,9 @@ class StableDiffusion(ComposerModel):
         # scale and decode the image latents with vae
         latents = 1 / 0.18215 * latents
         image = self.vae.decode(latents).sample
-        image = (image / 2 + 0.5).clamp(0, 1)
-        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-        images = (image * 255).round().astype("uint8")
-        return [Image.fromarray(image) for image in images]
+        return (image / 2 + 0.5).clamp(0, 1)
+        # image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+        # return (image * 255).round().astype("uint8")
 
 
     def get_metrics(self, is_train: bool = False):

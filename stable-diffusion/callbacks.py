@@ -9,7 +9,7 @@ class LogDiffusionImages(Callback):
         if event == Event.FIT_END:
             num_images_per_prompt = 1
             prompt = "A pokemon with green eyes, large wings, and a hat"
-            images = state.model.generate(
+            images = state.model.module.generate(
                 prompt, num_images_per_prompt=num_images_per_prompt)
             table = _make_input_images(images, num_images_per_prompt)
             for destination in ensure_tuple(logger.destinations):

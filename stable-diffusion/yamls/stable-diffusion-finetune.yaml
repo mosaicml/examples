@@ -1,6 +1,6 @@
 run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
 seed: 42               # Random seed
-max_duration: 1500ba    # Duration to train specified as a Time string
+max_duration: '2ep'    # Duration to train specified as a Time string
 grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
 use_ema: false
 
