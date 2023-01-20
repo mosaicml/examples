@@ -150,7 +150,7 @@ class StableDiffusion(ComposerModel):
         vae_scale_factor = 8
         height = height or self.unet.config.sample_size * vae_scale_factor
         width = width or self.unet.config.sample_size * vae_scale_factor
-        generator = torch.manual_seed(32)   # Seed generator to create the inital latent noise
+        # generator = torch.manual_seed(32, )   # Seed generator to create the inital latent noise
 
         device = self.vae.device
 
@@ -167,7 +167,7 @@ class StableDiffusion(ComposerModel):
 
 
         # prepare for diffusion generation process
-        latents = torch.randn((batch_size, self.unet.in_channels, height // vae_scale_factor, width // vae_scale_factor), generator=generator, device=device)
+        latents = torch.randn((batch_size, self.unet.in_channels, height // vae_scale_factor, width // vae_scale_factor), device=device)
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
         # The K-LMS scheduler needs to multiply the `latents` by its `sigma` values. Let's do this here
