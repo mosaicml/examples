@@ -24,13 +24,23 @@ def parse_logs(logs):
         lines += line
     lines = lines.split('\n')
 
+    run_time = None
+    accuracy = None
     lines.reverse()
     for line in lines:
         match = re.search('Ran eval in: ((\d+)\.?(\d*)) seconds', line)
-        if match:
-            return float(match.group(1))
+        if match and not run_time:
+            run_time = float(match.group(1))
+
+        match = re.search('metrics/.*?/.*?Accuracy: ((\d+)\.?(\d*))', line)
+        if match and not accuracy:
+            accuracy = float(match.group(1))
+
     
-    return None
+    return {
+        "run_time": run_time,
+        "accuracy": accuracy
+    }
 
 if __name__ == "__main__":
     tsv_path = sys.argv[1]

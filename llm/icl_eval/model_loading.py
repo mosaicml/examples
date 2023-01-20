@@ -52,7 +52,7 @@ def download_starting_checkpoints(path_to_download: str) -> str:
 def init_huggingface_causal_lm(
         config: str
 ) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
-    return  create_gpt2(use_pretrained=True, pretrained_model_name=config)
+    return create_gpt2(use_pretrained=True, pretrained_model_name=config)
 
 def init_composer_ckpt_from_yaml(
         config: str,

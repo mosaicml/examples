@@ -1,4 +1,3 @@
-
 base_config:
   integrations:
     - integration_type: git_repo
@@ -50,7 +49,6 @@ sweep_config:
       key: '8'
       value: 8
  
-
   parameters.icl_tasks:
     -
       key:  lambada
@@ -60,7 +58,7 @@ sweep_config:
           dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
           num_fewshot: 
               - 0
-          batch_size: 16
+          batch_size: 4
           type: language_modeling
           metrics:
               - InContextLearningLMAccuracy
@@ -76,7 +74,7 @@ sweep_config:
           dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
           num_fewshot: 
               - 5
-          batch_size: 16
+          batch_size: 4
           type: multiple_choice
           metrics:
               - InContextLearningMultipleChoiceAccuracy
@@ -86,18 +84,18 @@ sweep_config:
             continuation_delimiter: " "
   
   parameters.model:
-    # -
-    #   key: '125m'
-    #   value:
-    #     model_type: pretrained_hf
-    #     config: EleutherAI/gpt-neo-125M
+    -
+      key: '125m'
+      value:
+        model_type: pretrained_hf
+        config: EleutherAI/gpt-neo-125M
     -
       key: '1.3b'
       value:
         model_type: pretrained_hf
         config: EleutherAI/gpt-neo-1.3B
-    # -
-    #   key: '2.7b'
-    #   value:
-    #     model_type: pretrained_hf
-    #     config: EleutherAI/gpt-neo-2.7B
+    -
+      key: '2.7b'
+      value:
+        model_type: pretrained_hf
+        config: EleutherAI/gpt-neo-2.7B

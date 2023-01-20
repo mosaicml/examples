@@ -14,8 +14,7 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
-    'cpu')
+
 CHECKPOINT_DIR = f'{os.path.dirname(__file__)}/model_checkpoints'
 
 
@@ -87,7 +86,7 @@ def init_composer_ckpt_from_yaml(
 
     # Build Model
     print('Initializing model...')
-    cfg.model.device = str(DEVICE)
+    cfg.model.device = str('cpu')
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     pre = next(model.parameters()).clone().data
 
@@ -97,7 +96,7 @@ def init_composer_ckpt_from_yaml(
 
     model.load_state_dict(
         torch.load(f'{CHECKPOINT_DIR}/{checkpoint}',
-                   map_location=DEVICE)['state']['model'])
+                   map_location=cfg.model.device)['state']['model'])
     post = next(model.parameters()).clone().data
     assert not torch.equal(pre, post)
     print('Successfully loaded model weights')
