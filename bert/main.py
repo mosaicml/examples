@@ -3,7 +3,7 @@
 
 import os
 import sys
-from typing import cast, Dict
+from typing import Dict, cast
 
 import wandb
 from composer import Trainer
