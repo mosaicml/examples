@@ -49,6 +49,13 @@ def main(config):
             'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
         )
 
+    # Initialize dist to ensure dataset is only downloaded by rank 0
+    device = 'gpu' if torch.cuda.is_available() else 'cpu'
+    if dist.get_world_size() > 1:
+        dist.initialize_dist(device, 180)
+        batch_size //= dist.get_world_size()
+        batch_size = batch_size or 1 
+
     print('Building Composer model')
     model = build_stable_diffusion_model(model_name_or_path=config.model.name,
                                         train_text_encoder=config.model.train_text_encoder,
@@ -57,12 +64,6 @@ def main(config):
 
     # Divide batch sizes by number of devices if running multi-gpu training
     batch_size = config.dataset.batch_size
-
-    # Initialize dist to ensure dataset is only downloaded by rank 0
-    device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    if dist.get_world_size() > 1:
-        dist.initialize_dist(device, 180)
-        batch_size //= dist.get_world_size() or 1
 
     # Train dataset
     print('Building dataloader')
