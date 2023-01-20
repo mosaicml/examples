@@ -2,6 +2,7 @@ run_name: stable-diffusion-finetune # Name of the  training run used for checkpo
 seed: 42               # Random seed
 max_duration: 1500ba    # Duration to train specified as a Time string
 grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
+use_ema: false
 
 dataset:
   batch_size: 4    # Training dataloader batch size per device
