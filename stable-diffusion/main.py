@@ -137,11 +137,8 @@ def main(config):
     print('Logging config')
     log_config(config)
 
-    print('Run evaluation')
-    trainer.eval()
-    if config.is_train:
-        print('Train!')
-        trainer.fit()
+    print('Train!')
+    trainer.fit()
 
     # Return trainer for testing purposes
     return trainer
