@@ -62,7 +62,7 @@ def main(config):
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
     if dist.get_world_size() > 1:
         dist.initialize_dist(device, 180)
-        batch_size //= dist.get_world_size()
+        batch_size //= dist.get_world_size() or 1
 
     # Train dataset
     print('Building dataloader')
