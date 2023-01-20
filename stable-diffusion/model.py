@@ -147,8 +147,8 @@ class StableDiffusion(ComposerModel):
             eta: float = 1):
 
         batch_size = 1
-        height = height or self.unet.config.sample_size * self.vae_scale_factor
-        width = width or self.unet.config.sample_size * self.vae_scale_factor
+        height = height or self.unet.config.sample_size * self.vae.config.vae_scale_factor
+        width = width or self.unet.config.sample_size * self.vae.config.vae_scale_factor
         generator = torch.manual_seed(32)   # Seed generator to create the inital latent noise
 
         device = self.vae.device
