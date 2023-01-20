@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from composer.models import ComposerModel
 from torchmetrics import MeanSquaredError, Metric, MetricCollection
 import diffusers
-from diffusers import AutoencoderKL, DDPMScheduler, StableDiffusionPipeline, UNet2DConditionModel
+from diffusers import AutoencoderKL, DDPMScheduler, StableDiffusionPipeline, UNet2DConditionModel, LMSDiscreteScheduler
 from diffusers.utils.import_utils import is_xformers_available
 from transformers import CLIPTextModel, CLIPTokenizer
 
@@ -28,6 +28,7 @@ class StableDiffusion(ComposerModel):
                  text_encoder: torch.nn.Module,
                  tokenizer: callable,
                  noise_scheduler: diffusers.schedulers,
+                 inference_scheduler: diffusers.schedulers,
                  pipeline: diffusers.pipelines,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
@@ -41,6 +42,7 @@ class StableDiffusion(ComposerModel):
         self.text_encoder = text_encoder
         self.tokenizer = tokenizer
         self.noise_scheduler = noise_scheduler
+        self.inference_scheduler = inference_scheduler
 
         # freeze vae during diffusion training
         self.vae.requires_grad_(False)
@@ -66,14 +68,10 @@ class StableDiffusion(ComposerModel):
         latents *= 0.18215
 
         # Encode the text. Assume that the text is already tokenized. This is slow, we should cache the results.
-        conditioning = self.text_encoder(conditioning)[
-            0]  # Should be (batch_size, 77, 768)
+        conditioning = self.text_encoder(conditioning)[0]  # (batch_size, 77, 768)
 
         # Sample the diffusion timesteps
-        timesteps = torch.randint(0,
-                                  len(self.noise_scheduler),
-                                  (latents.shape[0], ),
-                                  device=latents.device)
+        timesteps = torch.randint(0, len(self.noise_scheduler), (latents.shape[0], ), device=latents.device)
         # Add noise to the inputs (forward diffusion)
         noise = torch.randn_like(latents)
 
@@ -135,6 +133,36 @@ class StableDiffusion(ComposerModel):
                              num_images_per_prompt=num_images_per_prompt,
                              eta=eta)
 
+    # def generate(self,
+    #         prompt: list[str],
+    #         height: int = None,
+    #         width: int = None,
+    #         num_inference_steps: int = 50,
+    #         guidance_scale: float = 7.5,
+    #         negative_prompt: list[str] = None,
+    #         num_images_per_prompt: int = 1,
+    #         eta: float = 1):
+
+    #     batch_size = 1
+    #     generator = torch.manual_seed(32)   # Seed generator to create the inital latent noise
+
+    #     device = self.vae.device
+
+    #     # encode prompt + unconidtional input
+    #     text_input = self.tokenizer(prompt, padding="max_length", max_length=self.tokenizer.model_max_length, truncation=True, return_tensors="pt")
+    #     uncond_input = self.tokenizer([""] * batch_size, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
+
+    #     # concat these into one batch to avoid 2x forwards?
+    #     with torch.no_grad():
+    #         text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0])
+    #         uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(device))[0]   
+
+    #     # concat uncond + prompt
+    #     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+    #     latents = torch.randn((batch_size, self.unet.in_channels, height // 8, width // 8), generator=generator, device=device)
+    
+
     def get_metrics(self, is_train: bool = False):
         if is_train:
             metrics = self.train_metrics
@@ -174,6 +202,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                                  subfolder='text_encoder')
     noise_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
                                                     subfolder='scheduler')
+    inference_scheduler = LMSDiscreteScheduler.from_pretrained(model_name_or_path, subfolder="scheduler")
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder="tokenizer")
     pipeline = StableDiffusionPipeline.from_pretrained(model_name_or_path,
@@ -185,6 +214,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
                            text_encoder=text_encoder,
                            tokenizer=tokenizer,
                            noise_scheduler=noise_scheduler,
+                           inference_scheduler=inference_scheduler,
                            pipeline=pipeline,
                            train_text_encoder=train_text_encoder,
                            image_key=image_key,

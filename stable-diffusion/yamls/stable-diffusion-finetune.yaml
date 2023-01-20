@@ -1,8 +1,7 @@
-run_name: stable_diffusion_finetune # Name of the  training run used for checkpointing and other logging
+run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
 seed: 42               # Random seed
-max_duration: 1500ep    # Duration to train specified as a Time string
-use_recipe: false      # Whether to train with a recipe for faster convergence or higher accuracy
-grad_accum: auto       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
+max_duration: 1500ba    # Duration to train specified as a Time string
+grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
 
 dataset:
   batch_size: 4    # Training dataloader batch size per device
@@ -12,7 +11,7 @@ model:
   name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"
   train_text_encoder: false
   image_key: "image_tensor"
-  text_key: "input_ids"
+  caption_key: "input_ids"
 
 
 optimizer:
