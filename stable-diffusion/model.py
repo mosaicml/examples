@@ -6,6 +6,8 @@ import diffusers
 from diffusers import AutoencoderKL, DDPMScheduler, StableDiffusionPipeline, UNet2DConditionModel, LMSDiscreteScheduler
 from diffusers.utils.import_utils import is_xformers_available
 from transformers import CLIPTextModel, CLIPTokenizer
+from tqdm.auto import tqdm
+from PIL import Image
 
 
 class StableDiffusion(ComposerModel):
@@ -101,67 +103,101 @@ class StableDiffusion(ComposerModel):
             return outputs
         return self.forward(batch)
 
+    # def generate(self,
+    #              prompt: list[str],
+    #              height: int = None,
+    #              width: int = None,
+    #              num_inference_steps: int = 50,
+    #              guidance_scale: float = 7.5,
+    #              negative_prompt: list[str] = None,
+    #              num_images_per_prompt: int = 1,
+    #              eta: float = 1):
+    #     """Generate images from noise using the backward diffusion process.
+    #     Args:
+    #         prompt (str or List[str]) — The prompt or prompts to guide the image generation.
+    #         height (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The height in pixels of the generated image.
+    #         width (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The width in pixels of the generated image.
+    #         num_inference_steps (int, optional, defaults to 50) — The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
+    #         guidance_scale (float, optional, defaults to 7.5) — Guidance scale as defined in Classifier-Free Diffusion Guidance. guidance_scale is defined as w of equation 2. of Imagen Paper. Guidance scale is enabled by setting guidance_scale > 1. Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
+    #         negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1).
+    #         num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
+    #         eta (float, optional, defaults to 0.0) — Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to schedulers.DDIMScheduler, will be ignored for others.
+    #     """
+    #     height = height or self.unet.config.sample_size * self.vae_scale_factor
+    #     width = width or self.unet.config.sample_size * self.vae_scale_factor
+
+    #     return self.pipeline(prompt=prompt,
+    #                          height=height,
+    #                          width=width,
+    #                          num_inference_steps=num_inference_steps,
+    #                          guidance_scale=guidance_scale,
+    #                          negative_prompt=negative_prompt,
+    #                          num_images_per_prompt=num_images_per_prompt,
+    #                          eta=eta)
+
+    @torch.no_grad()
     def generate(self,
-                 prompt: list[str],
-                 height: int = None,
-                 width: int = None,
-                 num_inference_steps: int = 50,
-                 guidance_scale: float = 7.5,
-                 negative_prompt: list[str] = None,
-                 num_images_per_prompt: int = 1,
-                 eta: float = 1):
-        """Generate images from noise using the backward diffusion process.
-        Args:
-            prompt (str or List[str]) — The prompt or prompts to guide the image generation.
-            height (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The height in pixels of the generated image.
-            width (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The width in pixels of the generated image.
-            num_inference_steps (int, optional, defaults to 50) — The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
-            guidance_scale (float, optional, defaults to 7.5) — Guidance scale as defined in Classifier-Free Diffusion Guidance. guidance_scale is defined as w of equation 2. of Imagen Paper. Guidance scale is enabled by setting guidance_scale > 1. Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
-            negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1).
-            num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
-            eta (float, optional, defaults to 0.0) — Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to schedulers.DDIMScheduler, will be ignored for others.
-        """
+            prompt: list[str],
+            height: int = None,
+            width: int = None,
+            num_inference_steps: int = 50,
+            guidance_scale: float = 7.5,
+            negative_prompt: list[str] = None,
+            num_images_per_prompt: int = 1,
+            eta: float = 1):
+
+        batch_size = 1
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
+        generator = torch.manual_seed(32)   # Seed generator to create the inital latent noise
 
-        return self.pipeline(prompt=prompt,
-                             height=height,
-                             width=width,
-                             num_inference_steps=num_inference_steps,
-                             guidance_scale=guidance_scale,
-                             negative_prompt=negative_prompt,
-                             num_images_per_prompt=num_images_per_prompt,
-                             eta=eta)
+        device = self.vae.device
 
-    # def generate(self,
-    #         prompt: list[str],
-    #         height: int = None,
-    #         width: int = None,
-    #         num_inference_steps: int = 50,
-    #         guidance_scale: float = 7.5,
-    #         negative_prompt: list[str] = None,
-    #         num_images_per_prompt: int = 1,
-    #         eta: float = 1):
+        # encode prompt + unconidtional input
+        text_input = self.tokenizer(prompt, padding="max_length", max_length=self.tokenizer.model_max_length, truncation=True, return_tensors="pt")
+        uncond_input = self.tokenizer([""] * batch_size, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
 
-    #     batch_size = 1
-    #     generator = torch.manual_seed(32)   # Seed generator to create the inital latent noise
+        # concat these into one batch to avoid 2x forwards?
+        text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0])
+        uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(device))[0]   
 
-    #     device = self.vae.device
+        # concat uncond + prompt
+        text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-    #     # encode prompt + unconidtional input
-    #     text_input = self.tokenizer(prompt, padding="max_length", max_length=self.tokenizer.model_max_length, truncation=True, return_tensors="pt")
-    #     uncond_input = self.tokenizer([""] * batch_size, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
 
-    #     # concat these into one batch to avoid 2x forwards?
-    #     with torch.no_grad():
-    #         text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0])
-    #         uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(device))[0]   
+        # prepare for diffusion generation process
+        latents = torch.randn((batch_size, self.unet.in_channels, height // 8, width // 8), generator=generator, device=device)
+        self.inference_scheduler.set_timesteps(num_inference_steps)
 
-    #     # concat uncond + prompt
-    #     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+        # The K-LMS scheduler needs to multiply the `latents` by its `sigma` values. Let's do this here
+        latents = latents * self.inference_scheduler.init_noise_sigma
 
-    #     latents = torch.randn((batch_size, self.unet.in_channels, height // 8, width // 8), generator=generator, device=device)
-    
+        # backward diffusion process
+        for t in tqdm(self.inference_scheduler.timesteps):
+            # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+            latent_model_input = torch.cat([latents] * 2)
+
+            latent_model_input = self.inference_scheduler.scale_model_input(latent_model_input, t)
+
+            # predict the noise residual
+            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+
+            # perform guidance
+            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+            noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+            # compute the previous noisy sample x_t -> x_t-1
+            latents = self.inference_scheduler.step(noise_pred, t, latents).prev_sample
+
+        # We now use the vae to decode the generated latents back into the image.
+        # scale and decode the image latents with vae
+        latents = 1 / 0.18215 * latents
+        image = self.vae.decode(latents).sample
+        image = (image / 2 + 0.5).clamp(0, 1)
+        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+        images = (image * 255).round().astype("uint8")
+        return [Image.fromarray(image) for image in images]
+
 
     def get_metrics(self, is_train: bool = False):
         if is_train:

@@ -57,7 +57,11 @@ def main(config):
 
     # Divide batch sizes by number of devices if running multi-gpu training
     batch_size = config.dataset.batch_size
-    if dist.get_world_size():
+
+    # Initialize dist to ensure dataset is only downloaded by rank 0
+    device = 'gpu' if torch.cuda.is_available() else 'cpu'
+    if dist.get_world_size() > 1:
+        dist.initialize_dist(device, 180)
         batch_size //= dist.get_world_size()
 
     # Train dataset
