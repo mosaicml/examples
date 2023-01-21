@@ -165,7 +165,6 @@ class StableDiffusion(ComposerModel):
         # concat uncond + prompt
         text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-
         # prepare for diffusion generation process
         latents = torch.randn((batch_size, self.unet.in_channels, height // vae_scale_factor, width // vae_scale_factor), device=device)
         self.inference_scheduler.set_timesteps(num_inference_steps)
@@ -194,9 +193,9 @@ class StableDiffusion(ComposerModel):
         # scale and decode the image latents with vae
         latents = 1 / 0.18215 * latents
         image = self.vae.decode(latents).sample
-        return (image / 2 + 0.5).clamp(0, 1)
-        # image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-        # return (image * 255).round().astype("uint8")
+        image =  (image / 2 + 0.5).clamp(0, 1)
+        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+        return (image * 255).round().astype("uint8")
 
 
     def get_metrics(self, is_train: bool = False):
