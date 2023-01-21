@@ -1,4 +1,4 @@
-mosaicml>=0.12,<0.13
+mosaicml>=0.11,<0.13
 pre-commit>=2.18.1,<3
 pytest>=6.2.3,<8  # pinned to old version to avoid conflict with lm_eval
 pytest_codeblocks>=0.16.1,<0.17
