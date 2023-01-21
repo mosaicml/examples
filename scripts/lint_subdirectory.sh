@@ -13,8 +13,6 @@
 
 ENV_NAME="${1%/}-env"   # strip trailing slash if present
 
-# cd "$1"
-
 echo "Creating venv..."
 python -m venv "$ENV_NAME" --system-site-packages
 source "$ENV_NAME/bin/activate"
@@ -23,18 +21,9 @@ echo "Installing requirements..."
 pip install --upgrade pip
 pip install ".[$1-cpu]"  # setup.py merges repo + subdir deps + strips gpu deps
 
-# echo "Installing $1 requirements:"
-# cat /tmp/requirements.txt
-# # TODO -I would sandbox better (always overwriting system copies with versions
-# # in requirements.txt) but this causes mysterious Flash Attention issues
-# pip install -U -r /tmp/requirements.txt
-# rm /tmp/requirements.txt
-
 echo "Running checks..."
 pre-commit run --files $(find "$1")
 
 echo "Cleaning up venv..."
 deactivate
 rm -rf "$ENV_NAME"
-
-# cd -
