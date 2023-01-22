@@ -176,5 +176,5 @@ if __name__ == '__main__':
     with open(yaml_path) as f:
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
-    cfg = om.merge(yaml_cfg, cli_cfg)
+    cfg = om.merge(cli_cfg, yaml_cfg)
     main(cfg)
