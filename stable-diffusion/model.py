@@ -137,7 +137,7 @@ class StableDiffusion(ComposerModel):
 
     @torch.no_grad()
     def generate(self,
-            prompt: list[str],
+            prompt: list,
             height: int = None,
             width: int = None,
             num_inference_steps: int = 50,
@@ -145,6 +145,17 @@ class StableDiffusion(ComposerModel):
             negative_prompt: list[str] = None,
             num_images_per_prompt: int = 1,
             eta: float = 1):
+     #     """Generate images from noise using the backward diffusion process.
+    #     Args:
+    #         prompt (str or List[str]) — The prompt or prompts to guide the image generation.
+    #         height (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The height in pixels of the generated image.
+    #         width (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The width in pixels of the generated image.
+    #         num_inference_steps (int, optional, defaults to 50) — The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
+    #         guidance_scale (float, optional, defaults to 7.5) — Guidance scale as defined in Classifier-Free Diffusion Guidance. guidance_scale is defined as w of equation 2. of Imagen Paper. Guidance scale is enabled by setting guidance_scale > 1. Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
+    #         negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1).
+    #         num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
+    #         eta (float, optional, defaults to 0.0) — Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to schedulers.DDIMScheduler, will be ignored for others.
+    #     """
 
         batch_size = 1
         vae_scale_factor = 8
