@@ -10,7 +10,6 @@ class LogDiffusionImages(Callback):
             prompt = "A pokemon with green eyes, large wings, and a hat"
             images = state.model.module.generate(
                 prompt, num_images_per_prompt=num_images_per_prompt)
-            images = images[0].permute(1, 2, 0)
             for destination in ensure_tuple(logger.destinations):
                 if isinstance(destination, WandBLogger):
-                    destination.log_images({'Image': images}, state.timestamp.batch.value)
+                    destination.log_images(images[0], state.timestamp.batch.value)
