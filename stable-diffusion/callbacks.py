@@ -12,4 +12,4 @@ class LogDiffusionImages(Callback):
                 prompt, num_images_per_prompt=num_images_per_prompt)
             for destination in ensure_tuple(logger.destinations):
                 if isinstance(destination, WandBLogger):
-                    destination.log_images(images[0], state.timestamp.batch.value)
+                    destination.log_images(images=images[0], step=state.timestamp.batch.value)

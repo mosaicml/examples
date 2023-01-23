@@ -7,7 +7,6 @@ from diffusers import AutoencoderKL, DDPMScheduler, StableDiffusionPipeline, UNe
 from diffusers.utils.import_utils import is_xformers_available
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
-from PIL import Image
 
 
 class StableDiffusion(ComposerModel):
@@ -175,8 +174,6 @@ class StableDiffusion(ComposerModel):
         image = self.vae.decode(latents).sample
         image =  (image / 2 + 0.5).clamp(0, 1)
         return image.detach().cpu()
-        # image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-        # return (image * 255).round().astype("uint8")
 
 
     def get_metrics(self, is_train: bool = False):
