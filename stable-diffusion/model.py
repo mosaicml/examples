@@ -142,7 +142,7 @@ class StableDiffusion(ComposerModel):
             width: int = None,
             num_inference_steps: int = 50,
             guidance_scale: float = 7.5,
-            negative_prompt: list[str] = None,
+            negative_prompt: list = None,
             num_images_per_prompt: int = 1,
             eta: float = 1):
      #     """Generate images from noise using the backward diffusion process.
