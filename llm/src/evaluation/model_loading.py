@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 from urllib.parse import urlparse
 
 import torch
@@ -50,16 +50,17 @@ def download_starting_checkpoints(path_to_download: str) -> str:
 
 
 def init_huggingface_causal_lm(
-        checkpoint: str
+        config: str
 ) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
-    model = AutoModelForCausalLM.from_pretrained(checkpoint)
-    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+    model = AutoModelForCausalLM.from_pretrained(config)
+    tokenizer = AutoTokenizer.from_pretrained(config)
     return {'model': model, 'tokenizer': tokenizer}
 
 
 def init_composer_ckpt_from_yaml(
+        config: str,
         checkpoint: str,
-        config: str) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
+        ) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
     """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
 
     Constructs the MosaicGPT model and LLMTokenizer from the yaml config and
@@ -112,7 +113,13 @@ def init_composer_ckpt_from_yaml(
     }
 
 
-MODEL_LOADERS = {
-    'composer_checkpoint': init_composer_ckpt_from_yaml,
-    'pretrained_hf': init_huggingface_causal_lm,
-}
+
+def load_model(model_type: str, config: str, checkpoint: Optional[str] = None):
+    if  model_type == 'pretrained_hf':
+        return init_huggingface_causal_lm(config)
+    elif model_type == 'mosaic_gpt':
+        return init_composer_ckpt_from_yaml(config, checkpoint)
+    else:
+        raise Exception(f"Unrecogized model type: {model_type}")
+
+

@@ -1,0 +1,14 @@
+tokenizer:
+  type: hftokenizer
+  args:
+    tokenizer_name: gpt2
+    max_seq_len: 2048  
+model:
+  model_type: pretrained_hf
+  config: EleutherAI/gpt-neo-125M
+icl_tasks:
+  -
+    label: lambada
+    num_fewshot: 
+      - 0
+outfile: icl_results.tsv

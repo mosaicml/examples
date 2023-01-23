@@ -6,14 +6,15 @@ import json
 import os
 import time
 from typing import Any, Dict, List
-
+import sys
+from omegaconf import OmegaConf as om
 import lm_eval
 import pandas as pd
 import torch
 from lm_eval import models as lm_eval_models
 from lm_eval import tasks as lm_eval_tasks
 from lm_eval.evaluator import evaluate
-from src.evaluation.model_loading import MODEL_LOADERS
+from src.evaluation.model_loading import load_model
 
 RESULTS_DIR = f'{os.path.dirname(__file__)}/eval_reports'
 PARTIAL_EVAL_SAMPLE_SIZE = 40
@@ -23,8 +24,7 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
 JsonResults = Dict[int, Dict[str, Any]]
 
 
-def get_lm_eval_model(model_type: str,
-                      model_ctor_args: Dict[str, str]) -> lm_eval.base.LM:
+def get_lm_eval_model(model_config) -> lm_eval.base.LM:
     """Load a trained ComposerGPT model for evaluation.
 
     In more detail, this loads a ComposerGPT model from a checkpoint & yaml
@@ -39,16 +39,15 @@ def get_lm_eval_model(model_type: str,
     Returns:
         lm (lm_eval.base.LM): An lm_eval wrapper around our constructed model
     """
-    model_components = MODEL_LOADERS[model_type](**model_ctor_args)
+    model_components = load_model(**model_config)
+
     model_components.update({'batch_size': 4, 'device': DEVICE.type})
     lm = lm_eval_models.get_model('composer_llm').create_from_arg_string(
         '', model_components)
     return lm
 
 
-def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str],
-                            num_fewshots: List[int],
-                            partial_eval_mode: bool) -> JsonResults:
+def evaluate_model_on_tasks(model: lm_eval.base.LM, task_configs: List[dict]) -> JsonResults:
     """Returns the sum of two decimal numbers in binary digits.
 
     Args:
@@ -66,14 +65,20 @@ def evaluate_model_on_tasks(model: lm_eval.base.LM, tasks: List[str],
         results (JsonResults): Results of the task including ppl, acc,
             acc_norm (if multiple choice), task name, and few shot samples used
     """
-    task_dict = lm_eval_tasks.get_task_dict(tasks)
     results = {}
-    for num in num_fewshots:
-        results[num] = evaluate(
-            lm=model,
-            task_dict=task_dict,
-            num_fewshot=num,
-            limit=PARTIAL_EVAL_SAMPLE_SIZE if partial_eval_mode else None)
+    for task_conf in task_configs:
+        label, num_fewshots = task_conf.get("label"), task_conf.get("num_fewshot")
+        task_dict = lm_eval_tasks.get_task_dict([label])
+        for num in num_fewshots:
+            a = time.time()
+            results[num] = evaluate(
+                lm=model,
+                task_dict=task_dict,
+                num_fewshot=num
+            )
+            b = time.time()
+            results[num]['time'] = b-a
+
 
     return results
 
@@ -89,7 +94,7 @@ def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
     print(f'Logging results to {outfile}')
     print(dumped)
     df = pd.DataFrame(columns=[
-        'task', 'ppl', 'accuracy', 'length-normalized_accuracy', 'num_fewshot'
+        'task', 'ppl', 'accuracy', 'length-normalized_accuracy', 'num_fewshot', "time"
     ])
 
     for num in results:
@@ -100,13 +105,15 @@ def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
                 'acc_norm', 'n/a')
             ppl = fewshot_exp_results[task_name].get('ppl', 'n/a')
             df = pd.concat([
-                pd.DataFrame([[task_name, ppl, accuracy, accuracy_norm, num]],
+                pd.DataFrame([[task_name, ppl, accuracy, accuracy_norm, num, results[num]['time']]],
                              columns=df.columns), df
             ],
                            ignore_index=True)
 
     with open(outfile, 'w') as f:
         df.to_csv(f, sep='\t', index=None)
+    
+    print(df)
 
 
 if __name__ == '__main__':
@@ -135,34 +142,13 @@ if __name__ == '__main__':
         --tasks lambada \
         --num_fewshot 0 1 10
     """
-    parser = argparse.ArgumentParser(
-        description='Run the EleutherAI eval harness on ComposerGPT models')
-    parser.add_argument('--experiment_name',
-                        metavar='experiment_name',
-                        type=str)
-    parser.add_argument('--model_type', metavar='model_type', type=str)
-    parser.add_argument('--model_args',
-                        nargs='+',
-                        metavar='checkpoint_path',
-                        type=str)
-    parser.add_argument('--tasks', metavar='task_name', type=str, nargs='+')
-    parser.add_argument('--num_fewshots',
-                        metavar='num_fewshots',
-                        type=int,
-                        nargs='+')
-    parser.add_argument('--partial_eval_mode',
-                        action='store_true',
-                        default=False)
+    yaml_path, args_list = sys.argv[1], sys.argv[2:]
+    with open(yaml_path) as f:
+        yaml_cfg = om.load(f)
+    cli_cfg = om.from_cli(args_list)
+    cfg = om.merge(yaml_cfg, cli_cfg)
 
-    args = parser.parse_args()
-    print(args)
-    model_ctor_args = {}
-    for arg in args.model_args:
-        k, v = tuple(arg.split('='))
-        model_ctor_args[k] = v
-
-    model = get_lm_eval_model(args.model_type, model_ctor_args)
-    results = evaluate_model_on_tasks(model, args.tasks, args.num_fewshots,
-                                      args.partial_eval_mode)
-    outfile = f"{RESULTS_DIR}/{args.experiment_name}_{'-'.join(args.tasks)}_{hash(time.time())%10_000}.tsv"
+    model = get_lm_eval_model(cfg.get("model"))
+    results = evaluate_model_on_tasks(model, cfg.get("icl_tasks"))
+    outfile = f"{RESULTS_DIR}/{cfg.get('outfile')}"
     log_results_to_tsv(results, outfile)
