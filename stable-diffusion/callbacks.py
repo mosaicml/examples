@@ -13,5 +13,4 @@ class LogDiffusionImages(Callback):
             images = images[0].permute(1, 2, 0)
             for destination in ensure_tuple(logger.destinations):
                 if isinstance(destination, WandBLogger):
-                    destination.log_metrics({'Image': images},
-                                            state.timestamp.batch.value)
+                    destination.log_images({'Image': images}, state.timestamp.batch.value)
