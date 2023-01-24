@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """image captioning dataset creation tools and preprocessing."""
 import random
+import math
 
 import torch
 from torch.utils.data import DataLoader
@@ -98,12 +99,21 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
     """prompt dataset for eval"""
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
+    
+    def split_list(l, microbatch_size: int): # needed for gradient accumulation
+        if len(l) < microbatch_size:
+            microbatch_size = len(l)
+        num_microbatches = math.ceil(len(l) / microbatch_size)
+        # Note: this is to match the behavior of tensor.chunk, which is used in _split_tensor
+        chunked_microbatch_size = math.ceil(len(l) / num_microbatches)
+        return [l[start:start + chunked_microbatch_size] for start in range(0, len(l), chunked_microbatch_size)]
+
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,
                                           drop_last=False,
                                           **dataloader_kwargs),
-                                          split_batch=_split_list,
+                                          split_batch=split_list,
                                           get_num_samples_in_batch=lambda x: len(x))
 
 
