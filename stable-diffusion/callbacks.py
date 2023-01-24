@@ -28,5 +28,5 @@ class LogDiffusionImages(Callback):
 
     def eval_end(self, state: State, logger: Logger) -> None:
         step = state.timestamp.batch.value
-        wandb.log(self.table, step)
+        logger.log_metrics(self.table, step)
          
