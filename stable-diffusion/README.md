@@ -43,7 +43,7 @@ The default config is in `yamls/finetune.yaml`
 try training for more iterations or with a different dataset and inspecting the results
 
 # Results
-Finetuning for x iterations yeilds good results
+Finetuning for ~15k iterations yeilds decent results on the pokemon dataset. Training longer can quickly lead to overfitting.
 
 add some pictures here
 

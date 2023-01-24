@@ -134,7 +134,7 @@ class StableDiffusion(ComposerModel):
             negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1). Must be the same length as list of prompts.
             num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
         """
-        num_images_per_prompt = num_images_per_prompt or self.num_images_per_prompt 
+        num_images_per_prompt = num_images_per_prompt if num_images_per_prompt else self.num_images_per_prompt 
         batch_size = 1 if isinstance(prompt, str) else len(prompt)
 
         if negative_prompt:
