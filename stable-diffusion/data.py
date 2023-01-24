@@ -12,7 +12,7 @@ from composer.utils import dist
 
 from datasets.load import load_dataset
 from torchvision import transforms
-from composer.core import DataSpec, _split_list
+from composer.core import DataSpec
 from torch.utils.data import Dataset
 
 
