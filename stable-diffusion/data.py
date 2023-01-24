@@ -115,7 +115,7 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
                                           **dataloader_kwargs),
                                           split_batch=split_list,
                                           get_num_samples_in_batch=lambda x: len(x))
-    ds._num_microbatches_split_batch = split_list
+    ds._num_microbatches_split_batch = split_list # hack to get auto gradient accumulation to work with list of strings.
     return ds
 
 

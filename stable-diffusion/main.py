@@ -51,7 +51,7 @@ def main(config):
     # Initialize dist to ensure dataset is only downloaded by rank 0
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
     if dist.get_world_size() > 1:
-        dist.initialize_dist(device, 180)
+        dist.initialize_dist(device, timeout=180)
         train_batch_size //= dist.get_world_size()
         train_batch_size = train_batch_size or 1
 
@@ -90,7 +90,6 @@ def main(config):
                                   weight_decay=config.optimizer.weight_decay)
 
     # Learning rate scheduler: LR warmup for 8 epochs, then cosine decay for the rest of training
-
     lr_scheduler = ConstantScheduler()
     print('Built optimizer and learning rate scheduler\n')
 
@@ -150,7 +149,6 @@ def main(config):
 
     print('Train!')
     trainer.fit()
-
     # Return trainer for testing purposes
     return trainer
 
