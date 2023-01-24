@@ -201,8 +201,7 @@ class StableDiffusion(ComposerModel):
         latents = 1 / 0.18215 * latents
         image = self.vae.decode(latents).sample
         image =  (image / 2 + 0.5).clamp(0, 1)
-        return image.detach() # (batch, channel, h, w)
-
+        return image.detach() # (batch*num_images_per_prompt, channel, h, w)
 
     def get_metrics(self, is_train: bool = False):
         if is_train:
