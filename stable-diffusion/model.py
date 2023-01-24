@@ -39,7 +39,7 @@ class StableDiffusion(ComposerModel):
                  num_images_per_prompt: int = 1,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
-                 prediction_type:str = None,
+                 prediction_type: str = None,
                  train_metrics: list = None,
                  val_metrics: list = None,
                  image_key: str = 'image_tensor',
@@ -52,7 +52,8 @@ class StableDiffusion(ComposerModel):
         self.noise_scheduler = noise_scheduler
         if prediction_type:
             if prediction_type not in ['v_prediction', 'epsilon']:
-                raise ValueError('prediction_type must be "v_prediction" or "epsilon"')
+                raise ValueError(
+                    'prediction_type must be "v_prediction" or "epsilon"')
             self.noise_scheduler.config.prediction_type = prediction_type
 
         self.inference_scheduler = inference_scheduler
@@ -65,8 +66,10 @@ class StableDiffusion(ComposerModel):
 
         self.loss_fn = loss_fn
 
-        self.train_metrics = MetricCollection(train_metrics) if train_metrics else None
-        self.val_metrics = MetricCollection(val_metrics) if val_metrics else None
+        self.train_metrics = MetricCollection(
+            train_metrics) if train_metrics else None
+        self.val_metrics = MetricCollection(
+            val_metrics) if val_metrics else None
 
         self.image_key = image_key
         self.caption_key = caption_key
@@ -81,10 +84,14 @@ class StableDiffusion(ComposerModel):
         latents *= 0.18215
 
         # Encode the text. Assume that the text is already tokenized. This is slow, we should cache the results.
-        conditioning = self.text_encoder(conditioning)[0]  # (batch_size, 77, 768)
+        conditioning = self.text_encoder(conditioning)[
+            0]  # (batch_size, 77, 768)
 
         # Sample the diffusion timesteps
-        timesteps = torch.randint(0, len(self.noise_scheduler), (latents.shape[0], ), device=latents.device)
+        timesteps = torch.randint(0,
+                                  len(self.noise_scheduler),
+                                  (latents.shape[0], ),
+                                  device=latents.device)
         # Add noise to the inputs (forward diffusion)
         noise = torch.randn_like(latents)
 
@@ -116,13 +123,13 @@ class StableDiffusion(ComposerModel):
 
     @torch.no_grad()
     def generate(self,
-            prompt: list,
-            height: int = None,
-            width: int = None,
-            num_inference_steps: int = 50,
-            guidance_scale: float = 7.5,
-            negative_prompt: list = None,
-            num_images_per_prompt: int = None):
+                 prompt: list,
+                 height: int = None,
+                 width: int = None,
+                 num_inference_steps: int = 50,
+                 guidance_scale: float = 7.5,
+                 negative_prompt: list = None,
+                 num_images_per_prompt: int = None):
         """Generate images from noise using the backward diffusion process.
             
         Args:
@@ -134,13 +141,16 @@ class StableDiffusion(ComposerModel):
             negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1). Must be the same length as list of prompts.
             num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
         """
-        num_images_per_prompt = num_images_per_prompt if num_images_per_prompt else self.num_images_per_prompt 
+        num_images_per_prompt = num_images_per_prompt if num_images_per_prompt else self.num_images_per_prompt
         batch_size = 1 if isinstance(prompt, str) else len(prompt)
 
         if negative_prompt:
-            negative_prompt_bs = 1 if isinstance(negative_prompt, str) else len(negative_prompt)
+            negative_prompt_bs = 1 if isinstance(negative_prompt,
+                                                 str) else len(negative_prompt)
             if negative_prompt_bs != batch_size:
-                raise ValueError(f'len(prompts) and len(negative_prompts) must be the same. A negative prompt must be provided for each given prompt.')
+                raise ValueError(
+                    f'len(prompts) and len(negative_prompts) must be the same. A negative prompt must be provided for each given prompt.'
+                )
 
         vae_scale_factor = 8
         height = height or self.unet.config.sample_size * vae_scale_factor
@@ -148,32 +158,50 @@ class StableDiffusion(ComposerModel):
 
         device = self.vae.device
         # tokenize and encode text prompt
-        text_input = self.tokenizer(prompt, padding="max_length", max_length=self.tokenizer.model_max_length, truncation=True, return_tensors="pt")
+        text_input = self.tokenizer(prompt,
+                                    padding="max_length",
+                                    max_length=self.tokenizer.model_max_length,
+                                    truncation=True,
+                                    return_tensors="pt")
         text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0]
-        
+
         # classifier free guidance + negative prompts
         # negative prompt is given in place of the unconditional input in classifier free guidance
-        unconditional_input = [""]*batch_size if not negative_prompt else negative_prompt
-        
+        unconditional_input = [
+            ""
+        ] * batch_size if not negative_prompt else negative_prompt
+
         # tokenize + encode negative or uncoditional prompt
-        unconditional_input = self.tokenizer(unconditional_input, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
-        unconditional_embeddings = self.text_encoder(unconditional_input.input_ids.to(device))[0]   
+        unconditional_input = self.tokenizer(
+            unconditional_input,
+            padding="max_length",
+            max_length=self.tokenizer.model_max_length,
+            return_tensors="pt")
+        unconditional_embeddings = self.text_encoder(
+            unconditional_input.input_ids.to(device))[0]
 
         # duplicate text embeddings for each generation per prompt
         bs_embed, seq_len, _ = text_embeddings.shape
         text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
-        text_embeddings = text_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
+        text_embeddings = text_embeddings.view(
+            bs_embed * num_images_per_prompt, seq_len, -1)
 
         # duplicate unconditional embeddings if we want to generate multiple images per prompt
         bs_embed, seq_len, _ = unconditional_embeddings.shape
-        unconditional_embeddings = unconditional_embeddings.repeat(1, num_images_per_prompt, 1)
-        unconditional_embeddings = unconditional_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
+        unconditional_embeddings = unconditional_embeddings.repeat(
+            1, num_images_per_prompt, 1)
+        unconditional_embeddings = unconditional_embeddings.view(
+            bs_embed * num_images_per_prompt, seq_len, -1)
 
         # concat uncond + prompt
-        text_embeddings = torch.cat([unconditional_embeddings, text_embeddings])
+        text_embeddings = torch.cat(
+            [unconditional_embeddings, text_embeddings])
 
         # prepare for diffusion generation process
-        latents = torch.randn((batch_size*num_images_per_prompt, self.unet.in_channels, height // vae_scale_factor, width // vae_scale_factor), device=device)
+        latents = torch.randn(
+            (batch_size * num_images_per_prompt, self.unet.in_channels,
+             height // vae_scale_factor, width // vae_scale_factor),
+            device=device)
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
         # The K-LMS scheduler needs to multiply the `latents` by its `sigma` values. Let's do this here
@@ -184,24 +212,29 @@ class StableDiffusion(ComposerModel):
             # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
             latent_model_input = torch.cat([latents] * 2)
 
-            latent_model_input = self.inference_scheduler.scale_model_input(latent_model_input, t)
+            latent_model_input = self.inference_scheduler.scale_model_input(
+                latent_model_input, t)
 
             # predict the noise residual
-            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+            noise_pred = self.unet(
+                latent_model_input, t,
+                encoder_hidden_states=text_embeddings).sample
 
             # perform guidance
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-            noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+            noise_pred = noise_pred_uncond + guidance_scale * (
+                noise_pred_text - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
-            latents = self.inference_scheduler.step(noise_pred, t, latents).prev_sample
+            latents = self.inference_scheduler.step(noise_pred, t,
+                                                    latents).prev_sample
 
         # We now use the vae to decode the generated latents back into the image.
         # scale and decode the image latents with vae
         latents = 1 / 0.18215 * latents
         image = self.vae.decode(latents).sample
-        image =  (image / 2 + 0.5).clamp(0, 1)
-        return image.detach() # (batch*num_images_per_prompt, channel, h, w)
+        image = (image / 2 + 0.5).clamp(0, 1)
+        return image.detach()  # (batch*num_images_per_prompt, channel, h, w)
 
     def get_metrics(self, is_train: bool = False):
         if is_train:
@@ -226,8 +259,8 @@ class StableDiffusion(ComposerModel):
 
 
 def build_stable_diffusion_model(model_name_or_path: str,
-                                 train_text_encoder:bool=False,
-                                 num_images_per_prompt:int=1,
+                                 train_text_encoder: bool = False,
+                                 num_images_per_prompt: int = 1,
                                  image_key: str = 'image_tensor',
                                  caption_key: str = 'input_ids'):
     """
@@ -245,7 +278,8 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                                  subfolder='text_encoder')
     noise_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
                                                     subfolder='scheduler')
-    inference_scheduler = LMSDiscreteScheduler.from_pretrained(model_name_or_path, subfolder="scheduler")
+    inference_scheduler = LMSDiscreteScheduler.from_pretrained(
+        model_name_or_path, subfolder="scheduler")
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder="tokenizer")
     return StableDiffusion(unet=unet,
