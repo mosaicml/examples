@@ -11,8 +11,9 @@ from composer.utils import dist
 
 from datasets.load import load_dataset
 from torchvision import transforms
-from composer.core import DataSpec
+from composer.core import DataSpec, _split_list
 from torch.utils.data import Dataset
+
 
 
 def collate_fn(examples: dict):
@@ -102,6 +103,7 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
                                           sampler=sampler,
                                           drop_last=False,
                                           **dataloader_kwargs),
+                                          split_batch=_split_list,
                                           get_num_samples_in_batch=lambda x: len(x))
 
 
