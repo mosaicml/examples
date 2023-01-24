@@ -268,7 +268,6 @@ def build_stable_diffusion_model(model_name_or_path: str,
         model_name_or_path(str): commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"
 
     """
-    model_name_or_path = "CompVis/stable-diffusion-v1-4"
     unet = UNet2DConditionModel.from_pretrained(model_name_or_path,
                                                 subfolder='unet')
     if is_xformers_available():
