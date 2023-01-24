@@ -23,14 +23,22 @@ For single node jobs it’s as simple as running `mcli run -f single_node.yaml`.
 
 The logs for a successful training logs should look something like:
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/single_node.png">
+  <img alt="Logs from single node NeMo trianing." src="./assets/single_node.png">
+</picture>
+
 ************Multi-Node Jobs************
 
 To run a multi-node job it’s as simple as running `mcli run -f multi_node.yaml`.
 
 Fundamentally, the script relies on using the `parallel` library to create the appropriate number of processes, 8, one per GPU. MCloud sets up the appropriate ENV variables such that NeMo knows the size of the job. 
 
-Below is an image of the logs on one node:
+Below are the logs from multi-node training:
 
-and the logs on two nodes:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/multi_node.png">
+  <img alt="Logs from multi node NeMo trianing." src="./assets/multi_node.png">
+</picture>
 
 Notice we get approximately linear scaling with the number of GPUs running GPT NeMo jobs on MCloud.
