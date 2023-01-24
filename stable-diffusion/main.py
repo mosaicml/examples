@@ -94,6 +94,11 @@ def main(config):
     lr_scheduler = ConstantScheduler()
     print('Built optimizer and learning rate scheduler\n')
 
+    
+    loggers = [
+        build_logger(name, logger_config)
+        for name, logger_config in config.loggers.items()
+    ]
     # Callbacks for logging
     print('Building Speed, LR, and Memory monitoring callbacks')
     speed_monitor = SpeedMonitor(
@@ -113,11 +118,6 @@ def main(config):
     else:
         algorithms = None
     print('Built algorithms')
-
-    loggers = [
-        build_logger(name, logger_config)
-        for name, logger_config in config.loggers.items()
-    ]
 
     # Create the Trainer!
     print('Building Trainer')

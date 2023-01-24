@@ -97,7 +97,6 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
     """prompt dataset for eval"""
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
-
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,

@@ -4,16 +4,18 @@
 
 from composer import Callback, Logger, State
 from torchvision.utils import make_grid
+import wandb
+
 
 class LogDiffusionImages(Callback):
-    """Logs eval prompts and generated images to a w&b table after every batch, logs all generated images at the end of evaluation."""
+    """Logs eval prompts and generated images to a w&b table after every batch, logs all generated images at the end of evaluation.
+    requires weights and biases.
+    """
     def __init__(self):
-        import wandb
-        self.wandb = wandb
         self.table = None
 
     def eval_start(self, state: State, logger: Logger) -> None:
-        self.table = self.wandb.Table(columns=["prompt", "images"])
+        self.table = wandb.Table(columns=["prompt", "images"])
 
     def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch_get_item(key=0)
@@ -26,5 +28,5 @@ class LogDiffusionImages(Callback):
 
     def eval_end(self, state: State, logger: Logger) -> None:
         step = state.timestamp.batch.value
-        self.wandb.log(self.table, step)
+        wandb.log(self.table, step)
          
