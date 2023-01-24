@@ -20,6 +20,7 @@ class LogDiffusionImages(Callback):
             if isinstance(destination, WandBLogger):
                 if num_images_per_prompt > 1:
                     outputs = [make_grid(out, nrow=num_images_per_prompt) for out in outputs.chunk(num_images_per_prompt)]
+                    print('state outputs', state.outputs.cpu().shape)
                 for prompt, output in zip(prompts, outputs):
                     print(prompt)
                     print(output.shape)
