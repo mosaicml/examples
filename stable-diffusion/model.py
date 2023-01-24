@@ -97,7 +97,9 @@ class StableDiffusion(ComposerModel):
         """loss between unet output and added noise, typically mse"""
         return self.loss_fn(outputs[0], outputs[1])
 
-    def eval_forward(self, batch):
+    def eval_forward(self, batch, outputs):
+        if outputs:
+            return outputs
         return self.generate(batch)
 
     @torch.no_grad()
@@ -127,7 +129,7 @@ class StableDiffusion(ComposerModel):
             negative_prompt_bs = 1 if isinstance(negative_prompt, str) else len(negative_prompt)
             if negative_prompt_bs != batch_size:
                 raise ValueError(f'len(prompts) and len(negative_prompts) must be the same. A negative prompt must be provided for each given prompt.')
-                
+
         vae_scale_factor = 8
         height = height or self.unet.config.sample_size * vae_scale_factor
         width = width or self.unet.config.sample_size * vae_scale_factor
