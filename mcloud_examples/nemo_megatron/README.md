@@ -15,7 +15,7 @@ Here’s what you’ll need to get started with running NeMo on MCloud
 -   [A dataset prepared in the expected format](https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/stable/nlp/nemo_megatron/gpt/gpt_training.html#data-download-pre-processing).
 
 ## Starting Training
-Below we show the `.yaml` files for single and multi-node jobs. You just need to fill in the `run_name`, `platform`, and `your_dataset_path_here` fields in the scripts. Additionally, other NeMo configs can be modified as usual.
+We include the `.yaml` files required to run NeMo on MCloud. You just need to fill in the `run_name`, `platform`, and `your_dataset_path_here` fields in the `.yaml` files. Additionally, other NeMo configs can be modified as usual.
 
 ********************************Single Node Jobs********************************
 
