@@ -3,13 +3,13 @@ seed: 42               # Random seed
 max_duration: '15ba'    # Duration to train specified as a Time string
 grad_accum: 1       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
 use_ema: false
-eval_interval: '5ba'
+eval_interval: '1ba'
 
 dataset:
   name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
   resolution: 512        # training image size
   image_column: 'image'
-  caption_column: 'caption'
+  caption_column: 'text'
   mean:
     - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
   std:
