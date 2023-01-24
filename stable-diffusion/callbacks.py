@@ -24,8 +24,8 @@ class LogDiffusionImages(Callback):
                 
                 # multiple prompts 1 image per
                 if len(prompts) > 1  and num_images_per_prompt == 1:
-                for prompt, output in zip(prompts, outputs):
-                    destination.log_images(images=output, name=prompt, step=state.timestamp.batch.value) 
+                    for prompt, output in zip(prompts, outputs):
+                        destination.log_images(images=output, name=prompt, step=state.timestamp.batch.value) 
                 
                 # one prompt multiple images
                 if len(prompts) == 1 and num_images_per_prompt > 1:
