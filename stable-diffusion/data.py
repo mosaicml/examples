@@ -21,16 +21,19 @@ def collate_fn(examples: dict):
     return {"image_tensor": image_tensor, "input_ids": input_ids}
 
 
-def build_pokemon_datapsec(tokenizer: callable,
-                           resolution: int,
-                           center_crop: bool = True,
-                           random_flip: bool = True,
-                           *,
-                           batch_size: int,
-                           drop_last: bool = True,
-                           shuffle: bool = True,
-                           seed: int = 1337,
-                           **dataloader_kwargs):
+def build_image_caption_datapsec(name:str,
+                                resolution: int,
+                                tokenizer: callable,
+                                mean:list=[0.5],
+                                std:list=[0.5],
+                                center_crop: bool = True,
+                                random_flip: bool = True,
+                                *,
+                                batch_size: int,
+                                drop_last: bool = True,
+                                shuffle: bool = True,
+                                seed: int = 1337,
+                                **dataloader_kwargs):
     train_transforms = transforms.Compose([
         transforms.Resize(resolution,
                           interpolation=transforms.InterpolationMode.BILINEAR),
@@ -39,7 +42,7 @@ def build_pokemon_datapsec(tokenizer: callable,
         transforms.RandomHorizontalFlip()
         if random_flip else transforms.Lambda(lambda x: x),
         transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5]),
+        transforms.Normalize(mean, std),
     ])
 
     def tokenize_captions(examples: dict,
@@ -74,7 +77,7 @@ def build_pokemon_datapsec(tokenizer: callable,
         return examples
 
     with dist.run_local_rank_zero_first():
-        dataset = load_dataset("lambdalabs/pokemon-blip-captions",
+        dataset = load_dataset(name,
                                split='train')
 
     # add pixel_values and input_ids columns (processed images and text)

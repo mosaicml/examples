@@ -6,15 +6,20 @@ use_ema: false
 eval_interval: '5ba'
 
 dataset:
+  name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
+  resolution: 512        # training image size
+  mean:
+    - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
+  std:
+    - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
   train_batch_size: 4    # Training dataloader batch size per device
   eval_batch_size: 2
-  resolution: 512             # Local cache location when streaming data
   prompts:
     - "A pokemon with green eyes, large wings, and a hat"
     - "barack obama on a horse"
 
 model:
-  name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"
+  name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1" use 2-1 for sizes > 512
   train_text_encoder: false
   image_key: "image_tensor"
   caption_key: "input_ids"
@@ -34,7 +39,7 @@ loggers:
 
 # Save checkpoint parameters
 save_folder:                    # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-save_interval: 10ep             # Interval to checkpoint based on time string
+save_interval: '1000ba'             # Interval to checkpoint based on time string
 save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
 
 # Load checkpoint parameters

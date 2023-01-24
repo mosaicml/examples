@@ -33,6 +33,7 @@ class StableDiffusion(ComposerModel):
                  pipeline: diffusers.pipelines,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
+                 prediction_type:str = None,
                  train_metrics: list = [MeanSquaredError()],
                  val_metrics: list = [MeanSquaredError()],
                  image_key: str = 'image_tensor',
@@ -43,6 +44,11 @@ class StableDiffusion(ComposerModel):
         self.text_encoder = text_encoder
         self.tokenizer = tokenizer
         self.noise_scheduler = noise_scheduler
+        if prediction_type:
+            if prediction_type not in ['v_prediction', 'epsilon']:
+                raise ValueError('prediction_type must be "v_prediction" or "epsilon"')
+            self.noise_scheduler.config.prediction_type = prediction_type
+
         self.inference_scheduler = inference_scheduler
 
         # freeze vae during diffusion training

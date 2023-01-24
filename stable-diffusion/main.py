@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 """Example script to train a ResNet model on ImageNet."""
 
 import os
@@ -14,7 +13,7 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import ConstantScheduler
 from composer.utils import dist
-from data import build_pokemon_datapsec, build_prompt_dataspec
+from data import build_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from callbacks import LogDiffusionImages
 from omegaconf import DictConfig, OmegaConf
@@ -47,35 +46,39 @@ def main(config):
         )
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.dataset.train_batch_size
-    eval_batch_size = config.dataset.eval_batch_size 
+    eval_batch_size = config.dataset.eval_batch_size
 
     # Initialize dist to ensure dataset is only downloaded by rank 0
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
     if dist.get_world_size() > 1:
         dist.initialize_dist(device, 180)
         train_batch_size //= dist.get_world_size()
-        train_batch_size = train_batch_size or 1 
+        train_batch_size = train_batch_size or 1
 
         eval_batch_size //= dist.get_world_size()
-        eval_batch_size = eval_batch_size or 1 
+        eval_batch_size = eval_batch_size or 1
 
     print('Building Composer model')
-    model = build_stable_diffusion_model(model_name_or_path=config.model.name,
-                                        train_text_encoder=config.model.train_text_encoder,
-                                        image_key=config.model.image_key,
-                                        caption_key=config.model.caption_key)
-
+    model = build_stable_diffusion_model(
+        model_name_or_path=config.model.name,
+        train_text_encoder=config.model.train_text_encoder,
+        image_key=config.model.image_key,
+        caption_key=config.model.caption_key)
 
     # Train dataset
     print('Building dataloader')
-    train_dataspec = build_pokemon_datapsec(tokenizer=model.tokenizer,
-                                            resolution=config.dataset.resolution,
-                                            batch_size=train_batch_size)
+    train_dataspec = build_image_caption_datapsec(
+        name=config.dataset.name,
+        resolution=config.dataset.resolution,
+        tokenizer=model.tokenizer,
+        resolution=config.dataset.resolution,
+        mean=config.dataset.mean,
+        std=config.dataset.std,
+        batch_size=train_batch_size)
 
     # Eval dataset
-    eval_dataspec = build_prompt_dataspec(config.dataset.prompts, batch_size=eval_batch_size)
-
-
+    eval_dataspec = build_prompt_dataspec(config.dataset.prompts,
+                                          batch_size=eval_batch_size)
 
     # Optimizer
     print('Building optimizer and learning rate scheduler')
@@ -89,7 +92,6 @@ def main(config):
     lr_scheduler = ConstantScheduler()
     print('Built optimizer and learning rate scheduler\n')
 
-
     # Callbacks for logging
     print('Building Speed, LR, and Memory monitoring callbacks')
     speed_monitor = SpeedMonitor(
@@ -97,7 +99,8 @@ def main(config):
     )  # Measures throughput as samples/sec and tracks total training time
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
-    image_logger = LogDiffusionImages() # Logs images generated from prompts in the eval set
+    image_logger = LogDiffusionImages(
+    )  # Logs images generated from prompts in the eval set
 
     # Callback for checkpointing
     print('Built Speed, LR, and Memory monitoring callbacks\n')
