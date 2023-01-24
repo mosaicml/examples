@@ -108,13 +108,15 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
         chunked_microbatch_size = math.ceil(len(l) / num_microbatches)
         return [l[start:start + chunked_microbatch_size] for start in range(0, len(l), chunked_microbatch_size)]
 
-    return DataSpec(dataloader=DataLoader(dataset=dataset,
+    ds = DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,
                                           drop_last=False,
                                           **dataloader_kwargs),
                                           split_batch=split_list,
                                           get_num_samples_in_batch=lambda x: len(x))
+    ds._num_microbatches_split_batch = split_list
+    return ds
 
 
 class PromptDataset(Dataset):
