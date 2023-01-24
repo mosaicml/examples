@@ -32,8 +32,16 @@ parameters:
     train_batch_size: 4    # Training dataloader batch size per device
     eval_batch_size: 2
     prompts:
-      - "A pokemon with green eyes, large wings, and a hat"
-      - "barack obama on a horse"
+      - "A pokemon with green eyes, large wings, and a hat" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
+      - "A cute bunny rabbit"
+      - "Yoda"
+      - "An epic landscape photo of a mountain"
+      - "Girl with a pearl earring"
+      - "Cute Obama creature"
+      - "Donald Trump"
+      - "Boris Johnson"
+      - "Totoro"
+      - "Hello Kitty"
 
   model:
     name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1" use 2-1 for sizes > 512
