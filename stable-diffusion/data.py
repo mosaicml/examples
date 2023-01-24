@@ -1,3 +1,5 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
 import random
 
 import torch
@@ -10,6 +12,7 @@ from datasets.load import load_dataset
 from torchvision import transforms
 from composer.core import DataSpec
 from torch.utils.data import Dataset
+from functools import partial
 
 
 def collate_fn(examples: dict):

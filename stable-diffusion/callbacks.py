@@ -1,3 +1,7 @@
+
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 from composer import Callback, Logger, State
 from composer.utils import ensure_tuple
 from composer.loggers import WandBLogger

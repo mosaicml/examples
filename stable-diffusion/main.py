@@ -1,6 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-"""Example script to train a ResNet model on ImageNet."""
+"""Example script to finetune a Stable Diffusion Model."""
 
 import os
 import sys
@@ -71,7 +71,6 @@ def main(config):
         name=config.dataset.name,
         resolution=config.dataset.resolution,
         tokenizer=model.tokenizer,
-        resolution=config.dataset.resolution,
         mean=config.dataset.mean,
         std=config.dataset.std,
         image_column=config.dataset.image_column,
