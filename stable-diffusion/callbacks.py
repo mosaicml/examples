@@ -5,6 +5,8 @@
 from composer import Callback, Logger, State
 from torchvision.utils import make_grid
 import wandb
+from composer.utils import ensure_tuple
+from composer.loggers import WandBLogger
 
 
 class LogDiffusionImages(Callback):
@@ -27,6 +29,6 @@ class LogDiffusionImages(Callback):
                 self.table.add_data(prompt, output)
 
     def eval_end(self, state: State, logger: Logger) -> None:
-        step = state.timestamp.batch.value
-        logger.log_metrics({'predictions': self.table}, step)
-         
+        for destination in ensure_tuple(logger.destinations):
+            if isinstance(destination, WandBLogger):
+                destination.log_metrics({'predictions': self.table}, step=state.timestamp.batch.value)         
