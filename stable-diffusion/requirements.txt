@@ -21,3 +21,5 @@ omegaconf
 # -------- diffusion -------- #
 diffusers [torch]
 transformers [torch]
+
+# -------- fast transformers ----- #

@@ -6,12 +6,10 @@ from torch.utils.data import DataLoader
 import numpy as np
 from composer.utils import dist
 
-
 from datasets import load_dataset
 from torchvision import transforms
 from composer.core import DataSpec
 from torch.utils.data import Dataset
-
 
 
 def collate_fn(examples: dict):
@@ -45,25 +43,26 @@ def build_pokemon_datapsec(tokenizer: callable,
     ])
 
     def tokenize_captions(examples: dict,
-                      tokenizer: callable=tokenizer,
-                      caption_column: str = 'text',
-                      is_train: bool = True):
+                          tokenizer: callable = tokenizer,
+                          caption_column: str = 'text',
+                          is_train: bool = True):
         captions = []
         for caption in examples[caption_column]:
             if isinstance(caption, str):
                 captions.append(caption)
             elif isinstance(caption, (list, np.ndarray)):
                 # take a random caption if there are multiple
-                captions.append(random.choice(caption) if is_train else caption[0])
+                captions.append(
+                    random.choice(caption) if is_train else caption[0])
             else:
                 raise ValueError(
                     f"Caption column `{caption_column}` should contain either strings or lists of strings."
                 )
         inputs = tokenizer(captions,
-                        max_length=tokenizer.model_max_length,
-                        padding="max_length",
-                        truncation=True,
-                        return_tensors="pt")
+                           max_length=tokenizer.model_max_length,
+                           padding="max_length",
+                           truncation=True,
+                           return_tensors="pt")
         return inputs.input_ids
 
     def preprocess(examples: dict):
@@ -75,13 +74,12 @@ def build_pokemon_datapsec(tokenizer: callable,
         return examples
 
     with dist.run_local_rank_zero_first():
-        dataset = load_dataset("lambdalabs/pokemon-blip-captions", split='train')
+        dataset = load_dataset("lambdalabs/pokemon-blip-captions",
+                               split='train')
 
     # add pixel_values and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)
-    sampler = dist.get_sampler(dataset,
-                            drop_last=drop_last,
-                            shuffle=shuffle)
+    sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,
@@ -90,21 +88,22 @@ def build_pokemon_datapsec(tokenizer: callable,
                                           **dataloader_kwargs))
 
 
-def build_prompt_dataspec(prompts:list, batch_size:int, **dataloader_kwargs):
+def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
     """prompt dataset for eval"""
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
+
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,
                                           drop_last=False,
+                                          get_num_samples_in_batch=lambda x: len(x),
                                           **dataloader_kwargs))
 
 
 class PromptDataset(Dataset):
     """Convert a list of strings into a pytorch dataset because the Trainer expects a dataloader for batching purposes"""
-    
-    def __init__(self, prompts:list):
+    def __init__(self, prompts: list):
         self.prompts = prompts
 
     def __getitem__(self, index):
