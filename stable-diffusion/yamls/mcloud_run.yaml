@@ -1,6 +1,6 @@
-run_name: stable_diffusion_finetune
-cluster:  r1z1          # Name of the cluster to use for this run
-gpu_type: a100_80gb # Type of GPU to use
+run_name: stable-diffusion-finetune
+cluster:  r7z2         # Name of the cluster to use for this run
+gpu_type: a100_40gb # Type of GPU to use
 gpu_num: 8          # Number of GPUs to use
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
@@ -15,13 +15,18 @@ command: |
 parameters:
   run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
   seed: 42               # Random seed
-  max_duration: 1500ba    # Duration to train specified as a Time string
+  max_duration: '15ba'    # Duration to train specified as a Time string
   grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
   use_ema: false
+  eval_interval: '5ba'
 
   dataset:
-    batch_size: 4    # Training dataloader batch size per device
+    train_batch_size: 4    # Training dataloader batch size per device
+    eval_batch_size: 2
     resolution: 512             # Local cache location when streaming data
+    prompts:
+      - "A pokemon with green eyes, large wings, and a hat"
+      - "barack obama on a horse"
 
   model:
     name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"

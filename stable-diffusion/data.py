@@ -97,8 +97,8 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
                                           batch_size=batch_size,
                                           sampler=sampler,
                                           drop_last=False,
-                                          get_num_samples_in_batch=lambda x: len(x),
-                                          **dataloader_kwargs))
+                                          **dataloader_kwargs),
+                                          get_num_samples_in_batch=lambda x: len(x))
 
 
 class PromptDataset(Dataset):
