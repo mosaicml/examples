@@ -19,8 +19,9 @@ class LogDiffusionImages(Callback):
         for destination in ensure_tuple(logger.destinations):
             if isinstance(destination, WandBLogger):
                 if num_images_per_prompt > 1 and len(prompts) > 1:
-                    outputs = [make_grid(out, nrow=num_images_per_prompt, normalize=False) for out in outputs.chunk(num_images_per_prompt)]
+                    outputs = [make_grid(out, nrow=num_images_per_prompt, scale_each=True) for out in outputs.chunk(num_images_per_prompt)]
                 if num_images_per_prompt > 1 and len(prompts) == 1: 
-                    outputs = make_grid(outputs, nrow=num_images_per_prompt, normalize=False)
+                    outputs = make_grid(outputs, nrow=num_images_per_prompt, scale_each=True)
                 for prompt, output in zip(prompts, outputs):
+                    print(outputs.shape)
                     destination.log_images(images=output, name=prompt, step=state.timestamp.batch.value)    
