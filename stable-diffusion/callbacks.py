@@ -15,16 +15,12 @@ class LogDiffusionImages(Callback):
     def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch
         outputs = state.outputs.cpu()
-        print('state outputs', state.outputs.cpu().shape)
-        print('prompts', prompts)
-        print('num_images_per_prompt', state.model.module.num_images_per_prompt)
         num_images_per_prompt = state.model.module.num_images_per_prompt
         for destination in ensure_tuple(logger.destinations):
             if isinstance(destination, WandBLogger):
                 if num_images_per_prompt > 1:
                     outputs = [make_grid(out, nrow=num_images_per_prompt) for out in outputs.chunk(num_images_per_prompt)]
-                    print('state outputs', state.outputs.cpu().shape)
+                else:
+                    outputs = make_grid(outputs, nrow=num_images_per_prompt)
                 for prompt, output in zip(prompts, outputs):
-                    print(prompt)
-                    print(output.shape)
                     destination.log_images(images=output, name=prompt, step=state.timestamp.batch.value)    
