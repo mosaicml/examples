@@ -23,7 +23,6 @@ parameters:
   dataset:
     name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
     resolution: 512        # training image size
-    num_images_per_prompt: 4
     image_column: 'image'
     caption_column: 'text'
     mean:
@@ -39,6 +38,7 @@ parameters:
   model:
     name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1" use 2-1 for sizes > 512
     train_text_encoder: false
+    num_images_per_prompt: 4 # number of images to generate per prompt during validation
     image_key: "image_tensor"
     caption_key: "input_ids"
 

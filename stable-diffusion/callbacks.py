@@ -6,6 +6,7 @@ from composer import Callback, Logger, State
 from torchvision.utils import make_grid
 
 class LogDiffusionImages(Callback):
+    """Logs eval prompts and generated images to a w&b table after every batch, logs all generated images at the end of evaluation."""
     def __init__(self):
         import wandb
         self.wandb = wandb

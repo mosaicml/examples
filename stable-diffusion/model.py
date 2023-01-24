@@ -65,8 +65,8 @@ class StableDiffusion(ComposerModel):
 
         self.loss_fn = loss_fn
 
-        self.train_metrics = MetricCollection(train_metrics)
-        self.val_metrics = MetricCollection(val_metrics)
+        self.train_metrics = MetricCollection(train_metrics) if train_metrics else None
+        self.val_metrics = MetricCollection(val_metrics) if val_metrics else None
 
         self.image_key = image_key
         self.caption_key = caption_key
@@ -209,15 +209,15 @@ class StableDiffusion(ComposerModel):
             metrics = self.train_metrics
         else:
             metrics = self.val_metrics
-
-        if isinstance(metrics, Metric):
+        if not metrics:
+            return {}
+        elif isinstance(metrics, Metric):
             metrics_dict = {metrics.__class__.__name__: metrics}
         else:
             metrics_dict = {}
             for name, metric in metrics.items():
                 assert isinstance(metric, Metric)
                 metrics_dict[name] = metric
-
         return metrics_dict
 
     def update_metric(self, batch, outputs, metric):

@@ -75,15 +75,12 @@ def build_image_caption_datapsec(name:str,
 
     def preprocess(examples: dict):
         images = [image.convert("RGB") for image in examples[image_column]]
-        examples["image_tensor"] = [
-            train_transforms(image) for image in images
-        ]
+        examples["image_tensor"] = [train_transforms(image) for image in images]
         examples["input_ids"] = tokenize_captions(examples)
         return examples
 
     with dist.run_local_rank_zero_first():
-        dataset = load_dataset(name,
-                               split='train')
+        dataset = load_dataset(name, split='train')
 
     # add pixel_values and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)
