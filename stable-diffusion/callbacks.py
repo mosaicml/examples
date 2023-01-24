@@ -17,7 +17,9 @@ class LogDiffusionImages(Callback):
         self.table = None
 
     def eval_start(self, state: State, logger: Logger) -> None:
-        self.table = wandb.Table(columns=["prompt", "images"])
+        for destination in ensure_tuple(logger.destinations):
+            if isinstance(destination, WandBLogger):
+                self.table = wandb.Table(columns=["prompt", "images"])
 
     def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch_get_item(key=0)
