@@ -10,6 +10,7 @@ from composer.utils import dist
 from datasets import load_dataset
 from torchvision import transforms
 from composer.core import DataSpec
+from torch.utils.data import Dataset
 
 
 
@@ -87,3 +88,27 @@ def build_pokemon_datapsec(tokenizer: callable,
                                           drop_last=drop_last,
                                           collate_fn=collate_fn,
                                           **dataloader_kwargs))
+
+
+def build_prompt_dataspec(prompts:list, batch_size:int, **dataloader_kwargs):
+    """prompt dataset for eval"""
+    dataset = PromptDataset(prompts)
+    sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
+    return DataSpec(dataloader=DataLoader(dataset=dataset,
+                                          batch_size=batch_size,
+                                          sampler=sampler,
+                                          drop_last=False,
+                                          **dataloader_kwargs))
+
+
+class PromptDataset(Dataset):
+    """Convert a list of strings into a pytorch dataset because the Trainer expects a dataloader for batching purposes"""
+    
+    def __init__(self, prompts:list):
+        self.prompts = prompts
+
+    def __getitem__(self, index):
+        return self.prompts[index]
+
+    def __len__(self):
+        return len(self.prompts)

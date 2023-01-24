@@ -14,7 +14,7 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import ConstantScheduler
 from composer.utils import dist
-from data import build_pokemon_datapsec
+from data import build_pokemon_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from callbacks import LogDiffusionImages
 from omegaconf import DictConfig, OmegaConf
@@ -46,14 +46,18 @@ def main(config):
             'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
         )
     # Divide batch sizes by number of devices if running multi-gpu training
-    batch_size = config.dataset.batch_size 
+    train_batch_size = config.dataset.train_batch_size
+    eval_batch_size = config.dataset.eval_batch_size 
 
     # Initialize dist to ensure dataset is only downloaded by rank 0
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
     if dist.get_world_size() > 1:
         dist.initialize_dist(device, 180)
-        batch_size //= dist.get_world_size()
-        batch_size = batch_size or 1 
+        train_batch_size //= dist.get_world_size()
+        train_batch_size = train_batch_size or 1 
+
+        eval_batch_size //= dist.get_world_size()
+        eval_batch_size = eval_batch_size or 1 
 
     print('Building Composer model')
     model = build_stable_diffusion_model(model_name_or_path=config.model.name,
@@ -66,9 +70,10 @@ def main(config):
     print('Building dataloader')
     train_dataspec = build_pokemon_datapsec(tokenizer=model.tokenizer,
                                             resolution=config.dataset.resolution,
-                                            batch_size=batch_size)
+                                            batch_size=train_batch_size)
 
-
+    # Eval dataset
+    eval_dataspec = build_prompt_dataspec(config.dataset.prompts, batch_size=eval_batch_size)
 
 
 
@@ -93,7 +98,9 @@ def main(config):
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
 
-    image_logger = LogDiffusionImages()
+
+    image_logger = ImageVisualizer()
+    image_logger = LogDiffusionImages(log_interval='100ba')
 
     # Callback for checkpointing
     print('Built Speed, LR, and Memory monitoring callbacks\n')
@@ -118,11 +125,13 @@ def main(config):
         run_name=config.run_name,
         model=model,
         train_dataloader=train_dataspec,
+        eval_dataloader=eval_dataspec,
         optimizers=optimizer,
         schedulers=lr_scheduler,
         algorithms=algorithms,
         loggers=loggers,
         max_duration=config.max_duration,
+        eval_interval=config.eval_interval,
         callbacks=[speed_monitor, lr_monitor, memory_monitor, image_logger],
         save_folder=config.save_folder,
         save_interval=config.save_interval,

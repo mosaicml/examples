@@ -97,10 +97,8 @@ class StableDiffusion(ComposerModel):
         """loss between unet output and added noise, typically mse"""
         return self.loss_fn(outputs[0], outputs[1])
 
-    def eval_forward(self, batch, outputs=None):
-        if outputs is not None:
-            return outputs
-        return self.forward(batch)
+    def eval_forward(self, batch):
+        return self.generate(batch)
 
     @torch.no_grad()
     def generate(self,
@@ -110,8 +108,7 @@ class StableDiffusion(ComposerModel):
             num_inference_steps: int = 50,
             guidance_scale: float = 7.5,
             negative_prompt: list = None,
-            num_images_per_prompt: int = 1,
-            eta: float = 1):
+            num_images_per_prompt: int = 1):
         """Generate images from noise using the backward diffusion process.
             
         Args:
@@ -120,32 +117,49 @@ class StableDiffusion(ComposerModel):
             width (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The width in pixels of the generated image.
             num_inference_steps (int, optional, defaults to 50) — The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
             guidance_scale (float, optional, defaults to 7.5) — Guidance scale as defined in Classifier-Free Diffusion Guidance. guidance_scale is defined as w of equation 2. of Imagen Paper. Guidance scale is enabled by setting guidance_scale > 1. Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
-            negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1).
+            negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1). Must be the same length as list of prompts.
             num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
-            eta (float, optional, defaults to 0.0) — Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to schedulers.DDIMScheduler, will be ignored for others.
         """
 
-        batch_size = 1
+        batch_size = 1 if isinstance(prompt, str) else len(prompt)
+
+        if negative_prompt:
+            negative_prompt_bs = 1 if isinstance(negative_prompt, str) else len(negative_prompt)
+            if negative_prompt_bs != batch_size:
+                raise ValueError(f'len(prompts) and len(negative_prompts) must be the same. A negative prompt must be provided for each given prompt.')
+                
         vae_scale_factor = 8
         height = height or self.unet.config.sample_size * vae_scale_factor
         width = width or self.unet.config.sample_size * vae_scale_factor
-        # generator = torch.manual_seed(32, )   # Seed generator to create the inital latent noise
 
         device = self.vae.device
-
-        # encode prompt + unconidtional input
+        # tokenize and encode text prompt
         text_input = self.tokenizer(prompt, padding="max_length", max_length=self.tokenizer.model_max_length, truncation=True, return_tensors="pt")
-        uncond_input = self.tokenizer([""] * batch_size, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
-
-        # concat these into one batch to avoid 2x forwards?
         text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0]
-        uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(device))[0]   
+        
+        # classifier free guidance + negative prompts
+        # negative prompt is given in place of the unconditional input in classifier free guidance
+        unconditional_input = [""]*batch_size if not negative_prompt else negative_prompt
+        
+        # tokenize + encode negative or uncoditional prompt
+        unconditional_input = self.tokenizer(unconditional_input, padding="max_length", max_length=self.tokenizer.model_max_length, return_tensors="pt")
+        unconditional_embeddings = self.text_encoder(unconditional_input.input_ids.to(device))[0]   
+
+        # duplicate text embeddings for each generation per prompt
+        bs_embed, seq_len, _ = text_embeddings.shape
+        text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
+        text_embeddings = text_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
+
+        # duplicate unconditional embeddings if we want to generate multiple images per prompt
+        bs_embed, seq_len, _ = unconditional_embeddings.shape
+        unconditional_embeddings = unconditional_embeddings.repeat(1, num_images_per_prompt, 1)
+        unconditional_embeddings = unconditional_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
 
         # concat uncond + prompt
-        text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+        text_embeddings = torch.cat([unconditional_embeddings, text_embeddings])
 
         # prepare for diffusion generation process
-        latents = torch.randn((batch_size, self.unet.in_channels, height // vae_scale_factor, width // vae_scale_factor), device=device)
+        latents = torch.randn((batch_size*num_images_per_prompt, self.unet.in_channels, height // vae_scale_factor, width // vae_scale_factor), device=device)
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
         # The K-LMS scheduler needs to multiply the `latents` by its `sigma` values. Let's do this here
