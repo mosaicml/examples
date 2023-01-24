@@ -62,7 +62,6 @@ class StableDiffusion(ComposerModel):
         self.train_metrics = MetricCollection(train_metrics)
         self.val_metrics = MetricCollection(val_metrics)
 
-        self.pipeline = pipeline
         self.image_key = image_key
         self.caption_key = caption_key
 

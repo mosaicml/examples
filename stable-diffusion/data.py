@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from composer.utils import dist
 
-from datasets import load_dataset
+from datasets.load import load_dataset
 from torchvision import transforms
 from composer.core import DataSpec
 from torch.utils.data import Dataset
@@ -108,10 +108,10 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
 
 class PromptDataset(Dataset):
     """Convert a list of strings into a pytorch dataset because the Trainer expects a dataloader for batching purposes"""
-    def __init__(self, prompts: list):
+    def __init__(self, prompts:list):
         self.prompts = prompts
 
-    def __getitem__(self, index):
+    def __getitem__(self, index:int):
         return self.prompts[index]
 
     def __len__(self):
