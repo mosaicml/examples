@@ -23,6 +23,7 @@ parameters:
   dataset:
     name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
     resolution: 512        # training image size
+    num_images_per_prompt: 4
     image_column: 'image'
     caption_column: 'text'
     mean:

@@ -3,16 +3,30 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from composer import Callback, Logger, State
-from composer.utils import ensure_tuple
-from composer.loggers import WandBLogger
 from composer.core import Callback, State
-
+from torchvision.utils import make_grid
 
 class LogDiffusionImages(Callback):
+    def __init__(self):
+        import wandb
+        self.wandb = wandb
+        self.table = None
 
-    def eval_after_forward(self, state: State, logger: Logger):
+    def eval_start(self, state: State, logger: Logger) -> None:
+        self.table = self.wandb.Table(columns=["prompt", "images"])
+
+    def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch_get_item(key=0)
         outputs = state.outputs.cpu()
-        for destination in ensure_tuple(logger.destinations):
-            if isinstance(destination, WandBLogger):
-                destination.log_images(images=outputs, name=prompts, step=state.timestamp.batch.value)
+        num_images_per_prompt = state.model.module.num_images_per_prompt
+        if num_images_per_prompt > 1:
+            outputs = [make_grid(out, nrow=1) for out in outputs.chunk(num_images_per_prompt)]
+            for prompt, output in zip(prompts, outputs):
+                self.table.add_data(prompt, output)
+
+    def eval_end(self, state: State, logger: Logger) -> None:
+        step = state.timestamp.batch.value
+        self.wandb.log(self.table, step)
+
+    
+        

@@ -23,6 +23,7 @@ dataset:
 model:
   name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1" use 2-1 for sizes > 512
   train_text_encoder: false
+  num_images_per_prompt: 1
   image_key: "image_tensor"
   caption_key: "input_ids"
 

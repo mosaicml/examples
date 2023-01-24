@@ -62,6 +62,7 @@ def main(config):
     model = build_stable_diffusion_model(
         model_name_or_path=config.model.name,
         train_text_encoder=config.model.train_text_encoder,
+        num_images_per_prompt=config.model.num_images_per_prompt,
         image_key=config.model.image_key,
         caption_key=config.model.caption_key)
 
@@ -100,8 +101,8 @@ def main(config):
     )  # Measures throughput as samples/sec and tracks total training time
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
-    image_logger = LogDiffusionImages(
-    )  # Logs images generated from prompts in the eval set
+
+    image_logger = LogDiffusionImages()  # Logs images generated from prompts in the eval set
 
     # Callback for checkpointing
     print('Built Speed, LR, and Memory monitoring callbacks\n')

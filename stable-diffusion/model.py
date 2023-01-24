@@ -25,6 +25,8 @@ class StableDiffusion(ComposerModel):
         prediction_type(str): `epsilon` or `v_prediction`. `v_prediction` is used in part of stable diffusion v2.1. see https://arxiv.org/pdf/2202.00512.pdf. Default: `None` (uses whatever the pretrained model used)
         train_metrics(list): list of torchmetrics to calculate during training. Default: `None`.
         val_metrics(list): list of torchmetrics to calculate during validation. Default: `None`.
+        num_images_per_prompt (int, optional) — The number of images to generate per prompt. Default: `1`. Used during validation
+
     """
     def __init__(self,
                  unet: torch.nn.Module,
@@ -33,6 +35,7 @@ class StableDiffusion(ComposerModel):
                  tokenizer: callable,
                  noise_scheduler: diffusers.schedulers,
                  inference_scheduler: diffusers.schedulers,
+                 num_images_per_prompt: int = 1,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
                  prediction_type:str = None,
@@ -66,6 +69,7 @@ class StableDiffusion(ComposerModel):
 
         self.image_key = image_key
         self.caption_key = caption_key
+        self.num_images_per_prompt = num_images_per_prompt
 
     def forward(self, batch):
         inputs, conditioning = batch[self.image_key], batch[self.caption_key]
@@ -117,7 +121,7 @@ class StableDiffusion(ComposerModel):
             num_inference_steps: int = 50,
             guidance_scale: float = 7.5,
             negative_prompt: list = None,
-            num_images_per_prompt: int = 1):
+            num_images_per_prompt: int = None):
         """Generate images from noise using the backward diffusion process.
             
         Args:
@@ -129,7 +133,7 @@ class StableDiffusion(ComposerModel):
             negative_prompt (str or List[str], optional) — The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1). Must be the same length as list of prompts.
             num_images_per_prompt (int, optional, defaults to 1) — The number of images to generate per prompt.
         """
-
+        num_images_per_prompt = num_images_per_prompt or self.num_images_per_prompt 
         batch_size = 1 if isinstance(prompt, str) else len(prompt)
 
         if negative_prompt:
@@ -223,6 +227,7 @@ class StableDiffusion(ComposerModel):
 
 def build_stable_diffusion_model(model_name_or_path: str,
                                  train_text_encoder:bool=False,
+                                 num_images_per_prompt:int=1,
                                  image_key: str = 'image_tensor',
                                  caption_key: str = 'input_ids'):
     """
@@ -250,5 +255,6 @@ def build_stable_diffusion_model(model_name_or_path: str,
                            noise_scheduler=noise_scheduler,
                            inference_scheduler=inference_scheduler,
                            train_text_encoder=train_text_encoder,
+                           num_images_per_prompt=num_images_per_prompt,
                            image_key=image_key,
                            caption_key=caption_key)
