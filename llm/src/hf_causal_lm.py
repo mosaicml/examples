@@ -7,7 +7,6 @@ import functools
 from typing import Tuple, Union
 
 import torch
-import transformers
 import torch.nn.functional as F
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
