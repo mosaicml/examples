@@ -74,6 +74,8 @@ def main(config):
         resolution=config.dataset.resolution,
         mean=config.dataset.mean,
         std=config.dataset.std,
+        image_column=config.dataset.image_column,
+        caption_column=config.dataset.caption_column,
         batch_size=train_batch_size)
 
     # Eval dataset

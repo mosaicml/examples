@@ -8,6 +8,8 @@ eval_interval: '5ba'
 dataset:
   name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
   resolution: 512        # training image size
+  image_column: 'image'
+  caption_column: 'caption'
   mean:
     - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
   std:

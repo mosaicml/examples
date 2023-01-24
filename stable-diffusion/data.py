@@ -26,6 +26,8 @@ def build_image_caption_datapsec(name:str,
                                 tokenizer: callable,
                                 mean:list=[0.5],
                                 std:list=[0.5],
+                                image_column:str = 'image',
+                                caption_column:str = 'text',
                                 center_crop: bool = True,
                                 random_flip: bool = True,
                                 *,
@@ -47,7 +49,7 @@ def build_image_caption_datapsec(name:str,
 
     def tokenize_captions(examples: dict,
                           tokenizer: callable = tokenizer,
-                          caption_column: str = 'text',
+                          caption_column: str = caption_column,
                           is_train: bool = True):
         captions = []
         for caption in examples[caption_column]:
@@ -69,7 +71,7 @@ def build_image_caption_datapsec(name:str,
         return inputs.input_ids
 
     def preprocess(examples: dict):
-        images = [image.convert("RGB") for image in examples['image']]
+        images = [image.convert("RGB") for image in examples[image_column]]
         examples["image_tensor"] = [
             train_transforms(image) for image in images
         ]

@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from composer.models import ComposerModel
 from torchmetrics import MeanSquaredError, Metric, MetricCollection
 import diffusers
-from diffusers import AutoencoderKL, DDPMScheduler, StableDiffusionPipeline, UNet2DConditionModel, LMSDiscreteScheduler
+from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel, LMSDiscreteScheduler
 from diffusers.utils.import_utils import is_xformers_available
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
@@ -20,6 +20,7 @@ class StableDiffusion(ComposerModel):
         noise_scheduler: huggingface diffusers noise scheduler.
         loss_fn: torch loss function, Default: `F.mse_loss`.
         train_text_encoder(bool): It can be helpful to train the text encoder for fine-tuning. Default: `False`.
+        prediction_type(str): `epsilon` or `v_prediction`. `v_prediction` is used in part of stable diffusion v2.1. see https://arxiv.org/pdf/2202.00512.pdf. Default: `None` (uses whatever the pretrained model used)
         train_metrics(list): list of torchmetrics to calculate during training. Default: `MeanSquaredError()`.
         val_metrics(list): list of torchmetrics to calculate during validation. Default: `MeanSquaredError()`.
     """
@@ -30,7 +31,6 @@ class StableDiffusion(ComposerModel):
                  tokenizer: callable,
                  noise_scheduler: diffusers.schedulers,
                  inference_scheduler: diffusers.schedulers,
-                 pipeline: diffusers.pipelines,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
                  prediction_type:str = None,
@@ -103,7 +103,7 @@ class StableDiffusion(ComposerModel):
         """loss between unet output and added noise, typically mse"""
         return self.loss_fn(outputs[0], outputs[1])
 
-    def eval_forward(self, batch, outputs):
+    def eval_forward(self, batch, outputs=None):
         if outputs:
             return outputs
         return self.generate(batch)
@@ -240,17 +240,12 @@ def build_stable_diffusion_model(model_name_or_path: str,
     inference_scheduler = LMSDiscreteScheduler.from_pretrained(model_name_or_path, subfolder="scheduler")
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder="tokenizer")
-    pipeline = StableDiffusionPipeline.from_pretrained(model_name_or_path,
-                                       text_encoder=text_encoder,
-                                       vae=vae,
-                                       unet=unet)
     return StableDiffusion(unet=unet,
                            vae=vae,
                            text_encoder=text_encoder,
                            tokenizer=tokenizer,
                            noise_scheduler=noise_scheduler,
                            inference_scheduler=inference_scheduler,
-                           pipeline=pipeline,
                            train_text_encoder=train_text_encoder,
                            image_key=image_key,
                            caption_key=caption_key)
