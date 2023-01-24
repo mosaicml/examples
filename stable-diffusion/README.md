@@ -49,16 +49,21 @@ add some pictures here
 
 Results may vary depending on the data
 
-# Train on difference data
+# Train on different data
 The lambdalabs/pokemon dataset was made with BLIP (a salesforce image captioning model) and uploaded to huggingface datasets. There are many other similar text-to-image datasets available on huggingface here(https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color pallets such as spectrograms may require different normalization or pre-processing.
 
 To add a non-huggingface dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations. 
 
+# Using MCLOUD
+This example can be run with MCLOUD by configuring the `cluster` and `gpu_type` parameters in `yamls/mcloud_run.yaml` then running:
 
+```bash
+mcli run -f yamls/mcloud_run.yaml
+```
 
 # Saving and Loading checkpoints
 
-At the bottom of `yamls/resnet56.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
+At the bottom of `yamls/finetune.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
 
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.

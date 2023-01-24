@@ -1,7 +1,9 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
 import torch
 import torch.nn.functional as F
 from composer.models import ComposerModel
-from torchmetrics import MeanSquaredError, Metric, MetricCollection
+from torchmetrics import Metric, MetricCollection
 import diffusers
 from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel, LMSDiscreteScheduler
 from diffusers.utils.import_utils import is_xformers_available
@@ -21,8 +23,8 @@ class StableDiffusion(ComposerModel):
         loss_fn: torch loss function, Default: `F.mse_loss`.
         train_text_encoder(bool): It can be helpful to train the text encoder for fine-tuning. Default: `False`.
         prediction_type(str): `epsilon` or `v_prediction`. `v_prediction` is used in part of stable diffusion v2.1. see https://arxiv.org/pdf/2202.00512.pdf. Default: `None` (uses whatever the pretrained model used)
-        train_metrics(list): list of torchmetrics to calculate during training. Default: `MeanSquaredError()`.
-        val_metrics(list): list of torchmetrics to calculate during validation. Default: `MeanSquaredError()`.
+        train_metrics(list): list of torchmetrics to calculate during training. Default: `None`.
+        val_metrics(list): list of torchmetrics to calculate during validation. Default: `None`.
     """
     def __init__(self,
                  unet: torch.nn.Module,
@@ -34,8 +36,8 @@ class StableDiffusion(ComposerModel):
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
                  prediction_type:str = None,
-                 train_metrics: list = [MeanSquaredError()],
-                 val_metrics: list = [MeanSquaredError()],
+                 train_metrics: list = None,
+                 val_metrics: list = None,
                  image_key: str = 'image_tensor',
                  caption_key: str = 'input_ids'):
         super().__init__()
@@ -194,7 +196,7 @@ class StableDiffusion(ComposerModel):
         latents = 1 / 0.18215 * latents
         image = self.vae.decode(latents).sample
         image =  (image / 2 + 0.5).clamp(0, 1)
-        return image.detach().cpu()
+        return image.detach() # (batch, channel, h, w)
 
 
     def get_metrics(self, is_train: bool = False):
@@ -214,7 +216,9 @@ class StableDiffusion(ComposerModel):
         return metrics_dict
 
     def update_metric(self, batch, outputs, metric):
-        metric.update(outputs[0], outputs[1])
+        prompts = batch
+        if metric.__class__.__name__ == 'CLIPScore':
+            metric.update(outputs, prompts)
 
 
 def build_stable_diffusion_model(model_name_or_path: str,

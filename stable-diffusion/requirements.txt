@@ -1,9 +1,8 @@
 # --------- pytorch --------- #
-torch>=1.10.0
+torch>=1.12.0
 torchvision>=0.11.0
 mosaicml[all]==0.12.0
-# using a feature in dev post 0.9.0 will bump in next version
-torchmetrics>=0.7.0
+torchmetrics[image]==0.11.0
 
 
 # --------- loggers --------- #
@@ -19,7 +18,5 @@ omegaconf
 
 
 # -------- diffusion -------- #
-diffusers [torch]
-transformers [torch]
-
-# -------- fast transformers ----- #
+diffusers[torch]==0.11.1
+transformers[torch]==4.25.1

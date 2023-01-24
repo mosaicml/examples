@@ -12,7 +12,7 @@ class LogDiffusionImages(Callback):
 
     def eval_after_forward(self, state: State, logger: Logger):
         prompts = state.batch_get_item(key=0)
-        outputs = state.outputs
+        outputs = state.outputs.cpu()
         for destination in ensure_tuple(logger.destinations):
             if isinstance(destination, WandBLogger):
                 destination.log_images(images=outputs, name=prompts, step=state.timestamp.batch.value)
