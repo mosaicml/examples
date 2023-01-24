@@ -13,8 +13,8 @@ class LogDiffusionImages(Callback):
     requires weights and biases.
     """
     def eval_batch_end(self, state: State, logger: Logger):
-        prompts = state.batch
-        outputs = state.outputs.cpu() # 4, 3, 512, 512
+        prompts = state.batch # batch_size
+        outputs = state.outputs.cpu() # prompts*num_images_per_prompt, 3, 512, 512
         num_images_per_prompt = state.model.module.num_images_per_prompt
         for destination in ensure_tuple(logger.destinations):
             if isinstance(destination, WandBLogger):
@@ -23,7 +23,7 @@ class LogDiffusionImages(Callback):
                     destination.log_images(images=output[0], name=prompt[0], step=state.timestamp.batch.value) 
                 
                 # multiple prompts 1 image per
-                if len(prompts) > 1  and num_images_per_prompt == 1
+                if len(prompts) > 1  and num_images_per_prompt == 1:
                 for prompt, output in zip(prompts, outputs):
                     destination.log_images(images=output, name=prompt, step=state.timestamp.batch.value) 
                 
