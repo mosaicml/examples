@@ -1,0 +1,36 @@
+# Nemo Megatron (NeMo) on Mosaic Cloud (MCloud)
+
+[The Mosaic Cloud (MCloud)](https://www.mosaicml.com/blog/mosaicml-cloud-demo) enables easy training of machine learning (ML) jobs. In this folder, we provide examples for how to run NVIDIA Nemo Megatron (NeMo), a powerful conversational AI toolkit that helps researchers from industry and academia reuse prior work and readily scales up to 1000s of GPUs, on the Mosaic Cloud.
+
+You’ll find in this folder:
+
+-   `single_node.yaml` - a script to run a single node GPT NeMo job on MCloud.
+-   `multi_node.yaml` - a script to run a multi-node GPT NeMo job on MCloud.
+
+## Prerequisites
+
+Here’s what you’ll need to get started with running NeMo on MCloud
+
+-   A docker image with the correctly installed NeMo dependencies (we recommend using `nvcr.io/nvidia/nemo:22.09`).
+-   [A dataset prepared in the expected format](https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/stable/nlp/nemo_megatron/gpt/gpt_training.html#data-download-pre-processing).
+
+## Starting Training
+Below we show the `.yaml` files for single and multi-node jobs. You just need to fill in the `run_name`, `platform`, and `your_dataset_path_here` fields in the scripts. Additionally, other NeMo configs can be modified as usual.
+
+********************************Single Node Jobs********************************
+
+For single node jobs it’s as simple as running `mcli run -f single_node.yaml`.
+
+The logs for a successful training logs should look something like:
+
+************Multi-Node Jobs************
+
+To run a multi-node job it’s as simple as running `mcli run -f multi_node.yaml`.
+
+Fundamentally, the script relies on using the `parallel` library to create the appropriate number of processes, 8, one per GPU. MCloud sets up the appropriate ENV variables such that NeMo knows the size of the job. 
+
+Below is an image of the logs on one node:
+
+and the logs on two nodes:
+
+Notice we get approximately linear scaling with the number of GPUs running GPT NeMo jobs on MCloud.
