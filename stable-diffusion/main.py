@@ -97,10 +97,7 @@ def main(config):
     )  # Measures throughput as samples/sec and tracks total training time
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
-
-
-    image_logger = ImageVisualizer()
-    image_logger = LogDiffusionImages(log_interval='100ba')
+    image_logger = LogDiffusionImages() # Logs images generated from prompts in the eval set
 
     # Callback for checkpointing
     print('Built Speed, LR, and Memory monitoring callbacks\n')
