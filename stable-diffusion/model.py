@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+"""Stable Diffusion ComposerModel"""
 import torch
 import torch.nn.functional as F
 from composer.models import ComposerModel

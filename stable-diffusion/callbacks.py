@@ -1,9 +1,8 @@
-
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+"""Prompt and image visualization callback for diffusion models"""
 
 from composer import Callback, Logger, State
-from composer.core import Callback, State
 from torchvision.utils import make_grid
 
 class LogDiffusionImages(Callback):
@@ -27,6 +26,4 @@ class LogDiffusionImages(Callback):
     def eval_end(self, state: State, logger: Logger) -> None:
         step = state.timestamp.batch.value
         self.wandb.log(self.table, step)
-
-    
-        
+         
