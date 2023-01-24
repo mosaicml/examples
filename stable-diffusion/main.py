@@ -5,6 +5,7 @@
 import os
 import sys
 from typing import Dict
+from omegaconf import DictConfig, OmegaConf
 
 import torch
 from composer import Trainer
@@ -13,10 +14,10 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import ConstantScheduler
 from composer.utils import dist
+
 from data import build_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from callbacks import LogDiffusionImages
-from omegaconf import DictConfig, OmegaConf
 
 
 def build_logger(name: str, kwargs: Dict):

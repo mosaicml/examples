@@ -30,7 +30,7 @@ class LogDiffusionImages(Callback):
                 # one prompt multiple images
                 if len(prompts) == 1 and num_images_per_prompt > 1:
                     outputs = make_grid(outputs, nrow=num_images_per_prompt)
-                    destination.log_images(images=outputs, name=prompt, step=state.timestamp.batch.value)
+                    destination.log_images(images=outputs, name=prompts[0], step=state.timestamp.batch.value)
 
                 # multiple prompts multiple images
                 if len(prompts) > 1 and num_images_per_prompt > 1:
