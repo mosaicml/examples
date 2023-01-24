@@ -1,9 +1,9 @@
 run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
 seed: 42               # Random seed
-max_duration: '15000ba'    # Duration to train specified as a Time string
-grad_accum: 1       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
+max_duration: '10000ba'    # Duration to train specified as a Time string
+grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value, set to 1 for cpu
 use_ema: false
-eval_interval: '300ba'
+eval_interval: '1000ba'
 
 dataset:
   name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
@@ -14,10 +14,10 @@ dataset:
     - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
   std:
     - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
-  train_batch_size: 4    # Training dataloader batch size per device
-  eval_batch_size: 2
+  train_batch_size: 32    # Training total batch size (4 per 40gb A100)
+  eval_batch_size: 32
   prompts:
-    - "A pokemon with green eyes, large wings, and a hat"
+    - "Doge"
     - "A cute bunny rabbit"
     - "Yoda"
     - "An epic landscape photo of a mountain"
@@ -43,10 +43,10 @@ optimizer:
 
 loggers:
   progress_bar: {}
-  wandb:     # Uncomment and fill below arguments to use WandB logger
-    entity:  # Name of WandB entity, usually username or organization name
-    project: 'stable-diffusion-finetune' # Name of WandB project
-    group:   # Name of WandB group
+  # wandb:     # Uncomment and fill below arguments to use WandB logger
+  #   entity:  # Name of WandB entity, usually username or organization name
+  #   project: 'stable-diffusion-finetune' # Name of WandB project
+  #   group:   # Name of WandB group
 
 # Save checkpoint parameters
 save_folder:                    # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)

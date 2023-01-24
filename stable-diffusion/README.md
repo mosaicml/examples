@@ -43,11 +43,11 @@ The default config is in `yamls/finetune.yaml`
 try training for more iterations or with a different dataset and inspecting the results
 
 # Results
-Finetuning for ~15k iterations yeilds decent results on the pokemon dataset. Training longer can quickly lead to overfitting.
+Low learning rates and short training times seem to work best. Training longer can quickly lead to overfitting.
 
-add some pictures here
+TODO: add some nice pictures here
 
-Results may vary depending on the data
+
 
 # Train on different data
 The lambdalabs/pokemon dataset was made with BLIP (a salesforce image captioning model) and uploaded to huggingface datasets. There are many other similar text-to-image datasets available on huggingface here(https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color pallets such as spectrograms may require different normalization or pre-processing.

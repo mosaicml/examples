@@ -13,15 +13,15 @@ command: |
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
-  run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
+  run_name: stable-diffusion-finetune-gundam # Name of the  training run used for checkpointing and other logging
   seed: 42               # Random seed
-  max_duration: '15ba'    # Duration to train specified as a Time string
+  max_duration: '2000ba'    # Duration to train specified as a Time string
   grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
   use_ema: false
-  eval_interval: '5ba'
+  eval_interval: '200ba'
 
   dataset:
-    name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
+    name: "Gazoche/gundam-captioned" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
     resolution: 512        # training image size
     image_column: 'image'
     caption_column: 'text'
@@ -29,10 +29,10 @@ parameters:
       - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     std:
       - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
-    train_batch_size: 4    # Training dataloader batch size per device
-    eval_batch_size: 2
+    train_batch_size: 32    # total train batch size (2 per gpu with 8 gpus)
+    eval_batch_size: 32
     prompts:
-      - "A pokemon with green eyes, large wings, and a hat" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
+      - "A Magestic Shiba Inu Doge" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
       - "A cute bunny rabbit"
       - "Yoda"
       - "An epic landscape photo of a mountain"
@@ -52,7 +52,7 @@ parameters:
 
 
   optimizer:
-    lr: 1.0e-04
+    lr: 1.0e-05
     weight_decay: 1.0e-2
 
 
@@ -61,12 +61,13 @@ parameters:
     wandb:     # Uncomment and fill below arguments to use WandB logger
       entity:  # Name of WandB entity, usually username or organization name
       project: 'stable-diffusion-finetune' # Name of WandB project
-      group:   # Name of WandB group
+      group:  'stable-diffusion-finetune-gundam' # Name of WandB group
+      rank_zero_only: false # enable to log all validation images on multiple gpus
 
   # Save checkpoint parameters
   save_folder:                    # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-  save_interval: '1000ba'             # Interval to checkpoint based on time string
-  save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
+  save_interval: '200ba'             # Interval to checkpoint based on time string
+  save_num_checkpoints_to_keep: 5 # Cleans up checkpoints saved locally only! keep extra checkpoints as it's easy to overfit
 
   # Load checkpoint parameters
   load_path:      # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)
