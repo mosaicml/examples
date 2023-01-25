@@ -84,7 +84,7 @@ def init_composer_ckpt_from_yaml(
 
     # Build Model
     print('Initializing model...')
-    cfg.model.device = 'cpu'
+    cfg.model.device = 'meta'
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
 
     if checkpoint is not None:
