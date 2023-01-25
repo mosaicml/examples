@@ -10,7 +10,7 @@ These functions are used extensively throughout the Mosaic BERT implementation
 in `bert_layers.py`.
 """
 
-from typing import Tuple
+from typing import cast, Tuple
 
 import torch
 import torch.nn.functional as F
