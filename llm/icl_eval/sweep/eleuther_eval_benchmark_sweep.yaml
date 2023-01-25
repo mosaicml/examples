@@ -8,7 +8,7 @@ base_config:
 
   command: |
     cd examples/llm
-    composer -m src.evaluation.eval  /mnt/config/parameters.yaml
+    python -m src.evaluation.eval  /mnt/config/parameters.yaml
 
 
   image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
@@ -38,43 +38,43 @@ sweep_config:
     - 
       key: '64'
       value: 64
-    - 
-      key: '32'
-      value: 32
-    - 
-      key: '16'
-      value: 16
-    - 
-      key: '8'
-      value: 8
+    # - 
+    #   key: '32'
+    #   value: 32
+    # - 
+    #   key: '16'
+    #   value: 16
+    # - 
+    #   key: '8'
+    #   value: 8
  
   parameters.icl_tasks:
     -
       key:  lambada
       value:
         -
-          label: lambada
+          label: lambada_openai
           num_fewshot: 
               - 0
-    -
-      key:  piqa
-      value:  
-        -
-          label: piqa
-          num_fewshot: 
-              - 5
+    # -
+    #   key:  piqa
+    #   value:  
+    #     -
+    #       label: piqa
+    #       num_fewshot: 
+    #           - 5
   
   parameters.model:
-    -
-      key: '125m'
-      value:
-        model_type: pretrained_hf
-        config: EleutherAI/gpt-neo-125M
-    -
-      key: '1.3b'
-      value:
-        model_type: pretrained_hf
-        config: EleutherAI/gpt-neo-1.3B
+    # -
+    #   key: '125m'
+    #   value:
+    #     model_type: pretrained_hf
+    #     config: EleutherAI/gpt-neo-125M
+    # -
+    #   key: '1.3b'
+    #   value:
+    #     model_type: pretrained_hf
+    #     config: EleutherAI/gpt-neo-1.3B
     -
       key: '2.7b'
       value:

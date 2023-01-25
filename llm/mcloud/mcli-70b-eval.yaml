@@ -1,0 +1,54 @@
+
+
+
+
+integrations:
+  - integration_type: git_repo
+    git_repo: mosaicml/examples
+    git_branch: feature/composer_icl_eval
+    pip_install: -r llm/requirements.txt
+
+# We are fetching, converting, and training on the 'val' split
+# as it is small and quick to get going for this demo.
+# For real training runs, follow the instructions in `examples/llm/README.md`
+# to convert and host the full 'train' dataset.
+command: |
+  cd examples/llm
+  composer -m icl_eval.evaluate_model /mnt/config/parameters.yaml
+
+image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
+optimization_level: 0
+
+run_name: mosaic-gpt-70b-eval
+gpu_num: 64
+gpu_type: a100_40gb
+cluster: r7z2 # replace with your cluster here!
+
+# The below is injected as a YAML file: /mnt/config/parameters.yaml
+# but is not used in this example.
+parameters:
+  tokenizer:
+    type: hftokenizer
+    args:
+      tokenizer_name: gpt2
+      max_seq_len: 2048
+
+  model: 
+    model_type: mosaic_gpt
+    config: yamls/mosaic_gpt/70b.yaml
+    
+  icl_tasks:
+    -
+      label: lambada
+      dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
+      num_fewshot: 
+      - 0
+      - 1
+      batch_size: 8
+      type: language_modeling
+      metrics:
+        - InContextLearningLMAccuracy
+      formatting_options:
+        prompt_string: ""
+        example_delimiter: "\n"
+        continuation_delimiter: ""  

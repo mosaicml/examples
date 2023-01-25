@@ -36,6 +36,14 @@ def parse_logs(logs):
         if match and not accuracy:
             accuracy = float(match.group(1))
 
+        match = re.search('"time": ((\d+)\.?(\d*))', line)
+        if match and not run_time:
+            run_time = float(match.group(1))
+
+        match = re.search('"acc": ((\d+)\.?(\d*))', line)
+        if match and not accuracy:
+            accuracy = float(match.group(1))
+
     
     return {
         "run_time": run_time,
@@ -51,5 +59,10 @@ if __name__ == "__main__":
     for run in runs:
         logs = msdk.get_run_logs(run)
         result = parse_logs(logs)
-        print(f"{run.name}: {result}")
+        matching_idx = [i for i in range(len(list(df.run_name))) if run.name.startswith(list(df.run_name)[i])]
+        for k,v in result.items():
+            df.loc[matching_idx[0], k] = v
+    print(df)        
+    with open(tsv_path, "w") as f:
+        df.to_csv(f, sep='\t', index=None)
 

@@ -55,7 +55,7 @@ sweep_config:
       value:
         -
           label: lambada
-          dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
+          dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl
           num_fewshot: 
               - 0
           batch_size: 4
@@ -66,22 +66,22 @@ sweep_config:
             prompt_string: ""
             example_delimiter: "\n"
             continuation_delimiter: ""
-    -
-      key:  piqa
-      value:  
-        -
-          label: piqa
-          dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
-          num_fewshot: 
-              - 5
-          batch_size: 4
-          type: multiple_choice
-          metrics:
-              - InContextLearningMultipleChoiceAccuracy
-          formatting_options:
-            prompt_string: ""
-            example_delimiter: "\n"
-            continuation_delimiter: " "
+    # -
+    #   key:  piqa
+    #   value:  
+    #     -
+    #       label: piqa
+    #       dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
+    #       num_fewshot: 
+    #           - 5
+    #       batch_size: 4
+    #       type: multiple_choice
+    #       metrics:
+    #           - InContextLearningMultipleChoiceAccuracy
+    #       formatting_options:
+    #         prompt_string: ""
+    #         example_delimiter: "\n"
+    #         continuation_delimiter: " "
   
   parameters.model:
     -

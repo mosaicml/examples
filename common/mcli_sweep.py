@@ -51,7 +51,7 @@ def make_name(base_name, info):
     for k,v in info.items():
         name += f"-{k.split('-')[-1]}-{v}"
     
-    name += f"-{str(abs(hash(time.time())))[:4]}"
+    name += f"-{str(abs(hash(name) + hash(time.time())))[-4:]}"
     return name.replace('.', '-').replace('_', '-')
 
 
