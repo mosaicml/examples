@@ -15,8 +15,6 @@ from mosaicml_examples.builders import (build_algorithm, build_callback,
                                         build_optimizer, build_scheduler)
 from mosaicml_examples.logging_utils import log_config
 
-x: int = 'hello'  # obvious linter error
-
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):
     if global_batch_size % dist.get_world_size() != 0:
