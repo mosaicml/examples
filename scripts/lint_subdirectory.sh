@@ -14,7 +14,6 @@
 ENV_NAME="env-${1%/}"   # strip trailing slash if present
 
 echo "Creating venv..."
-# python -m venv "$ENV_NAME" --system-site-packages
 python -m venv "$ENV_NAME"
 source "$ENV_NAME/bin/activate"
 
