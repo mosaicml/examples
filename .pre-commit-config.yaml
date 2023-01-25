@@ -63,16 +63,29 @@ repos:
     - --comment-style
     - '#'
     types: [python]
-- repo: local
+# - repo: local
+#   hooks:
+#   - id: pyright
+#     name: pyright
+#     # entry: echo "$@" && exit(1) && pyright
+#     # entry: echo "$@"; exit(1)
+#     entry: pyright
+#     fail_fast: true
+#     language: system
+#     types: [python]
+#     # pass_filenames: false # if true, we get separate error output for each file
+#     # pass_filenames: true
+#     # additional_dependencies: ['pyright@1.1.290']
+# # - repo: https://github.com/RobertCraigie/pyright-python
+# #   rev: v1.1.290
+# #   hooks:
+# #   - id: pyright
+- repo: meta
   hooks:
-  - id: pyright
-    name: pyright
-    entry: pyright
-    language: node
-    types: [python]
-    # pass_filenames: false # if true, we get separate error output for each file
-    pass_filenames: true
-    additional_dependencies: ['pyright@1.1.281']
+  - id: identity
+    name: identity (filtered)
+  - id: identity
+    name: identity (all)
 - repo: https://github.com/PyCQA/docformatter
   rev: v1.5.0
   hooks:
