@@ -22,8 +22,12 @@ jobs:
       matrix:
         python_version:
           - "3.9"
-        install_version:
-          - "[dev]"
+        subdir:
+          - "bert"
+          - "cifar"
+          - "deeplab"
+          - "llm"
+          - "resnet"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -43,7 +47,6 @@ jobs:
         run: |
           set -ex
           python -m pip install --upgrade pip wheel
-          python -m pip install -e .${{ matrix.install_version }}
       - name: Linting
         run: |
-          make style
+          bash scripts/lint_subdirectory.sh ${{ matrix.subdir }}

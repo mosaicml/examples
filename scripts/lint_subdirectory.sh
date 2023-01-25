@@ -11,17 +11,21 @@
 #   2) Having the pip install overwrite everything in the requirements
 #       *except* a few whitelisted dependencies.
 
-ENV_NAME="${1%/}-env"   # strip trailing slash if present
+ENV_NAME="env-${1%/}"   # strip trailing slash if present
 
 echo "Creating venv..."
-python -m venv "$ENV_NAME" --system-site-packages
+# python -m venv "$ENV_NAME" --system-site-packages
+python -m venv "$ENV_NAME"
 source "$ENV_NAME/bin/activate"
 
 echo "Installing requirements..."
 pip install --upgrade pip
 pip install ".[$1-cpu]"  # setup.py merges repo + subdir deps + strips gpu deps
 
-echo "Running checks..."
+echo "Running checks on files:"
+echo $(find "$1")
+echo "Using command:"
+echo pre-commit run --files $(find "$1")
 pre-commit run --files $(find "$1")
 
 echo "Cleaning up venv..."

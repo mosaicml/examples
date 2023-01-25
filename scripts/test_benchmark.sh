@@ -29,6 +29,10 @@ pip install -U -r /tmp/requirements.txt
 # We need to force install pytest into each environment so that it does not use the system pytest
 pip install --ignore-installed pytest
 rm /tmp/requirements.txt
+
+# copy project pytest config
+cp ../.pyproject.toml .
+
 python -m pytest tests
 
 echo "Cleaning up venv..."
