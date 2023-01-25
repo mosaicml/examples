@@ -48,7 +48,7 @@ def build_evaluators(cfg):
                     tokenizer,
                     batch_size=batch_size,
                     max_seq_len=cfg.tokenizer.args.max_seq_len,
-                    eos_tok_id=tokenizer.pad_token_id,
+                    pad_tok_id=tokenizer.pad_token_id,
                     num_fewshot=num_fewshot,
                     prompt_string=prompt_string,
                     example_delimiter=example_delimiter,
