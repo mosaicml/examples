@@ -9,8 +9,8 @@ mosaicml-cli>=0.2.32,<1
 # need a newer version of triton
 triton==2.0.0.dev20221103
 transformers==4.24.0
-datasets>=1.15.1,<3  # low version to avoid conflict with lm_eval
+datasets==2.7.1
 omegaconf==2.2.3
 wandb==0.13.4
 lm-eval @ git+https://github.com/bmosaicml/lm-evaluation-harness-composergpt-integration.git@master
-pytest>=6.2.3,<8  # pinned to old version to avoid conflict with lm_eval
+pytest>=7.2.1,<8
