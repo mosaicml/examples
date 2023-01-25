@@ -99,8 +99,9 @@ def init_composer_ckpt_from_yaml(
                 map_location=cfg.model.device
             )['state']['model']
         )
-        post = next(model.parameters()).clone().data
-        assert not torch.equal(pre, post)
+        if cfg.model.device != 'meta':
+            post = next(model.parameters()).clone().data
+            assert not torch.equal(pre, post)
         print('Successfully loaded model weights')
 
     n_params = sum(p.numel() for p in model.parameters())

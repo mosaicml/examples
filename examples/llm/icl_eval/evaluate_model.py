@@ -42,21 +42,21 @@ def build_evaluators(cfg):
         continuation_delimiter = eval_cfg.get("formatting_options").get("continuation_delimiter")
 
         for num_fewshot in num_fewshots:
-            label = f"{eval_cfg.get('label')}_{num_fewshot}-shot"
-            dl = get_icl_task_dataloader(
-                type,
-                dataset_uri,
-                tokenizer,
-                batch_size=batch_size,
-                max_seq_len=cfg.tokenizer.args.max_seq_len,
-                eos_tok_id=tokenizer.pad_token_id,
-                num_fewshot=num_fewshot,
-                prompt_string=prompt_string,
-                example_delimiter=example_delimiter,
-                continuation_delimiter=continuation_delimiter
-            )
-            logger_keys.extend([f"metrics/{label}/{metric}" for metric in metrics])
-            evaluators.append(Evaluator(label=label, dataloader=dl, metric_names=metrics))
+                label = f"{eval_cfg.get('label')}_{num_fewshot}-shot"
+                dl = get_icl_task_dataloader(
+                    type,
+                    dataset_uri,
+                    tokenizer,
+                    batch_size=batch_size,
+                    max_seq_len=cfg.tokenizer.args.max_seq_len,
+                    pad_tok_id=tokenizer.pad_token_id,
+                    num_fewshot=num_fewshot,
+                    prompt_string=prompt_string,
+                    example_delimiter=example_delimiter,
+                    continuation_delimiter=continuation_delimiter
+                )
+                logger_keys.extend([f"metrics/{label}/{metric}" for metric in metrics])
+                evaluators.append(Evaluator(label=label, dataloader=dl, metric_names=metrics))
 
     return evaluators, logger_keys
 
