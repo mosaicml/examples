@@ -63,6 +63,7 @@ def main(config):
     model = build_stable_diffusion_model(
         model_name_or_path=config.model.name,
         train_text_encoder=config.model.train_text_encoder,
+        train_unet=config.model.train_unet,
         num_images_per_prompt=config.model.num_images_per_prompt,
         image_key=config.model.image_key,
         caption_key=config.model.caption_key)

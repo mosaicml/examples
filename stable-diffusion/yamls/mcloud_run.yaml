@@ -1,7 +1,7 @@
 run_name: stable-diffusion-finetune
-cluster:  r7z2         # Name of the cluster to use for this run
-gpu_type: a100_40gb # Type of GPU to use
-gpu_num: 8          # Number of GPUs to use
+cluster:  r1z1      # Name of the cluster to use for this run
+gpu_type: a100_80gb   # Type of GPU to use
+gpu_num: 8            # Number of GPUs to use
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
 - integration_type: git_repo
@@ -13,15 +13,15 @@ command: |
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
-  run_name: stable-diffusion-finetune-gundam # Name of the  training run used for checkpointing and other logging
+  run_name: stable-diffusion-finetune-pokemon-2e5-wd1e3 # Name of the  training run used for checkpointing and other logging
   seed: 42               # Random seed
   max_duration: '2000ba'    # Duration to train specified as a Time string
   grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
   use_ema: false
   eval_interval: '200ba'
 
-  dataset:
-    name: "Gazoche/gundam-captioned" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
+  dataset: # dataset: Norod78/RickAndMorty-HorizontalMirror-blip-captions, lambdalabs/pokemon-blip-captions, YaYaB/onepiece-blip-captions, Gazoche/gundam-captioned
+    name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
     resolution: 512        # training image size
     image_column: 'image'
     caption_column: 'text'
@@ -32,7 +32,7 @@ parameters:
     train_batch_size: 32    # total train batch size (2 per gpu with 8 gpus)
     eval_batch_size: 32
     prompts:
-      - "A Magestic Shiba Inu Doge" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
+      - "A Magestic Shiba Inu Doge wearing a blue sweater" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
       - "A cute bunny rabbit"
       - "Yoda"
       - "An epic landscape photo of a mountain"
@@ -44,16 +44,17 @@ parameters:
       - "Hello Kitty"
 
   model:
-    name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1" use 2-1 for sizes > 512
-    train_text_encoder: false
+    name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-base" use 2-1 for sizes > 512
+    train_text_encoder: true
+    train_unet: true
     num_images_per_prompt: 4 # number of images to generate per prompt during validation
     image_key: "image_tensor"
     caption_key: "input_ids"
 
 
   optimizer:
-    lr: 1.0e-05
-    weight_decay: 1.0e-2
+    lr: 2.0e-05
+    weight_decay: 1.0e-3
 
 
   loggers:
@@ -61,7 +62,7 @@ parameters:
     wandb:     # Uncomment and fill below arguments to use WandB logger
       entity:  # Name of WandB entity, usually username or organization name
       project: 'stable-diffusion-finetune' # Name of WandB project
-      group:  'stable-diffusion-finetune-gundam' # Name of WandB group
+      group:  'stable-diffusion-finetune-pokemon-2e5-wd1e3' # Name of WandB group
       rank_zero_only: false # enable to log all validation images on multiple gpus
 
   # Save checkpoint parameters

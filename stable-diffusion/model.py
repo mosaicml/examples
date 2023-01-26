@@ -39,6 +39,7 @@ class StableDiffusion(ComposerModel):
                  num_images_per_prompt: int = 1,
                  loss_fn: callable = F.mse_loss,
                  train_text_encoder: bool = False,
+                 train_unet: bool = True,
                  prediction_type: str = None,
                  train_metrics: list = None,
                  val_metrics: list = None,
@@ -64,6 +65,9 @@ class StableDiffusion(ComposerModel):
         if not train_text_encoder:
             self.text_encoder.requires_grad_(False)
 
+        if not train_unet:
+            self.unet.requires_grad_(False)
+
         self.loss_fn = loss_fn
 
         self.train_metrics = MetricCollection(
@@ -84,14 +88,10 @@ class StableDiffusion(ComposerModel):
         latents *= 0.18215
 
         # Encode the text. Assume that the text is already tokenized. This is slow, we should cache the results.
-        conditioning = self.text_encoder(conditioning)[
-            0]  # (batch_size, 77, 768)
+        conditioning = self.text_encoder(conditioning)[0]  # (batch_size, 77, 768)
 
         # Sample the diffusion timesteps
-        timesteps = torch.randint(0,
-                                  len(self.noise_scheduler),
-                                  (latents.shape[0], ),
-                                  device=latents.device)
+        timesteps = torch.randint(0,len(self.noise_scheduler), (latents.shape[0], ), device=latents.device)
         # Add noise to the inputs (forward diffusion)
         noise = torch.randn_like(latents)
 

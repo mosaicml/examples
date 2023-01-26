@@ -1,9 +1,9 @@
 run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
 seed: 42               # Random seed
-max_duration: '10000ba'    # Duration to train specified as a Time string
+max_duration: '2000ba'    # Duration to train specified as a Time string
 grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value, set to 1 for cpu
 use_ema: false
-eval_interval: '1000ba'
+eval_interval: '2000ba'
 
 dataset:
   name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
@@ -31,13 +31,14 @@ dataset:
 model:
   name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1" use 2-1 for sizes > 512
   train_text_encoder: false
+  train_unet: true
   num_images_per_prompt: 4  # number of images to generate per prompt
   image_key: "image_tensor"
   caption_key: "input_ids"
 
 
 optimizer:
-  lr: 1.0e-04
+  lr: 1.0e-05
   weight_decay: 1.0e-2
 
 
