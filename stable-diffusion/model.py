@@ -260,6 +260,7 @@ class StableDiffusion(ComposerModel):
 
 def build_stable_diffusion_model(model_name_or_path: str,
                                  train_text_encoder: bool = False,
+                                 train_unet: bool = True,
                                  num_images_per_prompt: int = 1,
                                  image_key: str = 'image_tensor',
                                  caption_key: str = 'input_ids'):
@@ -284,6 +285,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
     return StableDiffusion(unet=unet,
                            vae=vae,
                            text_encoder=text_encoder,
+                           train_unet=train_unet,
                            tokenizer=tokenizer,
                            noise_scheduler=noise_scheduler,
                            inference_scheduler=inference_scheduler,
