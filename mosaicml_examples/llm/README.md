@@ -22,8 +22,8 @@ You'll find in this folder:
 * `mcloud/` - examples of how to use [MosaicML Cloud](https://www.mosaicml.com/cloud) to seamlessly launch training :)
 
 
-In the [mosaicml_examples](../mosaicml_examples) folder, you will also find:
-* `mosaicml_examples/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
+In the [common](../common) folder, you will also find:
+* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
 
 At all model scales, we are training the exact same [vanilla PyTorch GPT model](./src/mosaic_gpt.py#L106), with no special parallelism strategies.
 Composer + FSDP does all the heavy lifting to make sure we can scale up without running out of memory and while maintaining high performance.
@@ -69,12 +69,12 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # Download the 'train_small', 'val' splits and convert to StreamingDataset format
 # This will take 20 sec to 1 min depending on your Internet bandwidth
 # You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
-python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
+python ../../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train
+python ../../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
@@ -89,12 +89,12 @@ To verify that the dataloader works, run a quick test on your `val` split like s
 # This will construct a `StreamingTextDataset` dataset from your `val` split,
 # pass it into a PyTorch Dataloader, and iterate over it and print samples.
 # Since we only provide a local path, no streaming/copying takes place.
-python ../mosaicml_examples/text_data.py ./my-copy-c4
+python ../common/text_data.py ./my-copy-c4
 
 # This will do the same thing, but stream data to {local} from {remote}.
 # The remote path can be a filesystem or object store URI.
-python ../mosaicml_examples/text_data.py /tmp/cache-c4 ./my-copy-c4
-python ../mosaicml_examples/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4
+python ../common/text_data.py /tmp/cache-c4 ./my-copy-c4
+python ../common/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4
 ```
 
 # How to start training
