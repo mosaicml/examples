@@ -21,26 +21,15 @@ echo "Installing requirements..."
 pip install --upgrade pip
 pip install ".[$1-cpu]"  # we rely on docker image to handle flash-attn, etc
 
-# cat requirements.txt | grep -v 'flash-attn' > /tmp/requirements.txt
-
-# echo "Installing requirements:"
-# cat /tmp/requirements.txt
-# # TODO -I would sandbox better (always overwriting system copies with versions
-# # in requirements.txt) but this causes mysterious Flash Attention issues
-# pip install -U -r /tmp/requirements.txt
-# # We need to force install pytest into each env so that doesn't use system pytest
-# pip install --ignore-installed pytest
-# rm /tmp/requirements.txt
-
 cd "$1"
 
-# copy project pytest config
+# run tests using project pytest config
 cp ../.pyproject.toml .
-
 python -m pytest tests
+rm .pyproject.toml
 
 echo "Cleaning up venv..."
 deactivate
-rm -rf "$ENV_NAME"
 
 cd -
+rm -rf "$ENV_NAME"
