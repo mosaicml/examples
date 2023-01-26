@@ -191,7 +191,7 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     [
         ('torch', torch.float16),
         ('torch', torch.bfloat16),
-        ('flash', torch.float16),
+        pytest.param('flash', torch.float16, marks=pytest.mark.gpu),
         # Note: Whether this test fails or not depends on the random seed, how many steps are run for,
         # and possibly other stuff like torch/cuda version. It is flaky.
         pytest.param('flash', torch.bfloat16, marks=pytest.mark.xfail)
