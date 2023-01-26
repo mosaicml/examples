@@ -17,7 +17,7 @@ from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.tokenizer import TOKENIZER_REGISTRY
 
 
-def get_config(conf_path='yamls/mosaic_gpt/125m.yaml') -> DictConfig:
+def get_config(conf_path='yamls/mosaic_gpt/testing.yaml') -> DictConfig:
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     print(conf_path)
     with open(conf_path) as f:
@@ -25,7 +25,7 @@ def get_config(conf_path='yamls/mosaic_gpt/125m.yaml') -> DictConfig:
     return cast(DictConfig, test_cfg)
 
 
-def get_objs(conf_path='yamls/mosaic_gpt/125m.yaml'):
+def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -86,8 +86,7 @@ def gen_random_batch(batch_size, test_cfg):
 
 def test_full_forward_and_backward(batch_size=2):
     test_cfg, model, optimizer = get_objs(
-        conf_path='yamls/mosaic_gpt/125m.yaml')
-    test_cfg['model']['attn_impl'] = 'torch'  # avoid flash_attn dependency
+        conf_path='yamls/mosaic_gpt/testing.yaml')
 
     batch = gen_random_batch(batch_size, test_cfg)
 
@@ -105,7 +104,7 @@ def test_full_forward_and_backward(batch_size=2):
 
 @pytest.mark.skip  # XXX this shouldn't fail; temporary workaround so CI passes
 def test_attention_mechanism(batch_size=2):
-    test_cfg, model, _ = get_objs(conf_path='yamls/mosaic_gpt/125m.yaml')
+    test_cfg, model, _ = get_objs(conf_path='yamls/mosaic_gpt/testing.yaml')
 
     batch = gen_random_batch(batch_size, test_cfg)
 
@@ -158,7 +157,6 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     conf_path = 'yamls/hf_causal_lm/gpt-neo-125m.yaml'
     with open(conf_path) as f:
         neo_cfg = om.load(f)
-    test_cfg['model']['attn_impl'] = 'torch'  # avoid flash_attn dependency
 
     device = 'cpu'
     neo_cfg.device = device
@@ -205,7 +203,7 @@ def test_determinism(attention_type: str, precision):
         )
     reproducibility.seed_all(1111)
 
-    conf_path = 'yamls/mosaic_gpt/125m.yaml'
+    conf_path = 'yamls/mosaic_gpt/testing.yaml'
     with open(conf_path) as f:
         test_cfg = om.load(f)
 
