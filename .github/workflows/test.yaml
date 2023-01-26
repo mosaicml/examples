@@ -14,7 +14,7 @@ defaults:
   run:
     working-directory: .
 jobs:
-  pre-commit:
+  pytest:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
