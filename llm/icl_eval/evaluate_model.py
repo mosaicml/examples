@@ -11,6 +11,7 @@ from omegaconf import OmegaConf as om
 import sys
 from icl_eval.model_loading import load_model
 import time
+import torch
 
 def validate_cfg(eval_cfg):
     assert "dataset_uri" in eval_cfg
@@ -67,17 +68,27 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
 
-    model = load_model(**cfg.get("model"))
+    model_dict = load_model(**cfg.get("model"))
     evaluators, logger_keys = build_evaluators(cfg)
     in_memory_logger = InMemoryLogger()  # track the logged metrics in the in_memory_logger
-   
-    trainer = Trainer(model=model, max_duration='1ba', loggers=in_memory_logger)
-    for evaluator in evaluators:
-        model.add_eval_metrics(evaluator)
     
+    trainer = Trainer(
+        model=model_dict.get('model'),
+        loggers=in_memory_logger,
+        fsdp_config=model_dict.get('fsdp_config', None),
+        load_path=model_dict.get('checkpoint', None),
+        load_weights_only=True,
+        log_to_console=True)
+
+    for evaluator in evaluators:
+        model_dict['model'].add_eval_metrics(evaluator)
+    
+    torch.cuda.synchronize()
     a = time.time()
     trainer.eval(eval_dataloader=evaluators)
+    torch.cuda.synchronize()
     b = time.time()
+
     print(f"Ran eval in: {b-a} seconds")
 
     for key in logger_keys:
