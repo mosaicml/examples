@@ -1,7 +1,7 @@
 # --------- pytorch --------- #
 torch>=1.12.0
 torchvision>=0.11.0
-mosaicml[wandb]==0.12.0
+mosaicml[all]==0.12.0
 
 
 # --------- loggers --------- #
