@@ -7,13 +7,12 @@ import warnings
 
 from composer import Trainer
 from composer.utils import dist, reproducibility
+from mosaicml_examples.common.builders import (build_algorithm, build_callback,
+                                               build_dataloader, build_logger,
+                                               build_optimizer, build_scheduler)
+from mosaicml_examples.common.logging_utils import log_config
+from mosaicml_examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 from omegaconf import OmegaConf as om
-from src.model_registry import COMPOSER_MODEL_REGISTRY
-
-from mosaicml_examples.builders import (build_algorithm, build_callback,
-                                        build_dataloader, build_logger,
-                                        build_optimizer, build_scheduler)
-from mosaicml_examples.logging_utils import log_config
 
 
 def calculate_batch_size_info(global_batch_size, device_microbatch_size):
