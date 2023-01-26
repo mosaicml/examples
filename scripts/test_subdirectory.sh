@@ -21,12 +21,12 @@ echo "Installing requirements..."
 pip install --upgrade pip
 pip install ".[$1-cpu]"  # we rely on docker image to handle flash-attn, etc
 
-cp .pyproject.toml "$1"
+cp pyproject.toml "$1"
 cd "$1"
 
 # run tests using project pytest config
 python -m pytest tests
-rm .pyproject.toml
+rm pyproject.toml
 
 echo "Cleaning up venv..."
 deactivate
