@@ -8,15 +8,16 @@ from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from composer.metrics.nlp import HFCrossEntropy, LanguageCrossEntropy, Perplexity
+from composer.metrics.nlp import (HFCrossEntropy, LanguageCrossEntropy,
+                                  Perplexity)
 from composer.models.huggingface import HuggingFaceModel
 from omegaconf import DictConfig
 from torch import Tensor
 from torchmetrics import Metric
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-
 # helper functions
+
 
 def rhasattr(obj: Any, attr: str):
     """A chain-able attribute version of hasattr.
@@ -26,7 +27,7 @@ def rhasattr(obj: Any, attr: str):
         `rhasattr(obj, "foo.bar.baz")`
     Reference: https://stackoverflow.com/a/67303315
     """
-    _nested_attrs = attr.split(".")
+    _nested_attrs = attr.split('.')
     _curr_obj = obj
     for _a in _nested_attrs[:-1]:
         if hasattr(_curr_obj, _a):
@@ -47,7 +48,7 @@ def rgetattr(obj: Any, attr: str, *args: List[Any]) -> object:
     def _getattr(obj: Any, attr: str):
         return getattr(obj, attr, *args)
 
-    return functools.reduce(_getattr, [obj] + attr.split("."))
+    return functools.reduce(_getattr, [obj] + attr.split('.'))
 
 
 def findattr(obj: Any, attrs: Tuple[str]) -> Union[object, None]:
@@ -66,7 +67,7 @@ def hf_get_causal_base_model(model: AutoModelForCausalLM) -> torch.nn.Module:
         - model.decoder: (OPTConfig, BloomConfig)
         - gpt_neox: (GPTNeoXConfig)
     """
-    decoder_attrs = ("transformer", "model.decoder", "gpt_neox")
+    decoder_attrs = ('transformer', 'model.decoder', 'gpt_neox')
     return findattr(model, decoder_attrs)
 
 
@@ -80,7 +81,8 @@ def hf_get_lm_head(model: AutoModelForCausalLM) -> torch.nn.Module:
     return model.get_output_embeddings()
 
 
-def hf_get_causal_hidden_layers(model: torch.nn.Module) -> Tuple[torch.nn.Module]:
+def hf_get_causal_hidden_layers(
+        model: torch.nn.Module) -> Tuple[torch.nn.Module]:
     """Returns the hidden layers of the specified model.
 
     NOTE: Different model configurations have different hidden layer attribute names.
@@ -89,9 +91,9 @@ def hf_get_causal_hidden_layers(model: torch.nn.Module) -> Tuple[torch.nn.Module
         - gpt_neox.layers: (GPTNeoXForCausalLM)
     """
     hidden_layers_attrs = (
-        "transformer.h",
-        "model.decoder.layers",
-        "gpt_neox.layers",
+        'transformer.h',
+        'model.decoder.layers',
+        'gpt_neox.layers',
     )
     return findattr(model, hidden_layers_attrs)
 
@@ -106,17 +108,18 @@ def hf_get_tied_embedding_weights(model: torch.nn.Module) -> torch.nn.Module:
         - GPT NeoX doesn't weight tie
     """
     tied_embedding_attrs = (
-        "wte",
-        "word_embeddings",
-        "embed_tokens",
+        'wte',
+        'word_embeddings',
+        'embed_tokens',
     )
     return findattr(model, tied_embedding_attrs)
+
 
 # /end helper functions
 
 
 def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
-    """FSDP wrap a HuggingFace model
+    """FSDP wrap a HuggingFace model.
 
     Wrap any model for FSDP which follows one of the 3 existing conventions from
     HuggingFace for decoder-only LLMs.
@@ -126,7 +129,9 @@ def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
     block_type = type(model_block)
     lm_head = hf_get_causal_hidden_layers(model)
     tied_embeddings = hf_get_tied_embedding_weights(causal_base_model)
-    modules = [causal_base_model, model_block, block_type, lm_head, tied_embeddings]
+    modules = [
+        causal_base_model, model_block, block_type, lm_head, tied_embeddings
+    ]
     if not all(module is not None for module in modules):
         raise ValueError('Unable to FSDP-wrap this model! It does not follow \
                           common layer/weight naming conventions.')
@@ -148,12 +153,14 @@ def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
 
 
 class ComposerHFCausalLM(HuggingFaceModel):
+
     def __init__(self, cfg: DictConfig):
         config = AutoConfig.from_pretrained(cfg.hf_config_name_or_path)
         tokenizer = AutoTokenizer.from_pretrained(cfg.hf_config_name_or_path)
 
         if cfg.pretrained:
-            model = AutoModelForCausalLM.from_pretrained(cfg.hf_config_name_or_path, config=config)
+            model = AutoModelForCausalLM.from_pretrained(
+                cfg.hf_config_name_or_path, config=config)
             metrics = [HFCrossEntropy(), Perplexity()]
         else:
             model = AutoModelForCausalLM.from_config(config)
@@ -161,7 +168,10 @@ class ComposerHFCausalLM(HuggingFaceModel):
 
         prepare_hf_causal_lm_model_for_fsdp(model)
 
-        super().__init__(model=model, tokenizer=tokenizer, metrics=metrics, use_logits=True)
+        super().__init__(model=model,
+                         tokenizer=tokenizer,
+                         metrics=metrics,
+                         use_logits=True)
 
     def get_targets(self, batch: dict):
         targets = torch.roll(batch['labels'], shifts=-1)
