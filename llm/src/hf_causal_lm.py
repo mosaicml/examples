@@ -71,7 +71,7 @@ def hf_get_causal_base_model(model: AutoModelForCausalLM) -> torch.nn.Module:
 
 
 def hf_get_lm_head(model: AutoModelForCausalLM) -> torch.nn.Module:
-    """Returns the lm head of the specified HuggingFace model
+    """Returns the lm head of the specified HuggingFace model.
 
     NOTE: Different model configurations have different `lm_head` attribute names.
         - lm_head: (GPT2LMHeadModel, BloomForCausalLM)
@@ -97,7 +97,7 @@ def hf_get_causal_hidden_layers(model: torch.nn.Module) -> Tuple[torch.nn.Module
 
 
 def hf_get_tied_embedding_weights(model: torch.nn.Module) -> torch.nn.Module:
-    """Returns the embeddings which are weight tied layers of the specified model.
+    """Returns the embeddings, which are weight tied layers.
 
     NOTE: Different model configurations have different embedding attribute names.
         - wte: (GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM)
