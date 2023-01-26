@@ -52,11 +52,10 @@ def download_starting_checkpoints(path_to_download: str) -> str:
 def init_huggingface_causal_lm(
         config: str
 ) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
-    return create_gpt2(use_pretrained=True, pretrained_model_name=config)
+    return {"model": create_gpt2(use_pretrained=True, pretrained_model_name=config)}
 
 def init_composer_ckpt_from_yaml(
-        config: str,
-        checkpoint: Optional[str] = None
+        config: str, checkpoint: Optional[str]
 ) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
     """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
 
@@ -84,30 +83,20 @@ def init_composer_ckpt_from_yaml(
 
     # Build Model
     print('Initializing model...')
-    cfg.model.device = 'meta'
+    if 'fsdp_config' not in cfg:
+        cfg.model.device = 'cpu'
+
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
 
-    if checkpoint is not None:
-        pre = next(model.parameters()).clone().data
-        if checkpoint.startswith('s3://'):
-            checkpoint = download_starting_checkpoints(checkpoint)
-            print(f'Downloaded from s3 to local path {checkpoint}')
+    fsdp_config = cfg.get('fsdp_config', None)
+    fsdp_config = om.to_container(fsdp_config,
+                                  resolve=True) if fsdp_config else None
 
-        model.load_state_dict(
-            torch.load(
-                f'{CHECKPOINT_DIR}/{checkpoint}',
-                map_location=cfg.model.device
-            )['state']['model']
-        )
-        if cfg.model.device != 'meta':
-            post = next(model.parameters()).clone().data
-            assert not torch.equal(pre, post)
-        print('Successfully loaded model weights')
 
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
-    return model
+    return {"model": model, "fsdp_config": fsdp_config, "checkpoint": checkpoint}
 
 def load_model(model_type: str, config: str, checkpoint: Optional[str] = None):
     if  model_type == 'pretrained_hf':
