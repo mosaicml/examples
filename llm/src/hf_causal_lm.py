@@ -19,7 +19,9 @@ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 # helper functions
 
 def rhasattr(obj: Any, attr: str):
-    """A chain-able attribute version of hasattr. For example, to check if
+    """A chain-able attribute version of hasattr.
+
+    For example, to check if
     `obj` has the attribute `foo.bar.baz`, you can use:
         `rhasattr(obj, "foo.bar.baz")`
     Reference: https://stackoverflow.com/a/67303315
@@ -35,8 +37,9 @@ def rhasattr(obj: Any, attr: str):
 
 
 def rgetattr(obj: Any, attr: str, *args: List[Any]) -> object:
-    """A chain-able attribute version of getattr. For example, to get the
-    attribute `foo.bar.baz` from `obj`, you can use:
+    """A chain-able attribute version of getattr.
+
+    For example, to get the attribute `foo.bar.baz` from `obj`, you can use:
         `rgetattr(obj, "foo.bar.baz")`
     Reference: https://stackoverflow.com/a/31174427
     """
@@ -55,8 +58,8 @@ def findattr(obj: Any, attrs: Tuple[str]) -> Union[object, None]:
 
 
 def hf_get_causal_base_model(model: AutoModelForCausalLM) -> torch.nn.Module:
-    """Returns the causal decoder backbone of the specified HuggingFace transformers
-    model.
+    """Returns the causal decoder backbone of the specified HuggingFace model.
+
     NOTE: Different model configurations have different causal decoder attribute
     names.
         - transformer: (GPT2LMHeadModel, GPTJConfig)
@@ -68,8 +71,8 @@ def hf_get_causal_base_model(model: AutoModelForCausalLM) -> torch.nn.Module:
 
 
 def hf_get_lm_head(model: AutoModelForCausalLM) -> torch.nn.Module:
-    """Returns the language modeling (lm) head of the specified HuggingFace
-    transformers model.
+    """Returns the lm head of the specified HuggingFace model
+
     NOTE: Different model configurations have different `lm_head` attribute names.
         - lm_head: (GPT2LMHeadModel, BloomForCausalLM)
         - embed_out: (GPTNeoXForCausalLM)
@@ -79,6 +82,7 @@ def hf_get_lm_head(model: AutoModelForCausalLM) -> torch.nn.Module:
 
 def hf_get_causal_hidden_layers(model: torch.nn.Module) -> Tuple[torch.nn.Module]:
     """Returns the hidden layers of the specified model.
+
     NOTE: Different model configurations have different hidden layer attribute names.
         - transformer.h: (BloomForCausalLM, GPT2LMHeadModel, GPTJForCausalLM)
         - model.decoder.layers: (OPTForCausalLM)
@@ -94,6 +98,7 @@ def hf_get_causal_hidden_layers(model: torch.nn.Module) -> Tuple[torch.nn.Module
 
 def hf_get_tied_embedding_weights(model: torch.nn.Module) -> torch.nn.Module:
     """Returns the embeddings which are weight tied layers of the specified model.
+
     NOTE: Different model configurations have different embedding attribute names.
         - wte: (GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM)
         - word_embeddings: (BloomForCausalLM)
@@ -111,15 +116,20 @@ def hf_get_tied_embedding_weights(model: torch.nn.Module) -> torch.nn.Module:
 
 
 def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
-    """
+    """FSDP wrap a HuggingFace model
+
     Wrap any model for FSDP which follows one of the 3 existing conventions from
-    HuggingFace for decoder-only LLMs
+    HuggingFace for decoder-only LLMs.
     """
     causal_base_model = hf_get_causal_base_model(model)
     model_block = hf_get_causal_hidden_layers(model)[0]
     block_type = type(model_block)
     lm_head = hf_get_causal_hidden_layers(model)
     tied_embeddings = hf_get_tied_embedding_weights(causal_base_model)
+    modules = [causal_base_model, model_block, block_type, lm_head, tied_embeddings]
+    if not all(module is not None for module in modules):
+        raise ValueError('Unable to FSDP-wrap this model! It does not follow \
+                          common layer/weight naming conventions.')
     # When using the HF LM models,
     # the weights of the self.lm_head and self.transformer.wte are tied.
     # This tying occurs inside the `self.post_init()` function.
