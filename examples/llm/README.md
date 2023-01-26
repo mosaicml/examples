@@ -77,16 +77,16 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # Download the 'train_small', 'val' splits and convert to StreamingDataset format
 # This will take 20 sec to 1 min depending on your Internet bandwidth
 # You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
-python ../../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
+python ../../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-python ../../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train
+python ../../common/convert_c4.py --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
-# python ../scripts/convert_c4.py ... --compression zstd
+# python ../common/convert_c4.py ... --compression zstd
 ```
 
 ### Test the Dataloader

@@ -257,13 +257,13 @@ def run_config(config, args, project, image, RUN):
     # Define our command
     if streaming_data:
         command = """
-        composer examples/llm/main.py /mnt/config/parameters.yaml
+        composer examples/common/llm/main.py /mnt/config/parameters.yaml
         """
     else:
         command = """
-        python examples/llm/convert_c4.py --out_root ./my-copy-c4 --splits val
+        python examples/common/convert_c4.py --out_root ./my-copy-c4 --splits val
 
-        composer examples/llm/main.py /mnt/config/parameters.yaml
+        composer examples/common/llm/main.py /mnt/config/parameters.yaml
         """
 
     yaml_file = yaml_base + model_yaml

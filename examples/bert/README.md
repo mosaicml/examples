@@ -62,7 +62,7 @@ To verify that pre-training runs correctly, first prepare a local copy of the C4
 # Download the 'val' split and convert to StreamingDataset format
 # This will take 10 sec to 1 min depending on your Internet bandwidth
 # You should see a dataset folder `./my-copy-c4/val` that is ~0.5GB
-python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits val
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits val
 
 # Run the pre-training script with the test config and HuggingFace BERT
 composer main.py yamls/test/main.yaml
@@ -105,12 +105,12 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # Download the 'val' split and convert to StreamingDataset format
 # This will take 10 sec to 1 min depending on your Internet bandwidth
 # You should see a dataset folder `./my-copy-c4/val` that is ~0.5GB
-python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits val
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-python ../scripts/convert_c4.py --out_root ./my-copy-c4 --splits train
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
 ```
 
 If you're planning on doing multiple training runs, you can upload the **local** copy of C4 you just created to a central location. This will allow you to the skip dataset preparation step in the future. Once you have done so, modify the YAMLs in `yamls/main/` so that the `data_remote` field points to the new location. Then you can simply stream the dataset instead of creating a local copy!
