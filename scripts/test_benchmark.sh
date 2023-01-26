@@ -11,24 +11,28 @@
 #   2) Having the pip install overwrite everything in the requirements
 #       *except* a few whitelisted dependencies.
 
-ENV_NAME="${1%/}-env"   # strip trailing slash if present
-
-cd "$1"
+ENV_NAME="env-${1%/}"   # strip trailing slash if present
 
 echo "Creating venv..."
 python -m venv "$ENV_NAME" --system-site-packages
 source "$ENV_NAME/bin/activate"
 
-cat requirements.txt | grep -v 'flash-attn' > /tmp/requirements.txt
+echo "Installing requirements..."
+pip install --upgrade pip
+pip install ".[$1-cpu]"  # we rely on docker image to handle flash-attn, etc
 
-echo "Installing requirements:"
-cat /tmp/requirements.txt
-# TODO -I would sandbox better (always overwriting system copies with versions
-# in requirements.txt) but this causes mysterious Flash Attention issues
-pip install -U -r /tmp/requirements.txt
-# We need to force install pytest into each environment so that it does not use the system pytest
-pip install --ignore-installed pytest
-rm /tmp/requirements.txt
+# cat requirements.txt | grep -v 'flash-attn' > /tmp/requirements.txt
+
+# echo "Installing requirements:"
+# cat /tmp/requirements.txt
+# # TODO -I would sandbox better (always overwriting system copies with versions
+# # in requirements.txt) but this causes mysterious Flash Attention issues
+# pip install -U -r /tmp/requirements.txt
+# # We need to force install pytest into each env so that doesn't use system pytest
+# pip install --ignore-installed pytest
+# rm /tmp/requirements.txt
+
+cd "$1"
 
 # copy project pytest config
 cp ../.pyproject.toml .
