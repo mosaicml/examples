@@ -11,7 +11,7 @@ _PACKAGE_NAME = 'mosaicml-examples'
 _EXAMPLE_SUBDIRS = ['cifar', 'resnet', 'deeplab', 'bert', 'llm']
 _PACKAGES = find_packages(exclude=['*tests*', '*scripts*'])
 _PROJECT_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             'mosaicml_examples')
+                             'examples')
 
 # Read the repo version
 # We can't use `.__version__` from the library since it's not installed yet

@@ -7,7 +7,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf as om
 
-from mosaicml_examples.text_data import build_text_dataloader
+from examples.common.text_data import build_text_dataloader
 
 
 def get_config(conf_path='yamls/mosaic_gpt/125m.yaml'):

@@ -9,22 +9,22 @@ Fast reference examples for training ML models with recipes. Designed to be easi
 
 Train the MosaicML ResNet, the fastest ResNet50 implementation that yields a :sparkles: 7x :sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-resnet) for more details and recipes. Our recipes were also demonstrated at [MLPerf](https://www.mosaicml.com/blog/mlperf-2022), a cross industry ML benchmark.
 
-:rocket: Get started with the code [here](./mosaicml_examples/resnet/).
+:rocket: Get started with the code [here](./examples/resnet/).
 
 ## DeepLabV3 + ADE20k
 <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/637512d993030157b04ad4f8_Frame%2010%20(1).png" alt="drawing" width="500"/>
 
 Train the MosaicML DeepLabV3 that yields a :sparkles:5x:sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-image-segmentation) for more details and recipes.
 
-:rocket: Get started with the code [here](./mosaicml_examples/deeplab/).
+:rocket: Get started with the code [here](./examples/deeplab/).
 
 ## Large Language Models (LLMs)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./mosaicml_examples/llm/assets/loss-curve-dark.png">
-  <img alt="Training curves for various LLM sizes." src="./mosaicml_examples/llm/assets/loss-curve-light.png" width=500px>
+  <source media="(prefers-color-scheme: dark)" srcset="./examples/llm/assets/loss-curve-dark.png">
+  <img alt="Training curves for various LLM sizes." src="./examples/llm/assets/loss-curve-light.png" width=500px>
 </picture>
 
 A simple yet feature complete implementation of GPT, that scales to 70B parameters while maintaining high performance on GPU clusters. Flexible code, written with vanilla PyTorch, that uses [PyTorch FSDP](https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/) and some recent efficiency improvements.
 
-:rocket: Get started with the code [here](./mosaicml_examples/llm/).
+:rocket: Get started with the code [here](./examples/llm/).

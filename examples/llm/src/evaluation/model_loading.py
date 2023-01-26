@@ -10,9 +10,10 @@ from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 from omegaconf import OmegaConf as om
-from src.model_registry import COMPOSER_MODEL_REGISTRY
-from src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
+from examples.llm.src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
     'cpu')

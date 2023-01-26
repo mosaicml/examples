@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from omegaconf import OmegaConf as om
-from src.tokenizer import TOKENIZER_REGISTRY
+
+from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 
 def get_config(conf_path='yamls/mosaic_gpt/125m.yaml'):

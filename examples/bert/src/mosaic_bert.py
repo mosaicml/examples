@@ -11,11 +11,13 @@ import transformers
 from composer.metrics.nlp import (BinaryF1Score, LanguageCrossEntropy,
                                   MaskedAccuracy)
 from composer.models.huggingface import HuggingFaceModel
-from src.bert_layers import BertForMaskedLM, BertForSequenceClassification
 from torchmetrics import MeanSquaredError
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 from torchmetrics.regression.spearman import SpearmanCorrCoef
+
+from examples.bert.src.bert_layers import (BertForMaskedLM,
+                                           BertForSequenceClassification)
 
 all = ['create_mosaic_bert_mlm', 'create_mosaic_bert_classification']
 
@@ -79,7 +81,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
 
      .. testcode::
 
-         from src.mosaic import create_mosaic_bert_mlm
+         from examples.bert.src.mosaic import create_mosaic_bert_mlm
          model = create_mosaic_bert_mlm()
     """
     if not model_config:

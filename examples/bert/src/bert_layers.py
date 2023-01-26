@@ -42,16 +42,18 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from einops import rearrange
-from src.bert_padding import (index_first_axis, index_put_first_axis, pad_input,
-                              unpad_input, unpad_input_only)
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from transformers.activations import ACT2FN
 from transformers.modeling_outputs import (MaskedLMOutput,
                                            SequenceClassifierOutput)
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
+from examples.bert.src.bert_padding import (index_first_axis,
+                                            index_put_first_axis, pad_input,
+                                            unpad_input, unpad_input_only)
+
 try:
-    from src.flash_attn_triton import flash_attn_qkvpacked_func
+    from examples.bert.src.flash_attn_triton import flash_attn_qkvpacked_func
 except ImportError as e:
     flash_attn_qkvpacked_func = None
 

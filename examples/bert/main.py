@@ -10,12 +10,12 @@ from composer import Trainer
 from composer.utils import dist, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from src.hf_bert import create_hf_bert_mlm
-from src.mosaic_bert import create_mosaic_bert_mlm
 
-from mosaicml_examples.builders import (build_algorithm, build_callback,
-                                        build_dataloader, build_logger,
-                                        build_optimizer, build_scheduler)
+from examples.bert.src.hf_bert import create_hf_bert_mlm
+from examples.bert.src.mosaic_bert import create_mosaic_bert_mlm
+from examples.builders import (build_algorithm, build_callback,
+                               build_dataloader, build_logger, build_optimizer,
+                               build_scheduler)
 
 
 def build_model(cfg: DictConfig):

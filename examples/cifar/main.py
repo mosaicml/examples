@@ -12,9 +12,10 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist
-from data import build_cifar10_dataspec
-from model import build_composer_resnet_cifar
 from omegaconf import DictConfig, OmegaConf
+
+from examples.cifar.data import build_cifar10_dataspec
+from examples.cifar.model import build_composer_resnet_cifar
 
 
 def build_logger(name: str, kwargs: Dict):

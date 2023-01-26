@@ -15,7 +15,7 @@ from einops import rearrange  # type: ignore (reportMissingImports)
 from torch import Tensor
 
 try:
-    from src.flash_attn_triton import flash_attn_qkvpacked_func
+    from examples.llm.src.flash_attn_triton import flash_attn_qkvpacked_func
 except ImportError as e:
     raise e
 

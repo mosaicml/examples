@@ -13,8 +13,9 @@ from composer.optim import DecoupledAdamW
 from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from src.model_registry import COMPOSER_MODEL_REGISTRY
-from src.tokenizer import TOKENIZER_REGISTRY
+
+from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
+from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 
 def get_config(conf_path='yamls/mosaic_gpt/125m.yaml') -> DictConfig:

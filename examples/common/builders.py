@@ -11,8 +11,8 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from packaging import version
 
-from mosaicml_examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
-from mosaicml_examples.common.text_data import build_text_dataloader
+from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
+from examples.common.text_data import build_text_dataloader
 
 
 def build_callback(name, kwargs):

@@ -7,7 +7,8 @@ import pytest
 import torch
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
-from src.model_registry import COMPOSER_MODEL_REGISTRY
+
+from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
 @pytest.mark.parametrize(
