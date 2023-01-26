@@ -10,11 +10,12 @@ from setuptools import find_packages, setup
 _PACKAGE_NAME = 'mosaicml-examples'
 _EXAMPLE_SUBDIRS = ['cifar', 'resnet', 'deeplab', 'bert', 'llm']
 _PACKAGES = find_packages(exclude=['*tests*', '*scripts*'])
-_PROJECT_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mosaicml_examples')
+_PROJECT_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             'mosaicml_examples')
 
 # Read the repo version
 # We can't use `.__version__` from the library since it's not installed yet
-with open(os.path.join(_PROJECT_ROOT,  '__init__.py')) as f:
+with open(os.path.join(_PROJECT_ROOT, '__init__.py')) as f:
     content = f.read()
 # regex: '__version__', whitespace?, '=', whitespace, quote, version, quote
 # we put parens around the version so that it becomes elem 1 of the match
@@ -60,7 +61,8 @@ def _dependencies_as_dict(deps: List[str]) -> Dict[str, str]:
     return ret
 
 
-def _merge_dependencies(deps_base: List[str], deps_update: List[str],
+def _merge_dependencies(deps_base: List[str],
+                        deps_update: List[str],
                         cpu_only: bool = False):
     """Subdir requirements.txt supersedes repo requirements."""
     base_dict = _dependencies_as_dict(deps_base)
@@ -79,10 +81,12 @@ for name in _EXAMPLE_SUBDIRS:
     subdir_path = os.path.join(_PROJECT_ROOT, name, 'requirements.txt')
     with open(subdir_path, 'r') as f:
         lines = f.readlines()
-        extra_deps[name] = _merge_dependencies(
-            install_requires, lines, cpu_only=False)
-        extra_deps[f'{name}-cpu'] = _merge_dependencies(
-            install_requires, lines, cpu_only=True)
+        extra_deps[name] = _merge_dependencies(install_requires,
+                                               lines,
+                                               cpu_only=False)
+        extra_deps[f'{name}-cpu'] = _merge_dependencies(install_requires,
+                                                        lines,
+                                                        cpu_only=True)
 
 setup(
     name=_PACKAGE_NAME,
