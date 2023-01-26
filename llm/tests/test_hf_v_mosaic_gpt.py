@@ -10,6 +10,7 @@ from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
+@pytest.mark.gpu
 @pytest.mark.parametrize(
     'attn_impl,dropout,strict,alibi,mask_val',
     [
@@ -48,7 +49,7 @@ def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict, alibi, mask_val):
         message='Torchmetrics v0.9 introduced a new argument class property')
     conf_path = 'yamls/mosaic_gpt/125m.yaml'  # set cfg path
     batch_size = 2  # set batch size
-    device = 'cuda'  # set decive
+    device = 'cuda' # set decive
 
     # ensure reproducibility
     seed = 17
