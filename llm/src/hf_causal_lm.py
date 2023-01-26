@@ -4,18 +4,21 @@
 # which is MIT licensed
 
 import functools
-from typing import Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
-from composer.models.base import ComposerModel
-from transformers import AutoConfig, AutoModelForCausalLM
+from composer.metrics.nlp import HFCrossEntropy, LanguageCrossEntropy, Perplexity
+from composer.models.huggingface import HuggingFaceModel
+from omegaconf import DictConfig
+from torch import Tensor
+from torchmetrics import Metric
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 
 # helper functions
 
-def rhasattr(obj, attr: str):
+def rhasattr(obj: Any, attr: str):
     """A chain-able attribute version of hasattr. For example, to check if
     `obj` has the attribute `foo.bar.baz`, you can use:
         `rhasattr(obj, "foo.bar.baz")`
@@ -31,20 +34,20 @@ def rhasattr(obj, attr: str):
     return hasattr(_curr_obj, _nested_attrs[-1])
 
 
-def rgetattr(obj, attr: str, *args) -> object:
+def rgetattr(obj: Any, attr: str, *args: List[Any]) -> object:
     """A chain-able attribute version of getattr. For example, to get the
     attribute `foo.bar.baz` from `obj`, you can use:
         `rgetattr(obj, "foo.bar.baz")`
     Reference: https://stackoverflow.com/a/31174427
     """
 
-    def _getattr(obj, attr):
+    def _getattr(obj: Any, attr: str):
         return getattr(obj, attr, *args)
 
     return functools.reduce(_getattr, [obj] + attr.split("."))
 
 
-def findattr(obj, attrs: Tuple[str]) -> Union[object, None]:
+def findattr(obj: Any, attrs: Tuple[str]) -> Union[object, None]:
     for attr in attrs:
         if rhasattr(obj, attr):
             return rgetattr(obj, attr)
@@ -107,7 +110,7 @@ def hf_get_tied_embedding_weights(model: torch.nn.Module) -> torch.nn.Module:
 # /end helper functions
 
 
-def prepare_hf_causal_lm_model_for_fsdp(model):
+def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
     """
     Wrap any model for FSDP which follows one of the 3 existing conventions from
     HuggingFace for decoder-only LLMs
@@ -122,7 +125,7 @@ def prepare_hf_causal_lm_model_for_fsdp(model):
     # This tying occurs inside the `self.post_init()` function.
     # This is a hurdle for FSDP because they need to be in the same FSDP block
     # These lines ensures that both modules stay together in the top-most block when
-    # the model has this tying enabled (almost all do)
+    # the model has this tying enabled (almost all do; this property defaults to True)
     if model.config.tie_word_embeddings:
         causal_base_model._fsdp_wrap = False
         tied_embeddings._fsdp_wrap = False
@@ -134,44 +137,41 @@ def prepare_hf_causal_lm_model_for_fsdp(model):
         module, block_type)
 
 
-class ComposerHFCausalLM(ComposerModel):
-
-    def __init__(self, cfg):
-        super().__init__()
+class ComposerHFCausalLM(HuggingFaceModel):
+    def __init__(self, cfg: DictConfig):
         config = AutoConfig.from_pretrained(cfg.hf_config_name_or_path)
-        self.model = AutoModelForCausalLM.from_config(config)
-        self.train_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
-            'Perplexity': Perplexity(),
-        }
-        self.eval_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
-            'Perplexity': Perplexity(),
-        }
-        prepare_hf_causal_lm_model_for_fsdp(self.model)
+        tokenizer = AutoTokenizer.from_pretrained(cfg.hf_config_name_or_path)
 
-    def get_targets(self, batch):
+        if cfg.pretrained:
+            model = AutoModelForCausalLM.from_pretrained(cfg.hf_config_name_or_path, config=config)
+            metrics = [HFCrossEntropy(), Perplexity()]
+        else:
+            model = AutoModelForCausalLM.from_config(config)
+            metrics = [LanguageCrossEntropy(len(tokenizer)), Perplexity()]
+
+        prepare_hf_causal_lm_model_for_fsdp(model)
+
+        super().__init__(model=model, tokenizer=tokenizer, metrics=metrics, use_logits=True)
+
+    def get_targets(self, batch: dict):
         targets = torch.roll(batch['labels'], shifts=-1)
         targets[:, -1] = -100
         return targets
 
-    def forward(self, batch):
+    def forward(self, batch: dict):
         return self.model(input_ids=batch['input_ids'],
                           attention_mask=batch['attention_mask'].bool()).logits
 
-    def eval_forward(self, batch, outputs=None):
+    def eval_forward(self, batch: dict, outputs: Optional[Tensor] = None):
         return outputs if outputs is not None else self.forward(batch)
 
-    def loss(self, outputs, batch):
+    def loss(self, outputs: Tensor, batch: dict):
         targets = self.get_targets(batch)
         return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
                                targets.view(-1),
                                ignore_index=-100)
 
-    def get_metrics(self, is_train=False):
-        return self.train_metrics if is_train else self.eval_metrics
-
-    def update_metric(self, batch, outputs, metric):
+    def update_metric(self, batch: dict, outputs: Tensor, metric: Metric):
         outputs = outputs.view(-1, outputs.size(-1))
         targets = self.get_targets(batch).view(-1)
         metric.update(outputs, targets)
