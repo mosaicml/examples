@@ -87,6 +87,7 @@ def gen_random_batch(batch_size, test_cfg):
 def test_full_forward_and_backward(batch_size=2):
     test_cfg, model, optimizer = get_objs(
         conf_path='yamls/mosaic_gpt/125m.yaml')
+    test_cfg['model']['attn_impl'] = 'torch'  # avoid flash_attn dependency
 
     batch = gen_random_batch(batch_size, test_cfg)
 
@@ -157,6 +158,7 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     conf_path = 'yamls/hf_causal_lm/gpt-neo-125m.yaml'
     with open(conf_path) as f:
         neo_cfg = om.load(f)
+    test_cfg['model']['attn_impl'] = 'torch'  # avoid flash_attn dependency
 
     device = 'cpu'
     neo_cfg.device = device
