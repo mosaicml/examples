@@ -61,7 +61,7 @@ To get started, clone this repo and install the requirements:
 git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install ".[cifar]"  # or pip install ".[cifar-cpu]" if no NVIDIA GPU
-cd cifar
+cd examples/cifar
 ```
 
 # How to start training

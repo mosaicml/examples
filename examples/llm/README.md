@@ -55,7 +55,7 @@ To get started, clone this repo and install the requirements:
 git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install ".[llm]"  # or pip install ".[llm-cpu]" if no NVIDIA GPU
-cd llm
+cd examples/llm
 ```
 
 # Dataset preparation

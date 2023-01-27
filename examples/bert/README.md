@@ -19,7 +19,7 @@ You'll find in this folder:
 * `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
 ### Shared
 
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer).
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.12.0/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.12.0/api_reference/generated/composer.Trainer.html#composer.Trainer).
 * `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
 * `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
 * `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
@@ -36,12 +36,12 @@ In the [common](../common) folder, you will also find:
 
 We recommend the following environment:
 * A system with NVIDIA GPU(s)
-* A Docker container running [MosaicML's PyTorch base image](https://hub.docker.com/r/mosaicml/pytorch/tags): `mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04`.
+* A Docker container running [MosaicML's PyTorch base image](https://hub.docker.com/r/mosaicml/pytorch/tags): `mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04`.
 
 This recommended Docker image comes pre-configured with the following dependencies:
-  * PyTorch Version: 1.12.1
-  * CUDA Version: 11.6
-  * Python Version: 3.9
+  * PyTorch Version: 1.13.1
+  * CUDA Version: 11.7
+  * Python Version: 3.10
   * Ubuntu Version: 20.04
 
 ## Quick start
