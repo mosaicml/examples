@@ -25,7 +25,7 @@ train_loader:
   dataset:
     remote: *data_remote
     local: *data_local
-    split: val
+    split: train_small
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
     group_method: truncate

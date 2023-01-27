@@ -27,8 +27,8 @@ You'll find in this folder:
 * `requirements.txt` — All needed Python dependencies.
 * This `README.md`
 
-In the [examples](../examples) folder, you will also find:
-* `examples/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
+In the [common](../common) folder, you will also find:
+* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
 
 # Setup
 
@@ -103,15 +103,19 @@ You can read more about the benefits of using mosaicml-streaming [here](https://
 To make yourself a copy of C4, use `convert_c4.py` like so:
 
 ```bash
-# Download the 'val' split and convert to StreamingDataset format
-# This will take 10 sec to 1 min depending on your Internet bandwidth
-# You should see a dataset folder `./my-copy-c4/val` that is ~0.5GB
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits val
+# Download the 'train_small', 'val' splits and convert to StreamingDataset format
+# This will take 20 sec to 1 min depending on your Internet bandwidth
+# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
 python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
+
+# For any of the above commands, you can also choose to compress the .mds files.
+# This is useful if your plan is to store these in object store after conversion.
+# python ../common/convert_c4.py ... --compression zstd
 ```
 
 If you're planning on doing multiple training runs, you can upload the **local** copy of C4 you just created to a central location. This will allow you to the skip dataset preparation step in the future. Once you have done so, modify the YAMLs in `yamls/main/` so that the `data_remote` field points to the new location. Then you can simply stream the dataset instead of creating a local copy!
@@ -121,15 +125,15 @@ If you're planning on doing multiple training runs, you can upload the **local**
 To verify that the dataloader works, run a quick test on your `val` split like so:
 
 ```bash
-# This will construct a `StreamingC4` dataset from your `val` split,
-# pass it into a PyTorch Dataloader, iterate over it, and print samples.
-# Since remote and local are set to the same path, no streaming/copying takes place.
-python ../examples/text_data.py ./my-copy-c4 ./my-copy-c4
+# This will construct a `StreamingTextDataset` dataset from your `val` split,
+# pass it into a PyTorch Dataloader, and iterate over it and print samples.
+# Since we only provide a local path, no streaming/copying takes place.
+python ../common/text_data.py ./my-copy-c4
 
-# This will do the same thing, but stream data from {remote} -> {local}.
+# This will do the same thing, but stream data to {local} from {remote}.
 # The remote path can be a filesystem or object store URI.
-python ../examples/text_data.py ./my-copy-c4 /tmp/cache-c4
-python ../examples/text_data.py s3://my-bucket/my-copy-c4 /tmp/cache-c4
+python ../common/text_data.py /tmp/cache-c4 ./my-copy-c4
+python ../common/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4
 ```
 
 # Training
@@ -138,8 +142,8 @@ Now that you've installed dependencies and built a local copy of the C4 dataset,
 
 **Note:** the YAMLs default to using `./my-copy-c4` as the location of your C4 dataset, following the above examples. **Please remember** to edit the `data_remote` and `data_local` paths in your pre-training YAMLs to reflect any differences in where your dataset lives (e.g., if you used a different folder name or already moved your copy to S3).
 
-**Also remember** that if you only downloaded the `val` split, you need to make sure your train_dataloader is pointed at that split.
-Just change `split: train` to `split: val` in your YAML.
+**Also remember** that if you only downloaded the `train_small` split, you need to make sure your train_dataloader is pointed at that split.
+Just change `split: train` to `split: train_small` in your YAML.
 This is already done in the testing YAML `yamls/test/main.py`, which you can also use to test your configuration (see [Quick Start](#quick-start)).
 
 ## MLM pre-training

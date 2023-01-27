@@ -1,8 +1,9 @@
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: v0.0.2
-  pip_install: -r llm/requirements.txt
+  # git_branch: # use your branch
+  # git_commit: # OR use your commit hash
+  pip_install: -e .[llm]
   ssh_clone: false
 
 # We are fetching, converting, and training on the 'val' split
@@ -10,11 +11,11 @@ integrations:
 # For real training runs, follow the instructions in `examples/llm/README.md`
 # to convert and host the full 'train' dataset.
 command: |
-  cd examples/llm
-  python convert_c4.py --out_root ./my-copy-c4 --splits val
+  cd examples/examples/llm
+  python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
   composer main.py /mnt/config/parameters.yaml
 
-image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
 run_name: mosaic-gpt-1b-ctx-8k-gpus-8
@@ -27,10 +28,11 @@ cluster: r0z0 # replace with your cluster here!
 # and referenced in our `command` above
 # We use this to customize hparams like `max_seq_len=8192` at runtime
 parameters:
-  data_remote: &data_remote ./my-copy-c4
   data_local: &data_local ./my-copy-c4
-  max_seq_len: &max_seq_len 8192
+  data_remote: &data_remote null
   tokenizer_name: &tokenizer_name gpt2
+  max_seq_len: &max_seq_len 2048
+  global_seed: &global_seed 17
 
   # Model
   model:
@@ -58,38 +60,32 @@ parameters:
 
   # Dataloaders
   train_loader:
+    name: text
     dataset:
-      remote: *data_remote
       local: *data_local
-      split: val # Using the 'val' split for this demo
+      remote: *data_remote
+      split: train_small # Using 'train_small' for this demo
       shuffle: true
-      prefetch: 1_000_000
       tokenizer_name: *tokenizer_name
       max_seq_len: *max_seq_len
       group_method: concat
+      shuffle_seed: *global_seed
     drop_last: true
     num_workers: 8
-    pin_memory: true
-    prefetch_factor: 2
-    persistent_workers: true
-    timeout: 0
 
   eval_loader:
+    name: text
     dataset:
-      remote: *data_remote
       local: *data_local
+      remote: *data_remote
       split: val
       shuffle: false
-      prefetch: 1000
       tokenizer_name: *tokenizer_name
       max_seq_len: *max_seq_len
       group_method: truncate
+      shuffle_seed: *global_seed
     drop_last: false
     num_workers: 8
-    pin_memory: true
-    prefetch_factor: 2
-    persistent_workers: true
-    timeout: 0
 
   # Optimization
   scheduler:
@@ -106,16 +102,22 @@ parameters:
     eps: 1.0e-08
     weight_decay: 0.0
 
+  algorithms:
+    gradient_clipping:
+      clipping_type: norm
+      clipping_threshold: 1.0
+
   max_duration: 24800ba # ~ 26B tokens
   eval_interval: 2000ba
+  eval_subset_num_batches: -1
   global_train_batch_size: 128 # ~1M tokens
-  grad_clip_norm: 1.0
 
   # System
   seed: 17
   device_eval_batch_size: 2
-  device_train_microbatch_size: auto
-  precision: bf16
+  device_train_microbatch_size: 2
+  # device_train_microbatch_size: auto
+  precision: amp_bf16
 
   # FSDP
   fsdp_config:
@@ -129,6 +131,7 @@ parameters:
   # Logging
   progress_bar: false
   log_to_console: true
+  console_log_interval: 1ba
 
   callbacks:
     speed_monitor:
@@ -136,15 +139,15 @@ parameters:
     lr_monitor: {}
     memory_monitor: {}
 
-    # loggers:
-    #   wandb: {}
+  # loggers:
+  #   wandb: {}
 
-    # Checkpoint to local filesystem or remote object store
-    # save_interval: 2000ba
-    # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-    # save_folder: ./{run_name}/checkpoints
-    # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
+  # Checkpoint to local filesystem or remote object store
+  # save_interval: 2000ba
+  # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+  # save_folder: ./{run_name}/checkpoints
+  # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
-    # Load from local filesystem or remote object store
-    # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
-    # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
+  # Load from local filesystem or remote object store
+  # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
+  # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
