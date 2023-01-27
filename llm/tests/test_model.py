@@ -154,7 +154,7 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
-    conf_path = 'yamls/hf_causal_lm/gpt-neo-125m.yaml'
+    conf_path = 'yamls/hf_causal_lm/gpt2-small.yaml'
     with open(conf_path) as f:
         neo_cfg = om.load(f)
 
