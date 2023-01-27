@@ -68,7 +68,7 @@ def build_ade20k_dataspec(
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the
             dataloader (e.g. num_workers, etc.)
     """
-    both_transforms, image_transforms, target_transforms = build_ade20k_transformations(
+    joint_transform, image_transforms, target_transforms = build_ade20k_transformations(
         split=split,
         base_size=base_size,
         min_resize_scale=min_resize_scale,
@@ -76,14 +76,14 @@ def build_ade20k_dataspec(
         final_size=final_size)
 
     if is_streaming:
-        dataset = streaming.vision.ADE20K(remote=path,
-                                          local=local,
-                                          split=split,
-                                          shuffle=shuffle,
-                                          both_transforms=both_transforms,
-                                          transform=image_transforms,
-                                          target_transform=target_transforms,
-                                          batch_size=batch_size)
+        dataset = streaming.vision.StreamingADE20K(remote=path,
+                                                   local=local,
+                                                   split=split,
+                                                   shuffle=shuffle,
+                                                   joint_transform=joint_transform,
+                                                   transform=image_transforms,
+                                                   target_transform=target_transforms,
+                                                   batch_size=batch_size)
         sampler = None
     else:
         dataset = ADE20k(datadir=path,
