@@ -204,6 +204,7 @@ def main(config):
         save_folder=config.save_folder,
         save_interval=config.save_interval,
         save_num_checkpoints_to_keep=config.save_num_checkpoints_to_keep,
+        save_overwrite=config.get('save_overwrite', False),
         load_path=config.load_path,
         device=device,
         precision=precision,
