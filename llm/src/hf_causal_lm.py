@@ -126,10 +126,9 @@ def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
     causal_base_model = hf_get_causal_base_model(model)
     model_block = hf_get_causal_hidden_layers(model)  # type: ignore
     lm_head = hf_get_causal_hidden_layers(model)
-    tied_embeddings = hf_get_tied_embedding_weights(causal_base_model)  # type: ignore
-    modules = [
-        causal_base_model, model_block, lm_head, tied_embeddings
-    ]
+    tied_embeddings = hf_get_tied_embedding_weights(
+        causal_base_model)  # type: ignore
+    modules = [causal_base_model, model_block, lm_head, tied_embeddings]
     if any(module is None for module in modules):
         raise ValueError('Unable to FSDP-wrap this model! It does not follow \
                           common layer/weight naming conventions.')
