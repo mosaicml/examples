@@ -3,7 +3,7 @@ integrations:
   git_repo: mosaicml/examples
   # git_branch: # use your branch
   # git_commit: # OR use your commit hash
-  pip_install: -e .[llm]
+  pip_install: .[llm]
   ssh_clone: false
 
 # We are fetching, converting, and training on the 'val' split
@@ -139,15 +139,15 @@ parameters:
     lr_monitor: {}
     memory_monitor: {}
 
-  # loggers:
-  #   wandb: {}
+#   loggers:
+#     wandb: {}
 
-  # Checkpoint to local filesystem or remote object store
-  # save_interval: 2000ba
-  # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  # save_folder: ./{run_name}/checkpoints
-  # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
+#   Checkpoint to local filesystem or remote object store
+#   save_interval: 2000ba
+#   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+#   save_folder: ./{run_name}/checkpoints
+#   save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
-  # Load from local filesystem or remote object store
-  # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
-  # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
+#   Load from local filesystem or remote object store
+#   load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
+#   load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
