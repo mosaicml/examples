@@ -52,7 +52,7 @@ To get started, clone this repo and install the requirements:
 ```bash
 git clone https://github.com/mosaicml/examples.git
 cd examples
-pip install ".[bert]"  # or pip install ".[bert-cpu]" if no NVIDIA GPU
+pip install -e ".[bert]"  # or pip install-e ".[bert-cpu]" if no NVIDIA GPU
 cd examples/bert
 ```
 

@@ -1,6 +1,6 @@
 # These requirements are shared for all examples
 # Each example subdir has its own `requirements.txt` with extra deps.
-# E.g. to install LLM folder deps, use `pip install .[llm]`
+# E.g. to install LLM folder deps, use `pip install -e .[llm]`
 
 mosaicml>=0.12,<0.13
 pre-commit>=2.18.1,<3
