@@ -12,13 +12,13 @@ run_name: &run_name mosaic-bert-base-uncased
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb)
 gpu_num: 8  # Number of GPUs to use
-image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
+  pip_install: -e .[bert]
 command: |
-  cd examples/bert
-  pip install -r requirements.txt
+  cd examples/examples/bert
   composer main.py /mnt/config/parameters.yaml
 
 # Starting `parameters` copied from `yamls/main/mosaic-bert-base-uncased.yaml`.
