@@ -27,8 +27,8 @@ from examples.bert.src.glue.finetuning_jobs import (TASK_NAME_TO_NUM_LABELS,
                                                     SST2Job, STSBJob)
 from examples.bert.src.hf_bert import create_hf_bert_classification
 from examples.bert.src.mosaic_bert import create_mosaic_bert_classification
-from examples.builders import (build_algorithm, build_callback, build_logger,
-                               build_scheduler)
+from examples.common.builders import (build_algorithm, build_callback,
+                                      build_logger, build_scheduler)
 
 TASK_NAME_TO_CLASS = {
     'mnli': MNLIJob,

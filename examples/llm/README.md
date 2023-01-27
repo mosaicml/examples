@@ -55,7 +55,7 @@ To get started, clone this repo and install the requirements:
 git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install ".[llm]"  # or pip install ".[llm-cpu]" if no NVIDIA GPU
-cd llm
+cd examples/llm
 ```
 
 # Dataset preparation
@@ -83,7 +83,7 @@ python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
+# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.

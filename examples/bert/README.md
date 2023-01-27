@@ -19,7 +19,7 @@ You'll find in this folder:
 * `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
 ### Shared
 
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.11.1/api_reference/generated/composer.Trainer.html#composer.Trainer).
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.12.0/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.12.0/api_reference/generated/composer.Trainer.html#composer.Trainer).
 * `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
 * `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
 * `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
@@ -36,12 +36,12 @@ In the [common](../common) folder, you will also find:
 
 We recommend the following environment:
 * A system with NVIDIA GPU(s)
-* A Docker container running [MosaicML's PyTorch base image](https://hub.docker.com/r/mosaicml/pytorch/tags): `mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04`.
+* A Docker container running [MosaicML's PyTorch base image](https://hub.docker.com/r/mosaicml/pytorch/tags): `mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04`.
 
 This recommended Docker image comes pre-configured with the following dependencies:
-  * PyTorch Version: 1.12.1
-  * CUDA Version: 11.6
-  * Python Version: 3.9
+  * PyTorch Version: 1.13.1
+  * CUDA Version: 11.7
+  * Python Version: 3.10
   * Ubuntu Version: 20.04
 
 ## Quick start
@@ -53,17 +53,17 @@ To get started, clone this repo and install the requirements:
 git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install ".[bert]"  # or pip install ".[bert-cpu]" if no NVIDIA GPU
-cd bert
+cd examples/bert
 ```
 
 ### Pre-training
 To verify that pre-training runs correctly, first prepare a local copy of the C4 validation split, and then run the `main.py` pre-training script twice using our testing config. First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
 
 ```bash
-# Download the 'val' split and convert to StreamingDataset format
-# This will take 10 sec to 1 min depending on your Internet bandwidth
-# You should see a dataset folder `./my-copy-c4/val` that is ~0.5GB
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits val
+# Download the 'train_small', 'val' splits and convert to StreamingDataset format
+# This will take 20 sec to 1 min depending on your Internet bandwidth
+# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Run the pre-training script with the test config and HuggingFace BERT
 composer main.py yamls/test/main.yaml
@@ -111,7 +111,7 @@ python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
+# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
