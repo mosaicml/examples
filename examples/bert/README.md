@@ -19,7 +19,7 @@ You'll find in this folder:
 * `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
 ### Shared
 
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/v0.12.0/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/v0.12.0/api_reference/generated/composer.Trainer.html#composer.Trainer).
+* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#composer.Trainer).
 * `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
 * `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
 * `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
