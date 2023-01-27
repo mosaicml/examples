@@ -171,7 +171,7 @@ def test_full_forward_and_backward_gpt_neo(batch_size=2):
                                eps=neo_cfg.optimizer.eps,
                                weight_decay=neo_cfg.optimizer.weight_decay)
 
-    # set vacab size using model num_embeddings
+    # set vocab size using model num_embeddings
     neo_cfg.model.vocab_size = model.model.transformer.wte.num_embeddings
     batch = gen_random_batch(batch_size, neo_cfg)
 
