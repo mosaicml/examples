@@ -100,7 +100,7 @@ parameters:
   precision: bf16
 
   # Logging
-  progress_bar: true
+  progress_bar: false
   log_to_console: true
 
   callbacks:

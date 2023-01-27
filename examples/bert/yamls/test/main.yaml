@@ -88,7 +88,7 @@ grad_accum: 1
 precision: fp32
 
 # Logging
-progress_bar: true
+progress_bar: false
 log_to_console: true
 
 callbacks:
