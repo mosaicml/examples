@@ -55,11 +55,11 @@ parameters:
   # save_finetune_checkpoint_prefix: s3://<bucket>/remote-finetune-checkpoints # (remote)
   save_finetune_checkpoint_folder: ${save_finetune_checkpoint_prefix}/${base_run_name}
 
-  # Loggers
-  loggers:
-    wandb: # (Comment this block to disable W&B logging)
-      project:      # Fill this in if using W&B
-      entity:      # Fill this in if using W&B
+  # (Optional) W&B logging
+  # loggers:
+  #   wandb:
+  #     project:      # Fill this in if using W&B
+  #     entity:      # Fill this in if using W&B
 
   # Callbacks
   callbacks:
