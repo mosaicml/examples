@@ -53,17 +53,17 @@ To get started, clone this repo and install the requirements:
 git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install ".[bert]"  # or pip install ".[bert-cpu]" if no NVIDIA GPU
-cd bert
+cd examples/bert
 ```
 
 ### Pre-training
 To verify that pre-training runs correctly, first prepare a local copy of the C4 validation split, and then run the `main.py` pre-training script twice using our testing config. First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
 
 ```bash
-# Download the 'val' split and convert to StreamingDataset format
-# This will take 10 sec to 1 min depending on your Internet bandwidth
-# You should see a dataset folder `./my-copy-c4/val` that is ~0.5GB
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits val
+# Download the 'train_small', 'val' splits and convert to StreamingDataset format
+# This will take 20 sec to 1 min depending on your Internet bandwidth
+# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Run the pre-training script with the test config and HuggingFace BERT
 composer main.py yamls/test/main.yaml
