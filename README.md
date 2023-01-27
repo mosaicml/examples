@@ -17,7 +17,7 @@ To get started, either clone or fork this repo and install whichever example\[s\
 git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
-cd llm
+cd examples/llm
 ```
 
 # Tests and Linting
