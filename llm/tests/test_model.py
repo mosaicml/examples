@@ -150,7 +150,7 @@ def test_attention_mechanism(batch_size=2):
         x = x + block.resid_mlp_dropout(n)
 
 
-def test_full_forward_and_backward_gpt_neo(batch_size=2):
+def test_full_forward_and_backward_gpt2_small(batch_size=2):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
