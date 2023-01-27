@@ -36,21 +36,24 @@ base_config:
 
 sweep_config:
   gpu_num: 
-  #   - 
-  #     key: '64'
-  #     value: 64
-  #   - 
-  #     key: '32'
-  #     value: 32
-  #   - 
-  #     key: '16'
-  #     value: 16
     - 
-      key: '128'
-      value: 128
+      key: '64'
+      value: 64
     - 
-      key: '256'
-      value: 256
+      key: '32'
+      value: 32
+    - 
+      key: '16'
+      value: 16
+    -
+      key: '8'
+      value: 8
+    # - 
+    #   key: '128'
+    #   value: 128
+    # - 
+    #   key: '256'
+    #   value: 256
  
   parameters.icl_tasks:
     -
