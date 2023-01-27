@@ -11,7 +11,7 @@ base_config:
   # to convert and host the full 'train' dataset.
   command: |
     cd examples/llm
-    composer -m icl_eval.evaluate_model /mnt/config/parameters.yaml -n 1
+    composer -m icl_eval.evaluate_model /mnt/config/parameters.yaml 
 
   image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
   optimization_level: 0
@@ -35,7 +35,7 @@ base_config:
 
 
 sweep_config:
-  # gpu_num: 
+  gpu_num: 
   #   - 
   #     key: '64'
   #     value: 64
@@ -45,9 +45,12 @@ sweep_config:
   #   - 
   #     key: '16'
   #     value: 16
-  #   - 
-  #     key: '8'
-  #     value: 8
+    - 
+      key: '128'
+      value: 128
+    - 
+      key: '256'
+      value: 256
  
   parameters.icl_tasks:
     -
