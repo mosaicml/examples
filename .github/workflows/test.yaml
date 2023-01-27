@@ -22,7 +22,7 @@ jobs:
         python_version:
         - '3.9'
         subdir:
-        # - "bert"   # we have no bert tests...
+        - bert
         - cifar
         - deeplab
         - llm
