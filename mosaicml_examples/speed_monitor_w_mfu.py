@@ -68,15 +68,15 @@ GPU_INFO['a100-sxm4-40gb'] = {
 }
 GPU_INFO['a100-pcie-40gb'] = {
     'flops': GPU_INFO['a100-sxm4-40gb']['flops'],
-    'cost_per_hour': None,
+    'cost_per_hour': 2.,
 }
 GPU_INFO['a100-sxm4-80gb'] = {
     'flops': GPU_INFO['a100-sxm4-40gb']['flops'],
-    'cost_per_hour': None,
+    'cost_per_hour': 2.75,
 }
 GPU_INFO['a100-pcie-80gb'] = {
     'flops': GPU_INFO['a100-sxm4-40gb']['flops'],
-    'cost_per_hour': None,
+    'cost_per_hour': 2.75,
 }
 # source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
 GPU_INFO['v100-sxm'] = {
