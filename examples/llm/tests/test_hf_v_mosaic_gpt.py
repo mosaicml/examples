@@ -11,6 +11,7 @@ from omegaconf import OmegaConf as om
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
+@pytest.mark.gpu
 @pytest.mark.parametrize(
     'attn_impl,dropout,strict,alibi,mask_val',
     [

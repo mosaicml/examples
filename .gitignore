@@ -2,7 +2,7 @@
 my-copy-c4/
 
 # WandB
-*wandb/
+wandb/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
