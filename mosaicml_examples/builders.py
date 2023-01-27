@@ -25,7 +25,9 @@ def build_callback(name, kwargs):
             return SpeedMonitor(window_size=kwargs.get('window_size', 1))
         return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
                                gpu_flops_available=kwargs.get(
-                                   'gpu_flops_available', None))
+                                   'gpu_flops_available', None),
+                               gpu_cost_per_hour=kwargs.get(
+                                   'gpu_cost_per_hour', None))
     elif name == 'optimizer_monitor':
         try:
             from composer.callbacks import OptimizerMonitor

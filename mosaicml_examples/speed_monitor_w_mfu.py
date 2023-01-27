@@ -18,10 +18,12 @@ from composer.models.base import ComposerModel
 from composer.utils import dist
 from torch.utils.data import DataLoader
 
-GPU_AVAILABLE_FLOPS = {
-    # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
-    # nvidia publishes spec sheet with a 2x sparsity factor
-    'h100-sxm': {
+GPU_INFO = {}
+
+# source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
+# nvidia publishes spec sheet with a 2x sparsity factor
+GPU_INFO['h100-sxm'] = {
+    'flops': {
         'fp64': 67e12,
         'fp32': 67e12,
         'tf32': 989e12 / 2,
@@ -33,7 +35,10 @@ GPU_AVAILABLE_FLOPS = {
         'amp_fp8': 3.958e15 / 2,
         'int8': 3.958e15 / 2,
     },
-    'h100-pcie': {
+    'cost_per_hour': None,
+}
+GPU_INFO['h100-pcie'] = {
+    'flops': {
         'fp64': 51e12,
         'fp32': 51e12,
         'tf32': 756e12 / 2,
@@ -45,9 +50,12 @@ GPU_AVAILABLE_FLOPS = {
         'amp_fp8': 3.026e15 / 2,
         'int8': 3.026e15 / 2,
     },
-    # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
-    # sxm and pcie have same flop counts
-    'a100': {
+    'cost_per_hour': None,
+}
+# source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+# sxm and pcie have same flop counts
+GPU_INFO['a100-sxm4-40gb'] = {
+    'flops': {
         'fp64': 19.5e12,
         'fp32': 19.5e12,
         'tf32': 156e12,
@@ -56,41 +64,67 @@ GPU_AVAILABLE_FLOPS = {
         'bf16': 312e12,
         'amp_bf16': 312e12,
     },
-    # source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
-    'v100-sxm': {
+    'cost_per_hour': 2.,
+}
+GPU_INFO['a100-pcie-40gb'] = {
+    'flops': GPU_INFO['a100-sxm4-40gb']['flops'],
+    'cost_per_hour': None,
+}
+GPU_INFO['a100-sxm4-80gb'] = {
+    'flops': GPU_INFO['a100-sxm4-40gb']['flops'],
+    'cost_per_hour': None,
+}
+GPU_INFO['a100-pcie-80gb'] = {
+    'flops': GPU_INFO['a100-sxm4-40gb']['flops'],
+    'cost_per_hour': None,
+}
+# source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
+GPU_INFO['v100-sxm'] = {
+    'flops': {
         'fp64': 7.8e12,
         'fp32': 15.7e12,
         'fp16': 125e12,
         'amp_fp16': 125e12,
     },
-    'v100-pcie': {
+    'cost_per_hour': None,
+}
+GPU_INFO['v100-pcie'] = {
+    'flops': {
         'fp64': 7e12,
         'fp32': 14e12,
         'fp16': 112e12,
         'amp_fp16': 112e12,
     },
-    'v100s-pcie': {
+    'cost_per_hour': None,
+}
+GPU_INFO['v100s-pcie'] = {
+    'flops': {
         'fp64': 8.2e12,
         'fp32': 16.4e12,
         'fp16': 130e12,
         'amp_fp16': 130e12,
     },
-    # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
-    # sxm and pcie have same flop counts
-    't4': {
+    'cost_per_hour': None,
+}
+# source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
+# sxm and pcie have same flop counts
+GPU_INFO['t4'] = {
+    'flops': {
         'fp32': 8.1e12,
         'fp16': 65e12,
         'amp_fp16': 65e12,
         'int8': 130e12,
         'int4': 260e12,
     },
+    'cost_per_hour': None,
 }
 
 __all__ = ['SpeedMonitorMFU']
 
 
-def get_gpu_flops_available(state: State):
+def get_gpu_info(state: State):
     gpu_flops_available = None
+    gpu_cost_per_hour = None
 
     # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB'
     dev_name = torch.cuda.get_device_name().lower()
@@ -99,7 +133,25 @@ def get_gpu_flops_available(state: State):
     elif 'h100-pcie' in dev_name:
         dev_name = 'h100-pcie'
     elif 'a100' in dev_name:
-        dev_name = 'a100'
+        if 'sxm' in dev_name:
+            if '40gb' in dev_name:
+                dev_name = 'a100-sxm4-40gb'
+            elif '80gb' in dev_name:
+                dev_name = 'a100-sxm4-80gb'
+            else:
+                dev_name = None
+                warnings.warn(f'GPU type ({dev_name}) not recognized')
+        elif 'pcie' in dev_name:
+            if '40gb' in dev_name:
+                dev_name = 'a100-pcie-40gb'
+            elif '80gb' in dev_name:
+                dev_name = 'a100-pcie-80gb'
+            else:
+                dev_name = None
+                warnings.warn(f'GPU type ({dev_name}) not recognized')
+        else:
+            dev_name = None
+            warnings.warn(f'GPU type ({dev_name}) not recognized')
     elif 'v100-sxm' in dev_name:
         dev_name = 'v100-sxm'
     elif 'v100-pcie' in dev_name:
@@ -112,17 +164,24 @@ def get_gpu_flops_available(state: State):
     if dev_name:
         try:
             gpu_flops_available = int(
-                GPU_AVAILABLE_FLOPS[dev_name][state.precision.value])
+                GPU_INFO[dev_name]['flops'][state.precision.value])
+            gpu_cost_per_hour = GPU_INFO[dev_name]['cost_per_hour']
         except:
             gpu_flops_available = None
+            gpu_cost_per_hour = None
 
     if gpu_flops_available is None:
         warnings.warn(
-            f'gpu_flop count not found for {dev_name=} with precision: {state.precision.value}; MFU cannot be calculated and reported. '
+            f'gpu_flop count not found for {dev_name} with precision: {state.precision.value}; MFU cannot be calculated and reported. '
             f'gpu_flops_available can be manually overridden by setting gpu_flops_available in SpeedMonitorMFU()'
         )
+    if gpu_cost_per_hour is None:
+        warnings.warn(
+            f'gpu_cost_per_hour not found for {dev_name}; job training cost cannot be calculated and reported. '
+            f'gpu_cost_per_hour can be manually overridden by setting gpu_cost_per_hour in SpeedMonitorMFU()'
+        )
 
-    return gpu_flops_available
+    return gpu_flops_available, gpu_cost_per_hour
 
 
 class SpeedMonitorMFU(Callback):
@@ -130,7 +189,8 @@ class SpeedMonitorMFU(Callback):
 
     def __init__(self,
                  window_size: int = 100,
-                 gpu_flops_available: Optional[Union[float, int]] = None):
+                 gpu_flops_available: Optional[Union[float, int]] = None,
+                 gpu_cost_per_hour: Optional[Union[float, int]] = None):
         # Track the batch num samples and wct to compute throughput over a window of batches
         self.batch_start_num_samples = 0
         self.batch_start_wct = 0.0
@@ -140,6 +200,7 @@ class SpeedMonitorMFU(Callback):
 
         self.set_gpu_flops_available = False
         self.gpu_flops_available = gpu_flops_available
+        self.gpu_cost_per_hour = gpu_cost_per_hour
 
         # Keep track of time spent evaluating
         self.total_eval_wct = 0.0
@@ -171,9 +232,13 @@ class SpeedMonitorMFU(Callback):
         self.batch_start_wct = state.timestamp.total_wct.total_seconds()
         self.batch_start_num_samples = int(state.timestamp.sample)
 
+        gpu_flops_available, gpu_cost_per_hour = get_gpu_info(state)
         # Get available GPU FLOPS
         if not self.gpu_flops_available:
-            self.gpu_flops_available = get_gpu_flops_available(state)
+            self.gpu_flops_available = gpu_flops_available
+
+        if not self.gpu_cost_per_hour:
+            self.gpu_cost_per_hour = gpu_cost_per_hour
 
     def batch_end(self, state: State, logger: Logger):
         batch_num_samples = int(
@@ -200,6 +265,20 @@ class SpeedMonitorMFU(Callback):
                 {'throughput/device/batches_per_sec': dev_batches_per_sec})
             logger.log_metrics(
                 {'throughput/device/samples_per_sec': dev_samples_per_sec})
+
+            if self.gpu_cost_per_hour is not None:
+                if state.max_duration.unit.name == 'BATCH':
+                    train_time_sec = state.max_duration.value / batches_per_sec
+                elif state.max_duration.unit.name == 'SAMPLE':
+                    train_time_sec = state.max_duration.value / samples_per_sec
+                elif state.max_duration.unit.name == 'TOKEN':
+                    train_time_sec = state.max_duration.value / (samples_per_sec * state.dataloader.dataset.max_seq_len)
+                else:
+                    warnings.warn(f'not able to estimate training cost based on')
+                train_time_hours = train_time_sec / 3600
+                train_cost_estimate = self.gpu_cost_per_hour * world_size * train_time_hours
+                logger.log_metrics(
+                    {'train_cost_estimate': train_cost_estimate})
 
             if isinstance(state.dataloader, DataLoader) and hasattr(
                     state.dataloader.dataset, 'max_seq_len'):
