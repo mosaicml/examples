@@ -7,7 +7,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from ..main import main
+from examples.bert.main import main
 from .utils import SynthTextDirectory
 
 

@@ -8,7 +8,7 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
-from ..glue import train
+from examples.bert.glue import train
 
 class GlueDirContext(object):
 
