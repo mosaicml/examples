@@ -90,9 +90,9 @@ class StreamingTextDataset(StreamingDataset):
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             self.tokenizer_name)
-        if self.tokenizer.pad_token is None:
+        if self.tokenizer._pad_token is None:
             # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer._pad_token = self.tokenizer._eos_token
         # suppress warnings when using group_method='concat' and no truncation
         self.tokenizer.model_max_length = int(1e30)
 
