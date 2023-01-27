@@ -25,7 +25,7 @@ integrations:
   - bugbash
   - r7z2
 command: |
-  cd examples/bert
+  cd examples-bugbash2/examples/bert
   pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 
