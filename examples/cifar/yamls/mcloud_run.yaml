@@ -7,7 +7,7 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples  # Replace with your fork to use custom code
   git_branch: main             # Replace with your branch to use custom code
-  pip_install: .[cifar]
+  pip_install: -e .[cifar]
 command: |
   cd examples/examples/cifar
   composer main.py yamls/resnet56.yaml
