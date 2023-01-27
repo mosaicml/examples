@@ -37,7 +37,7 @@ def build_model(cfg: DictConfig):
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
-def main(cfg: DictConfig):
+def main(cfg: DictConfig, return_trainer: bool=False, do_train: bool=True):
     print('Training using config: ')
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
@@ -137,9 +137,12 @@ def main(cfg: DictConfig):
     if wandb.run is not None:
         wandb.config.update(config_dict)
 
-    print('Starting training...')
-    trainer.fit()
+    if do_train:
+        print('Starting training...')
+        trainer.fit()
 
+    if return_trainer:
+        return trainer
 
 if __name__ == '__main__':
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
