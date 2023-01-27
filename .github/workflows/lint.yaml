@@ -49,4 +49,4 @@ jobs:
         python -m pip install --upgrade pip wheel
     - name: Lint
       run: |
-        bash scripts/lint_subdirectory.sh examples/${{ matrix.subdir }}
+        bash scripts/lint_subdirectory.sh ${{ matrix.subdir }}
