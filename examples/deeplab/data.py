@@ -89,7 +89,7 @@ def build_ade20k_dataspec(
     else:
         dataset = ADE20k(datadir=path,
                          split=split,
-                         both_transforms=both_transforms,
+                         both_transforms=joint_transform,
                          image_transforms=image_transforms,
                          target_transforms=target_transforms)
 
