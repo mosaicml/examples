@@ -25,9 +25,9 @@ integrations:
   - bugbash
   - r7z2
 command: |
-  set -e -x;
-  cd examples-bugbash2/examples/bert
-  pip install -r requirements.txt
+  cd examples-bugbash2/examples
+  pip install -e ".[bert]"
+  cd bert
   composer main.py /mnt/config/parameters.yaml
 
 # Starting `parameters` copied from `yamls/main/mosaic-bert-base-uncased.yaml`.
