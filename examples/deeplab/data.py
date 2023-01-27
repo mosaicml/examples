@@ -76,14 +76,15 @@ def build_ade20k_dataspec(
         final_size=final_size)
 
     if is_streaming:
-        dataset = streaming.vision.StreamingADE20K(remote=path,
-                                                   local=local,
-                                                   split=split,
-                                                   shuffle=shuffle,
-                                                   joint_transform=joint_transform,
-                                                   transform=image_transforms,
-                                                   target_transform=target_transforms,
-                                                   batch_size=batch_size)
+        dataset = streaming.vision.StreamingADE20K(
+            remote=path,
+            local=local,
+            split=split,
+            shuffle=shuffle,
+            joint_transform=joint_transform,
+            transform=image_transforms,
+            target_transform=target_transforms,
+            batch_size=batch_size)
         sampler = None
     else:
         dataset = ADE20k(datadir=path,
