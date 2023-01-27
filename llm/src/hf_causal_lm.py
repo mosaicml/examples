@@ -4,7 +4,7 @@
 # which is MIT licensed
 
 import functools
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Iterable, List, Optional
 
 import torch
 import torch.nn.functional as F
@@ -37,7 +37,7 @@ def rhasattr(obj: Any, attr: str):
     return hasattr(_curr_obj, _nested_attrs[-1])
 
 
-def rgetattr(obj: Any, attr: str, *args: List[Any]) -> object:
+def rgetattr(obj: Any, attr: str, *args: List[Any]):
     """A chain-able attribute version of getattr.
 
     For example, to get the attribute `foo.bar.baz` from `obj`, you can use:
@@ -51,14 +51,14 @@ def rgetattr(obj: Any, attr: str, *args: List[Any]) -> object:
     return functools.reduce(_getattr, [obj] + attr.split('.'))
 
 
-def findattr(obj: Any, attrs: Tuple[str]) -> Union[object, None]:
+def findattr(obj: Any, attrs: Iterable[str]):
     for attr in attrs:
         if rhasattr(obj, attr):
             return rgetattr(obj, attr)
     return None
 
 
-def hf_get_causal_base_model(model: AutoModelForCausalLM) -> torch.nn.Module:
+def hf_get_causal_base_model(model: AutoModelForCausalLM):
     """Returns the causal decoder backbone of the specified HuggingFace model.
 
     NOTE: Different model configurations have different causal decoder attribute
@@ -71,7 +71,7 @@ def hf_get_causal_base_model(model: AutoModelForCausalLM) -> torch.nn.Module:
     return findattr(model, decoder_attrs)
 
 
-def hf_get_lm_head(model: AutoModelForCausalLM) -> torch.nn.Module:
+def hf_get_lm_head(model: AutoModelForCausalLM):
     """Returns the lm head of the specified HuggingFace model.
 
     NOTE: Different model configurations have different `lm_head` attribute names.
@@ -81,8 +81,7 @@ def hf_get_lm_head(model: AutoModelForCausalLM) -> torch.nn.Module:
     return model.get_output_embeddings()
 
 
-def hf_get_causal_hidden_layers(
-        model: torch.nn.Module) -> Tuple[torch.nn.Module]:
+def hf_get_causal_hidden_layers(model: torch.nn.Module):
     """Returns the hidden layers of the specified model.
 
     NOTE: Different model configurations have different hidden layer attribute names.
@@ -98,7 +97,7 @@ def hf_get_causal_hidden_layers(
     return findattr(model, hidden_layers_attrs)
 
 
-def hf_get_tied_embedding_weights(model: torch.nn.Module) -> torch.nn.Module:
+def hf_get_tied_embedding_weights(model: torch.nn.Module):
     """Returns the embeddings, which are weight tied layers.
 
     NOTE: Different model configurations have different embedding attribute names.
@@ -125,16 +124,16 @@ def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
     HuggingFace for decoder-only LLMs.
     """
     causal_base_model = hf_get_causal_base_model(model)
-    model_block = hf_get_causal_hidden_layers(model)[0]
-    block_type = type(model_block)
+    model_block = hf_get_causal_hidden_layers(model)  # type: ignore
     lm_head = hf_get_causal_hidden_layers(model)
-    tied_embeddings = hf_get_tied_embedding_weights(causal_base_model)
+    tied_embeddings = hf_get_tied_embedding_weights(causal_base_model)  # type: ignore
     modules = [
-        causal_base_model, model_block, block_type, lm_head, tied_embeddings
+        causal_base_model, model_block, lm_head, tied_embeddings
     ]
-    if not all(module is not None for module in modules):
+    if any(module is None for module in modules):
         raise ValueError('Unable to FSDP-wrap this model! It does not follow \
                           common layer/weight naming conventions.')
+    block_type = type(model_block[0])  # type: ignore
     # When using the HF LM models,
     # the weights of the self.lm_head and self.transformer.wte are tied.
     # This tying occurs inside the `self.post_init()` function.
@@ -142,9 +141,9 @@ def prepare_hf_causal_lm_model_for_fsdp(model: AutoModelForCausalLM):
     # These lines ensures that both modules stay together in the top-most block when
     # the model has this tying enabled (almost all do; this property defaults to True)
     if model.config.tie_word_embeddings:
-        causal_base_model._fsdp_wrap = False
-        tied_embeddings._fsdp_wrap = False
-        lm_head._fsdp_wrap = False
+        causal_base_model._fsdp_wrap = False  # type: ignore
+        tied_embeddings._fsdp_wrap = False  # type: ignore
+        lm_head._fsdp_wrap = False  # type: ignore
 
     # FSDP Wrap and Activation Checkpoint every model block
     model.fsdp_wrap_fn = lambda module: isinstance(module, block_type)
