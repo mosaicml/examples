@@ -26,8 +26,8 @@
 This folder contains starter code for training [mmsegmentation DeepLabV3+ architectures](https://github.com/open-mmlab/mmsegmentation/tree/master/configs/deeplabv3plus) using our most efficient training recipes (see our [benchmark blog post](https://www.mosaicml.com/blog/behind-the-scenes) or [recipes blog post](https://www.mosaicml.com/blog/mosaic-image-segmentation) for details). These recipes were developed to hit baseline accuracy on [ADE20K](https://groups.csail.mit.edu/vision/datasets/ADE20K/) 5x faster or to maximize ADE20K mean Intersection-over-Union (mIoU) over long training durations. Although these recipes were developed for training DeepLabV3+ on ADE20k, they could be used to train other segmentation models on other datasets. Give it a try!
 
 The specific files in this folder are:
-* `model.py` - A [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) that wraps an mmsegmentation DeepLabV3+ model
-* `data.py` - A [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) for ADE20K and a PyTorch dataset for a local copy of ADE20K
+* `model.py` - A [ComposerModel](https://docs.mosaicml.com/en/stable/composer_model.html) that wraps an mmsegmentation DeepLabV3+ model
+* `data.py` - A [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) for ADE20K and a PyTorch dataset for a local copy of ADE20K
 * `transforms.py` - Torchvision transforms for ADE20K
 * `download_ade20k.py` - A helper script for downloading ADE20K locally
 * `main.py` - The training script that builds a Composer [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer) using the data and model
@@ -152,7 +152,7 @@ composer main.py yamls/deeplabv3.yaml
 
 ### Results
 You should see logs being printed to your terminal like below. You can also easily enable other experiment trackers like Weights and Biases or CometML,
-by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.0/trainer/logging.html).
+by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
 ```bash
 [epoch=0][batch=16/625]: wall_clock/train: 17.1607

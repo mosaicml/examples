@@ -23,7 +23,7 @@ You'll find in this folder:
 
 
 In the [common](../common) folder, you will also find:
-* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
+* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
 
 At all model scales, we are training the exact same [vanilla PyTorch GPT model](./src/mosaic_gpt.py#L106), with no special parallelism strategies.
 Composer + FSDP does all the heavy lifting to make sure we can scale up without running out of memory and while maintaining high performance.
@@ -70,7 +70,7 @@ We first convert the dataset from its native format (a collection of zipped JSON
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
 and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all ~ just works ~ .
-You can read more about [the benefits of using mosaicml-streaming here](https://streaming.docs.mosaicml.com/en/latest/):
+You can read more about [the benefits of using mosaicml-streaming here](https://streaming.docs.mosaicml.com/en/stable/):
 
 ### Converting C4 to streaming dataset `.mds` format
 To make yourself a copy of C4, use `convert_c4.py` like so:
@@ -169,7 +169,7 @@ composer main.py yamls/mosaic_gpt/125m.yaml
 
 You should see logs being printed to your terminal like so.
 You can also easily enable other experiment trackers like Weights and Biases or CometML,
-by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.10.0/trainer/logging.html).
+by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
 ```bash
 [batch=1/100]:

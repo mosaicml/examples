@@ -28,7 +28,7 @@ You'll find in this folder:
 * This `README.md`
 
 In the [common](../common) folder, you will also find:
-* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) that can be used with a vanilla PyTorch dataloader.
+* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
 
 # Setup
 
@@ -96,7 +96,7 @@ We first convert the dataset from its native format (a collection of zipped JSON
 to MosaicML's streaming dataset format (a collection of binary `.mds` files).
 Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
 and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all just works.
-You can read more about the benefits of using mosaicml-streaming [here](https://streaming.docs.mosaicml.com/en/latest/).
+You can read more about the benefits of using mosaicml-streaming [here](https://streaming.docs.mosaicml.com/en/stable/).
 
 ### Converting C4 to streaming dataset `.mds` format
 
@@ -186,7 +186,7 @@ python glue.py yamls/glue/mosaic-bert-base-uncased.yaml
 ```
 
 Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
-Any of the other [composer supported loggers](https://docs.mosaicml.com/en/latest/trainer/logging.html#available-loggers) can be added easily as well!
+Any of the other [composer supported loggers](https://docs.mosaicml.com/en/stable/trainer/logging.html#available-loggers) can be added easily as well!
 
 # Configs
 
@@ -280,7 +280,7 @@ composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 ```
 
 You should see logs being printed to your terminal.
-You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.1/trainer/logging.html).
+You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
 
 

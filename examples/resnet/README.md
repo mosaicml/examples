@@ -26,8 +26,8 @@
 This folder contains starter code for training [torchvision ResNet architectures](https://pytorch.org/vision/stable/models.html) using our most efficient training recipes (see our [short blog post](https://www.mosaicml.com/blog/mosaic-resnet) or [detailed blog post](https://www.mosaicml.com/blog/mosaic-resnet-deep-dive) for details). These recipes were developed to hit baseline accuracy on [ImageNet](https://www.image-net.org/) 7x faster or to maximize ImageNet accuracy over long training durations. Although these recipes were developed for training ResNet on ImageNet, they could be used to train other image classification models on other datasets. Give it a try!
 
 The specific files in this folder are:
-* `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/v0.11.0/composer_model.html) from a torchvision ResNet model
-* `data.py` - Provides a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/latest/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
+* `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/stable/composer_model.html) from a torchvision ResNet model
+* `data.py` - Provides a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) for ImageNet and a PyTorch dataset for a local copy of ImageNet
 * `main.py` - Trains a ResNet on ImagNet using the [Composer](https://github.com/mosaicml/composer) [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer).
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
@@ -131,7 +131,7 @@ composer main.py yamls/resnet50.yaml
 
 ### Results
 You should see logs being printed to your terminal like below. You can also easily enable other experiment trackers like Weights and Biases or CometML,
-by using [Composer's logging integrations](https://docs.mosaicml.com/en/v0.11.0/trainer/logging.html).
+by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
 ```bash
 [epoch=0][batch=16/625]: wall_clock/train: 17.1607
@@ -191,7 +191,7 @@ composer main.py yamls/resnet50.yaml recipe_name=mild
 ---
 **NOTE**
 
-The ResNet50 and smaller models are dataloader-bottlenecked when training with our recipes on 8x NVIDIA A100s. This means the model's throughput is limited to the speed the data can be loaded. One way to alleviate this bottleneck is to use the [FFCV dataloader format](https://github.com/libffcv/ffcv). This [tutorial](https://docs.mosaicml.com/en/v0.11.0/examples/ffcv_dataloaders.html) walks you through creating your FFCV dataloader. We also have example code for an ImageNet FFCV dataloader [here](https://github.com/mosaicml/composer/blob/a0f441537008a1ef2678f1474f3cd5519deb80fa/composer/datasets/imagenet.py#L179).
+The ResNet50 and smaller models are dataloader-bottlenecked when training with our recipes on 8x NVIDIA A100s. This means the model's throughput is limited to the speed the data can be loaded. One way to alleviate this bottleneck is to use the [FFCV dataloader format](https://github.com/libffcv/ffcv). This [tutorial](https://docs.mosaicml.com/en/stable/examples/ffcv_dataloaders.html) walks you through creating your FFCV dataloader. We also have example code for an ImageNet FFCV dataloader [here](https://github.com/mosaicml/composer/blob/a0f441537008a1ef2678f1474f3cd5519deb80fa/composer/datasets/imagenet.py#L179).
 
 Our best results use FFCV, so an FFCV version of ImageNet is required to exactly match our best results.
 
