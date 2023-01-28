@@ -205,7 +205,7 @@ def _fwd_kernel(
                            float('-inf'))
         if ALIBI:
             alibi_bias_max = 8
-            alibi = (offs_m[:, None] - seqlen_q) - ((start_n + offs_n)[None, :] - seqlen_k)
+            alibi = (offs_m[:, None] - seqlen_q + 1) - ((start_n + offs_n)[None, :] - seqlen_k + 1)
             alibi = -1 * tl.abs(alibi)
             m = (off_h + 1) * (alibi_bias_max / nheads)
             alibi = alibi / pow(2, m)
