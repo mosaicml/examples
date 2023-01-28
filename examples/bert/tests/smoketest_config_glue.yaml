@@ -11,7 +11,7 @@ tokenizer_name: &tokenizer_name bert-base-uncased
 
 # Base model config
 model:
-  name: 
+  name:
   pretrained_model_name: prajjwal1/bert-tiny
   tokenizer_name: *tokenizer_name
 

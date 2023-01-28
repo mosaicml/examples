@@ -2,18 +2,19 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import pytest
 
+import pytest
 import torch
 from omegaconf import OmegaConf
 
 from examples.bert.main import main
+
 from .utils import SynthTextDirectory
 
 
-@pytest.mark.parametrize('model_name,seed', [('mosaic_bert',17), ('hf_bert',18)])
+@pytest.mark.parametrize('model_name,seed', [('mosaic_bert', 17),
+                                             ('hf_bert', 18)])
 def test_trainer(model_name: str, seed: int):
-
     with open('tests/smoketest_config_main.yaml') as f:
         config = OmegaConf.load(f)
     config.model.name = model_name
@@ -43,4 +44,3 @@ def test_trainer(model_name: str, seed: int):
 
         for param1, param2 in zip(model1.parameters(), model2.parameters()):
             torch.testing.assert_close(param1, param2)
-
