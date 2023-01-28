@@ -13,14 +13,17 @@ from examples.bert.glue import train
 
 class GlueDirContext(object):
 
+    def __init__(self):
+        self.path = None
+
     def __enter__(self):
-        self.path = tempfile.mkdtemp(
-        )  # type: ignore (reportUninitializedInstanceVariable)
+        self.path = tempfile.mkdtemp()
         return self.path
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         del exc_type, exc_value, traceback  # unused
-        shutil.rmtree(self.path)
+        if self.path is not None:
+            shutil.rmtree(self.path)
 
 
 @pytest.mark.parametrize('model_name', ['mosaic_bert', 'hf_bert'])
