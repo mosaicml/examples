@@ -19,8 +19,8 @@ command: |
 image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
-run_name: mosaic-gpt-70b-eval
-gpu_num: 64
+run_name: mosaic-gpt-1t-eval
+gpu_num: 256
 gpu_type: a100_40gb
 cluster: r7z2 # replace with your cluster here!
 

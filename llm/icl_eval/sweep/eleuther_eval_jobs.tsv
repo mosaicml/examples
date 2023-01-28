@@ -1,0 +1,26 @@
+gpu_num	parameters-icl_tasks	parameters-model	run_name	run_time	accuracy
+64	piqa	125m	gpt-eval-gpu-num-64-icl-tasks-piqa-model-125m-1499	718.8863506317139	0.6289445048966268
+64	piqa	1.3b	gpt-eval-gpu-num-64-icl-tasks-piqa-model-1-3b-1499	1927.111742734909	0.7078346028291621
+64	piqa	2.7b	gpt-eval-gpu-num-64-icl-tasks-piqa-model-2-7b-1500	3260.2891726493835	0.7317736670293797
+32	piqa	125m	gpt-eval-gpu-num-32-icl-tasks-piqa-model-125m-1500	733.1355268955231	0.6289445048966268
+32	piqa	1.3b	gpt-eval-gpu-num-32-icl-tasks-piqa-model-1-3b-1501	2025.2823247909546	0.7078346028291621
+32	piqa	2.7b	gpt-eval-gpu-num-32-icl-tasks-piqa-model-2-7b-1501	3244.164576292038	0.7317736670293797
+16	piqa	125m	gpt-eval-gpu-num-16-icl-tasks-piqa-model-125m-1501	827.1944949626923	0.6289445048966268
+16	piqa	1.3b	gpt-eval-gpu-num-16-icl-tasks-piqa-model-1-3b-1502	1999.2800488471985	0.7078346028291621
+16	piqa	2.7b	gpt-eval-gpu-num-16-icl-tasks-piqa-model-2-7b-1502		
+8	piqa	125m	gpt-eval-gpu-num-8-icl-tasks-piqa-model-125m-1503	763.2750046253204	0.6289445048966268
+8	piqa	1.3b	gpt-eval-gpu-num-8-icl-tasks-piqa-model-1-3b-1503	1966.6545042991638	0.7078346028291621
+8	piqa	2.7b	gpt-eval-gpu-num-8-icl-tasks-piqa-model-2-7b-1503	3229.901353120804	0.7317736670293797
+64	lambada	125m	gpt-eval-gpu-num-64-icl-tasks-lambada-model-125m-2816	1017.2874631881714	0.3735687948767708
+32	lambada	125m	gpt-eval-gpu-num-32-icl-tasks-lambada-model-125m-2280	1068.421228647232	0.3735687948767708
+16	lambada	125m	gpt-eval-gpu-num-16-icl-tasks-lambada-model-125m-9949	1108.96217918396	0.3735687948767708
+8	lambada	125m	gpt-eval-gpu-num-8-icl-tasks-lambada-model-125m-5911	1010.1138324737549	0.3735687948767708
+64	lambada	1.3b	gpt-eval-gpu-num-64-icl-tasks-lambada-model-1-3b-7679	2695.1115958690643	0.5720939258684261
+64	lambada	2.7b	gpt-eval-gpu-num-64-icl-tasks-lambada-model-2-7b-9370		
+64	lambada	2.7b	gpt-eval-gpu-num-64-icl-tasks-lambada-model-2-7b-4292	4499.517373561859	0.622355909179119
+32	lambada	1.3b	gpt-eval-gpu-num-32-icl-tasks-lambada-model-1-3b-4983	2812.844134569168	0.5720939258684261
+32	lambada	2.7b	gpt-eval-gpu-num-32-icl-tasks-lambada-model-2-7b-6028	4531.249021291733	0.622355909179119
+16	lambada	1.3b	gpt-eval-gpu-num-16-icl-tasks-lambada-model-1-3b-8127	2791.594478368759	0.5720939258684261
+16	lambada	2.7b	gpt-eval-gpu-num-16-icl-tasks-lambada-model-2-7b-5538		
+8	lambada	1.3b	gpt-eval-gpu-num-8-icl-tasks-lambada-model-1-3b-9524	2915.0332684516907	0.5720939258684261
+8	lambada	2.7b	gpt-eval-gpu-num-8-icl-tasks-lambada-model-2-7b-1459	4605.453805685043	0.622355909179119
