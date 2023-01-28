@@ -212,7 +212,7 @@ def mod_parameters(
         int(parameters['device_eval_batch_size'] / ((max_seq_len / 2048)**2)))
 
     parameters['train_loader']['dataset'][
-        'split'] = 'val'  # for throughput testing purposess
+        'split'] = 'val'  # for throughput testing purposes
     parameters['eval_loader'][
         'eval_subset_num_batches'] = 2  # for throughput testing purposes
 
@@ -257,13 +257,17 @@ def run_config(config, args, project, image, RUN):
     # Define our command
     if streaming_data:
         command = """
-        composer examples/common/llm/main.py /mnt/config/parameters.yaml
+        cd examples
+
+        composer examples/llm/main.py /mnt/config/parameters.yaml
         """
     else:
         command = """
+        cd examples
+
         python examples/common/convert_c4.py --out_root ./my-copy-c4 --splits val
 
-        composer examples/common/llm/main.py /mnt/config/parameters.yaml
+        composer examples/llm/main.py /mnt/config/parameters.yaml
         """
 
     yaml_file = yaml_base + model_yaml

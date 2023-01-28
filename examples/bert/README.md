@@ -52,7 +52,7 @@ To get started, clone this repo and install the requirements:
 ```bash
 git clone https://github.com/mosaicml/examples.git
 cd examples
-pip install -e ".[bert]"  # or pip install-e ".[bert-cpu]" if no NVIDIA GPU
+pip install -e ".[bert]"  # or pip install -e ".[bert-cpu]" if no NVIDIA GPU
 cd examples/bert
 ```
 
@@ -60,9 +60,9 @@ cd examples/bert
 To verify that pre-training runs correctly, first prepare a local copy of the C4 validation split, and then run the `main.py` pre-training script twice using our testing config. First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
 
 ```bash
-# Download the 'train_small', 'val' splits and convert to StreamingDataset format
-# This will take 20 sec to 1 min depending on your Internet bandwidth
-# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+# Download the 'train_small' and 'val' splits and convert to StreamingDataset format
+# This will take 20-60 seconds depending on your Internet bandwidth
+# You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
 python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Run the pre-training script with the test config and HuggingFace BERT
@@ -114,7 +114,7 @@ python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 # python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
-# This is useful if your plan is to store these in object store after conversion.
+# This is useful if your plan is to store these in an object store after conversion.
 # python ../common/convert_c4.py ... --compression zstd
 ```
 
@@ -132,8 +132,8 @@ python ../common/text_data.py ./my-copy-c4
 
 # This will do the same thing, but stream data to {local} from {remote}.
 # The remote path can be a filesystem or object store URI.
-python ../common/text_data.py /tmp/cache-c4 ./my-copy-c4
-python ../common/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4
+python ../common/text_data.py /tmp/cache-c4 ./my-copy-c4  # stream from filesystem, e.g. a slow NFS volume to fast local disk
+python ../common/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4  # stream from object store
 ```
 
 # Training

@@ -10,8 +10,8 @@ from setuptools import find_packages, setup
 _PACKAGE_NAME = 'mosaicml-examples'
 _EXAMPLE_SUBDIRS = ['cifar', 'resnet', 'deeplab', 'bert', 'llm']
 _PACKAGES = find_packages(exclude=['*tests*', '*scripts*'])
-_PROJECT_ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             'examples')
+_REPO_ROOT = os.path.dirname(os.path.realpath(__file__))
+_PROJECT_ROOT = os.path.join(_REPO_ROOT, 'examples')
 
 # Read the repo version
 # We can't use `.__version__` from the library since it's not installed yet
@@ -48,7 +48,7 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
 ]
 
-with open(os.path.join(_PROJECT_ROOT, 'requirements.txt'), 'r') as f:
+with open(os.path.join(_REPO_ROOT, 'requirements.txt'), 'r') as f:
     install_requires = f.readlines()
 
 
