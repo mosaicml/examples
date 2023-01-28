@@ -6,7 +6,7 @@ import tempfile
 from typing import Any
 
 import pytest
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from examples.bert.glue import train
 
@@ -27,6 +27,7 @@ class GlueDirContext(object):
 def test_glue_script(model_name: str):
     with open('tests/smoketest_config_glue.yaml') as f:
         config = OmegaConf.load(f)
+    assert isinstance(config, DictConfig)
     config.model.name = model_name
 
     # The test is that `train` runs successfully

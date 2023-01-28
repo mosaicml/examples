@@ -37,7 +37,9 @@ def build_model(cfg: DictConfig):
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
-def main(cfg: DictConfig, return_trainer: bool = False, do_train: bool = True):
+def main(cfg: DictConfig,
+         return_trainer: bool = False,
+         do_train: bool = True) -> Optional[Trainer]:
     print('Training using config: ')
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)

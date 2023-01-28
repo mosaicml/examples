@@ -5,7 +5,7 @@ import os
 
 import pytest
 import torch
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from examples.bert.main import main
 
@@ -17,6 +17,7 @@ from .utils import SynthTextDirectory
 def test_trainer(model_name: str, seed: int):
     with open('tests/smoketest_config_main.yaml') as f:
         config = OmegaConf.load(f)
+    assert isinstance(config, DictConfig)
     config.model.name = model_name
     config.seed = seed
 
@@ -30,6 +31,7 @@ def test_trainer(model_name: str, seed: int):
 
         # Train
         trainer1 = main(config, return_trainer=True)
+        assert trainer1 is not None
         model1 = trainer1.state.model.model
 
         # Check that the checkpoint was saved
@@ -40,6 +42,7 @@ def test_trainer(model_name: str, seed: int):
         config.load_path = chkpt_path
         config.seed += 10  # change seed
         trainer2 = main(config, return_trainer=True, do_train=False)
+        assert trainer2 is not None
         model2 = trainer2.state.model.model
 
         for param1, param2 in zip(model1.parameters(), model2.parameters()):
