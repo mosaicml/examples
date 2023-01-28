@@ -40,6 +40,7 @@ class FlashAttention(nn.Module):
             key_padding_mask: Optional[Tensor] = None,
             attn_mask: Optional[Tensor] = None,
             is_causal: bool = False,
+            alibi: bool = False,
             need_weights: bool = False,
             average_attn_weights: bool = True
     ) -> Tuple[Tensor, Optional[Tensor]]:
@@ -79,7 +80,7 @@ class FlashAttention(nn.Module):
                 f'assumes key_padding_mask is taken care of by attn_mask')
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_heads)
 
-        attn_output = flash_attn_qkvpacked_func(qkv, attn_mask, is_causal,
+        attn_output = flash_attn_qkvpacked_func(qkv, attn_mask, is_causal, alibi,
                                                 self.softmax_scale)
         output = rearrange(attn_output, 'b s h d -> b s (h d)')
         return output, None
@@ -93,6 +94,7 @@ class FlashMHA(nn.Module):
                  bias=True,
                  batch_first=True,
                  causal=False,
+                 alibi=False,
                  device=None,
                  dtype=None,
                  **kwargs) -> None:
@@ -101,6 +103,7 @@ class FlashMHA(nn.Module):
         super().__init__()
         self.embed_dim = embed_dim
         self.causal = causal
+        self.alibi = alibi
 
         self.num_heads = num_heads
         assert self.embed_dim % num_heads == 0, 'self.kdim must be divisible by num_heads'
@@ -146,6 +149,7 @@ class FlashMHA(nn.Module):
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
             is_causal=self.causal,
+            alibi=self.alibi,
             need_weights=need_weights,
             average_attn_weights=False)
         return self.out_proj(context), attn_weights

@@ -54,6 +54,12 @@ import triton.language as tl  # type: ignore (reportMissingImports)
 from einops import repeat  # type: ignore (reportMissingImports)
 
 
+@triton.jit
+def pow(N, m):
+    _N = tl.zeros([1, 1], dtype=tl.float32) + N
+    return tl.libdevice.pow(_N, m)
+
+
 @triton.autotune(
     configs=[
         triton.Config({
@@ -108,6 +114,7 @@ def _fwd_kernel(
     CACHE_KEY_SEQLEN_K,
     BIAS_TYPE: tl.constexpr,
     IS_CAUSAL: tl.constexpr,
+    ALIBI: tl.constexpr,
     BLOCK_HEADDIM: tl.constexpr,
     EVEN_M: tl.constexpr,
     EVEN_N: tl.constexpr,
@@ -196,6 +203,13 @@ def _fwd_kernel(
         if IS_CAUSAL:
             qk += tl.where(offs_m[:, None] >= (start_n + offs_n)[None, :], 0,
                            float('-inf'))
+        if ALIBI:
+            alibi_bias_max = 8
+            alibi = (offs_m[:, None] - seqlen_q) - ((start_n + offs_n)[None, :] - seqlen_k)
+            alibi = -1 * tl.abs(alibi)
+            m = (off_h + 1) * (alibi_bias_max / nheads)
+            alibi = alibi / pow(2, m)
+            qk += alibi
         if BIAS_TYPE != 'none':
             if BIAS_TYPE == 'vector':
                 if EVEN_N:
@@ -353,12 +367,14 @@ def _bwd_kernel_one_col_block(
     stride_dqm,
     stride_dkn,
     stride_dvn,
+    nheads,
     seqlen_q,
     seqlen_k,
     headdim,
     ATOMIC_ADD: tl.constexpr,
     BIAS_TYPE: tl.constexpr,
     IS_CAUSAL: tl.constexpr,
+    ALIBI: tl.constexpr,
     BLOCK_HEADDIM: tl.constexpr,
     EVEN_M: tl.constexpr,
     EVEN_N: tl.constexpr,
@@ -366,6 +382,9 @@ def _bwd_kernel_one_col_block(
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
 ):
+    off_hb = tl.program_id(1)
+    off_h = off_hb % nheads
+
     # We need to make sure begin_m is a multiple of BLOCK_M (not BLOCK_N)
     begin_m = 0 if not IS_CAUSAL else ((start_n * BLOCK_N) // BLOCK_M) * BLOCK_M
     # initialize row/col offsets
@@ -438,6 +457,13 @@ def _bwd_kernel_one_col_block(
         if IS_CAUSAL:
             qk = tl.where(offs_m_curr[:, None] >= (offs_n[None, :]), qk,
                           float('-inf'))
+        if ALIBI:
+            alibi_bias_max = 8
+            alibi = (offs_m[:, None] - seqlen_q + 1) - ((start_n + offs_n)[None, :] - seqlen_k + 1)
+            alibi = -1 * tl.abs(alibi)
+            m = (off_h + 1) * (alibi_bias_max / nheads)
+            alibi = alibi / pow(2, m)
+            qk += alibi
         if BIAS_TYPE != 'none':
             if BIAS_TYPE == 'vector':
                 if EVEN_N:
@@ -673,6 +699,7 @@ def _bwd_kernel(
     CACHE_KEY_SEQLEN_K,
     BIAS_TYPE: tl.constexpr,
     IS_CAUSAL: tl.constexpr,
+    ALIBI: tl.constexpr,
     BLOCK_HEADDIM: tl.constexpr,
     SEQUENCE_PARALLEL: tl.constexpr,
     EVEN_M: tl.constexpr,
@@ -720,12 +747,14 @@ def _bwd_kernel(
                                       stride_dqm,
                                       stride_dkn,
                                       stride_dvn,
+                                      nheads,
                                       seqlen_q,
                                       seqlen_k,
                                       headdim,
                                       ATOMIC_ADD=False,
                                       BIAS_TYPE=BIAS_TYPE,
                                       IS_CAUSAL=IS_CAUSAL,
+                                      ALIBI=ALIBI,
                                       BLOCK_HEADDIM=BLOCK_HEADDIM,
                                       EVEN_M=EVEN_M,
                                       EVEN_N=EVEN_N,
@@ -754,12 +783,14 @@ def _bwd_kernel(
                                   stride_dqm,
                                   stride_dkn,
                                   stride_dvn,
+                                  nheads,
                                   seqlen_q,
                                   seqlen_k,
                                   headdim,
                                   ATOMIC_ADD=True,
                                   BIAS_TYPE=BIAS_TYPE,
                                   IS_CAUSAL=IS_CAUSAL,
+                                  ALIBI=ALIBI,
                                   BLOCK_HEADDIM=BLOCK_HEADDIM,
                                   EVEN_M=EVEN_M,
                                   EVEN_N=EVEN_N,
@@ -768,7 +799,7 @@ def _bwd_kernel(
                                   BLOCK_N=BLOCK_N)
 
 
-def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
+def _flash_attn_forward(q, k, v, bias=None, causal=False, alibi=False, softmax_scale=None):
     # shape constraints
     batch, seqlen_q, nheads, d = q.shape
     _, seqlen_k, _, _ = k.shape
@@ -856,6 +887,7 @@ def _flash_attn_forward(q, k, v, bias=None, causal=False, softmax_scale=None):
         # IS_CAUSAL=causal, BLOCK_HEADDIM=d,
         bias_type,
         causal,
+        alibi,
         BLOCK_HEADDIM,
         # BLOCK_M=BLOCK, BLOCK_N=BLOCK,
         # num_warps=num_warps,
@@ -875,6 +907,7 @@ def _flash_attn_backward(do,
                          dv,
                          bias=None,
                          causal=False,
+                         alibi=False,
                          softmax_scale=None):
     # Make sure that the last dimension is contiguous
     if do.stride(-1) != 1:
@@ -991,6 +1024,7 @@ def _flash_attn_backward(do,
         # IS_CAUSAL=causal, BLOCK_HEADDIM=d,
         bias_type,
         causal,
+        alibi,
         BLOCK_HEADDIM,
         # SEQUENCE_PARALLEL=False,
         # BLOCK_M=BLOCK_M, BLOCK_N=BLOCK_N,
@@ -1003,7 +1037,7 @@ def _flash_attn_backward(do,
 class _FlashAttnQKVPackedFunc(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, qkv, bias=None, causal=False, softmax_scale=None):
+    def forward(ctx, qkv, bias=None, causal=False, alibi=False, softmax_scale=None):
         """Forward pass for packed FlashAttention.
 
         Args:
@@ -1024,9 +1058,11 @@ class _FlashAttnQKVPackedFunc(torch.autograd.Function):
             qkv[:, :, 2],
             bias=bias,
             causal=causal,
+            alibi=alibi,
             softmax_scale=softmax_scale)
         ctx.save_for_backward(qkv, o, lse, bias)
         ctx.causal = causal
+        ctx.alibi = alibi
         return o
 
     @staticmethod
@@ -1049,8 +1085,9 @@ class _FlashAttnQKVPackedFunc(torch.autograd.Function):
                                  dqkv[:, :, 2],
                                  bias=bias,
                                  causal=ctx.causal,
+                                 alibi=ctx.alibi,
                                  softmax_scale=ctx.softmax_scale)
-        return dqkv, None, None, None
+        return dqkv, None, None, None, None
 
 
 flash_attn_qkvpacked_func = _FlashAttnQKVPackedFunc.apply
@@ -1059,7 +1096,7 @@ flash_attn_qkvpacked_func = _FlashAttnQKVPackedFunc.apply
 class _FlashAttnFunc(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, q, k, v, bias=None, causal=False, softmax_scale=None):
+    def forward(ctx, q, k, v, bias=None, causal=False, alibi=False, softmax_scale=None):
         """Forward pass for FlashAttention.
 
         Args:
@@ -1078,9 +1115,10 @@ class _FlashAttnFunc(torch.autograd.Function):
             x if x.stride(-1) == 1 else x.contiguous() for x in [q, k, v]
         ]
         o, lse, ctx.softmax_scale = _flash_attn_forward(
-            q, k, v, bias=bias, causal=causal, softmax_scale=softmax_scale)
+            q, k, v, bias=bias, causal=causal, alibi=alibi, softmax_scale=softmax_scale)
         ctx.save_for_backward(q, k, v, o, lse, bias)
         ctx.causal = causal
+        ctx.alibi = alibi
         return o
 
     @staticmethod
@@ -1105,8 +1143,9 @@ class _FlashAttnFunc(torch.autograd.Function):
                                  dv,
                                  bias=bias,
                                  causal=ctx.causal,
+                                 alibi=ctx.alibi,
                                  softmax_scale=ctx.softmax_scale)
-        return dq, dk, dv, None, None, None
+        return dq, dk, dv, None, None, None, None
 
 
 flash_attn_func = _FlashAttnFunc.apply
