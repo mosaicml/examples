@@ -8,7 +8,7 @@ model:
   config: EleutherAI/gpt-neo-125M
 icl_tasks:
   -
-    label: lambada
+    label: piqa
     num_fewshot: 
-      - 0
+      - 5
 outfile: icl_results.tsv

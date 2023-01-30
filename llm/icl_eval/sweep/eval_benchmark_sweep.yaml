@@ -37,6 +37,12 @@ base_config:
 sweep_config:
   gpu_num: 
     - 
+      key: '256'
+      value: 256
+    - 
+      key: '128'
+      value: 128
+    - 
       key: '64'
       value: 64
     - 
@@ -48,30 +54,25 @@ sweep_config:
     -
       key: '8'
       value: 8
-    # - 
-    #   key: '128'
-    #   value: 128
-    # - 
-    #   key: '256'
-    #   value: 256
+    
  
   parameters.icl_tasks:
-    -
-      key:  lambada
-      value:
-        -
-          label: lambada
-          dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl
-          num_fewshot: 
-              - 0
-          batch_size: 4
-          type: language_modeling
-          metrics:
-              - InContextLearningLMAccuracy
-          formatting_options:
-            prompt_string: ""
-            example_delimiter: "\n"
-            continuation_delimiter: ""
+    # -
+    #   key:  lambada
+    #   value:
+    #     -
+    #       label: lambada
+    #       dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl
+    #       num_fewshot: 
+    #           - 0
+    #       batch_size: 4
+    #       type: language_modeling
+    #       metrics:
+    #           - InContextLearningLMAccuracy
+    #       formatting_options:
+    #         prompt_string: ""
+    #         example_delimiter: "\n"
+    #         continuation_delimiter: ""
     -
       key:  piqa
       value:  

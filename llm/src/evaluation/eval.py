@@ -149,6 +149,7 @@ if __name__ == '__main__':
     cfg = om.merge(yaml_cfg, cli_cfg)
 
     model = get_lm_eval_model(cfg.get("model"))
+    breakpoint()
     results = evaluate_model_on_tasks(model, cfg.get("icl_tasks"))
     outfile = f"{RESULTS_DIR}/{cfg.get('outfile')}"
     log_results_to_tsv(results, outfile)
