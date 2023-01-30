@@ -27,10 +27,6 @@ train_loader:
     mlm_probability: *mlm_probability
   drop_last: true
   num_workers: 0
-  pin_memory: true
-  prefetch_factor: 2
-  persistent_workers: false
-  timeout: 0
 
 eval_loader:
   name: text
@@ -46,10 +42,6 @@ eval_loader:
     mlm_probability: *mlm_probability
   drop_last: false
   num_workers: 0
-  pin_memory: true
-  prefetch_factor: 2
-  persistent_workers: false
-  timeout: 0
 
 global_train_batch_size: 2
 
