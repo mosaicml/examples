@@ -77,6 +77,8 @@ precision: bf16
 # Logging
 progress_bar: false
 log_to_console: true
+console_log_interval: 1ba
+
 
 callbacks:
   speed_monitor:
