@@ -9,4 +9,4 @@ packaging>=21,<24
 omegaconf>=2.2.3,<3
 # these are just for text_data.py
 transformers>=4.11,<5
-mosaicml-streaming<0.3.*
+mosaicml-streaming<0.3
