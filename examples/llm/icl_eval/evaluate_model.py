@@ -80,7 +80,7 @@ if __name__ == '__main__':
         load_path=model_dict.get('checkpoint', None),
         load_weights_only=True,
         log_to_console=True)
-
+    trainer.state.evaluators = evaluators
     for evaluator in evaluators:
         model_dict['model'].add_eval_metrics(evaluator)
     
