@@ -20,7 +20,7 @@ from model import build_stable_diffusion_model
 from callbacks import LogDiffusionImages
 
 
-def build_logger(name: str, kwargs: Dict):
+def build_logger(name: str, **kwargs: Any):
     if name == 'progress_bar':
         return ProgressBarLogger()
     elif name == 'wandb':
@@ -94,7 +94,6 @@ def main(config):
     # Learning rate scheduler: LR warmup for 8 epochs, then cosine decay for the rest of training
     lr_scheduler = ConstantScheduler()
     print('Built optimizer and learning rate scheduler\n')
-
     
     loggers = [
         build_logger(name, logger_config)
@@ -151,8 +150,7 @@ def main(config):
 
     print('Train!')
     trainer.fit()
-    # Return trainer for testing purposes
-    return trainer
+    return trainer  # Return trainer for testing purposes
 
 
 if __name__ == '__main__':

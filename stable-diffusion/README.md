@@ -50,7 +50,7 @@ TODO: add some nice pictures here
 
 
 # Train on different data
-The lambdalabs/pokemon dataset was made with BLIP (a salesforce image captioning model) and uploaded to huggingface datasets. There are many other similar text-to-image datasets available on huggingface here(https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color pallets such as spectrograms may require different normalization or pre-processing.
+The lambdalabs/pokemon dataset was made with BLIP (a salesforce image captioning model) and uploaded to huggingface datasets. There are many other similar text-to-image datasets available on huggingface [here](https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color pallets such as spectrograms may require different normalization or pre-processing.
 
 To add a non-huggingface dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations. 
 

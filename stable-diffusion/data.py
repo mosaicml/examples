@@ -1,6 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-"""image captioning dataset creation tools and preprocessing."""
+"""Image captioning dataset creation tools and preprocessing."""
+
 import random
 import math
 
@@ -84,7 +85,7 @@ def build_image_caption_datapsec(name:str,
     with dist.run_local_rank_zero_first():
         dataset = load_dataset(name, split='train')
 
-    # add pixel_values and input_ids columns (processed images and text)
+    # add image_tensor and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)
     sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
     return DataSpec(dataloader=DataLoader(dataset=dataset,
@@ -121,10 +122,10 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
 
 class PromptDataset(Dataset):
     """Convert a list of strings into a pytorch dataset because the Trainer expects a dataloader for batching purposes"""
-    def __init__(self, prompts:list):
+    def __init__(self, prompts: list):
         self.prompts = prompts
 
-    def __getitem__(self, index:int):
+    def __getitem__(self, index: int):
         return self.prompts[index]
 
     def __len__(self):

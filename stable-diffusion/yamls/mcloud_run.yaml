@@ -48,11 +48,9 @@ parameters:
     image_key: "image_tensor"
     caption_key: "input_ids"
 
-
   optimizer:
     lr: 2.0e-05
     weight_decay: 1.0e-3
-
 
   loggers:
     progress_bar: {}

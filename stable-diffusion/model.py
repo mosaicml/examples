@@ -1,6 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-"""Stable Diffusion ComposerModel"""
+"""Stable Diffusion ComposerModel."""
+
 import torch
 import torch.nn.functional as F
 from composer.models import ComposerModel
@@ -82,12 +83,12 @@ class StableDiffusion(ComposerModel):
     def forward(self, batch):
         inputs, conditioning = batch[self.image_key], batch[self.caption_key]
 
-        # Encode the images to the latent space. This is slow, we should cache the results
+        # Encode the images to the latent space
         latents = self.vae.encode(inputs)['latent_dist'].sample().data
         # Magical scaling number (See https://github.com/huggingface/diffusers/issues/437#issuecomment-1241827515)
         latents *= 0.18215
 
-        # Encode the text. Assume that the text is already tokenized. This is slow, we should cache the results.
+        # Encode the text. Assume that the text is already tokenized.
         conditioning = self.text_encoder(conditioning)[0]  # (batch_size, 77, 768)
 
         # Sample the diffusion timesteps
@@ -166,9 +167,7 @@ class StableDiffusion(ComposerModel):
 
         # classifier free guidance + negative prompts
         # negative prompt is given in place of the unconditional input in classifier free guidance
-        unconditional_input = [
-            ""
-        ] * batch_size if not negative_prompt else negative_prompt
+        unconditional_input = negative_prompt or ([""] * batch_size)
 
         # tokenize + encode negative or uncoditional prompt
         unconditional_input = self.tokenizer(
