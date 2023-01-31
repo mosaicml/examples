@@ -50,3 +50,6 @@ gpu_num	parameters-icl_tasks	parameters-model	run_name	run_time	accuracy
 1	piqa	125m	gpt-eval-gpu-num-1-icl-tasks-piqa-model-125m-7841	100.97809219360352	0.6235038042068481
 1	piqa	1.3b	gpt-eval-gpu-num-1-icl-tasks-piqa-model-1-3b-2736	390.3845479488373	0.7045701742172241
 1	piqa	2.7b	gpt-eval-gpu-num-1-icl-tasks-piqa-model-2-7b-5628	665.2259950637817	0.735582172870636
+256	piqa	125m	gpt-eval-gpu-num-256-icl-tasks-piqa-model-125m-4659	1.4034240245819092	0.62841796875
+256	piqa	1.3b	gpt-eval-gpu-num-256-icl-tasks-piqa-model-1-3b-6469	2.7042441368103027	0.72021484375
+256	piqa	2.7b	gpt-eval-gpu-num-256-icl-tasks-piqa-model-2-7b-6049	4.178273677825928	0.73876953125
