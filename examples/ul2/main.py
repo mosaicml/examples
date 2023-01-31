@@ -36,7 +36,7 @@ def build_optimizer(cfg, model):
                 'lr', 1.0
             ),  # Recommend using InverseSquareRootScheduler with default settings when using these defaults
             weight_decay=cfg.get('weight_decay', 0.0),
-            beta1=cfg.get('beta1', None),
+            beta1=cfg.get('beta1'),
             scale_parameter=cfg.get('scale_parameter', True),
             relative_step=cfg.get('relative_step', False),
             warmup_init=cfg.get('warmup_init', False))
@@ -68,8 +68,8 @@ def build_model(cfg):
         return create_hf_prefix_lm(
             pretrained_model_name=cfg.pretrained_model_name,
             tokenizer_name=cfg.tokenizer_name,
-            use_pretrained=cfg.get('use_pretrained', None),
-            model_config=cfg.get('model_config', None),
+            use_pretrained=cfg.get('use_pretrained'),
+            model_config=cfg.get('model_config'),
             z_loss=cfg.get('z_loss', 0.0),
             task_finetuning=cfg.get('task_finetuning', False),
         )
@@ -161,13 +161,13 @@ def main(cfg):
         loggers=loggers,
         callbacks=callbacks,
         precision=cfg.precision,
-        device=cfg.get('device', None),
+        device=cfg.get('device'),
         device_train_microbatch_size=cfg.device_train_microbatch_size,
-        save_folder=cfg.get('save_folder', None),
+        save_folder=cfg.get('save_folder'),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
                                              -1),
-        load_path=cfg.get('load_path', None),
+        load_path=cfg.get('load_path'),
         load_weights_only=cfg.get('load_weights_only', False),
     )
 

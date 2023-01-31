@@ -133,7 +133,8 @@ class MixtureOfDenoisersCollator:
         # Sample the noise/non-noise span lengths and interleave them to
         # generate the mask array.
         # Note: We always start with a non-noise span.
-        def _sample_span_lengths(total_tokens: int, num_spans: int) -> np.ndarray[int]:
+        def _sample_span_lengths(total_tokens: int,
+                                 num_spans: int) -> np.ndarray[int]:
             """Samples lengths of num_spans segments.
 
             Note: the combined length of segments equals total_tokens.
@@ -201,8 +202,8 @@ class MixtureOfDenoisersCollator:
                 [noised_tokens, [self.tokenizer.eos_token_id]])
         return noised_tokens
 
-    def noise_token_sequence(self, example: Mapping[str, Any], 
-                             mask_ratio: float,
+    def noise_token_sequence(self, example: Mapping[str,
+                                                    Any], mask_ratio: float,
                              mean_span_length: Optional[float],
                              prefix: Optional[str]) -> Dict[str, torch.Tensor]:
         """Span corruption applicable to all UL2 denoising tasks."""
@@ -218,8 +219,11 @@ class MixtureOfDenoisersCollator:
         # Figure out if there are any prefix tokens to handle
         if prefix is not None:
             if prefix not in self._denoiser_tag_token_ids:
-                allowed_prefixes = ', '.join(self._denoiser_tag_token_ids.keys())
-                raise KeyError(f"Prefix {prefix} is not valid. Must be one of: {allowed_prefixes}")
+                allowed_prefixes = ', '.join(
+                    self._denoiser_tag_token_ids.keys())
+                raise KeyError(
+                    f'Prefix {prefix} is not valid. Must be one of: {allowed_prefixes}'
+                )
             prefix_tokens = self._denoiser_tag_token_ids[prefix]
         else:
             prefix_tokens = []
@@ -269,17 +273,16 @@ class MixtureOfDenoisersCollator:
         return self._populate_encoder_decoder(tokens_inputs, tokens_labels)
 
     def _populate_encoder_decoder(
-            self,
-            tokens_inputs: torch.LongTensor,
+            self, tokens_inputs: torch.LongTensor,
             tokens_labels: torch.LongTensor) -> Dict[str, torch.Tensor]:
         example = {}
         # Re-populate with an empty, padded example
         example['input_ids'] = torch.full((self.max_seq_length,),
                                           self.tokenizer.pad_token_id,
                                           dtype=torch.int32)
-        example['labels'] = torch.full(
-            (self.max_seq_length,), _HF_IGNORE_TOKEN, dtype=torch.int32
-        )
+        example['labels'] = torch.full((self.max_seq_length,),
+                                       _HF_IGNORE_TOKEN,
+                                       dtype=torch.int32)
         example['attention_mask'] = torch.zeros_like(example['input_ids'])
         example['decoder_attention_mask'] = torch.zeros_like(example['labels'])
 
@@ -394,16 +397,16 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
         group_method=cfg.dataset.group_method,
-        remote=cfg.dataset.get('remote', None),
-        split=cfg.dataset.get('split', None),
+        remote=cfg.dataset.get('remote'),
+        split=cfg.dataset.get('split'),
         shuffle=cfg.dataset.get('shuffle', False),
         predownload=cfg.dataset.get('predownload', 100_000),
         keep_zip=cfg.dataset.get('keep_zip', False),
         download_retry=cfg.dataset.get('download_retry', 2),
         download_timeout=cfg.dataset.get('download_timeout', 60),
-        validate_hash=cfg.dataset.get('validate_hash', None),
-        shuffle_seed=cfg.dataset.get('shuffle_seed', None),
-        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', None),
+        validate_hash=cfg.dataset.get('validate_hash'),
+        shuffle_seed=cfg.dataset.get('shuffle_seed'),
+        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes'),
         batch_size=device_batch_size)
 
     collate_fn = MixtureOfDenoisersCollator(
@@ -412,9 +415,9 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         decoder_only_format=cfg.mixture_of_denoisers.get(
             'decoder_only_format', False),
         span_mean_lengths_and_ratios=cfg.mixture_of_denoisers.get(
-            'span_mean_lengths_and_ratios', None),
+            'span_mean_lengths_and_ratios'),
         sequence_mask_ratios=cfg.mixture_of_denoisers.get(
-            'sequence_mask_ratios', None),
+            'sequence_mask_ratios'),
     )
 
     return DataLoader(

@@ -202,13 +202,13 @@ def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
 
     # One task
     if isinstance(cfg.dataset.task, str):
-        dataset = create_super_glue_dataset(cfg.dataset.task,
-                                            cfg.dataset.tokenizer_name,
-                                            cfg.dataset.split,
-                                            cfg.dataset.max_seq_length,
-                                            cfg.dataset.decoder_only_format,
-                                            extra_prefix=cfg.dataset.get(
-                                                'extra_prefix', None))
+        dataset = create_super_glue_dataset(
+            cfg.dataset.task,
+            cfg.dataset.tokenizer_name,
+            cfg.dataset.split,
+            cfg.dataset.max_seq_length,
+            cfg.dataset.decoder_only_format,
+            extra_prefix=cfg.dataset.get('extra_prefix'))
         return _build_dataloader(dataset, cfg, device_batch_size)
 
     # Task mixture
@@ -227,8 +227,7 @@ def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
                 cfg.dataset.split,
                 cfg.dataset.max_seq_length,
                 cfg.dataset.decoder_only_format,
-                extra_prefix=cfg.dataset.get('extra_prefix'),
-            for task in tasks
+                extra_prefix=cfg.dataset.get('extra_prefix')) for task in tasks
         ]
 
         # Merge these task datasets into one dataset, sampling from each with
