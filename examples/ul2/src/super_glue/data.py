@@ -108,7 +108,7 @@ def create_super_glue_dataset(
 
     def convert_padding_token(input_ids: List,
                               attention_mask: List,
-                              new_pad_id: int = -100):
+                              new_pad_id: int = HF_IGNORE_TOKEN):
         n_non_padded = sum(attention_mask)
         n_total = len(input_ids)
 
@@ -141,7 +141,6 @@ def create_super_glue_dataset(
                 max_length=max_seq_length,
                 truncation=True,
             )
-
             decoder_dict = tokenizer(
                 text=decoder_text,
                 padding='max_length',
@@ -169,7 +168,6 @@ def create_super_glue_dataset(
         tokenize_function,
         batched=False,
         num_proc=None if num_workers == 0 else num_workers,
-        # batch_size=3, #1000,
         remove_columns=columns_to_remove,
         new_fingerprint=
         f'{task}-{tokenizer_name}-tokenization-{max_seq_length}-{split}',
@@ -223,13 +221,13 @@ def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
             )
 
         super_glue_datasets = [
-            create_super_glue_dataset(task,
-                                      cfg.dataset.tokenizer_name,
-                                      cfg.dataset.split,
-                                      cfg.dataset.max_seq_length,
-                                      cfg.dataset.decoder_only_format,
-                                      extra_prefix=cfg.dataset.get(
-                                          'extra_prefix', None))
+            create_super_glue_dataset(
+                task,
+                cfg.dataset.tokenizer_name,
+                cfg.dataset.split,
+                cfg.dataset.max_seq_length,
+                cfg.dataset.decoder_only_format,
+                extra_prefix=cfg.dataset.get('extra_prefix'),
             for task in tasks
         ]
 
