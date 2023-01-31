@@ -12,8 +12,7 @@ from omegaconf import OmegaConf as om
 from examples.common.builders import (build_algorithm, build_callback,
                                       build_dataloader, build_logger,
                                       build_optimizer, build_scheduler)
-from examples.common.config_utils import update_batch_size_info
-from examples.common.logging_utils import log_config
+from examples.common.config_utils import log_config, update_batch_size_info
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 

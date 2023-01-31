@@ -5,6 +5,7 @@ from typing import Union
 
 from composer.utils import dist
 from omegaconf import DictConfig
+from omegaconf import OmegaConf as om
 
 
 def calculate_batch_size_info(global_batch_size: int,
@@ -46,3 +47,14 @@ def update_batch_size_info(cfg: DictConfig):
         else:
             cfg.device_eval_batch_size = cfg.device_train_microbatch_size
     return cfg
+
+
+def log_config(cfg: DictConfig):
+    print(om.to_yaml(cfg))
+    if 'wandb' in cfg.get('loggers', {}):
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(om.to_container(cfg, resolve=True))
