@@ -5,16 +5,12 @@ import os
 import sys
 
 from composer import Trainer
-from composer.utils import dist, reproducibility
+from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 from transformers import Adafactor
 
-from examples.common.builders import build_algorithm
-from examples.common.builders import build_callback as _build_callback
-from examples.common.builders import build_logger
-from examples.common.builders import build_optimizer as _build_optimizer
-from examples.common.builders import build_scheduler as _build_scheduler
-from examples.common.logging_utils import log_config
+from examples.common import builders
+from examples.common.config_utils import log_config, update_batch_size_info
 from examples.ul2.src.data_denoising import build_text_denoising_dataloader
 from examples.ul2.src.hf_prefix_lm import create_hf_prefix_lm
 from examples.ul2.src.hf_t5 import create_hf_t5
@@ -28,8 +24,7 @@ def build_callback(name, kwargs):
     """Adds mixture-of-denoiser printer callback to common callbacks."""
     if name == 'mod_printer':
         return MixtureOfDenoisersPrinterCallback(**kwargs)
-    else:
-        return _build_callback(name, kwargs)
+    return builders.build_callback(**kwargs)
 
 
 def build_optimizer(cfg, model):
@@ -45,8 +40,7 @@ def build_optimizer(cfg, model):
             scale_parameter=cfg.get('scale_parameter', True),
             relative_step=cfg.get('relative_step', False),
             warmup_init=cfg.get('warmup_init', False))
-    else:
-        return _build_optimizer(cfg, model)
+    return builders.build_optimizer(cfg, model)
 
 
 def build_scheduler(cfg):
@@ -56,8 +50,7 @@ def build_scheduler(cfg):
             alpha_max=cfg.alpha_max,
             scale=cfg.get('scale', 1.0),
         )
-    else:
-        return _build_scheduler(cfg)
+    return builders.build_scheduler(cfg)
 
 
 def build_model(cfg):
@@ -100,6 +93,8 @@ def main(cfg):
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
 
+    cfg = update_batch_size_info(cfg)
+
     # Read FSDP Config as a dict
     fsdp_config = cfg.get('fsdp_config', None)
     fsdp_config = om.to_container(fsdp_config,
@@ -111,26 +106,14 @@ def main(cfg):
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.4e}')
 
-    # Get batch size info
-    if cfg.global_train_batch_size % dist.get_world_size() != 0:
-        raise ValueError(
-            f'Global batch size {cfg.global_train_batch_size} is not divisible by {dist.get_world_size()} '
-            'as a result, the batch size would be truncated, please adjust `global_train_batch_size` '
-            f'to be divisible by world size, {dist.get_world_size()}.')
-    device_train_batch_size = cfg.global_train_batch_size // dist.get_world_size(
-    )
-    device_eval_batch_size = cfg.get(
-        'global_eval_batch_size',
-        cfg.global_train_batch_size) // dist.get_world_size()
-
     # Dataloaders
     print('Building train loader...')
     train_loader = build_dataloader(cfg.train_loader,
-                                    device_train_batch_size,
+                                    cfg.device_train_batch_size,
                                     mode='train')
     print('Building eval loader...')
     eval_loader = build_dataloader(cfg.eval_loader,
-                                   device_eval_batch_size,
+                                   cfg.device_eval_batch_size,
                                    mode='eval')
 
     # Optimizer
@@ -141,26 +124,23 @@ def main(cfg):
 
     # Loggers
     loggers = [
-        build_logger(name, logger_cfg)
+        builders.build_logger(name, logger_cfg)
         for name, logger_cfg in cfg.get('loggers', {}).items()
     ]
 
     # Callbacks
     callbacks = [
-        build_callback(name, callback_cfg)
+        builders.build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
 
     # Algorithms
     algorithms = [
-        build_algorithm(name, algorithm_cfg)
+        builders.build_algorithm(name, algorithm_cfg)
         for name, algorithm_cfg in cfg.get('algorithms', {}).items()
     ]
 
-    if 'run_name' in cfg:
-        run_name = cfg['run_name']
-    else:
-        run_name = os.environ['COMPOSER_RUN_NAME']
+    run_name = cfg.get('run_name', os.environ['COMPOSER_RUN_NAME'])
 
     # Build the Trainer
     trainer = Trainer(
@@ -184,7 +164,7 @@ def main(cfg):
         callbacks=callbacks,
         precision=cfg.precision,
         device=cfg.get('device', None),
-        grad_accum=cfg.get('grad_accum', 'auto'),
+        device_train_microbatch_size=cfg.device_train_microbatch_size,
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
