@@ -439,7 +439,8 @@ class ComposerMosaicGPT(ComposerModel):
             if batch.get('mode', None) == 'icl_task':
                 # only apply ICL metrics to specially constructed
                 # icl_task batches
-                metric.update(batch, outputs, batch['labels'])
+                targets = self.get_targets(batch)
+                metric.update(batch, outputs, targets)
         else:
             outputs = outputs.view(-1, outputs.size(-1))
             targets = self.get_targets(batch).view(-1)

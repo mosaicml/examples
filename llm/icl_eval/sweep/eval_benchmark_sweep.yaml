@@ -36,9 +36,9 @@ base_config:
 
 sweep_config:
   gpu_num: 
-    - 
-      key: '256'
-      value: 256
+    # - 
+    #   key: '256'
+    #   value: 256
     # - 
     #   key: '128'
     #   value: 128
