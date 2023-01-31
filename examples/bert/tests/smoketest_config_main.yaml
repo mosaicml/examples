@@ -61,7 +61,6 @@ optimizer:
 # Training duration and evaluation frequency
 max_duration: 8ba
 eval_interval: 8ba
-# eval_subset_num_batches: 8 # For code testing, evaluate on a subset of 8 batches
 global_train_batch_size: 4
 
 # System
