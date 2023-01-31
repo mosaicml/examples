@@ -44,9 +44,7 @@ class MixtureOfDenoisersPrinterCallback(Callback):
         assert self.max_length >= 1
 
         self._raise_on_error = bool(raise_on_failure)
-
-        self._generate_kwargs = generate_kwargs if generate_kwargs else {}
-
+        self._generate_kwargs = generate_kwargs or {}
         self._verified_collator = False
         self._decoder_only_format = None
 

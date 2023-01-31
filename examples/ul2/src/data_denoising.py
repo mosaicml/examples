@@ -133,7 +133,7 @@ class MixtureOfDenoisersCollator:
         # Sample the noise/non-noise span lengths and interleave them to
         # generate the mask array.
         # Note: We always start with a non-noise span.
-        def _sample_span_lengths(total_tokens: int, num_spans: int):
+        def _sample_span_lengths(total_tokens: int, num_spans: int) -> np.ndarray[int]:
             """Samples lengths of num_spans segments.
 
             Note: the combined length of segments equals total_tokens.
@@ -201,8 +201,8 @@ class MixtureOfDenoisersCollator:
                 [noised_tokens, [self.tokenizer.eos_token_id]])
         return noised_tokens
 
-    def noise_token_sequence(self, example: Mapping[str,
-                                                    Any], mask_ratio: float,
+    def noise_token_sequence(self, example: Mapping[str, Any], 
+                             mask_ratio: float,
                              mean_span_length: Optional[float],
                              prefix: Optional[str]) -> Dict[str, torch.Tensor]:
         """Span corruption applicable to all UL2 denoising tasks."""
@@ -218,9 +218,8 @@ class MixtureOfDenoisersCollator:
         # Figure out if there are any prefix tokens to handle
         if prefix is not None:
             if prefix not in self._denoiser_tag_token_ids:
-                raise KeyError(
-                    f"Prefix {prefix} is not valid. Must be one of: {', '.join(self._denoiser_tag_token_ids.keys())}"
-                )
+                allowed_prefixes = ', '.join(self._denoiser_tag_token_ids.keys())
+                raise KeyError(f"Prefix {prefix} is not valid. Must be one of: {allowed_prefixes}")
             prefix_tokens = self._denoiser_tag_token_ids[prefix]
         else:
             prefix_tokens = []
@@ -267,11 +266,11 @@ class MixtureOfDenoisersCollator:
 
         if self.decoder_only_format:
             return self._populate_decoder_only(tokens_inputs, tokens_labels)
-        else:
-            return self._populate_encoder_decoder(tokens_inputs, tokens_labels)
+        return self._populate_encoder_decoder(tokens_inputs, tokens_labels)
 
     def _populate_encoder_decoder(
-            self, tokens_inputs: torch.LongTensor,
+            self,
+            tokens_inputs: torch.LongTensor,
             tokens_labels: torch.LongTensor) -> Dict[str, torch.Tensor]:
         example = {}
         # Re-populate with an empty, padded example
@@ -279,8 +278,8 @@ class MixtureOfDenoisersCollator:
                                           self.tokenizer.pad_token_id,
                                           dtype=torch.int32)
         example['labels'] = torch.full(
-            (self.max_seq_length,), -100, dtype=torch.int32
-        )  # Note: The HF code is hardcoded to use -100 as the ignore index
+            (self.max_seq_length,), _HF_IGNORE_TOKEN, dtype=torch.int32
+        )
         example['attention_mask'] = torch.zeros_like(example['input_ids'])
         example['decoder_attention_mask'] = torch.zeros_like(example['labels'])
 

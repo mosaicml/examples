@@ -106,7 +106,8 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
         config = T5Config.from_pretrained(pretrained_model_name, **model_config)
         model = T5ForConditionalGeneration(config)
 
-    # We use `len(tokenizer) instead of `model.config.vocab_size` because `HuggingFaceModel` will set the latter to the former
+    # We use `len(tokenizer) instead of `model.config.vocab_size` because 
+    # `HuggingFaceModel` will set the latter to the former
     metrics = [
         LanguageCrossEntropy(
             ignore_index=-100, vocab_size=len(tokenizer)

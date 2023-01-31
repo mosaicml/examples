@@ -58,9 +58,9 @@ def build_model(cfg):
     if cfg.name == 'hf_t5':
         return create_hf_t5(
             pretrained_model_name=cfg.pretrained_model_name,
-            use_pretrained=cfg.get('use_pretrained', None),
-            model_config=cfg.get('model_config', None),
-            tokenizer_name=cfg.get('tokenizer_name', None),
+            use_pretrained=cfg.get('use_pretrained'),
+            model_config=cfg.get('model_config'),
+            tokenizer_name=cfg.get('tokenizer_name'),
             z_loss=cfg.get('z_loss', 0.0),
             task_finetuning=cfg.get('task_finetuning', False),
         )
@@ -96,7 +96,7 @@ def main(cfg):
     cfg = update_batch_size_info(cfg)
 
     # Read FSDP Config as a dict
-    fsdp_config = cfg.get('fsdp_config', None)
+    fsdp_config = cfg.get('fsdp_config')
     fsdp_config = om.to_container(fsdp_config,
                                   resolve=True) if fsdp_config else None
 
@@ -116,10 +116,8 @@ def main(cfg):
                                    cfg.device_eval_batch_size,
                                    mode='eval')
 
-    # Optimizer
+    # Optimizer and scheduler
     optimizer = build_optimizer(cfg.optimizer, model)
-
-    # Scheduler
     scheduler = build_scheduler(cfg.scheduler)
 
     # Loggers
