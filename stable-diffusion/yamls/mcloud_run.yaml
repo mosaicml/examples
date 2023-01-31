@@ -13,7 +13,7 @@ command: |
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
-  run_name: stable-diffusion-finetune-pokemon-onlyclip # Name of the  training run used for checkpointing and other logging
+  run_name: stable-diffusion-finetune-pokemon-onlyunet # Name of the  training run used for checkpointing and other logging
   seed: 42               # Random seed
   max_duration: '2000ba'    # Duration to train specified as a Time string
   grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
@@ -37,16 +37,13 @@ parameters:
       - "Yoda"
       - "An epic landscape photo of a mountain"
       - "Girl with a pearl earring"
-      - "Cute Obama creature"
-      - "Donald Trump"
-      - "Boris Johnson"
       - "Totoro"
       - "Hello Kitty"
 
   model:
     name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-base" use 2-1 for sizes > 512
-    train_text_encoder: true
-    train_unet: false
+    train_text_encoder: false
+    train_unet: true
     num_images_per_prompt: 4 # number of images to generate per prompt during validation
     image_key: "image_tensor"
     caption_key: "input_ids"
@@ -62,7 +59,7 @@ parameters:
     wandb:     # Uncomment and fill below arguments to use WandB logger
       entity:  # Name of WandB entity, usually username or organization name
       project: 'stable-diffusion-finetune' # Name of WandB project
-      group:  'stable-diffusion-finetune-pokemon-onlyclip' # Name of WandB group
+      group:  'stable-diffusion-finetune-pokemon-onlyunet' # Name of WandB group
       rank_zero_only: false # enable to log all validation images on multiple gpus
 
   # Save checkpoint parameters
