@@ -57,6 +57,7 @@ class StableDiffusion(ComposerModel):
                 raise ValueError(
                     'prediction_type must be "v_prediction" or "epsilon"')
             self.noise_scheduler.config.prediction_type = prediction_type
+            self.inference_scheduler.config.prediction_type = prediction_type
 
         self.inference_scheduler = inference_scheduler
 
