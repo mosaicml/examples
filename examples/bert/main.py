@@ -18,6 +18,46 @@ from examples.common.builders import (build_algorithm, build_callback,
                                       build_optimizer, build_scheduler)
 
 
+def calculate_batch_size_info(global_batch_size, device_microbatch_size):
+    if global_batch_size % dist.get_world_size() != 0:
+        raise ValueError(
+            f'Global batch size {global_batch_size} is not divisible by {dist.get_world_size()} '
+            'as a result, the batch size would be truncated, please adjust `global_batch_size` '
+            f'to be divisible by world size, {dist.get_world_size()}.')
+    device_batch_size = global_batch_size // dist.get_world_size()
+    if device_microbatch_size == 'auto':
+        device_grad_accum = 'auto'
+    elif isinstance(device_microbatch_size, int):
+        if device_microbatch_size > device_batch_size:
+            print(
+                f'WARNING: device_microbatch_size > device_batch_size, '
+                f'will be reduced from {device_microbatch_size} -> {device_batch_size}.'
+            )
+            device_microbatch_size = device_batch_size
+        device_grad_accum = device_batch_size // device_microbatch_size
+    else:
+        raise ValueError(f'Not sure how to parse {device_microbatch_size=}')
+
+    return device_batch_size, device_microbatch_size, device_grad_accum
+
+
+# Coming soon: this conversion math will be done inside Composer Trainer
+def update_batch_size_info(cfg):
+    device_train_batch_size, device_train_microbatch_size, device_train_grad_accum = calculate_batch_size_info(
+        cfg.global_train_batch_size, cfg.device_train_microbatch_size)
+    cfg.n_gpus = dist.get_world_size()
+    cfg.device_train_batch_size = device_train_batch_size
+    cfg.device_train_microbatch_size = device_train_microbatch_size
+    cfg.device_train_grad_accum = device_train_grad_accum
+    # Safely set `device_eval_batch_size` if not provided by user
+    if 'device_eval_batch_size' not in cfg:
+        if cfg.device_train_microbatch_size == 'auto':
+            cfg.device_eval_batch_size = 1  # TODO debug auto eval microbatching
+        else:
+            cfg.device_eval_batch_size = cfg.device_train_microbatch_size
+    return cfg
+
+
 def build_model(cfg: DictConfig):
     if cfg.name == 'hf_bert':
         return create_hf_bert_mlm(
@@ -44,6 +84,9 @@ def main(cfg: DictConfig,
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
 
+    # Get batch size info
+    cfg = update_batch_size_info(cfg)
+
     # Build Model
     print('Initializing model...')
     model = build_model(cfg.model)
@@ -64,9 +107,10 @@ def main(cfg: DictConfig,
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_dataloader(cfg.train_loader, device_train_batch_size)
+    train_loader = build_dataloader(cfg.train_loader,
+                                    cfg.device_train_batch_size)
     print('Building eval loader...')
-    eval_loader = build_dataloader(cfg.eval_loader, device_eval_batch_size)
+    eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
 
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)
@@ -118,7 +162,8 @@ def main(cfg: DictConfig,
         callbacks=callbacks,
         precision=cfg.precision,
         device=cfg.get('device', None),
-        grad_accum=cfg.get('grad_accum', 'auto'),
+        device_train_microbatch_size=cfg.get('device_train_microbatch_size',
+                                             'auto'),
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
