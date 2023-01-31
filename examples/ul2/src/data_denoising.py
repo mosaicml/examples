@@ -1,16 +1,13 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright 2022 MosaicML Composer authors
-# SPDX-License-Identifier: Apache-2.0
-
 """Streaming dataloader for (mixture of) denoising task(s)."""
 
 import logging
 import random
 import sys
 from itertools import islice
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -48,9 +45,8 @@ class MixtureOfDenoisersCollator:
         n_sentinels = 100
         utils.adapt_tokenizer_for_denoising(self.tokenizer,
                                             num_sentinel_tokens=n_sentinels)
-        self.sentinel_token_ids = np.array(
-            tokenizer(''.join([f'<extra_id_{i}>' for i in range(n_sentinels)
-                              ])).input_ids)
+        sentinels = ''.join([f'<extra_id_{i}>' for i in range(n_sentinels)])
+        self.sentinel_token_ids = np.array(tokenizer(sentinels).input_ids)
 
         self._denoiser_tags = [
             '[NLU]',  # "Regular" span corruption
@@ -70,21 +66,24 @@ class MixtureOfDenoisersCollator:
         if self.span_mean_lengths_and_ratios is None:
             self.span_mean_lengths_and_ratios = []
         elif isinstance(self.span_mean_lengths_and_ratios[0], (int, float)):
-            assert len(
-                self.span_mean_lengths_and_ratios
-            ) == 2, '`span_mean_lengths_and_ratios` must be a pair of [mean_length, mask_ratio] or a list of such pairs.'
+            if not len(self.span_mean_lengths_and_ratios) == 2:
+                raise ValueError('`span_mean_lengths_and_ratios` must be a '
+                                 'pair of [mean_length, mask_ratio] or a list '
+                                 'of such pairs.')
             self.span_mean_lengths_and_ratios = [
                 self.span_mean_lengths_and_ratios
             ]
+        # Each mean_length / mask_ratio combo becomes one of the span
+        # corruption denoising tasks
         for span_mean_length, span_mask_ratio in self.span_mean_lengths_and_ratios:
             assert span_mean_length > 0, 'All span mean lengths must be positive.'
             assert 0 < span_mask_ratio < 1.0, 'All span masking ratios must be between 0.0 and 1.0.'
-
-            # This mean_length / mask_ratio combo becomes one of the span corruption denoising tasks
             if span_mean_length >= 12 or span_mask_ratio >= 0.3:
-                prefix = '[NLG]'  # UL2 considers this corruption rate "extreme" and tags it accordingly
+                # UL2 tags this corruption rate "extreme"
+                prefix = '[NLG]'
             else:
-                prefix = '[NLU]'  # UL2 considers this corruption rate "regular" and tags it accordingly
+                # UL2 tags this corruption rate as "regular"
+                prefix = '[NLU]'
             noiser = (self.noise_token_sequence, {
                 'mean_span_length': span_mean_length,
                 'mask_ratio': span_mask_ratio,
@@ -105,22 +104,23 @@ class MixtureOfDenoisersCollator:
             noiser = (self.noise_token_sequence, {
                 'mean_span_length': None,
                 'mask_ratio': span_mask_ratio,
-                'prefix': '[S2S'
+                'prefix': '[S2S]'
             })
             self._noisers.append(noiser)
 
         if not self._noisers:
             raise ValueError(
-                'No denoising tasks were included. Make sure to set `span_mean_lengths_and_ratios` and/or `sequence_mask_ratios`.'
-            )
+                'No denoising tasks were included. Make sure to set '
+                '`span_mean_lengths_and_ratios` and/or `sequence_mask_ratios`.')
 
     @staticmethod
     def _sample_mask_array(length: int, mask_ratio: float,
-                           mean_span_length: float) -> np.ndarray:
+                           mean_span_length: float) -> np.ndarray[bool]:
         if mask_ratio == 0.0:
             return np.zeros(length)
-        # This first block computes the number of noise/non-noise spans and the total tokens in each.
-        # Extra steps are taken to handle edge cases that cause degeneracy.
+        # This first block computes the number of noise/non-noise spans and the
+        # total tokens in each. Extra steps are taken to handle edge cases that
+        # cause degeneracy.
         starting_length = length
         length = np.maximum(length, 2)
         num_noise_tokens = int(np.round(mask_ratio * float(length)))
@@ -130,7 +130,8 @@ class MixtureOfDenoisersCollator:
         num_noise_spans = np.maximum(num_spans, 1)
         num_nonnoise_tokens = length - num_noise_tokens
 
-        # Sample the noise/non-noise span lengths and interleave them to generate the mask array.
+        # Sample the noise/non-noise span lengths and interleave them to
+        # generate the mask array.
         # Note: We always start with a non-noise span.
         def _sample_span_lengths(total_tokens: int, num_spans: int):
             """Samples lengths of num_spans segments.
@@ -163,10 +164,10 @@ class MixtureOfDenoisersCollator:
 
         return mask
 
-    def apply_mask(self, tokens: List, mask: np.ndarray,
-                   use_sentinels: bool) -> np.ndarray:
+    def apply_mask(self, tokens: Sequence[int], mask: np.ndarray[bool],
+                   use_sentinels: bool) -> np.ndarray[int]:
         if not use_sentinels:
-            # The logic is simple if we do not mark replaced spans with sentinel tokens
+            # The logic is simple if we don't use sentinel tokens
             noised_tokens = np.array(tokens)[np.logical_not(mask)]
 
             # Ensure there's an end-of-sentence token at the end
@@ -184,7 +185,8 @@ class MixtureOfDenoisersCollator:
             mask, np.logical_not(prev_token_mask))
         nonstart_noise_span_token = np.logical_and(mask, prev_token_mask)
 
-        # Replace tokens at the start of each noise span with its corresponding sentinel token
+        # Replace tokens at the start of each noise span with its corresponding
+        # sentinel token
         tokens = np.where(
             start_of_noise_span_token,
             self.sentinel_token_ids[np.cumsum(start_of_noise_span_token) - 1],
@@ -223,9 +225,11 @@ class MixtureOfDenoisersCollator:
         else:
             prefix_tokens = []
 
-        # mean_span_length==None is a special case for "sequential" denoising (where a single span at the end of the sequence is masked)
+        # mean_span_length==None is a special case for "sequential" denoising
+        # (where a single span at the end of the sequence is masked)
         if mean_span_length is None:
-            # This ensures that exactly 1 span will be produced and that trimming to max_seq_length will not cut off the sentinel and <EOS>
+            # This ensures that exactly 1 span will be produced and that
+            # trimming to max_seq_length won't cut off the sentinel and <EOS>
             min_span_length = np.maximum(
                 1, length + len(prefix_tokens) + 2 - self.max_seq_length)
             max_span_length = np.maximum(
@@ -239,11 +243,10 @@ class MixtureOfDenoisersCollator:
             use_sentinels = True
 
         # Generate the mask
-        mask = self._sample_mask_array(
-            length, mask_ratio, mean_span_length
-        )  # This function can be used for all the UL2 noising functions
-        assert mask[
-            0] == 0  # The sequence should always be unmasked at the beginning
+        # Note:  function can be used for all the UL2 noising functions
+        mask = self._sample_mask_array(length, mask_ratio, mean_span_length)
+        # The sequence should always be unmasked at the beginning
+        assert mask[0] == 0
 
         # Generate the input/label sequences given the raw tokens and the mask
         tokens_inputs = self.apply_mask(tokens, mask, use_sentinels)
@@ -281,7 +284,7 @@ class MixtureOfDenoisersCollator:
         example['attention_mask'] = torch.zeros_like(example['input_ids'])
         example['decoder_attention_mask'] = torch.zeros_like(example['labels'])
 
-        # Fill in with the processed results (Note: EncDec format will be right-padded)
+        # Fill in with processed results (Note: EncDec format is right-padded)
         example['input_ids'][:len(tokens_inputs)] = tokens_inputs
         example['labels'][:len(tokens_labels)] = tokens_labels
         example['attention_mask'][:len(tokens_inputs)] = 1
@@ -316,14 +319,16 @@ class MixtureOfDenoisersCollator:
         # Fill in with the processed results
         if self.tokenizer.padding_side == 'left':
             example['input_ids'][-n_concat:] = tokens_concat
-            # (Here `labels` copies `input_ids` but with -100 at non-loss-generating tokens. `labels` will be shifted in the model code when computing loss.)
+            # `labels` copies `input_ids` but with -100 at
+            # non-loss-generating tokens. `labels` will be shifted in the
+            # model code when computing loss.
             example['labels'][-n_concat:] = tokens_concat
             example['labels'][-n_concat:-n_label] = -100
             example['attention_mask'][-n_concat:] = 1
             example['bidirectional_mask'][-n_concat:-n_label] = 1
         else:
             example['input_ids'][:n_concat] = tokens_concat
-            # (Here `labels` copies `input_ids` but with -100 at non-loss-generating tokens. `labels` will be shifted in the model code when computing loss.)
+            # See above comment regarding `labels`
             example['labels'][:n_concat] = tokens_concat
             example['labels'][:n_input] = -100
             example['attention_mask'][:n_concat] = 1
@@ -339,7 +344,8 @@ class MixtureOfDenoisersCollator:
             processed_examples.append(noiser_fcn(example, **noiser_kwargs))
         batch = self.tokenizer.pad(processed_examples)
 
-        # Truncate portions of the inputs that are purely padding (up to a multiple of 8)
+        # Truncate portions of the inputs that are purely padding
+        # (up to a multiple of 8)
         multiple_of = 8
         n_examples_per_length = batch['attention_mask'].sum(0)
         keep_tokens = torch.sum(n_examples_per_length > 0)
@@ -374,7 +380,8 @@ class MixtureOfDenoisersCollator:
             batch['decoder_attention_mask'] = batch[
                 'decoder_attention_mask'][:, :keep_tokens]
 
-        # This slicing can produce non-contiguous tensors, so use .contiguous to prevent related problems
+        # This slicing can produce non-contiguous tensors, so use .contiguous
+        # to prevent related problems
         batch = {k: v.contiguous() for k, v in batch.items()}
 
         return batch
@@ -425,7 +432,8 @@ def build_text_denoising_dataloader(cfg: DictConfig,
 
 
 # Helpful to test if your dataloader is working locally
-# Run `python data.py [remote] [local, optional]` and verify that batches are printed out
+# Run `python data.py [remote] [local, optional]` and verify that batches
+# are printed out
 if __name__ == '__main__':
     remote = sys.argv[1]
     if len(sys.argv) > 2:
