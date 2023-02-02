@@ -137,14 +137,15 @@ def test_attention_mechanism(batch_size=2):
         axis=1)
     expected_zerod_weights |= torch_key_padding
 
-    attn_mask = model.model._attn_mask(
-        batch_size=batch_size,
-        seq_len=test_cfg.max_seq_len,
-        key_padding_mask=key_padding_mask)
+    attn_mask = model.model._attn_mask(batch_size=batch_size,
+                                       seq_len=test_cfg.max_seq_len,
+                                       key_padding_mask=key_padding_mask)
 
     for block in model.model.transformer.blocks:
         a = block.ln_1(x)
-        b, attention_weights = block.causal_attn(a, key_padding_mask, attn_mask=attn_mask)
+        b, attention_weights = block.causal_attn(a,
+                                                 key_padding_mask,
+                                                 attn_mask=attn_mask)
 
         zerod_weights = (attention_weights == 0)
         assert torch.equal(expected_zerod_weights, zerod_weights)
