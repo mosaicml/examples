@@ -13,20 +13,29 @@ from examples.common.builders import (build_algorithm, build_callback,
                                       build_dataloader, build_logger,
                                       build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
-from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
+from examples.llm.src.huggingface.hf_causal_lm import ComposerHFCausalLM
+from examples.llm.src.mosaic_gpt.model import ComposerMosaicGPT
 
 
 def build_composer_model(cfg):
-    warnings.filterwarnings(
-        action='ignore',
-        message='Torchmetrics v0.9 introduced a new argument class property')
-    try:
-        return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
-    except:
+    if cfg.name == 'mosaic_gpt':
+        return ComposerMosaicGPT(cfg)
+    elif cf.gname == 'hf_causal_lm':
+        return ComposerHFCausalLM(cfg)
+    else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
 def main(cfg):
+    # Filter deprecation warning from torch internal
+    warnings.filterwarnings(
+        action='ignore',
+        category=UserWarning,
+        message=
+        f'torch.distributed.*_base is a private function and will be deprecated.*'
+    )
+
+    # Seed the environment
     reproducibility.seed_all(cfg.seed)
 
     # Run Name
@@ -45,24 +54,23 @@ def main(cfg):
     # using 'cuda' vs. 'cuda:id' is tricky and can lead to common user errors
     # when multiple GPUs are available.
     # Also 'meta' is only valid when using FSDP
-    assert cfg.model.device in ['meta', 'cpu']
-    if fsdp_config is None and cfg.model.device == 'meta':
+    assert cfg.model.init_device in ['meta', 'cpu']
+    if fsdp_config is None and cfg.model.init_device == 'meta':
         print(
-            "Using init device `cfg.model.device='meta'` is only valid when using FSDP! "
-            "Reverting to `cfg.model.device='cpu'`.")
-        cfg.model.device = 'cpu'
+            "\nUsing init device `cfg.model.init_device='meta'` is only valid when using FSDP! "
+            "Reverting to `cfg.model.init_device='cpu'`.")
+        cfg.model.init_device = 'cpu'
 
     # Build Model
-    # For fast initialization of MosaicGPT, use cfg.model.device='meta'
     print('Initializing model...')
     model = build_composer_model(cfg.model)
     cfg.n_params = sum(p.numel() for p in model.parameters())
-    print(f'{cfg.n_params=:.2e}')
+    print(f'n_params={cfg.n_params:.2e}')
     if hasattr(model, 'num_fwd_flops'):
-        print(f'{model.num_fwd_flops=:.2e}')
+        print(f'nun_fwd_flops={model.num_fwd_flops:.2e}')
 
     # Dataloaders
-    print('Building train loader...')
+    print('\nBuilding train loader...')
     train_loader = build_dataloader(cfg.train_loader,
                                     cfg.device_train_batch_size)
     print('Building eval loader...')
@@ -74,8 +82,6 @@ def main(cfg):
     # Scheduler
     scheduler = build_scheduler(cfg.scheduler)
 
-    # we use (cfg.get(...) or {}) instead of cfg.get(..., {}) so that
-    # .items() works even when the value is None
     # Loggers
     loggers = [
         build_logger(name, logger_cfg)
@@ -95,6 +101,7 @@ def main(cfg):
     ]
 
     # Build the Trainer
+    print('\nBuilding trainer...')
     trainer = Trainer(
         run_name=cfg.run_name,
         seed=cfg.seed,
@@ -125,13 +132,13 @@ def main(cfg):
         load_weights_only=cfg.get('load_weights_only', False),
     )
 
-    print('Logging config...')
+    print('\nLogging config...')
     log_config(cfg)
 
-    print('Starting training...')
+    print('\nStarting training...')
     trainer.fit()
 
-    print('Done.')
+    print('\nDone.')
 
 
 if __name__ == '__main__':
