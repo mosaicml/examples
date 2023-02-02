@@ -20,11 +20,11 @@ from examples.ul2.src.mod_print_callback import \
 from examples.ul2.src.super_glue.data import build_super_glue_task_dataloader
 
 
-def build_callback(name, kwargs):
+def build_callback(name, cfg):
     """Adds mixture-of-denoiser printer callback to common callbacks."""
     if name == 'mod_printer':
-        return MixtureOfDenoisersPrinterCallback(**kwargs)
-    return builders.build_callback(**kwargs)
+        return MixtureOfDenoisersPrinterCallback(**cfg)
+    return builders.build_callback(name, cfg)
 
 
 def build_optimizer(cfg, model):
@@ -128,7 +128,7 @@ def main(cfg):
 
     # Callbacks
     callbacks = [
-        builders.build_callback(name, callback_cfg)
+        build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
 
@@ -138,7 +138,9 @@ def main(cfg):
         for name, algorithm_cfg in cfg.get('algorithms', {}).items()
     ]
 
-    run_name = cfg.get('run_name', os.environ['COMPOSER_RUN_NAME'])
+    run_name = cfg.get('run_name')
+    if run_name is None:
+        run_name = os.environ['COMPOSER_RUN_NAME']
 
     # Build the Trainer
     trainer = Trainer(

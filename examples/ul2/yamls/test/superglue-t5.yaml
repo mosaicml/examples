@@ -77,7 +77,8 @@ eval_subset_num_batches: 20 # For code testing, evaluate on a subset of 20 batch
 
 # System
 seed: 17
-grad_accum: 1
+device_eval_batch_size: 4
+device_train_microbatch_size: 4
 precision: fp32
 
 # Logging
