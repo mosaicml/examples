@@ -4,6 +4,7 @@ from typing import Iterable, List, Tuple, Union
 from composer.optim import DecoupledAdamW
 import torch
 import random
+import math
 class OnlinePercentileEstimate:
     def __init__(self, percentile=0.90):
         self.step = None
@@ -39,14 +40,12 @@ class AdaLR(DecoupledAdamW):
                 warmup: int = 5000,
                 amsgrad: bool = False,
                 lr_decay: float = 0.02,
-                v1: bool = True,
                 min_scaling: float = 0,
                 max_scaling: float = float('inf')):
         super().__init__(params=params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, amsgrad=amsgrad)
         self.target_percentile_cutoff = percentile_cutoff
         self.warmup = max(warmup, 1)
         self.lr_decay = lr_decay
-        self.v1 = v1
         self.min_scaling = min_scaling
         self.max_scaling = max_scaling
         
@@ -55,7 +54,7 @@ class AdaLR(DecoupledAdamW):
               exp_avg_sqs: List[torch.Tensor], max_exp_avg_sqs: List[torch.Tensor], layerwise_lr_scaling: List[torch.Tensor],
               state_steps: List[int], online_percentile_estimates: List[OnlinePercentileEstimate], *,
               beta1: float, beta2: float, lr: float, initial_lr: float, weight_decay: float,
-              eps: float, warmup: int, amsgrad:bool, lr_decay: bool, v1: bool, min_scaling: float, max_scaling: float) -> None:
+              eps: float, warmup: int, amsgrad:bool, lr_decay: bool, min_scaling: float, max_scaling: float) -> None:
         r"""Functional API that performs AdamW algorithm computation with decoupled weight decay.
 
         Args:
@@ -104,8 +103,7 @@ class AdaLR(DecoupledAdamW):
             if weight_decay != 0:
                 decay_factor = (effective_lr / initial_lr) if initial_lr else 1.0
                 update.add_(param, alpha=-decay_factor * weight_decay)
-
-            update_norm = torch.linalg.vector_norm(update) if v1 else torch.linalg.vector_norm(update * effective_lr).item()
+            update_norm = torch.linalg.vector_norm(update * effective_lr).item()
             ope.push(update_norm)
             percentile_cutoff = ope.query_threshold()
             if update_norm > percentile_cutoff and step > warmup:
@@ -206,7 +204,6 @@ class AdaLR(DecoupledAdamW):
                        warmup=self.warmup,
                        amsgrad=amsgrad,
                        lr_decay=self.lr_decay,
-                       v1=self.v1,
                        min_scaling=self.min_scaling,
                        max_scaling=self.max_scaling)
 
@@ -215,11 +212,20 @@ class AdaLR(DecoupledAdamW):
 
     def report_per_parameter_metrics(self, param: torch.Tensor, name: str, optimizer_metrics: dict):
         optimizer_metrics = super().report_per_parameter_metrics(param, name, optimizer_metrics)
+
+        lr = self.param_groups[0]['lr']
+
+        
+
         if param in self.state:
             param_optim_state = self.state[param]
             optimizer_metrics[f"layerwise_lr_scaling/{name}"] = param_optim_state['layerwise_lr_scaling'].item()
-            optimizer_metrics[f"ope/threshold_estimate/{name}"] = param_optim_state['ope'].query_threshold().item()
+            optimizer_metrics[f"ope/threshold_estimate/{name}"] = param_optim_state['ope'].query_threshold()
             optimizer_metrics[f"ope/outlier_counter/{name}"] = param_optim_state['ope'].outlier_counter
-            optimizer_metrics[f"ope/ope_step_size/{name}"] = param_optim_state['ope'].step.item()
+            optimizer_metrics[f"ope/ope_step_size/{name}"] = param_optim_state['ope'].step
+            optimizer_metrics[f"layerwise_lr_scaling/{name}"] = param_optim_state['layerwise_lr_scaling'].item()
+            param_optim_state = self.state[param]
+            convergence_tensor = lr * torch.ones(param_optim_state['exp_avg'].size())
+            optimizer_metrics[f"expected_converged_update_norm/{name}"] = torch.linalg.vector_norm(convergence_tensor).item()
 
         return optimizer_metrics

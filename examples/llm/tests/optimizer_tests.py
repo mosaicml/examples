@@ -110,6 +110,42 @@ def test_full_adalr(batch_size=4):
     
 
 
+def test_full_adalr(batch_size=4):
+    test_cfg, model = get_objs(
+        conf_path='yamls/mosaic_gpt/125m.yaml')
+
+    # Optimizer
+    optimizer = AdaLR(model.parameters(),
+                               lr=test_cfg.optimizer.lr,
+                               betas=test_cfg.optimizer.betas,
+                               eps=test_cfg.optimizer.eps,
+                               weight_decay=test_cfg.optimizer.weight_decay,
+                               lr_decay=0.02,
+                               warmup=0
+                            )
+
+    for _ in range(2):
+        batch = gen_random_batch(batch_size, test_cfg)
+
+        assert batch['input_ids'].shape == torch.Size(
+            [batch_size, test_cfg.max_seq_len])
+        model.train()
+        original_params = next(model.parameters()).clone().data
+        outputs = model(batch)
+        loss = model.loss(outputs, batch)
+        loss.backward()
+        optimizer.step()
+        print(loss)
+        updated_params = next(model.parameters()).clone().data
+        assert not torch.equal(original_params, updated_params)
+
+    metrics = {}
+    for group in optimizer.param_groups:
+        for idx, p in enumerate(group['params']):
+            metrics = optimizer.report_per_parameter_metrics(p, idx, metrics)
+    
+
+
 def test_full_second_order_adalr(batch_size=4):
     test_cfg, model = get_objs(
         conf_path='yamls/mosaic_gpt/125m.yaml')
