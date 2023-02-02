@@ -14,7 +14,7 @@ from lm_eval import models as lm_eval_models
 from lm_eval import tasks as lm_eval_tasks
 from lm_eval.evaluator import evaluate
 
-from examples.llm.src.evaluation.model_loading import MODEL_LOADERS
+from examples.llm.src.model_loading import MODEL_LOADERS
 
 RESULTS_DIR = f'{os.path.dirname(__file__)}/eval_reports'
 PARTIAL_EVAL_SAMPLE_SIZE = 40
