@@ -10,7 +10,7 @@ run_name: gpt-350m
 # Model
 model:
   name: mosaic_gpt
-  device: meta
+  init_device: meta
   tokenizer_name: *tokenizer_name
   d_model: 1024
   n_heads: 16
@@ -95,11 +95,10 @@ precision: amp_bf16
 # FSDP
 fsdp_config:
   sharding_strategy: FULL_SHARD
-  min_params: 1e8
   mixed_precision: DEFAULT
   activation_checkpointing: false
   activation_cpu_offload: false
-  verbose: true
+  verbose: false
 
 # Logging
 progress_bar: false
