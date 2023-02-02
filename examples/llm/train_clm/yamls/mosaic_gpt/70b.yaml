@@ -5,7 +5,7 @@ max_seq_len: &max_seq_len 2048
 global_seed: &global_seed 17
 
 # Run Name
-run_name: gpt-70b
+run_name:
 
 # Model
 model:
