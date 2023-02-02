@@ -14,7 +14,7 @@ def main():
     tag = 'google/flan-t5-xxl'
 
     do_meta = False
-    use_pretrained = False  #True
+    use_pretrained = True  #True
     model_config = {'dropout_rate': 0.0}  #, 'vocab_size': 32100}
     if do_meta:
         with init_empty_weights():
@@ -50,7 +50,7 @@ def main():
         'mixed_precision': 'DEFAULT',
         'activation_checkpointing': False,
         'activation_cpu_offload': False,
-        'verbose': False,
+        'verbose': True,
     }
 
     trainer = Trainer(
