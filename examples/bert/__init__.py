@@ -25,6 +25,8 @@ try:
     if torch.cuda.is_available():
         from examples.bert.src.flash_attn_triton import \
             flash_attn_func as flash_attn_func_bert
+        from examples.bert.src.flash_attn_triton import \
+            flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_bert
     from examples.bert.src.hf_bert import (create_hf_bert_classification,
                                            create_hf_bert_mlm)
     from examples.bert.src.mosaic_bert import (
@@ -61,4 +63,5 @@ __all__ = [
     'create_hf_bert_mlm',
     'create_mosaic_bert_classification',
     'create_mosaic_bert_mlm',
-] + (['flash_attn_func_bert'] if torch.cuda.is_available() else [])
+] + (['flash_attn_func_bert', 'flash_attn_qkvpacked_func_bert']
+     if torch.cuda.is_available() else [])
