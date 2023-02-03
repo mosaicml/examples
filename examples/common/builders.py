@@ -14,7 +14,7 @@ from packaging import version
 
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
-
+from examples.common.optim import OPTIMIZERS
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -54,13 +54,15 @@ def build_algorithm(name, kwargs):
         raise ValueError(f'Not sure how to build algorithm: {name}')
 
 
-def build_optimizer(cfg, model):
-    if cfg.name == 'decoupled_adamw':
-        return DecoupledAdamW(model.parameters(),
-                              lr=cfg.lr,
-                              betas=cfg.betas,
-                              eps=cfg.eps,
-                              weight_decay=cfg.weight_decay)
+def build_optimizer(cfg, model):    
+    if cfg.name in OPTIMIZERS:
+        optimizer_args = {
+            "params": model.parameters(),
+        }
+        addl_args = dict(cfg)
+        del addl_args['name']
+        optimizer_args.update(addl_args)
+        return OPTIMIZERS[cfg.name](**optimizer_args)
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
