@@ -33,7 +33,7 @@ def build_logger(name: str, kwargs: Dict):
 
 
 def main(config):
-    reproducibility.seed_all(cfg.seed)
+    reproducibility.seed_all(config.seed)
     if config.grad_accum == 'auto' and not torch.cuda.is_available():
         raise ValueError(
             'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
