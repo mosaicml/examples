@@ -11,13 +11,11 @@ from transformers import Adafactor
 
 from examples.common import builders
 from examples.common.config_utils import log_config, update_batch_size_info
-from examples.ul2.src.data_denoising import build_text_denoising_dataloader
-from examples.ul2.src.hf_prefix_lm import create_hf_prefix_lm
-from examples.ul2.src.hf_t5 import create_hf_t5
-from examples.ul2.src.inverse_sqrt_scheduler import InverseSquareRootScheduler
-from examples.ul2.src.mod_print_callback import \
-    MixtureOfDenoisersPrinterCallback
-from examples.ul2.src.super_glue.data import build_super_glue_task_dataloader
+from examples.ul2.src import (InverseSquareRootScheduler,
+                              MixtureOfDenoisersPrinterCallback,
+                              build_super_glue_task_dataloader,
+                              build_text_denoising_dataloader,
+                              create_hf_prefix_lm, create_hf_t5)
 
 
 def build_callback(name, cfg):

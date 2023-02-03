@@ -14,6 +14,8 @@ from composer.utils import dist
 from omegaconf.listconfig import ListConfig
 from torch.utils.data import DataLoader
 
+__all__ = ['build_super_glue_task_dataloader']
+
 log = logging.getLogger(__name__)
 
 _task_prefix_column_names = {

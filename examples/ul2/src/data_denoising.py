@@ -19,6 +19,8 @@ from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 from examples.common.text_data import StreamingTextDataset
 from examples.ul2.src import utils
 
+__all__ = ['MixtureOfDenoisersCollator', 'build_text_denoising_dataloader']
+
 log = logging.getLogger(__name__)
 
 # HuggingFace hardcodes the ignore index to -100
