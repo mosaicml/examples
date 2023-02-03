@@ -68,6 +68,72 @@ _task_target_maps = {
 }
 
 
+def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
+                                     device_batch_size: int,
+                                     mode: Optional[str] = None):
+    """Builds a dataloader for training or evaluating SuperGLUE task(s)"""
+    if cfg.get('name', 'super_glue') != 'super_glue':
+        raise NameError(
+            f'Tried to build super_glue dataloader with cfg.name={cfg.name}')
+
+    # One task
+    if isinstance(cfg.dataset.task, str):
+        dataset = create_super_glue_dataset(
+            cfg.dataset.task,
+            cfg.dataset.tokenizer_name,
+            cfg.dataset.split,
+            cfg.dataset.max_seq_length,
+            cfg.dataset.decoder_only_format,
+            extra_prefix=cfg.dataset.get('extra_prefix'))
+        return _build_dataloader(dataset, cfg, device_batch_size)
+
+    # Task mixture
+    elif isinstance(cfg.dataset.task, (list, tuple, ListConfig)):
+        tasks = [task.lower() for task in cfg.dataset.task]
+
+        if mode not in ['train', 'eval']:
+            raise ValueError(
+                'When using multiple tasks, `mode` argument must be set to ' +\
+                f'either `train` or `eval`, but got mode={mode}.'
+            )
+
+        super_glue_datasets = [
+            create_super_glue_dataset(
+                task,
+                cfg.dataset.tokenizer_name,
+                cfg.dataset.split,
+                cfg.dataset.max_seq_length,
+                cfg.dataset.decoder_only_format,
+                extra_prefix=cfg.dataset.get('extra_prefix')) for task in tasks
+        ]
+
+        # Merge these task datasets into one dataset, sampling from each with
+        if mode == 'train':
+            d_lengths = [len(dset) for dset in super_glue_datasets]
+            probs = [d_length / sum(d_lengths) for d_length in d_lengths]
+            dataset = datasets.interleave_datasets(
+                super_glue_datasets,
+                probabilities=probs,
+                stopping_strategy='all_exhausted')
+            return _build_dataloader(dataset, cfg, device_batch_size)
+
+        # Create a list of evaluators, with one evaluator per task
+        else:
+            evaluators = []
+            for task, dataset in zip(tasks, super_glue_datasets):
+                evaluator = Evaluator(label=task,
+                                      dataloader=_build_dataloader(
+                                          dataset, cfg, device_batch_size),
+                                      metric_names=['ExactMatch'])
+                evaluators.append(evaluator)
+            return evaluators
+
+    else:
+        raise ValueError(
+            f'Unrecognized task/type: {cfg.dataset.task}, with type {type(cfg.dataset.task)}'
+        )
+
+
 def create_super_glue_dataset(
     task: str,
     tokenizer_name: str,
@@ -105,8 +171,7 @@ def create_super_glue_dataset(
     prefix_column_order = _task_prefix_column_names[task]
     target_extractor_map = _task_target_maps[task]
     if isinstance(target_extractor_map, dict):
-        target_extractor = lambda example: target_extractor_map[example['label']
-                                                               ]
+        target_extractor = lambda ex: target_extractor_map[ex['label']]
     else:
         assert callable(target_extractor_map)
         target_extractor = target_extractor_map
@@ -197,68 +262,3 @@ def _build_dataloader(dataset, cfg, device_batch_size):
         persistent_workers=cfg.persistent_workers,
         timeout=cfg.timeout,
     )
-
-
-def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
-                                     device_batch_size: int,
-                                     mode: Optional[str] = None):
-
-    assert cfg.name == 'super_glue', f'Tried to build super_glue dataloader with cfg.name={cfg.name}'
-
-    # One task
-    if isinstance(cfg.dataset.task, str):
-        dataset = create_super_glue_dataset(
-            cfg.dataset.task,
-            cfg.dataset.tokenizer_name,
-            cfg.dataset.split,
-            cfg.dataset.max_seq_length,
-            cfg.dataset.decoder_only_format,
-            extra_prefix=cfg.dataset.get('extra_prefix'))
-        return _build_dataloader(dataset, cfg, device_batch_size)
-
-    # Task mixture
-    elif isinstance(cfg.dataset.task, (list, tuple, ListConfig)):
-        tasks = [task.lower() for task in cfg.dataset.task]
-
-        if mode not in ['train', 'eval']:
-            raise ValueError(
-                'When using multiple tasks, argument `mode` must be set to either `train` or `eval`.'
-            )
-
-        super_glue_datasets = [
-            create_super_glue_dataset(
-                task,
-                cfg.dataset.tokenizer_name,
-                cfg.dataset.split,
-                cfg.dataset.max_seq_length,
-                cfg.dataset.decoder_only_format,
-                extra_prefix=cfg.dataset.get('extra_prefix')) for task in tasks
-        ]
-
-        # Merge these task datasets into one dataset, sampling from each with
-        if mode == 'train':
-            d_lengths = [len(dset) for dset in super_glue_datasets]
-            probs = [d_length / sum(d_lengths) for d_length in d_lengths]
-            dataset = datasets.interleave_datasets(
-                super_glue_datasets,
-                probabilities=probs,
-                seed=42,
-                stopping_strategy='all_exhausted')
-            return _build_dataloader(dataset, cfg, device_batch_size)
-
-        # Create a list of evaluators, with one evaluator per task
-        else:
-            assert mode == 'eval'
-            evaluators = []
-            for task, dataset in zip(tasks, super_glue_datasets):
-                evaluator = Evaluator(label=task,
-                                      dataloader=_build_dataloader(
-                                          dataset, cfg, device_batch_size),
-                                      metric_names=['ExactMatch'])
-                evaluators.append(evaluator)
-            return evaluators
-
-    else:
-        raise ValueError(
-            f'Unrecognized type: {cfg.dataset.task}, with type {type(cfg.dataset.task)}'
-        )
