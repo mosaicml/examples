@@ -9,4 +9,4 @@ COPY examples/${EXAMPLE}/requirements.txt ${EXAMPLE}-requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir -r ${EXAMPLE}-requirements.txt && \
-    rm *.txt
+    rm requirements.txt ${EXAMPLE}-requirements.txt
