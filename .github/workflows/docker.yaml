@@ -1,8 +1,6 @@
-name: Docker build
+name: Docker
 on:
-  pull_request:
-    branches:
-    - main
+  pull_request: {}
   workflow_dispatch: {}
 jobs:
   docker-build:
