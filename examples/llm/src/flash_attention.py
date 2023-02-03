@@ -25,12 +25,15 @@ class FlashAttention(nn.Module):
     """
 
     def __init__(self, num_heads, softmax_scale=None, device=None, dtype=None):
+        # fail fast if triton is not available
         try:
             from examples.llm.src.flash_attn_triton import \
                 flash_attn_qkvpacked_func
             del flash_attn_qkvpacked_func
         except ImportError as e:
-            raise e
+            raise ImportError(
+                'examples was installed without triton support. Please make sure you are in an environment with CUDA available and pip install .[llm]'
+            )
 
         super().__init__()
         self.num_heads = num_heads
