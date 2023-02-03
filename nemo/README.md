@@ -21,7 +21,7 @@ We include the `.yaml` files required to run NeMo on MCloud. You just need to fi
 
 For a single node training job, potentially running on multiple GPUs, it’s as simple as running `mcli run -f single_node.yaml`.
 
-The logs for a successful training logs should look something like:
+The logs for a successful training job should look something like:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/single_node.png">
