@@ -16,6 +16,7 @@ from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
 from examples.ul2.src.super_glue.metrics import ExactMatch
+from examples.ul2.src.utils import AutoTokenizerForMOD
 
 __all__ = ['create_hf_t5']
 
@@ -84,7 +85,6 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
         model = create_hf_t5('t5-base')
     """
     try:
-        import transformers
         from transformers import T5Config, T5ForConditionalGeneration
     except ImportError as e:
         raise MissingConditionalImportError(extra_deps_group='nlp',
@@ -94,11 +94,8 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
         pretrained_model_name = 't5-base'
 
     # setup the tokenizer
-    if tokenizer_name:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
-    else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            pretrained_model_name)
+    tokenizer_name = tokenizer_name or pretrained_model_name
+    tokenizer = AutoTokenizerForMOD.from_pretrained(tokenizer_name)
 
     if not model_config:
         model_config = {}
@@ -114,9 +111,9 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
     # `HuggingFaceModel` will set the latter to the former
     metrics = [
         # Note: The HF code is hardcoded to use -100 as the ignore index
-        LanguageCrossEntropy(ignore_index=-_HF_IGNORE_INDEX,
+        LanguageCrossEntropy(ignore_index=_HF_IGNORE_INDEX,
                              vocab_size=len(tokenizer)),
-        MaskedAccuracy(ignore_index=-_HF_IGNORE_INDEX)
+        MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX)
     ]
     if task_finetuning:
         metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))

@@ -5,13 +5,13 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import torch
-import transformers
 from composer import Callback, Logger, State
 from composer.utils import dist
 from transformers import PreTrainedModel
 
-from examples.ul2.src import utils
-from examples.ul2.src.data_denoising import MixtureOfDenoisersCollator
+from examples.ul2.src.mixture_of_denoisers.data_denoising import \
+    MixtureOfDenoisersCollator
+from examples.ul2.src.utils import AutoTokenizerForMOD
 
 __all__ = ['MixtureOfDenoisersPrinterCallback']
 
@@ -31,14 +31,12 @@ class MixtureOfDenoisersPrinterCallback(Callback):
         generate_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            tokenizer_name)
-        utils.adapt_tokenizer_for_denoising(self.tokenizer,
-                                            num_sentinel_tokens=100)
+        self.tokenizer = AutoTokenizerForMOD.from_pretrained(tokenizer_name)
 
         self.print_frequency = int(print_frequency)
         assert self.print_frequency >= 1
-        self._steps_since_last_print = print_frequency  # This will cause it to print on the first batch, will be reset to 0 each print.
+        # This will cause it to print on the first batch, will be reset to 0 each print.
+        self._steps_since_last_print = print_frequency
 
         self.max_length = int(max_length)
         assert self.max_length >= 1

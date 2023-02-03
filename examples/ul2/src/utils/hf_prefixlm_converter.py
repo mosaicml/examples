@@ -1,9 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright 2022 MosaicML Composer authors
-# SPDX-License-Identifier: Apache-2.0
-
 """Converts Huggingface Causal LM to Prefix LM.
 
 Conversion does lightweight surgery on a HuggingFace

@@ -123,10 +123,9 @@ def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
         raise MissingConditionalImportError(extra_deps_group='nlp',
                                             conda_package='transformers') from e
 
-    # Set up the tokenizer (add tokens for denoising sentinels -- has no effect if the tokenizer already has them)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
-    utils.adapt_tokenizer_for_denoising(tokenizer, num_sentinel_tokens=100)
-    new_vocab_size = len(tokenizer)
+    # Set up the tokenizer (add tokens for denoising sentinels if needed)
+    tokenizer = utils.AutoTokenizerForMOD.from_pretrained(tokenizer_name)
+    vocab_size = len(tokenizer)
 
     if not model_config:
         model_config = {}
@@ -144,12 +143,12 @@ def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
         assert transformers.AutoModelForCausalLM.from_config is not None, 'AutoModelForCausalLM has from_config method'
         model = transformers.AutoModelForCausalLM.from_config(config)
 
-    # Convert the Causal LM into a Prefix LM via our custom, lightweight wrapper
+    # Convert the Causal LM into a Prefix LM via our custom wrapper
     model = utils.convert_hf_causal_lm_to_prefix_lm(model)
 
-    # Expand the embeddings/vocab size to match the tokenizer (which has possibly just had new tokens added above)
-    if model.config.vocab_size != new_vocab_size:
-        model.resize_token_embeddings(new_num_tokens=new_vocab_size)
+    # Expand the embeddings/vocab size to match the tokenizer
+    if model.config.vocab_size != vocab_size:
+        model.resize_token_embeddings(new_num_tokens=vocab_size)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore

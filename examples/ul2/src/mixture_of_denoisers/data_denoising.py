@@ -74,11 +74,12 @@ class MixtureOfDenoisersCollator:
         self.decoder_only_format = decoder_only_format
 
         # Prepare the tokenizer for denoising tasks
-        n_sentinels = 100
-        utils.adapt_tokenizer_for_denoising(self.tokenizer,
-                                            num_sentinel_tokens=n_sentinels)
-        sentinels = ''.join([f'<extra_id_{i}>' for i in range(n_sentinels)])
-        self.sentinel_token_ids = np.array(tokenizer(sentinels).input_ids)
+        utils.adapt_tokenizer_for_denoising(self.tokenizer)
+        # n_sentinels = 100
+        # utils.adapt_tokenizer_for_denoising(self.tokenizer,
+        #                                     num_sentinel_tokens=n_sentinels)
+        # sentinels = ''.join([f'<extra_id_{i}>' for i in range(n_sentinels)])
+        # self.sentinel_token_ids = np.array(tokenizer(sentinels).input_ids)
 
         # Populate the noisers so we can learn to denoise them!
         self._noisers = []
@@ -163,7 +164,7 @@ class MixtureOfDenoisersCollator:
                     prefix_tokens=noiser['prefix_tokens'],
                     max_seq_length=self.max_seq_length,
                     tokenizer=self.tokenizer,
-                    sentinel_token_ids=self.sentinel_token_ids,
+                    sentinel_token_ids=self.tokenizer.sentinel_token_ids,
                     decoder_only_format=self.decoder_only_format))
         batch = self.tokenizer.pad(processed_examples)
 
@@ -299,6 +300,7 @@ def noise_token_sequence(
     assert mask[0] == 0
 
     # Generate the input/label sequences given the raw tokens and the mask
+    sentinel_token_ids = np.array(sentinel_token_ids)
     tokens_inputs = _apply_mask(tokens, mask, use_sentinels,
                                 tokenizer.eos_token_id, sentinel_token_ids)
     tokens_labels = _apply_mask(tokens, 1 - mask, use_sentinels,
