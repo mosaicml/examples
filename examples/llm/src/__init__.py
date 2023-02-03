@@ -7,9 +7,9 @@ from examples.llm.src.flash_attention import FlashAttention, FlashMHA
 
 if torch.cuda.is_available():
     from examples.llm.src.flash_attn_triton import \
-        flash_attn_func as flash_attn_func_llm
+        flash_attn_func as flash_attn_func_llm # type: ignore
     from examples.llm.src.flash_attn_triton import \
-        flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_llm
+        flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_llm # type: ignore
 
 from examples.llm.src.hf_causal_lm import (ComposerHFCausalLM,
                                            hf_get_causal_base_model,
@@ -46,5 +46,8 @@ __all__ = [
     'LLMTokenizer',
     'HFTokenizer',
     'TOKENIZER_REGISTRY',
-] + (['flash_attn_func_llm', 'flash_attn_qkvpacked_func_llm']
-     if torch.cuda.is_available() else [])
+
+    # These are commented out because they only exist if CUDA is available
+    # 'flash_attn_func_llm',
+    # 'flash_attn_qkvpacked_func_llm'
+]
