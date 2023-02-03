@@ -24,16 +24,16 @@ log = logging.getLogger(__name__)
 # HuggingFace hardcodes the ignore index to -100
 _HF_IGNORE_INDEX = -100
 
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+
 # Required signature of any `prefix_function` (see below)
-PREFIX_FUNCTION = Callable[[
-    float, Optional[float], Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
-], Sequence[int]]
+PREFIX_FUNCTION = Callable[[float, Optional[float], Tokenizer], Sequence[int]]
 
 
 def ul2_prefix_function(
     mask_ratio: float,
     mean_length: Optional[float],
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+    tokenizer: Tokenizer,
 ) -> Sequence[int]:
     """Generates prefixes based on UL2 paper.
 
@@ -59,7 +59,7 @@ class MixtureOfDenoisersCollator:
 
     def __init__(
         self,
-        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+        tokenizer: Tokenizer,
         max_seq_length: int,
         decoder_only_format: bool = False,
         span_mean_lengths_and_ratios: Optional[Union[List[List[float]],
@@ -78,19 +78,7 @@ class MixtureOfDenoisersCollator:
         sentinels = ''.join([f'<extra_id_{i}>' for i in range(n_sentinels)])
         self.sentinel_token_ids = np.array(tokenizer(sentinels).input_ids)
 
-        # self._denoiser_tags = [
-        #     '[NLU]',  # "Regular" span corruption
-        #     '[NLG]',  # "Extreme" span corruption
-        #     '[S2S]',  # Sequential denoising
-        # ]
-        # self._denoiser_tag_token_ids = {
-        # }  # To be prepended to `input_ids` when corrupting
-        # for tag in self._denoiser_tags:
-        #     self._denoiser_tag_token_ids[tag] = self.tokenizer(
-        #         tag, add_special_tokens=False).input_ids
-
-        # Populate the "noisers" -- each defined by the arguments
-        # it passes to :func:`noise_token_sequence`.
+        # Populate the noisers so we can learn to denoise them!
         self._noisers = []
 
         # Add "noisers" for the span corruption denoising task
@@ -270,7 +258,7 @@ def noise_token_sequence(
     mean_span_length: Optional[float],
     prefix_tokens: Optional[Sequence[int]],
     max_seq_length: int,
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+    tokenizer: Tokenizer,
     sentinel_token_ids: Sequence[int],
     decoder_only_format: bool,
 ) -> Dict[str, torch.Tensor]:
@@ -285,17 +273,6 @@ def noise_token_sequence(
         tokens = example['input_ids'][:length]
 
     prefix_tokens = prefix_tokens or []
-    # # Figure out if there are any prefix tokens to handle
-    # if prefix_tokens is not None:
-    #     if prefix not in self._denoiser_tag_token_ids:
-    #         allowed_prefixes = ', '.join(
-    #             self._denoiser_tag_token_ids.keys())
-    #         raise KeyError(
-    #             f'Prefix {prefix} is not valid. Must be one of: {allowed_prefixes}'
-    #         )
-    #     prefix_tokens = self._denoiser_tag_token_ids[prefix]
-    # else:
-    #     prefix_tokens = []
 
     # mean_span_length==None is a special case for "sequential" denoising
     # (where a single span at the end of the sequence is masked)
