@@ -33,7 +33,7 @@ try:
         create_mosaic_bert_classification, create_mosaic_bert_mlm)
 except ImportError as e:
     try:
-        is_cuda_available = torch.cuda.is_available()
+        is_cuda_available = torch.cuda.is_available()  # type: ignore
     except:
         is_cuda_available = False
 
