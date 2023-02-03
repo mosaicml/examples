@@ -9,7 +9,7 @@ try:
                                              RandomResizePair,
                                              build_ade20k_transformations)
 except ImportError as e:
-    raise Exception(
+    raise ImportError(
         'Please make sure to pip install .[deeplab] to get the requirements for the DeepLab example.'
     ) from e
 

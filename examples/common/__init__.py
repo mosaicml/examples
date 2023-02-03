@@ -13,7 +13,7 @@ try:
     from examples.common.text_data import (StreamingTextDataset,
                                            build_text_dataloader)
 except ImportError as e:
-    raise Exception(
+    raise ImportError(
         'Please make sure to pip install . to get the common requirements for all examples.'
     ) from e
 

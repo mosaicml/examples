@@ -1,9 +1,14 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-from examples.resnet.data import (StreamingImageNet, build_imagenet_dataspec,
-                                  check_dataloader)
-from examples.resnet.model import build_composer_resnet
+try:
+    from examples.resnet.data import (StreamingImageNet,
+                                      build_imagenet_dataspec, check_dataloader)
+    from examples.resnet.model import build_composer_resnet
+except ImportError as e:
+    raise ImportError(
+        'Please make sure to pip install .[resnet] to get the requirements for the ResNet example.'
+    ) from e
 
 __all__ = [
     'StreamingImageNet',

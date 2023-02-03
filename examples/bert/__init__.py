@@ -32,7 +32,7 @@ try:
     from examples.bert.src.mosaic_bert import (
         create_mosaic_bert_classification, create_mosaic_bert_mlm)
 except ImportError as e:
-    raise Exception(
+    raise ImportError(
         'Please make sure to pip install .[bert] to get the requirements for the BERT example.'
     ) from e
 

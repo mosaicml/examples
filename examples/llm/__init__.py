@@ -23,7 +23,7 @@ try:
     from examples.llm.src.tokenizer import (TOKENIZER_REGISTRY, HFTokenizer,
                                             LLMTokenizer)
 except ImportError as e:
-    raise Exception(
+    raise ImportError(
         'Please make sure to pip install .[llm] to get the requirements for the LLM example.'
     ) from e
 
