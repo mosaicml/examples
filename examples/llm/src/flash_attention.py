@@ -14,11 +14,6 @@ import torch.nn as nn
 from einops import rearrange  # type: ignore (reportMissingImports)
 from torch import Tensor
 
-try:
-    from examples.llm.src.flash_attn_triton import flash_attn_qkvpacked_func
-except ImportError as e:
-    raise e
-
 
 class FlashAttention(nn.Module):
     """Implement the scaled dot product attention with softmax.
@@ -30,6 +25,12 @@ class FlashAttention(nn.Module):
     """
 
     def __init__(self, num_heads, softmax_scale=None, device=None, dtype=None):
+        try:
+            from examples.llm.src.flash_attn_triton import \
+                flash_attn_qkvpacked_func
+        except ImportError as e:
+            raise e
+
         super().__init__()
         self.num_heads = num_heads
         self.softmax_scale = softmax_scale
