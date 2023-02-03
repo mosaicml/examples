@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 try:
+    # yapf: disable
     from examples.bert.src.bert_layers import (BertEmbeddings, BertEncoder,
                                                BertForMaskedLM,
                                                BertForSequenceClassification,
@@ -13,6 +14,7 @@ try:
                                                BertSelfOutput,
                                                BertUnpadAttention,
                                                BertUnpadSelfAttention)
+    # yapf: enable
     from examples.bert.src.bert_padding import (IndexFirstAxis,
                                                 IndexPutFirstAxis,
                                                 index_first_axis,

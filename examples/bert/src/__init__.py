@@ -1,6 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+# yapf: disable
 from examples.bert.src.bert_layers import (BertEmbeddings, BertEncoder,
                                            BertForMaskedLM,
                                            BertForSequenceClassification,
@@ -11,6 +12,7 @@ from examples.bert.src.bert_layers import (BertEmbeddings, BertEncoder,
                                            BertPredictionHeadTransform,
                                            BertSelfOutput, BertUnpadAttention,
                                            BertUnpadSelfAttention)
+# yapf: enable
 from examples.bert.src.bert_padding import (IndexFirstAxis, IndexPutFirstAxis,
                                             index_first_axis,
                                             index_put_first_axis, pad_input,
