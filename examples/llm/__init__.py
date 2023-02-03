@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 try:
+    import torch
+
     from examples.llm.src.flash_attention import FlashAttention, FlashMHA
-    from examples.llm.src.flash_attn_triton import \
-        flash_attn_func as flash_attn_func_llm
-    from examples.llm.src.flash_attn_triton import \
-        flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_llm
+    if torch.cuda.is_available():
+        from examples.llm.src.flash_attn_triton import \
+            flash_attn_func as flash_attn_func_llm
+        from examples.llm.src.flash_attn_triton import \
+            flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_llm
     from examples.llm.src.hf_causal_lm import (
         ComposerHFCausalLM, hf_get_causal_base_model,
         hf_get_causal_hidden_layers, hf_get_lm_head,
@@ -27,8 +30,6 @@ except ImportError as e:
 __all__ = [
     'FlashAttention',
     'FlashMHA',
-    'flash_attn_func_llm',
-    'flash_attn_qkvpacked_func_llm',
     'hf_get_causal_base_model',
     'hf_get_lm_head',
     'hf_get_causal_hidden_layers',
@@ -47,4 +48,5 @@ __all__ = [
     'LLMTokenizer',
     'HFTokenizer',
     'TOKENIZER_REGISTRY',
-]
+] + (['flash_attn_func_llm', 'flash_attn_qkvpacked_func_llm']
+     if torch.cuda.is_available() else [])
