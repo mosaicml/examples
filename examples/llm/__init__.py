@@ -23,8 +23,14 @@ try:
     from examples.llm.src.tokenizer import (TOKENIZER_REGISTRY, HFTokenizer,
                                             LLMTokenizer)
 except ImportError as e:
+    try:
+        is_cuda_available = torch.cuda.is_available()
+    except:
+        is_cuda_available = False
+
+    extras = '.[llm]' if is_cuda_available else '.[llm-cpu]'
     raise ImportError(
-        'Please make sure to pip install .[llm] to get the requirements for the LLM example.'
+        f'Please make sure to pip install {extras} to get the requirements for the LLM example.'
     ) from e
 
 __all__ = [

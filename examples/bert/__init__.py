@@ -32,8 +32,14 @@ try:
     from examples.bert.src.mosaic_bert import (
         create_mosaic_bert_classification, create_mosaic_bert_mlm)
 except ImportError as e:
+    try:
+        is_cuda_available = torch.cuda.is_available()
+    except:
+        is_cuda_available = False
+
+    extras = '.[bert]' if is_cuda_available else '.[bert-cpu]'
     raise ImportError(
-        'Please make sure to pip install .[bert] to get the requirements for the BERT example.'
+        f'Please make sure to pip install {extras} to get the requirements for the BERT example.'
     ) from e
 
 __all__ = [
