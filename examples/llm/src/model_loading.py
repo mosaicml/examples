@@ -94,6 +94,10 @@ def init_composer_ckpt_from_yaml(
         model = ComposerMosaicGPT(cfg.model)
     elif cfg.model.name == 'hf_causal_lm':
         model = ComposerHFCausalLM(cfg.model)
+    else:
+        raise ValueError(
+            f'Invalid {cfg.model.name=}. Must be either "mosaic_gpt" ir "hf_causal_lm"'
+        )
     pre = next(model.parameters()).clone().data
 
     if checkpoint.startswith('s3://'):

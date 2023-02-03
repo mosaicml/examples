@@ -1,9 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2022 MosaicML Examples authors
-# SPDX-License-Identifier: Apache-2.0
-
-import torch
 
 from examples.llm.src.mosaic_gpt.layers import (GPTMLP, FlashCausalAttention,
                                                 GPTBlock, TorchCausalAttention,
