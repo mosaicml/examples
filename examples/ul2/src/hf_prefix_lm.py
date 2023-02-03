@@ -15,6 +15,9 @@ from examples.ul2.src.super_glue.metrics import ExactMatch
 
 __all__ = ['create_hf_prefix_lm']
 
+# HuggingFace hardcodes the ignore index to -100
+_HF_IGNORE_INDEX = -100
+
 
 class HuggingFaceModelWithZLoss(HuggingFaceModel):
 
@@ -36,12 +39,13 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
             return loss
 
         # Shift the labels since this is for decoder-only models
-        labels_shifted = torch.full_like(batch['labels'], -100)
+        labels_shifted = torch.full_like(batch['labels'], _HF_IGNORE_INDEX)
         labels_shifted[..., :-1] = batch['labels'][..., 1:]
         labels_flat = labels_shifted.contiguous().view(-1)
         # Add a z_loss to the standard loss
         logits_flat = logits.view(-1, logits.size(-1))
-        log_z = torch.logsumexp(logits_flat[labels_flat != -100], dim=1)
+        log_z = torch.logsumexp(logits_flat[labels_flat != _HF_IGNORE_INDEX],
+                                dim=1)
         log_z2 = log_z**2
         z_loss = log_z2.mean() * self.z_loss
         if self.config.use_return_dict:
@@ -58,7 +62,7 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
             self.labels = batch.pop('labels')
             # HF CausalLM models internally shift labels before computing loss, so we do the same here
             self.labels[:, :-1] = self.labels[:, 1:].clone()
-            self.labels[:, -1] = -100
+            self.labels[:, -1] = _HF_IGNORE_INDEX
             if self.config.use_return_dict:
                 output = output['logits']
             else:
@@ -151,12 +155,12 @@ def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
         model.gradient_checkpointing_enable()  # type: ignore
 
     metrics = [
-        LanguageCrossEntropy(ignore_index=-100,
+        LanguageCrossEntropy(ignore_index=_HF_IGNORE_INDEX,
                              vocab_size=model.config.vocab_size),
-        MaskedAccuracy(ignore_index=-100)
+        MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX)
     ]
     if task_finetuning:
-        metrics.append(ExactMatch(ignore_index=-100))
+        metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))
     return HuggingFaceModelWithZLoss(model=model,
                                      tokenizer=tokenizer,
                                      metrics=metrics,

@@ -18,6 +18,9 @@ __all__ = ['build_super_glue_task_dataloader']
 
 log = logging.getLogger(__name__)
 
+# HuggingFace hardcodes the ignore index to -100
+_HF_IGNORE_INDEX = -100
+
 _task_prefix_column_names = {
     'boolq': ['passage', 'question'],
     'cb': ['hypothesis', 'premise'],
@@ -110,7 +113,7 @@ def create_super_glue_dataset(
 
     def convert_padding_token(input_ids: List,
                               attention_mask: List,
-                              new_pad_id: int = HF_IGNORE_TOKEN):
+                              new_pad_id: int = _HF_IGNORE_INDEX):
         n_non_padded = sum(attention_mask)
         n_total = len(input_ids)
 
@@ -155,7 +158,7 @@ def create_super_glue_dataset(
             decoder_dict['input_ids'] = convert_padding_token(
                 decoder_dict['input_ids'],
                 decoder_dict['attention_mask'],
-                new_pad_id=-100)
+                new_pad_id=_HF_IGNORE_INDEX)
 
             return {
                 'input_ids': encoder_dict.input_ids,

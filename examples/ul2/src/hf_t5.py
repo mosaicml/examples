@@ -19,6 +19,9 @@ from examples.ul2.src.super_glue.metrics import ExactMatch
 
 __all__ = ['create_hf_t5']
 
+# HuggingFace hardcodes the ignore index to -100
+_HF_IGNORE_INDEX = -100
+
 
 class HuggingFaceModelWithZLoss(HuggingFaceModel):
 
@@ -42,7 +45,8 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
         # Add a z_loss to the standard loss
         logits_flat = logits.view(-1, logits.size(-1))
         labels_flat = batch['labels'].view(-1)
-        log_z = torch.logsumexp(logits_flat[labels_flat != -100], dim=1)
+        log_z = torch.logsumexp(logits_flat[labels_flat != _HF_IGNORE_INDEX],
+                                dim=1)
         log_z2 = log_z**2
         z_loss = log_z2.mean() * self.z_loss
         if self.config.use_return_dict:
@@ -109,13 +113,13 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
     # We use `len(tokenizer) instead of `model.config.vocab_size` because
     # `HuggingFaceModel` will set the latter to the former
     metrics = [
-        LanguageCrossEntropy(
-            ignore_index=-100, vocab_size=len(tokenizer)
-        ),  # Note: The HF code is hardcoded to use -100 as the ignore index
-        MaskedAccuracy(ignore_index=-100)
+        # Note: The HF code is hardcoded to use -100 as the ignore index
+        LanguageCrossEntropy(ignore_index=-_HF_IGNORE_INDEX,
+                             vocab_size=len(tokenizer)),
+        MaskedAccuracy(ignore_index=-_HF_IGNORE_INDEX)
     ]
     if task_finetuning:
-        metrics.append(ExactMatch(ignore_index=-100))
+        metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))
     return HuggingFaceModelWithZLoss(model=model,
                                      tokenizer=tokenizer,
                                      metrics=metrics,

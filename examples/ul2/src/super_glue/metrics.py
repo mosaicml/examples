@@ -6,13 +6,16 @@ from typing import Optional
 import torch
 from torchmetrics import Metric
 
+# HuggingFace hardcodes the ignore index to -100
+_HF_IGNORE_INDEX = -100
+
 
 class ExactMatch(Metric):
     is_differentiable = False
     higher_is_better = True
     full_state_update = False
 
-    def __init__(self, ignore_index: Optional[int] = -100):
+    def __init__(self, ignore_index: Optional[int] = _HF_IGNORE_INDEX):
         super().__init__()
         self.ignore_index = ignore_index
         self.add_state('correct', default=torch.tensor(0), dist_reduce_fx='sum')
