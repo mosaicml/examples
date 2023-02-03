@@ -12,7 +12,8 @@ from composer.utils.object_store import S3ObjectStore
 from omegaconf import OmegaConf as om
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
+from examples.llm.src.huggingface.hf_causal_lm import ComposerHFCausalLM
+from examples.llm.src.mosaic_gpt.model import ComposerMosaicGPT
 from examples.llm.src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
@@ -89,7 +90,10 @@ def init_composer_ckpt_from_yaml(
     # Build Model
     print('Initializing model...')
     cfg.model.device = str(DEVICE)
-    model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
+    if cfg.model.name == 'mosaic_gpt':
+        model = ComposerMosaicGPT(cfg.model)
+    elif cfg.model.name == 'hf_causal_lm':
+        model = ComposerHFCausalLM(cfg.model)
     pre = next(model.parameters()).clone().data
 
     if checkpoint.startswith('s3://'):

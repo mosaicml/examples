@@ -11,17 +11,16 @@ if torch.cuda.is_available():
     from examples.llm.src.flash_attn_triton import \
         flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_llm # type: ignore
 
-from examples.llm.src.hf_causal_lm import (ComposerHFCausalLM,
-                                           hf_get_causal_base_model,
-                                           hf_get_causal_hidden_layers,
-                                           hf_get_lm_head,
-                                           hf_get_tied_embedding_weights,
-                                           prepare_hf_causal_lm_model_for_fsdp)
-from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
-from examples.llm.src.mosaic_gpt import (GPTMLP, ComposerMosaicGPT,
-                                         FlashCausalAttention, GPTBlock,
-                                         MosaicGPT, TorchCausalAttention,
-                                         TritonFlashCausalAttention, alibi_bias)
+from examples.llm.src.huggingface.hf_causal_lm import (
+    ComposerHFCausalLM, hf_get_causal_base_model, hf_get_causal_hidden_layers,
+    hf_get_lm_head, hf_get_tied_embedding_weights,
+    prepare_hf_causal_lm_model_for_fsdp)
+from examples.llm.src.model_loading import MODEL_LOADERS
+from examples.llm.src.mosaic_gpt.layers import (GPTMLP, FlashCausalAttention,
+                                                GPTBlock, TorchCausalAttention,
+                                                TritonFlashCausalAttention,
+                                                alibi_bias)
+from examples.llm.src.mosaic_gpt.model import ComposerMosaicGPT, MosaicGPT
 from examples.llm.src.tokenizer import (TOKENIZER_REGISTRY, HFTokenizer,
                                         LLMTokenizer)
 
@@ -34,7 +33,6 @@ __all__ = [
     'hf_get_tied_embedding_weights',
     'prepare_hf_causal_lm_model_for_fsdp',
     'ComposerHFCausalLM',
-    'COMPOSER_MODEL_REGISTRY',
     'TorchCausalAttention',
     'FlashCausalAttention',
     'TritonFlashCausalAttention',
@@ -46,6 +44,7 @@ __all__ = [
     'LLMTokenizer',
     'HFTokenizer',
     'TOKENIZER_REGISTRY',
+    'MODEL_LOADERS',
 
     # These are commented out because they only exist if CUDA is available
     # 'flash_attn_func_llm',
