@@ -23,7 +23,8 @@ def build_composer_model(cfg):
     elif cfg.name == 'hf_causal_lm':
         return ComposerHFCausalLM(cfg)
     else:
-        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+        raise ValueError(f'Invalid model name={cfg.name=}. '
+                         f'Must be either "mosaic_gpt" orr "hf_causal_lm"')
 
 
 def main(cfg):
