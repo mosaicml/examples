@@ -90,8 +90,8 @@ class MixtureOfDenoisersCollator:
             self.span_mean_lengths_and_ratios = []
         elif isinstance(self.span_mean_lengths_and_ratios[0], (int, float)):
             if not len(self.span_mean_lengths_and_ratios) == 2:
-                raise ValueError('`span_mean_lengths_and_ratios` must be a '
-                                 'pair of [mean_length, mask_ratio] or a list '
+                raise ValueError('`span_mean_lengths_and_ratios` must be a ' + \
+                                 'pair of [mean_length, mask_ratio] or a list ' + \
                                  'of such pairs.')
             self.span_mean_lengths_and_ratios = [
                 self.span_mean_lengths_and_ratios
@@ -145,7 +145,7 @@ class MixtureOfDenoisersCollator:
 
         if not self._noisers:
             raise ValueError(
-                'No denoising tasks were included. Make sure to set '
+                'No denoising tasks were included. Make sure to set ' + \
                 '`span_mean_lengths_and_ratios` and/or `sequence_mask_ratios`.')
 
     def __call__(self, examples: List[Dict[str,
