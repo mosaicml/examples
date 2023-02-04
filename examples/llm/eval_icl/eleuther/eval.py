@@ -13,35 +13,39 @@ import torch
 from lm_eval import models as lm_eval_models
 from lm_eval import tasks as lm_eval_tasks
 from lm_eval.evaluator import evaluate
-
-from examples.llm.src.model_loading import MODEL_LOADERS
+from model_loading import load_composer_checkpoint, load_huggingface_checkpoint
 
 RESULTS_DIR = f'{os.path.dirname(__file__)}/eval_reports'
 PARTIAL_EVAL_SAMPLE_SIZE = 40
 
-DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device(
-    'cpu')
 JsonResults = Dict[int, Dict[str, Any]]
 
 
-def get_lm_eval_model(model_type: str,
-                      model_ctor_args: Dict[str, str]) -> lm_eval.base.LM:
-    """Load a trained ComposerGPT model for evaluation.
+def get_lm_eval_model(checkpoint_type: str,
+                      checkpoint_args: Dict[str, str]) -> lm_eval.base.LM:
+    """Load a trained model for evaluation.
 
     In more detail, this loads a ComposerGPT model from a checkpoint & yaml
     and then passes it into the lm_eval.models.ComposerLLM wrapper class so
     that we can interface nicely with lm_eval task evaluation.
 
     Args:
-        model_ctor_args (Dict[str, str]): Constructor args for the model.
-        model_type (str): The name of the model from
-        llm.llm_evaluation.model_loading.MODEL_LOADERS
+        checkpoint_type (str): The type of checkpoint being loaded. Either 'huggingface' or 'composer'
+        checkpoint_args (Dict[str, str]): Any args needed for loading the checkpoint.
 
     Returns:
         lm (lm_eval.base.LM): An lm_eval wrapper around our constructed model
     """
-    model_components = MODEL_LOADERS[model_type](**model_ctor_args)
-    model_components.update({'batch_size': 4, 'device': DEVICE.type})
+    if checkpoint_type == 'huggingface':
+        model_components = load_huggingface_checkpoint(**checkpoint_args)
+    elif checkpoint_type == 'composer':
+        model_components = load_composer_checkpoint(**checkpoint_args)
+    else:
+        raise ValueError(
+            f'Not sure how to init {model_type=}. Must be one of "huggingface" or "composer"'
+        )
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model_components.update({'batch_size': 4, 'device': device})
     lm = lm_eval_models.get_model('composer_llm').create_from_arg_string(
         '', model_components)
     return lm
@@ -111,58 +115,49 @@ def log_results_to_tsv(results: JsonResults, outfile: str) -> None:
 
 
 if __name__ == '__main__':
-    """Example usage from examples/llm directory:
+    """Example usage:
 
-    python -m src.evaluation.eval --experiment_name opt_1.3b \
-        --model_type pretrained_hf \
-        --model_args checkpoint=facebook/opt-1.3b \
+    python eval.py --experiment_name opt_1.3b \
+        --checkpoint_type huggingface \
+        --checkpoint_args pretrained_model_name_or_path=facebook/opt-1.3b \
         --tasks lambada_cloze \
         --num_fewshot 10
 
-    python -m src.evaluation.eval --experiment_name gpt_neo_125m \
-        --model_type pretrained_hf \
-        --model_args checkpoint=EleutherAI/gpt-neo-125M \
-        --tasks lambada \
+    python eval.py --experiment_name gpt_neo_125m \
+        --checkpoint_type huggingface \
+        --checkpoint_args pretrained_model_name_or_path=EleutherAI/gpt-neo-125M \
+        --tasks lambada_openai \
         --num_fewshot 0 1
 
 
     For composer checkpoints you can either pass in an S3 URI or a local path to a .pt file
     Your config must also be available locally
 
-    python -m src.evaluation.eval --experiment_name gpt_neo_125m \
-        --model_type composer_checkpoint \
-        --model_args checkpoint=s3://mosaicml-internal-checkpoints-shared/jeremy/gpt-eval/gpt-neo-125m-5rbfZF/checkpoints/ep0-ba80000-rank0.pt \
+    python eval.py --experiment_name gpt_neo_125m \
+        --checkpoint_type composer_checkpoint \
+        --checkpoint_args checkpoint=s3://mosaicml-internal-checkpoints-shared/jeremy/gpt-eval/gpt-neo-125m-5rbfZF/checkpoints/ep0-ba80000-rank0.pt \
             config=yamls/mosaic_gpt/125m.yaml \
-        --tasks lambada \
+        --tasks lambada_openai \
         --num_fewshot 0 1 10
     """
     parser = argparse.ArgumentParser(
         description='Run the EleutherAI eval harness on ComposerGPT models')
-    parser.add_argument('--experiment_name',
-                        metavar='experiment_name',
-                        type=str)
-    parser.add_argument('--model_type', metavar='model_type', type=str)
-    parser.add_argument('--model_args',
-                        nargs='+',
-                        metavar='checkpoint_path',
-                        type=str)
-    parser.add_argument('--tasks', metavar='task_name', type=str, nargs='+')
-    parser.add_argument('--num_fewshots',
-                        metavar='num_fewshots',
-                        type=int,
-                        nargs='+')
+    parser.add_argument('--experiment_name', type=str)
+    parser.add_argument('--checkpoint_type', type=str)
+    parser.add_argument('--checkpoint_args', nargs='+', type=str)
+    parser.add_argument('--tasks', metavar='task_names', type=str, nargs='+')
+    parser.add_argument('--num_fewshots', type=int, nargs='+')
     parser.add_argument('--partial_eval_mode',
                         action='store_true',
                         default=False)
 
     args = parser.parse_args()
-    print(args)
-    model_ctor_args = {}
-    for arg in args.model_args:
+    checkpoint_args = {}
+    for arg in args.checkpoint_args:
         k, v = tuple(arg.split('='))
-        model_ctor_args[k] = v
+        checkpoint_args[k] = v
 
-    model = get_lm_eval_model(args.model_type, model_ctor_args)
+    model = get_lm_eval_model(args.checkpoint_type, checkpoint_args)
     results = evaluate_model_on_tasks(model, args.tasks, args.num_fewshots,
                                       args.partial_eval_mode)
     outfile = f"{RESULTS_DIR}/{args.experiment_name}_{'-'.join(args.tasks)}_{hash(time.time())%10_000}.tsv"

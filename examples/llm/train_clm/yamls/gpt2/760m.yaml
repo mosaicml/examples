@@ -1,16 +1,16 @@
 data_local: &data_local ./my-copy-c4
 data_remote: &data_remote null
-tokenizer_name: &tokenizer_name EleutherAI/gpt-neo-125M
-max_seq_len: &max_seq_len 2048
+tokenizer_name: &tokenizer_name gpt2
+max_seq_len: &max_seq_len 1024
 global_seed: &global_seed 17
 
 # Run Name
-run_name: gpt-neo-125m
+run_name: gpt2-760m
 
 # Model
 model:
   name: hf_causal_lm
-  hf_config_name_or_path: EleutherAI/gpt-neo-125M
+  hf_config_name_or_path: gpt2
   init_device: cpu  # this is where to initialize weights; cpu memory or meta tensor
   pretrained: false  # false: only use the architecture; true: initialize with pretrained weights
 
@@ -20,7 +20,6 @@ tokenizer:
   args:
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
-
 
 # Dataloaders
 train_loader:
@@ -59,7 +58,7 @@ scheduler:
 
 optimizer:
   name: decoupled_adamw
-  lr: 6.0e-4
+  lr: 2.5e-4
   betas:
   - 0.9
   - 0.95
@@ -71,8 +70,9 @@ algorithms:
     clipping_type: norm
     clipping_threshold: 1.0
 
-max_duration: 4800ba # ~ 2.5B tokens
-eval_interval: 500ba
+max_duration: 29000ba # ~ 15.2B tokens
+eval_interval: 2000ba
+eval_subset_num_batches: -1
 global_train_batch_size: 256
 
 # System
@@ -111,5 +111,5 @@ callbacks:
 # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
 # Load from local filesystem or remote object store
-# load_path: ./gpt-neo-125m/checkpoints/latest-rank{rank}.pt
-# load_path: s3://my-bucket/my-folder/gpt-neo-125m/checkpoints/latest-rank{rank}.pt
+# load_path: ./gpt2-760m/checkpoints/latest-rank{rank}.pt
+# load_path: s3://my-bucket/my-folder/gpt2-760m/checkpoints/latest-rank{rank}.pt

@@ -15,7 +15,6 @@ from examples.llm.src.huggingface.hf_causal_lm import (
     ComposerHFCausalLM, hf_get_causal_base_model, hf_get_causal_hidden_layers,
     hf_get_lm_head, hf_get_tied_embedding_weights,
     prepare_hf_causal_lm_model_for_fsdp)
-from examples.llm.src.model_loading import MODEL_LOADERS
 from examples.llm.src.mosaic_gpt.layers import (GPTMLP, FlashCausalAttention,
                                                 GPTBlock, TorchCausalAttention,
                                                 TritonFlashCausalAttention,
@@ -44,7 +43,6 @@ __all__ = [
     'LLMTokenizer',
     'HFTokenizer',
     'TOKENIZER_REGISTRY',
-    'MODEL_LOADERS',
 
     # These are commented out because they only exist if CUDA is available
     # 'flash_attn_func_llm',

@@ -4,6 +4,9 @@ my-copy-c4/
 # WandB
 wandb/
 
+# Checkpoints
+checkpoints/
+
 # Makefile envs
 env*/
 
