@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from typing import Dict, Union
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 import torch
@@ -13,7 +13,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from examples.llm.src.huggingface.hf_causal_lm import ComposerHFCausalLM
 from examples.llm.src.mosaic_gpt.model import ComposerMosaicGPT
-from examples.llm.src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
+from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 CHECKPOINT_DOWNLOAD_DIR = f'{os.path.dirname(__file__)}/model_checkpoints'
 
@@ -45,16 +45,14 @@ def download_to_local_path(path: str) -> str:
 
 
 def load_huggingface_checkpoint(
-    pretrained_model_name_or_path: str
-) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
+        pretrained_model_name_or_path: str) -> Dict[str, Any]:
     model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path)
     tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path)
     return {'model': model, 'tokenizer': tokenizer}
 
 
-def load_composer_checkpoint(
-        checkpoint_path: str, config_path: str
-) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
+def load_composer_checkpoint(checkpoint_path: str,
+                             config_path: str) -> Dict[str, Any]:
     """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
 
     Constructs the MosaicGPT model and LLMTokenizer from the yaml config and
@@ -75,7 +73,7 @@ def load_composer_checkpoint(
     local_checkpoint_path = download_to_local_path(checkpoint_path)
     local_config_path = download_to_local_path(config_path)
 
-    with open(config_path) as f:
+    with open(local_config_path) as f:
         cfg = om.load(f)
     print('Building MosaicGPT w/ config: ')
     print('*' * 30)
@@ -94,8 +92,9 @@ def load_composer_checkpoint(
     elif cfg.model.name == 'hf_causal_lm':
         model = ComposerHFCausalLM(cfg.model)
     else:
-        raise ValueError(f'Invalid composer model name={cfg.model.name=}. '
-                         f'Must be either "mosaic_gpt" orr "hf_causal_lm"')
+        raise ValueError(
+            f'Invalid composer model name={cfg.model.name=}. Must be either "mosaic_gpt" orr "hf_causal_lm"'
+        )
 
     pre = next(model.parameters()).clone().data
     checkpoint = torch.load(local_checkpoint_path, map_location='cpu')

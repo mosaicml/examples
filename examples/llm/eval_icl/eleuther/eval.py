@@ -42,7 +42,7 @@ def get_lm_eval_model(checkpoint_type: str,
         model_components = load_composer_checkpoint(**checkpoint_args)
     else:
         raise ValueError(
-            f'Not sure how to init {model_type=}. Must be one of "huggingface" or "composer"'
+            f'Not sure how to init {checkpoint_type=}. Must be one of "huggingface" or "composer"'
         )
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model_components.update({'batch_size': 4, 'device': device})
