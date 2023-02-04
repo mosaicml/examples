@@ -20,6 +20,12 @@ pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
 cd examples/llm
 ```
 
+# Extending an example
+
+The examples in this repository are intended to be easily extensible. If you would like to extend an example, make sure you install the package in editable mode (i.e. use `pip install -e .[<example-name>]`).
+
+Each example provides a short `main.py` which constructs the `Trainer` object and all of the arguments to it. To extend an example, all you need to do is modify the code that creates the `Trainer` to construct the arguments to `Trainer` with your new code. For example, if you wanted to make use of an optimizer that we haven't included in this repository yet (either one from an existing library or your own implementation), the simplest way is to modify the function `build_optimizer` in [common](./examples/common/builders.py) to import your optimizer and construct it. For more complicated extensions (e.g. creating a new model class or modifying the data loading), the process is pretty much the same. All you need to do is modify `main.py` to construct the relevant objects the way you want before passing them into the `Trainer`. If you run into any issues extending the code, or just want to discuss an idea you have, please open an [issue](https://github.com/mosaicml/examples/issues/new) or join our [community Slack](https://join.slack.com/t/mosaicml-community/shared_invite/zt-1btms90mc-GipE2ufuPkKY0QBrmF3LSA)!
+
 # Tests and Linting
 
 If you already have the dependencies for a given example installed, you can just run:
