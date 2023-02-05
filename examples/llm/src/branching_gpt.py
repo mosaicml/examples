@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
-
+from examples.llm.src.speedups.partial_credit_warmup import PartialCreditWarmupLoss
 
 class TorchCausalAttention(nn.Module):
 
@@ -478,6 +478,12 @@ class ComposerBranchingGPT(ComposerModel):
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
         }
+        self.pcw_loss = None
+        if hasattr(cfg, "loss"):
+            assert hasattr(cfg.loss, "name")
+            if cfg.loss.name == "partial_credit":
+                self.pcw_loss = PartialCreditWarmupLoss.from_config(cfg.loss)
+                
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
@@ -502,12 +508,19 @@ class ComposerBranchingGPT(ComposerModel):
         final_cross_ent = F.cross_entropy(final_output.view(-1, final_output.size(-1)),
                                targets.view(-1),
                                ignore_index=-100)
-        early_cross_ents = [
-            (layer_idx, F.cross_entropy(early_output.view(-1, early_output.size(-1)),
-                               targets.view(-1),
-                               ignore_index=-100))
-            for layer_idx, early_output in early_outputs
-        ]
+
+        if self.pcw_loss is None:
+            early_cross_ents = [
+                (layer_idx, F.cross_entropy(early_output.view(-1, early_output.size(-1)),
+                                targets.view(-1),
+                                ignore_index=-100))
+                for layer_idx, early_output in early_outputs
+            ]
+        else:
+            early_cross_ents = [
+                (layer_idx, self.pcw_loss.loss(early_output, batch))
+                for layer_idx, early_output in early_outputs
+            ]
 
         return self.weighted_cross_ent(final_cross_ent, early_cross_ents)
 
