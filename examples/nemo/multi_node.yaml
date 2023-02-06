@@ -34,8 +34,6 @@ command: |
   trainer.devices=1 \
   model.micro_batch_size=32 \
   model.global_batch_size=2048 \
-  trainer.max_steps=1000 \
-  trainer.val_check_interval=1000 \
   model.max_position_embeddings=1024 \
   model.encoder_seq_length=32 \
   model.data.seq_length=32'
