@@ -1,5 +1,6 @@
 # Data
 my-copy-c4/
+*.jsonl*
 
 # WandB
 wandb/
@@ -14,8 +15,6 @@ __pycache__/
 
 # C extensions
 *.so
-
-*.jsonl*
 
 # Distribution / packaging
 .Python

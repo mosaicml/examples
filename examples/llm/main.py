@@ -10,10 +10,12 @@ from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 
 from examples.common.builders import (build_algorithm, build_callback,
-                                      build_dataloader, build_evaluators, build_logger,
+                                      build_dataloader, build_logger,
                                       build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
+from examples.llm.icl_eval.evaluate_model import get_evaluators_from_config
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
+
 
 def build_composer_model(cfg):
     warnings.filterwarnings(
@@ -67,11 +69,12 @@ def main(cfg):
     print('Building eval loader...')
     evaluators = []
     if 'eval_loader' in cfg:
-        eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
+        eval_loader = build_dataloader(cfg.eval_loader,
+                                       cfg.device_eval_batch_size)
         evaluators.append(eval_loader)
 
     if 'icl_tasks' in cfg:
-        icl_task_evaluators, _ = build_evaluators(cfg)
+        icl_task_evaluators, _ = get_evaluators_from_config(cfg)
         for evaluator in icl_task_evaluators:
             model.add_eval_metrics(evaluator)
         evaluators.extend(icl_task_evaluators)

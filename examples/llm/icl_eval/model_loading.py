@@ -1,25 +1,26 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-import os
-from typing import Dict, Union, Optional
+from typing import Dict, Optional, Union
 
 import torch
+from composer.models.gpt2 import create_gpt2
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
 from src.tokenizer import LLMTokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from composer.models.gpt2 import create_gpt2
 
 
 def init_huggingface_causal_lm(
-        config: str
-) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
-    return {"model": create_gpt2(use_pretrained=True, pretrained_model_name=config)}
+        config: str) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
+    return {
+        'model': create_gpt2(use_pretrained=True, pretrained_model_name=config)
+    }
+
 
 def init_composer_ckpt_from_yaml(
-        config: str, checkpoint: Optional[str]
+    config: str, checkpoint: Optional[str]
 ) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
     """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
 
@@ -56,18 +57,20 @@ def init_composer_ckpt_from_yaml(
     fsdp_config = om.to_container(fsdp_config,
                                   resolve=True) if fsdp_config else None
 
-
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
-    return {"model": model, "fsdp_config": fsdp_config, "checkpoint": checkpoint}
+    return {
+        'model': model,
+        'fsdp_config': fsdp_config,
+        'checkpoint': checkpoint
+    }
+
 
 def load_model(model_type: str, config: str, checkpoint: Optional[str] = None):
-    if  model_type == 'pretrained_hf':
+    if model_type == 'pretrained_hf':
         return init_huggingface_causal_lm(config)
     elif model_type == 'mosaic_gpt':
         return init_composer_ckpt_from_yaml(config, checkpoint)
     else:
-        raise Exception(f"Unrecogized model type: {model_type}")
-
-
+        raise Exception(f'Unrecogized model type: {model_type}')

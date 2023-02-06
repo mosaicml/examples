@@ -1,11 +1,7 @@
-
-
-
-
 integrations:
   - integration_type: git_repo
     git_repo: mosaicml/examples
-    git_branch: feature/composer_icl_eval
+    git_branch: feature/composer_icl_eval_ready_to_merge
     pip_install: -e .[llm]
     ssh_clone: false
 
@@ -22,9 +18,9 @@ image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
 run_name: mosaic-gpt-1b-eval
-gpu_num: 64
-gpu_type: a100_40gb
-cluster: r7z2 # replace with your cluster here!
+gpu_num: 8
+gpu_type: a100_80gb
+cluster: r1z1 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # but is not used in this example.
@@ -35,48 +31,36 @@ parameters:
       tokenizer_name: gpt2
       max_seq_len: 2048
 
-  model: 
+  model:
     model_type: mosaic_gpt
-    checkpoint: s3://mosaicml-internal-checkpoints-shared/nlp/mosaicgpt/mosaicgpt-1b-TaT8te/checkpoints/ep0-ba24000-rank0.pt
+    checkpoint: # ADD YOUR OWN CHECKPOINT
+      s3://mosaicml-internal-checkpoints-shared/nlp/mosaicgpt/mosaicgpt-1b-TaT8te/checkpoints/ep0-ba24000-rank0.pt
     config: yamls/mosaic_gpt/1b.yaml
-    
+
   icl_tasks:
     -
-      label: hellaswag
-      dataset_uri: s3://mosaicml-internal-dataset-hellaswag/hellaswag.jsonz
-      num_fewshot: 
-      - 5
-      batch_size: 8
-      type: multiple_choice
-      metrics:
-        - InContextLearningMultipleChoiceAccuracy
-      formatting_options:
-        prompt_string: ""
-        example_delimiter: "\n"
-        continuation_delimiter: " "  
-    -
       label: piqa
-      dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
-      num_fewshot: 
+      dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz # ADD YOUR OWN S3/GCS URI
+      num_fewshot:
       - 5
       batch_size: 8
       type: multiple_choice
       metrics:
         - InContextLearningMultipleChoiceAccuracy
       formatting_options:
-        prompt_string: ""
-        example_delimiter: "\n"
-        continuation_delimiter: " "  
+        prompt_string: ''
+        example_delimiter: '\n'
+        continuation_delimiter: ' '
     -
       label: lambada
-      dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl
-      num_fewshot: 
+      dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl # ADD YOUR OWN S3/GCS URI
+      num_fewshot:
       - 0
       batch_size: 2
       type: language_modeling
       metrics:
         - InContextLearningLMAccuracy
       formatting_options:
-        prompt_string: ""
-        example_delimiter: "\n"
-        continuation_delimiter: ""  
+        prompt_string: ''
+        example_delimiter: '\n'
+        continuation_delimiter: ''
