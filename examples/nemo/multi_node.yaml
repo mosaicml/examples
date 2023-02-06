@@ -23,7 +23,7 @@ command: |
 
   # Make sure to prepare and download the training data, as defined in NeMo documentation: https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/stable/nlp/nemo_megatron/gpt/gpt_training.html
 
-  # Make sure to update the training datset path below
+  # Make sure to update the training dataset path below
   seq 0 7 | parallel -u \ 'CUDA_VISIBLE_DEVICES={} RANK=$(( $NODE_RANK * 8 + {} )) python3 examples/nlp/language_modeling/megatron_gpt_pretraining.py \
   --config-path=/workspace/nemo/examples/nlp/language_modeling/conf/ \
   --config-name=megatron_gpt_config.yaml \
