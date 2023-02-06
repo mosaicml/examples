@@ -126,6 +126,9 @@ def get_gpu_flops_available(state: State):
             f'MFU cannot be calculated and reported. gpu_flops_available can be manually' +\
             f'overridden by setting gpu_flops_available in SpeedMonitorMFU()'
         )
+        # Setting to 0 will disable MFU computation and prevent
+        # the speed monitor from running this helper every batch
+        gpu_flops_available = 0
 
     return gpu_flops_available
 
@@ -178,7 +181,7 @@ class SpeedMonitorMFU(Callback):
 
         # Get available GPU FLOPS
         if self.gpu_flops_available is None:
-            self.gpu_flops_available = get_gpu_flops_available(state) or 0
+            self.gpu_flops_available = get_gpu_flops_available(state)
 
     def batch_end(self, state: State, logger: Logger):
         batch_num_samples = int(
