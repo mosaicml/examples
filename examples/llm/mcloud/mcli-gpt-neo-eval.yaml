@@ -5,7 +5,7 @@
 integrations:
   - integration_type: git_repo
     git_repo: mosaicml/examples
-    git_branch: feature/composer_icl_eval
+    git_branch: feature/composer_icl_eval_ready_to_merge
     pip_install: -r llm/requirements.txt
 
 # We are fetching, converting, and training on the 'val' split

@@ -3,50 +3,14 @@
 
 import os
 from typing import Dict, Union, Optional
-from urllib.parse import urlparse
 
 import torch
 from composer.utils import reproducibility
-from composer.utils.file_helpers import get_file
-from composer.utils.object_store import S3ObjectStore
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
-from src.tokenizer import TOKENIZER_REGISTRY, LLMTokenizer
+from src.tokenizer import LLMTokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from composer.models.gpt2 import create_gpt2
-
-CHECKPOINT_DIR = f'{os.path.dirname(__file__)}/model_checkpoints'
-
-
-def _get_checkpoint_name_from_path(path: str) -> str:
-    """To go from checkpoint name to path, replace '|' with '/'."""
-    return path.lstrip('/').replace('/', '|')
-
-
-def download_starting_checkpoints(path_to_download: str) -> str:
-    """Downloads the pretrained checkpoints to start from.
-
-    Args:
-        path_to_download (str): an http:// or s3:// path. Local files not
-            yet supported.
-    """
-    load_object_store = None
-    parsed_first_checkpoint = urlparse(path_to_download)
-    if parsed_first_checkpoint.scheme == 's3':
-        load_object_store = S3ObjectStore(bucket=parsed_first_checkpoint.netloc)
-
-    parsed_path = urlparse(path_to_download)
-    download_path = (parsed_path.path if parsed_path.scheme == 's3' else
-                     parsed_first_checkpoint.path).lstrip('/')
-    checkpoint_name = _get_checkpoint_name_from_path(parsed_path.path)
-    local_path = os.path.join(CHECKPOINT_DIR, checkpoint_name)
-    if not os.path.exists(local_path):
-        get_file(destination=local_path,
-                 path=download_path,
-                 object_store=load_object_store,
-                 progress_bar=True)
-
-    return checkpoint_name
 
 
 def init_huggingface_causal_lm(
