@@ -8,6 +8,7 @@ try:
     from examples.common.config_utils import (calculate_batch_size_info,
                                               log_config,
                                               update_batch_size_info)
+    from examples.common.hf_fsdp import prepare_hf_model_for_fsdp
     from examples.common.speed_monitor_w_mfu import (SpeedMonitorMFU,
                                                      get_gpu_flops_available)
     from examples.common.text_data import (StreamingTextDataset,
@@ -31,4 +32,5 @@ __all__ = [
     'SpeedMonitorMFU',
     'StreamingTextDataset',
     'build_text_dataloader',
+    'prepare_hf_model_for_fsdp',
 ]
