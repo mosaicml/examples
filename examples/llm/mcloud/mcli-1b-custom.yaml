@@ -1,7 +1,8 @@
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: feature/composer_icl_eval
+  # git_branch: # use your branch
+  # git_commit: # OR use your commit hash
   pip_install: -e .[llm]
   ssh_clone: false
 
@@ -20,8 +21,8 @@ optimization_level: 0
 run_name: mosaic-gpt-1b-ctx-8k-gpus-8
 
 gpu_num: 8
-gpu_type: a100_80gb
-cluster: r1z1 # replace with your cluster here!
+gpu_type: a100_40gb
+cluster: r0z0 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # and referenced in our `command` above
@@ -72,19 +73,19 @@ parameters:
     drop_last: true
     num_workers: 8
 
-  # eval_loader:
-  #   name: text
-  #   dataset:
-  #     local: *data_local
-  #     remote: *data_remote
-  #     split: val
-  #     shuffle: false
-  #     tokenizer_name: *tokenizer_name
-  #     max_seq_len: *max_seq_len
-  #     group_method: truncate
-  #     shuffle_seed: *global_seed
-  #   drop_last: false
-  #   num_workers: 8
+  eval_loader:
+    name: text
+    dataset:
+      local: *data_local
+      remote: *data_remote
+      split: val
+      shuffle: false
+      tokenizer_name: *tokenizer_name
+      max_seq_len: *max_seq_len
+      group_method: truncate
+      shuffle_seed: *global_seed
+    drop_last: false
+    num_workers: 8
 
   # Optimization
   scheduler:
@@ -107,7 +108,7 @@ parameters:
       clipping_threshold: 1.0
 
   max_duration: 24800ba # ~ 26B tokens
-  eval_interval: 200ba
+  eval_interval: 2000ba
   eval_subset_num_batches: -1
   global_train_batch_size: 128 # ~1M tokens
 
@@ -150,18 +151,3 @@ parameters:
 #   Load from local filesystem or remote object store
 #   load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
 #   load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
-
-  icl_tasks:
-  -
-    label: lambada
-    dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
-    num_fewshot: 
-     - 0
-    batch_size: 8
-    type: language_modeling
-    metrics:
-      - InContextLearningLMAccuracy
-    formatting_options:
-      prompt_string: ""
-      example_delimiter: "\n"
-      continuation_delimiter: ""  
