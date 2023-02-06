@@ -815,11 +815,10 @@ class BertForMaskedLM(BertPreTrainedModel):
         if (input_ids is not None) == (inputs_embeds is not None):
             raise ValueError('Must specify either input_ids or input_embeds!')
 
-        masked_lm_labels = labels
-        if masked_lm_labels is None:
+        if labels is None:
             masked_tokens_mask = None
         else:
-            masked_tokens_mask = masked_lm_labels > 0
+            masked_tokens_mask = labels > 0
 
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -844,11 +843,10 @@ class BertForMaskedLM(BertPreTrainedModel):
         if labels is not None:
             # Compute loss
             loss_fct = nn.CrossEntropyLoss()
-            masked_token_idx = torch.nonzero(masked_lm_labels.flatten() > 0,
+            masked_token_idx = torch.nonzero(labels.flatten() > 0,
                                              as_tuple=False).flatten()
-            masked_lm_loss = loss_fct(
-                prediction_scores,
-                masked_lm_labels.flatten()[masked_token_idx])
+            masked_lm_loss = loss_fct(prediction_scores,
+                                      labels.flatten()[masked_token_idx])
 
             assert input_ids is not None, 'Coding error; please open an issue'
             batch, seqlen = input_ids.shape[:2]
