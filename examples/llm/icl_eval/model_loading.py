@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 import transformers
@@ -25,7 +25,7 @@ def init_huggingface_causal_lm(model_name: str) -> Dict[str, HuggingFaceModel]:
 
 
 def init_composer_config_from_yaml(
-    config: str,) -> Dict[str, Union[torch.nn.Module, Dict]]:
+    config: str,) -> Dict[str, Union[torch.nn.Module, Any]]:
     """Construct a MosaicGPT model from a config file and the FSDP config.
 
     Constructs the MosaicGPT model from the yaml config and extracts the FSDP config
@@ -52,7 +52,8 @@ def init_composer_config_from_yaml(
 
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
 
-    fsdp_config = cfg.get('fsdp_config', None)
+    fsdp_config = cfg.get('fsdp_config', # pyright: ignore reportGeneralTypeIssues
+                          None)  
     fsdp_config = om.to_container(fsdp_config,
                                   resolve=True) if fsdp_config else None
 
@@ -65,7 +66,9 @@ def init_composer_config_from_yaml(
     }
 
 
-def load_model(model_type: str, config: str, checkpoint: Optional[str] = None):
+def load_model(model_type: str,
+               config: str,
+               checkpoint: Optional[str] = None) -> Dict[str, Any]:
     if model_type == 'pretrained_hf':
         return init_huggingface_causal_lm(config)
     elif model_type == 'mosaic_gpt':

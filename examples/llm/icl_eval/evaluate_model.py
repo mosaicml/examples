@@ -63,20 +63,26 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
 
-    model_dict = load_model(**cfg.get('model'))
+    model_dict = load_model(**cfg.get(
+        'model'))  # pyright: ignore reportGeneralTypeIssues
     evaluators, logger_keys = get_evaluators_from_config(cfg)
     in_memory_logger = InMemoryLogger(
     )  # track the logged metrics in the in_memory_logger
 
-    trainer = Trainer(model=model_dict.get('model'),
-                      loggers=in_memory_logger,
-                      fsdp_config=model_dict.get('fsdp_config', None),
-                      load_path=model_dict.get('checkpoint', None),
-                      load_weights_only=True,
-                      log_to_console=True)
+    trainer = Trainer(
+        model=model_dict.get(
+            'model'),  # pyright: ignore reportGeneralTypeIssues
+        loggers=in_memory_logger,
+        fsdp_config=model_dict.get(
+            'fsdp_config', None),  # pyright: ignore reportGeneralTypeIssues
+        load_path=model_dict.get(
+            'checkpoint', None),  # pyright: ignore reportGeneralTypeIssues
+        load_weights_only=True,
+        log_to_console=True)
 
     for evaluator in evaluators:
-        model_dict['model'].add_eval_metrics(evaluator)
+        model_dict['model'].add_eval_metrics(
+            evaluator)  # pyright: ignore reportGeneralTypeIssues
 
     if torch.cuda.is_available():
         torch.cuda.synchronize()
