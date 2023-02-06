@@ -112,9 +112,9 @@ def _convert_gpt_causal_lm_to_prefix_lm(
         attn_modules = _get_attn_modules(model)
 
         # Handle bidirectional_mask sizing
+        # Note: all attn_modules.bias have the same size
         b, s = bidirectional_mask.shape
-        _, _, _, max_length = attn_modules[
-            0].bias.shape  # Note: all attn_modules.bias have the same size
+        _, _, _, max_length = attn_modules[0].bias.shape
         assert s <= max_length
         if s < max_length:
             pad = torch.zeros((b, max_length - s),
@@ -144,10 +144,11 @@ def _convert_gpt_causal_lm_to_prefix_lm(
         """Wraps original generate to enable PrefixLM attention."""
         attn_modules = _get_attn_modules(model)
 
-        # A convenient answer to PrefixLM generation is to set the causal mask to be bidirectional.
-        # All the tokens in the input prompt can attend to one another and, since tokens are generated
-        # one-by-one, each new token gets to see everything behind it.
-        # This depends on activations being cached and not updated, which is how the HF implementation works.
+        # A convenient answer to PrefixLM generation is to set the causal mask
+        # to be bidirectional. All the tokens in the input prompt can attend to
+        # one another and, since tokens are generated one-by-one, each new
+        # token gets to see everything behind it. This depends on activations
+        # being cached and not updated, which is how the HF implementation works.
         for attn_module in attn_modules:
             attn_module.bias.data[:] = 1  # type: ignore
 
@@ -187,6 +188,7 @@ def _convert_bloom_causal_lm_to_prefix_lm(
     assert model.config.add_cross_attention == False, 'Only supports BLOOM decoder-only models'
 
     # Modified from transformers.models.bloom.modeling_bloom.BloomModel._prepare_attn_mask
+    # https://github.com/huggingface/transformers/blob/v4.25.1/src/transformers/models/bloom/modeling_bloom.py#L648
     def _prepare_attn_mask(
         self: BloomModel,
         attention_mask: torch.Tensor,
@@ -205,7 +207,8 @@ def _convert_bloom_causal_lm_to_prefix_lm(
                 input_shape,
                 device=device,
                 past_key_values_length=past_key_values_length)
-            # Make use of the batch-specific `bidirectional_mask` attribute set by the parent module in its (new) `forward` method wrapper
+            # Make use of the batch-specific `bidirectional_mask` attribute set
+            # by the parent module in its (new) `forward` method wrapper
             if bidirectional_mask is not None:
                 # The two masks should have the same size
                 assert attention_mask.shape == bidirectional_mask.shape
@@ -226,6 +229,7 @@ def _convert_bloom_causal_lm_to_prefix_lm(
         return combined_attention_mask
 
     # Modified from transformers.models.bloom.modeling_bloom._prepare_alibi_transformer
+    # https://github.com/huggingface/transformers/blob/v4.25.1/src/transformers/models/bloom/modeling_bloom.py#L87
     def _build_alibi_tensor(
         self: BloomModel,
         batch_size: int,
@@ -274,14 +278,16 @@ def _convert_bloom_causal_lm_to_prefix_lm(
         return alibi.to(dtype)
 
     # Modified from transformers.models.bloom.modeling_bloom.BloomModel.forward
+    # Note: The modified code is surrounded with #### START/END #### comments
+    # and one new argument (`bidirectional_mask`) is added to the signature.
+    KeyValueT = Tuple[torch.Tensor, torch.Tensor]
+
     def forward(
         self: BloomModel,
         input_ids: Optional[torch.LongTensor] = None,
-        past_key_values: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor],
-                                        ...]] = None,
+        past_key_values: Optional[Tuple[KeyValueT, ...]] = None,
         attention_mask: Optional[torch.Tensor] = None,
-        bidirectional_mask: Optional[
-            torch.Tensor] = None,  # <--- WE'RE ADDING A NEW ARGUMENT!
+        bidirectional_mask: Optional[torch.Tensor] = None,
         head_mask: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
@@ -292,10 +298,12 @@ def _convert_bloom_causal_lm_to_prefix_lm(
     ) -> Union[Tuple[torch.Tensor, ...],
                BaseModelOutputWithPastAndCrossAttentions]:
         if deprecated_arguments.pop('position_ids', False) is not False:
-            # `position_ids` could have been `torch.Tensor` or `None` so defaulting pop to `False` allows to detect if users were passing explicitly `None`
+            # `position_ids` could have been `torch.Tensor` or `None` so
+            # defaulting pop to `False` allows to detect if users were
+            # passing explicitly `None`
             warnings.warn(
-                '`position_ids` have no functionality in BLOOM and will be removed in v5.0.0. You can safely ignore'
-                ' passing `position_ids`.',
+                '`position_ids` have no functionality in BLOOM and will be removed in v5.0.0. ' +\
+                'You can safely ignore passing `position_ids`.',
                 FutureWarning,
             )
         if len(deprecated_arguments) > 0:
@@ -435,7 +443,8 @@ def _convert_bloom_causal_lm_to_prefix_lm(
             attentions=all_self_attentions,
         )
 
-    # Make it so model.transformer has the new helper methods and new `forward` method
+    # Make it so model.transformer has the new helper methods and new
+    # `forward` method
     setattr(model.transformer, '_prepare_attn_mask',
             MethodType(_prepare_attn_mask, model.transformer))
     setattr(model.transformer, '_build_alibi_tensor',
@@ -443,17 +452,20 @@ def _convert_bloom_causal_lm_to_prefix_lm(
     setattr(model.transformer, 'forward', MethodType(forward,
                                                      model.transformer))
 
-    # In order to actually use the new argument we've added to model.transformer, we need to update the
-    # parent module's `forward` to accept/pass the same new argument. Add 2 lines to handle that change.
+    # In order to actually use the new argument we've added to
+    # model.transformer, we need to update the parent module's `forward` to
+    # accept/pass the same new argument.
+    # We add 2 lines to handle that change.
+    # Both lines are tagged with "# WE'RE ADDING A NEW ARGUMENT!"
+    KeyValueT = Tuple[torch.Tensor, torch.Tensor]
+
     def forward(
         self: BloomForCausalLM,
         input_ids: Optional[torch.LongTensor] = None,
-        past_key_values: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor],
-                                        ...]] = None,
+        past_key_values: Optional[Tuple[KeyValueT, ...]] = None,
         attention_mask: Optional[torch.Tensor] = None,
-        bidirectional_mask: Optional[
-            torch.
-            Tensor] = None,  # <--- WE'RE ADDING A NEW ARGUMENT! (Change 1/2)
+        # WE'RE ADDING A NEW ARGUMENT! (Change 1/2)
+        bidirectional_mask: Optional[torch.Tensor] = None,
         head_mask: Optional[torch.Tensor] = None,
         inputs_embeds: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
@@ -465,10 +477,12 @@ def _convert_bloom_causal_lm_to_prefix_lm(
     ) -> Union[Tuple[torch.Tensor], CausalLMOutputWithCrossAttentions]:
         """Replacement forward method for BloomCausalLM."""
         if deprecated_arguments.pop('position_ids', False) is not False:
-            # `position_ids` could have been `torch.Tensor` or `None` so defaulting pop to `False` allows to detect if users were passing explicitly `None`
+            # `position_ids` could have been `torch.Tensor` or `None` so
+            # defaulting pop to `False` allows to detect if users were passing
+            # explicitly `None`
             warnings.warn(
-                '`position_ids` have no functionality in BLOOM and will be removed in v5.0.0. You can safely ignore'
-                ' passing `position_ids`.',
+                '`position_ids` have no functionality in BLOOM and will be removed ' +\
+                'in v5.0.0. You can safely ignore passing `position_ids`.',
                 FutureWarning,
             )
         if len(deprecated_arguments) > 0:
@@ -481,8 +495,8 @@ def _convert_bloom_causal_lm_to_prefix_lm(
             input_ids,
             past_key_values=past_key_values,
             attention_mask=attention_mask,
-            bidirectional_mask=
-            bidirectional_mask,  # <--- WE'RE ADDING A NEW ARGUMENT! (Change 2/2)
+            # WE'RE ADDING A NEW ARGUMENT! (Change 2/2)
+            bidirectional_mask=bidirectional_mask,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
             use_cache=use_cache,
@@ -518,38 +532,43 @@ def _convert_bloom_causal_lm_to_prefix_lm(
             attentions=transformer_outputs.attentions,
         )
 
-    # To handle generation, re-write `prepare_inputs_for_generation` to implement the bidirectional logic.
+    # To handle generation, re-write `prepare_inputs_for_generation` to
+    # implement the bidirectional logic.
     def prepare_inputs_for_generation(self: BloomForCausalLM,
                                       input_ids: torch.LongTensor,
                                       past: Optional[torch.Tensor] = None,
                                       attention_mask: Optional[
                                           torch.Tensor] = None,
                                       **kwargs) -> dict:
-        # assert kwargs.get("use_cache"), "Make sure to set `use_cache` to `True`."
         # only last token for input_ids if past is not None
         if past:
             input_ids = input_ids[:, -1].unsqueeze(-1)
-            bidirectional_mask = None  # We can turn off bidirectional masking after the prefix has been encoded into `past`
+            # We can turn off bidirectional masking after the prefix
+            # has been encoded into `past`
+            bidirectional_mask = None
 
-            # the cache may be in the stardard format (e.g. in contrastive search), convert to bloom's format if needed
+            # the cache may be in the stardard format (e.g. in contrastive
+            # search), convert to bloom's format if needed
             if past[0][0].shape[0] == input_ids.shape[0]:
                 past = self._convert_to_bloom_cache(past)
 
         else:
-            # If we're here, `input_ids` contains the prefix. Encode it with bidirectional attention.
+            # If we're here, `input_ids` contains the prefix. Encode it with
+            # bidirectional attention.
             bidirectional_mask = torch.ones_like(input_ids)
 
         return {
             'input_ids': input_ids,
             'past_key_values': past,
             # "use_cache": kwargs.get("use_cache"),
-            'use_cache':
-                True,  # Requires this. TODO(Alex): Confirm this supports other decoding strategies.
+            # Requires this. TODO(Alex): Confirm this supports other decoding strategies.
+            'use_cache': True,
             'attention_mask': attention_mask,
             'bidirectional_mask': bidirectional_mask,
         }
 
-    # Register the new `forward` and `prepare_inputs_for_generation` methods with the model
+    # Register the new `forward` and `prepare_inputs_for_generation` methods
+    # with the model
     setattr(model, 'forward', MethodType(forward, model))
     setattr(model, 'prepare_inputs_for_generation',
             MethodType(prepare_inputs_for_generation, model))
@@ -580,16 +599,18 @@ def _convert_opt_causal_lm_to_prefix_lm(
     setattr(model, '_original_forward', getattr(model, 'forward'))
     setattr(model, '_original_generate', getattr(model, 'generate'))
 
-    # Modified from transformers.models.bloom.modeling_opt.OPTDecoder._prepare_decoder_attn_mask
     model.model.decoder.bidirectional_mask = None
 
+    # Modified from transformers.models.bloom.modeling_opt.OPTDecoder._prepare_decoder_attn_mask
+    # https://github.com/huggingface/transformers/blob/v4.25.1/src/transformers/models/opt/modeling_opt.py#L532
     def _prepare_decoder_attention_mask(self, attention_mask, input_shape,
                                         inputs_embeds, past_key_values_length):
         # create causal mask
         # [bsz, seq_len] -> [bsz, 1, tgt_seq_len, src_seq_len]
         combined_attention_mask = None
         if input_shape[-1] > 1:
-            if self.bidirectional_mask == 'g':  # Indicates generation mode. Causal mask replaced with 0 (attend everywhere).
+            # 'g' indicates generation mode. Causal mask replaced with 0.
+            if self.bidirectional_mask == 'g':
                 bsz, src_length = input_shape
                 combined_attention_mask = torch.zeros(
                     (bsz, 1, src_length, src_length + past_key_values_length),
@@ -602,7 +623,8 @@ def _convert_opt_causal_lm_to_prefix_lm(
                     past_key_values_length=past_key_values_length).to(
                         inputs_embeds.device)
 
-                # Make use of the batch-specific `bidirectional_mask` attribute set by the parent module in its (new) `forward` method wrapper
+                # Make use of the batch-specific `bidirectional_mask` attribute
+                # set by the parent module in its (new) `forward` method wrapper
                 if self.bidirectional_mask is not None:
                     # The two masks should have the same size
                     assert attention_mask.shape == self.bidirectional_mask.shape
@@ -628,7 +650,8 @@ def _convert_opt_causal_lm_to_prefix_lm(
 
         return combined_attention_mask
 
-    # Make it so model.model.decoder uses the above `_prepare_decoder_attn_mask` in place of the original method
+    # Make it so model.model.decoder uses the above `_prepare_decoder_attn_mask`
+    # in place of the original method
     setattr(model.model.decoder, '_prepare_decoder_attention_mask',
             MethodType(_prepare_decoder_attention_mask, model.model.decoder))
 
@@ -643,7 +666,8 @@ def _convert_opt_causal_lm_to_prefix_lm(
         # Temporarily set `bidirectional_mask` in the child module
         self.model.decoder.bidirectional_mask = bidirectional_mask
 
-        # Apply the original forward method (the model will use the mask that was just set)
+        # Apply the original forward method (the model will use the mask that
+        # was just set)
         try:
             outputs = self._original_forward(*args, **kwargs)
         except:
@@ -750,7 +774,9 @@ def convert_hf_causal_lm_to_prefix_lm(
     """
     if not isinstance(model, _SUPPORTED_HF_MODELS):
         raise TypeError(
-            f'Cannot convert model to Prefix LM. Model does not belong to set of supported HF models:\n{_SUPPORTED_HF_MODELS}'
+            f'Cannot convert model to Prefix LM. ' +\
+            f'Model does not belong to set of supported HF models:' +\
+            f'\n{_SUPPORTED_HF_MODELS}'
         )
 
     if isinstance(model, _SUPPORTED_GPT_MODELS):
