@@ -261,6 +261,7 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
+        self.skip_connections = set(cfg.get('skip_connections', []))
         self.alibi = cfg.get('alibi', False)
         self.alibi_bias_max = cfg.get('alibi_bias_max',
                                       8 if self.alibi else None)
@@ -376,11 +377,16 @@ class MosaicGPT(nn.Module):
         attn_mask = self._attn_mask(batch_size=B,
                                     seq_len=S,
                                     key_padding_mask=key_padding_mask)
-        for block in self.transformer.blocks:  # type: ignore
+
+        skip_connection_outputs = []
+        for idx, block in enumerate(self.transformer.blocks):  # type: ignore
             x = block(
                 x, None if self.cfg.attn_impl == 'triton' else key_padding_mask,
                 attn_mask)
-        x = self.transformer.ln_f(x)  # type: ignore
+            if idx in self.skip_connections:
+                skip_connection_outputs.append(x)
+        
+        x = self.transformer.ln_f(sum(skip_connection_outputs) + x)  # type: ignore
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
         assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright

@@ -103,6 +103,24 @@ def test_full_forward_and_backward(batch_size=2):
     assert not torch.equal(original_params, updated_params)
 
 
+def test_full_forward_and_backward_skip_connections(batch_size=2):
+    test_cfg, model, optimizer = get_objs(
+        conf_path='yamls/mosaic_gpt/testing.yaml')
+    model.model.skip_connections = set([0, 1])
+    batch = gen_random_batch(batch_size, test_cfg)
+
+    assert batch['input_ids'].shape == torch.Size(
+        [batch_size, test_cfg.max_seq_len])
+    model.train()
+    original_params = next(model.parameters()).clone().data
+    outputs = model(batch)
+    loss = model.loss(outputs, batch)
+    loss.backward()
+    optimizer.step()
+    updated_params = next(model.parameters()).clone().data
+    assert not torch.equal(original_params, updated_params)
+
+
 @pytest.mark.skip  # XXX this shouldn't fail; temporary workaround so CI passes
 def test_attention_mechanism(batch_size=2):
     test_cfg, model, _ = get_objs(conf_path='yamls/mosaic_gpt/testing.yaml')
