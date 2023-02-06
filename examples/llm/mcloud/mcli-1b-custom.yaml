@@ -1,8 +1,7 @@
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  # git_branch: # use your branch
-  # git_commit: # OR use your commit hash
+  git_branch: feature/composer_icl_eval
   pip_install: -e .[llm]
   ssh_clone: false
 
@@ -73,19 +72,19 @@ parameters:
     drop_last: true
     num_workers: 8
 
-  eval_loader:
-    name: text
-    dataset:
-      local: *data_local
-      remote: *data_remote
-      split: val
-      shuffle: false
-      tokenizer_name: *tokenizer_name
-      max_seq_len: *max_seq_len
-      group_method: truncate
-      shuffle_seed: *global_seed
-    drop_last: false
-    num_workers: 8
+  # eval_loader:
+  #   name: text
+  #   dataset:
+  #     local: *data_local
+  #     remote: *data_remote
+  #     split: val
+  #     shuffle: false
+  #     tokenizer_name: *tokenizer_name
+  #     max_seq_len: *max_seq_len
+  #     group_method: truncate
+  #     shuffle_seed: *global_seed
+  #   drop_last: false
+  #   num_workers: 8
 
   # Optimization
   scheduler:
@@ -108,7 +107,7 @@ parameters:
       clipping_threshold: 1.0
 
   max_duration: 24800ba # ~ 26B tokens
-  eval_interval: 2000ba
+  eval_interval: 200ba
   eval_subset_num_batches: -1
   global_train_batch_size: 128 # ~1M tokens
 
@@ -151,3 +150,18 @@ parameters:
 #   Load from local filesystem or remote object store
 #   load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
 #   load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
+
+  icl_tasks:
+  -
+    label: lambada
+    dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
+    num_fewshot: 
+     - 0
+    batch_size: 8
+    type: language_modeling
+    metrics:
+      - InContextLearningLMAccuracy
+    formatting_options:
+      prompt_string: ""
+      example_delimiter: "\n"
+      continuation_delimiter: ""  
