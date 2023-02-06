@@ -52,8 +52,9 @@ def init_composer_config_from_yaml(
 
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
 
-    fsdp_config = cfg.get('fsdp_config', # pyright: ignore reportGeneralTypeIssues
-                          None)  
+    fsdp_config = cfg.get(
+        'fsdp_config',  # pyright: ignore reportGeneralTypeIssues
+        None)
     fsdp_config = om.to_container(fsdp_config,
                                   resolve=True) if fsdp_config else None
 
