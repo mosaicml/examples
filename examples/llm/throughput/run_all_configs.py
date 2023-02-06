@@ -5,13 +5,22 @@ import argparse
 
 import requests
 import yaml
-from mcli.sdk import RunConfig, create_run
+from mcli.sdk import RunConfig, create_run, get_clusters
 
-CLUSTER_INFO = {
-    # Cluster: [(gpu_type, max_gpus_per_run)],
-    'CLUSTER_NAME': [('a100_80gb', 64),],
-    'CLUSTER_NAME': [('a100_40gb', 128),],
-}
+
+def _get_cluster_info():
+    clusters = get_clusters()
+    cluster_info = {}
+
+    for cluster in clusters:
+        cluster_info[cluster.name] = [(ci.gpu_type.value, max(ci.gpu_nums))
+                                      for ci in cluster.cluster_instances
+                                      if ci.gpu_type.value is not None]
+
+    return cluster_info
+
+
+CLUSTER_INFO = _get_cluster_info()
 
 
 def parse_args():
@@ -24,7 +33,7 @@ def parse_args():
     parser.add_argument(
         '--image',
         type=str,
-        default='mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04')
+        default='mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04')
     parser.add_argument('-t',
                         '--precisions',
                         '--types',
@@ -56,7 +65,7 @@ def parse_args():
         '--yaml_base',
         type=str,
         default=
-        'https://raw.githubusercontent.com/mosaicml/benchmarks/main/llm/yamls/mosaic_gpt/'
+        'https://raw.githubusercontent.com/mosaicml/examples/main/examples/llm/yamls/mosaic_gpt/'
     )
     parser.add_argument('-m',
                         '--model_yamls',
@@ -74,7 +83,6 @@ def parse_args():
                         nargs='+',
                         help='model sizes to test')
 
-    # NOTE: based on mosaic internal use clusters
     parser.add_argument('-c',
                         '--clusters',
                         type=str,
@@ -234,7 +242,7 @@ def get_integrations(project, wandb=True):
         'integration_type': 'git_repo',
         'git_repo': 'mosaicml/examples',
         'git_branch': 'main',
-        'pip_install': '-r llm/requirements.txt'
+        'pip_install': '-e .[llm]'
     }]
     if wandb:
         integrations += [{
