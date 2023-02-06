@@ -12,6 +12,7 @@ from omegaconf import OmegaConf as om
 
 from examples.bert.src.hf_bert import create_hf_bert_mlm
 from examples.bert.src.mosaic_bert import create_mosaic_bert_mlm
+from examples.bert.src.mlm_scheduling import build_mlm_scheduler_callback
 from examples.common.builders import (build_algorithm, build_callback,
                                       build_dataloader, build_logger,
                                       build_optimizer, build_scheduler)
@@ -55,10 +56,11 @@ def main(cfg: DictConfig,
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_dataloader(cfg.train_loader,
-                                    cfg.device_train_batch_size)
+    train_loader, distributed_mlm_rate = build_dataloader(
+        cfg.train_loader, cfg.device_train_batch_size)
     print('Building eval loader...')
-    eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
+    eval_loader, _ = build_dataloader(cfg.eval_loader,
+                                      cfg.device_eval_batch_size)
 
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)
@@ -76,6 +78,10 @@ def main(cfg: DictConfig,
     callbacks = [
         build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
+    ]
+    callbacks += [
+        build_mlm_scheduler_callback(cfg.train_loader.dataset.mlm_schedule,
+                                     distributed_mlm_rate)
     ]
 
     # Algorithms

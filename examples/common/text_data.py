@@ -5,6 +5,7 @@
 
 import os
 import sys
+import multiprocessing
 from itertools import islice
 from typing import Any, Dict, Iterator, Optional
 
@@ -13,6 +14,8 @@ from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from streaming import StreamingDataset
 from torch.utils.data import DataLoader
+
+from examples.bert.src.mlm_scheduling import ScheduledDataCollatorForLanguageModeling
 
 
 class StreamingTextDataset(StreamingDataset):
@@ -180,11 +183,15 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', None),
         batch_size=device_batch_size)
 
-    mlm_probability = cfg.dataset.get('mlm_probability', None)
-    collate_fn = transformers.DataCollatorForLanguageModeling(
+    mlm_rate_schedule = cfg.get('mlm_rate_schedule', None)
+    dist_mlm_probability = None
+    if mlm_rate_schedule:
+        dist_mlm_probability = multiprocessing.Value(
+            "d", mlm_rate_schedule.initial_mlm_rate)
+    collate_fn = ScheduledDataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer,
-        mlm=mlm_probability is not None,
-        mlm_probability=mlm_probability)
+        mlm=mlm_rate_schedule is not None,
+        dist_mlm_probability=dist_mlm_probability)
 
     return DataLoader(
         dataset,
@@ -196,7 +203,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         prefetch_factor=cfg.get('prefetch_factor', 2),
         persistent_workers=cfg.get('persistent_workers', True),
         timeout=cfg.get('timeout', 0),
-    )
+    ), dist_mlm_probability
 
 
 # Helpful to test if your dataloader is working locally
