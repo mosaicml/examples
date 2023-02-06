@@ -20,8 +20,8 @@ optimization_level: 0
 run_name: mosaic-gpt-1b-ctx-8k-gpus-8
 
 gpu_num: 8
-gpu_type: a100_40gb
-cluster: r0z0 # replace with your cluster here!
+gpu_type: a100_80gb
+cluster: r1z1 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # and referenced in our `command` above
