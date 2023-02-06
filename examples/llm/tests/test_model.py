@@ -107,6 +107,7 @@ def test_full_forward_and_backward_skip_connections(batch_size=2):
     test_cfg, model, optimizer = get_objs(
         conf_path='yamls/mosaic_gpt/testing.yaml')
     model.model.skip_connections = set([0, 1])
+    model.model.skip_connection_last = True
     batch = gen_random_batch(batch_size, test_cfg)
 
     assert batch['input_ids'].shape == torch.Size(
