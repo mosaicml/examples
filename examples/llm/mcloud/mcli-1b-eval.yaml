@@ -1,9 +1,10 @@
 integrations:
-  - integration_type: git_repo
-    git_repo: mosaicml/examples
-    git_branch: feature/composer_icl_eval_ready_to_merge
-    pip_install: -e .[llm]
-    ssh_clone: false
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  # git_branch: # use your branch
+  # git_commit: # OR use your commit hash
+  pip_install: -e .[llm]
+  ssh_clone: false
 
 
 # We are fetching, converting, and training on the 'val' split
@@ -14,13 +15,13 @@ command: |
   cd examples/examples/llm
   python -m icl_eval.evaluate_model /mnt/config/parameters.yaml
 
-image: mosaicml/pytorch:1.13.0_cu117-python3.10-ubuntu20.04
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
 run_name: mosaic-gpt-1b-eval
 gpu_num: 8
 gpu_type: a100_80gb
-cluster: r1z1 # replace with your cluster here!
+cluster: r0z0 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # but is not used in this example.
@@ -33,34 +34,33 @@ parameters:
 
   model:
     model_type: mosaic_gpt
-    checkpoint: # ADD YOUR OWN CHECKPOINT
-      s3://mosaicml-internal-checkpoints-shared/nlp/mosaicgpt/mosaicgpt-1b-TaT8te/checkpoints/ep0-ba24000-rank0.pt
+    # checkpoint: ADD YOUR OWN CHECKPOINT
     config: yamls/mosaic_gpt/1b.yaml
 
   icl_tasks:
-    -
-      label: piqa
-      dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz # ADD YOUR OWN S3/GCS URI
-      num_fewshot:
-      - 5
-      batch_size: 8
-      type: multiple_choice
-      metrics:
-        - InContextLearningMultipleChoiceAccuracy
-      formatting_options:
-        prompt_string: ''
-        example_delimiter: '\n'
-        continuation_delimiter: ' '
-    -
-      label: lambada
-      dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl # ADD YOUR OWN S3/GCS URI
-      num_fewshot:
-      - 0
-      batch_size: 2
-      type: language_modeling
-      metrics:
-        - InContextLearningLMAccuracy
-      formatting_options:
-        prompt_string: ''
-        example_delimiter: '\n'
-        continuation_delimiter: ''
+  -
+    label: piqa
+    # dataset_uri: ADD YOUR OWN S3/GCS URI
+    num_fewshot:
+    - 5
+    batch_size: 16
+    type: multiple_choice
+    metrics:
+    - InContextLearningMultipleChoiceAccuracy
+    formatting_options:
+      prompt_string: '' # this goes at the beginning of each input
+      example_delimiter: '\n' # this goes between fewshot examples
+      continuation_delimiter: ' ' # this separates questions from answers
+  -
+    label: lambada
+    # dataset_uri: ADD YOUR OWN S3/GCS URI
+    num_fewshot:
+    - 0
+    batch_size: 16
+    type: language_modeling
+    metrics:
+    - InContextLearningLMAccuracy
+    formatting_options:
+      prompt_string: '' # this goes at the beginning of each input
+      example_delimiter: '\n' # this goes between fewshot examples
+      continuation_delimiter: '' # this separates contexts from continuations

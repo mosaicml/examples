@@ -4,40 +4,39 @@
 from typing import Dict, Optional, Union
 
 import torch
-from composer.models.gpt2 import create_gpt2
+import transformers
+from composer.metrics.nlp import HFCrossEntropy, Perplexity
+from composer.models.huggingface import HuggingFaceModel
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 from src.model_registry import COMPOSER_MODEL_REGISTRY
-from src.tokenizer import LLMTokenizer
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def init_huggingface_causal_lm(
-        config: str) -> Dict[str, Union[AutoModelForCausalLM, AutoTokenizer]]:
+def init_huggingface_causal_lm(model_name: str) -> Dict[str, HuggingFaceModel]:
+    model = transformers.AutoModelForCausalLM.from_pretrained(
+        pretrained_model_name_or_path=model_name, **{})
     return {
-        'model': create_gpt2(use_pretrained=True, pretrained_model_name=config)
+        'model':
+            HuggingFaceModel(model=model,
+                             tokenizer=None,
+                             metrics=[HFCrossEntropy(),
+                                      Perplexity()])
     }
 
 
-def init_composer_ckpt_from_yaml(
-    config: str, checkpoint: Optional[str]
-) -> Dict[str, Union[torch.nn.Module, LLMTokenizer, str]]:
-    """Load a MosaicGPT model and LLMTokenizer from a checkpoint.
+def init_composer_config_from_yaml(
+    config: str,) -> Dict[str, Union[torch.nn.Module, Dict]]:
+    """Construct a MosaicGPT model from a config file and the FSDP config.
 
-    Constructs the MosaicGPT model and LLMTokenizer from the yaml config and
-    attempts to initialize its weights from the state dict in `checkpoint`.
-    If there is an error during state dict loading, returns a randomly
-    initialized model.
+    Constructs the MosaicGPT model from the yaml config and extracts the FSDP config
+    to be passed to Trainer.
 
     Args:
-        checkpoint (str): Pytorch .pt checkpoint path. Must be located in
-            `CHECKPOINT_DIR` or on s3
         config (str): YAML config. Must be an absolute path
 
     Returns:
-        model [MosaicGPT]:
-            Model and tokenizer to be used to build the lm_eval.base.LM wrapper
-            as well as precision context.
+        dictionary Dict[str, Union[MosaicGPT, Dict]]:
+            Model and FSDP config to be passed into Trainer
     """
     with open(config) as f:
         cfg = om.load(f)
@@ -63,7 +62,6 @@ def init_composer_ckpt_from_yaml(
     return {
         'model': model,
         'fsdp_config': fsdp_config,
-        'checkpoint': checkpoint
     }
 
 
@@ -71,6 +69,8 @@ def load_model(model_type: str, config: str, checkpoint: Optional[str] = None):
     if model_type == 'pretrained_hf':
         return init_huggingface_causal_lm(config)
     elif model_type == 'mosaic_gpt':
-        return init_composer_ckpt_from_yaml(config, checkpoint)
+        ret = init_composer_config_from_yaml(config)
+        ret['checkpoint'] = checkpoint
+        return ret
     else:
         raise Exception(f'Unrecogized model type: {model_type}')

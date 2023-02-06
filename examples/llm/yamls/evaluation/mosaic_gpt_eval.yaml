@@ -1,5 +1,3 @@
-
-
 tokenizer:
   type: hftokenizer
   args:
@@ -8,35 +6,33 @@ tokenizer:
 
 model:
   model_type: mosaic_gpt
-  checkpoint: # ADD YOUR OWN CHECKPOINT
-    s3://mosaicml-internal-checkpoints-shared/nlp/mosaicgpt/mosaicgpt-1b-TaT8te/checkpoints/ep0-ba24000-rank0.pt
+  # checkpoint: ADD YOUR OWN CHECKPOINT
   config: yamls/mosaic_gpt/1b.yaml
 
 icl_tasks:
-  -
-    label: piqa
-    dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz  # ADD YOUR OWN S3/GCS URI
-    num_fewshot:
-     - 5
-    batch_size: 16
-    type: multiple_choice
-    metrics:
-      - InContextLearningMultipleChoiceAccuracy
-    formatting_options:
-      prompt_string: ''
-      example_delimiter: '\n'
-      continuation_delimiter: ' '
-  -
-    label: lambada
-    dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json # ADD YOUR OWN S3/GCS URI
-    num_fewshot:
-     - 0
-     - 1
-    batch_size: 16
-    type: language_modeling
-    metrics:
-      - InContextLearningLMAccuracy
-    formatting_options:
-      prompt_string: ''
-      example_delimiter: '\n'
-      continuation_delimiter: ''
+-
+  label: piqa
+  # dataset_uri: ADD YOUR OWN S3/GCS URI
+  num_fewshot:
+  - 5
+  batch_size: 16
+  type: multiple_choice
+  metrics:
+  - InContextLearningMultipleChoiceAccuracy
+  formatting_options:
+    prompt_string: '' # this goes at the beginning of each input
+    example_delimiter: '\n' # this goes between fewshot examples
+    continuation_delimiter: ' ' # this separates questions from answers
+-
+  label: lambada
+  # dataset_uri: ADD YOUR OWN S3/GCS URI
+  num_fewshot:
+  - 0
+  batch_size: 16
+  type: language_modeling
+  metrics:
+  - InContextLearningLMAccuracy
+  formatting_options:
+    prompt_string: '' # this goes at the beginning of each input
+    example_delimiter: '\n' # this goes between fewshot examples
+    continuation_delimiter: '' # this separates contexts from continuations
