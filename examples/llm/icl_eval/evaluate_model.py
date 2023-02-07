@@ -69,6 +69,10 @@ if __name__ == '__main__':
     in_memory_logger = InMemoryLogger(
     )  # track the logged metrics in the in_memory_logger
 
+    for evaluator in evaluators:
+        model_dict['model'].add_eval_metrics(
+            evaluator)  # pyright: ignore reportGeneralTypeIssues
+
     trainer = Trainer(
         model=model_dict.get(
             'model'),  # pyright: ignore reportGeneralTypeIssues
@@ -76,13 +80,10 @@ if __name__ == '__main__':
         fsdp_config=model_dict.get(
             'fsdp_config', None),  # pyright: ignore reportGeneralTypeIssues
         load_path=model_dict.get(
-            'checkpoint', None),  # pyright: ignore reportGeneralTypeIssues
+            'load_path', None),  # pyright: ignore reportGeneralTypeIssues
         load_weights_only=True,
         log_to_console=True)
 
-    for evaluator in evaluators:
-        model_dict['model'].add_eval_metrics(
-            evaluator)  # pyright: ignore reportGeneralTypeIssues
 
     if torch.cuda.is_available():
         torch.cuda.synchronize()

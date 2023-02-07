@@ -52,29 +52,34 @@ def init_composer_config_from_yaml(
 
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
 
-    fsdp_config = cfg.get(
-        'fsdp_config',  # pyright: ignore reportGeneralTypeIssues
-        None)
-    fsdp_config = om.to_container(fsdp_config,
-                                  resolve=True) if fsdp_config else None
 
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
 
     return {
         'model': model,
-        'fsdp_config': fsdp_config,
     }
 
 
 def load_model(model_type: str,
                config: str,
-               checkpoint: Optional[str] = None) -> Dict[str, Any]:
+               load_path: Optional[str] = None,
+               fsdp_config: Optional[dict] = None) -> Dict[str, Any]:
+
+   
+    fsdp_config = om.to_container(fsdp_config,
+                                  resolve=True) if fsdp_config else None
+
+    ret = {
+        "fsdp_config": fsdp_config
+    }
     if model_type == 'pretrained_hf':
-        return init_huggingface_causal_lm(config)
+        ret.update(init_huggingface_causal_lm(config))
     elif model_type == 'mosaic_gpt':
-        ret = init_composer_config_from_yaml(config)
-        ret['checkpoint'] = checkpoint
-        return ret
+        ret.update(init_composer_config_from_yaml(config))
+        ret['load_path'] = load_path
     else:
         raise Exception(f'Unrecogized model type: {model_type}')
+    
+    return ret
+

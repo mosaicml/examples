@@ -1,3 +1,4 @@
+# Tokenizer
 tokenizer:
   type: hftokenizer
   args:
@@ -5,13 +6,13 @@ tokenizer:
     max_seq_len: 2048
 
 model:
-  model_type: mosaic_gpt
-  # checkpoint: ADD YOUR OWN CHECKPOINT
-  config: yamls/mosaic_gpt/1b.yaml
+  model_type: pretrained_hf
+  config: EleutherAI/gpt-neo-125M
 
 icl_tasks:
 -
   label: piqa
+  dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
   # dataset_uri: ADD YOUR OWN S3/GCS URI
   num_fewshot:
   - 5
@@ -25,6 +26,7 @@ icl_tasks:
     continuation_delimiter: ' ' # this separates questions from answers
 -
   label: lambada
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
   # dataset_uri: ADD YOUR OWN S3/GCS URI
   num_fewshot:
   - 0
