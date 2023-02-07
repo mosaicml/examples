@@ -64,7 +64,9 @@ def parse_args():
                         type=str,
                         default='DEFAULT')
     parser.add_argument('--fsdp_config_activation_checkpointing',
-                        type=bool,
+                        type=str_to_bool,
+                        nargs='?',
+                        const=True,
                         default=None)
     parser.add_argument(
         '-s',
