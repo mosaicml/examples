@@ -1,11 +1,13 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""C4 streaming dataset conversion scripts."""
+"""C4 streaming dataset conversion scripts test with small subset."""
+import io
 import os
 import platform
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from enum import Enum
+from multiprocessing import cpu_count
 from typing import Dict, Iterable, Optional
 
 import datasets as hf_datasets
@@ -21,10 +23,19 @@ class ConcatMode(Enum):
     CONCAT_TOKENS = 2
 
 
+class NonexistentDir(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        prospective_dir = values
+        if os.path.isdir(prospective_dir) and len(os.listdir(prospective_dir)) > 0:
+            raise ArgumentError(self, f'--out_root={prospective_dir} must be empty')
+        else:
+            setattr(namespace, "out_root", prospective_dir)
+
+
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser()
-    parser.add_argument('--out_root', type=str, required=True)
+    parser.add_argument('--out_root', type=str, required=True, action=NonexistentDir)
     parser.add_argument('--compression', type=str, default=None)
     parser.add_argument('--splits',
                         nargs='+',
@@ -47,18 +58,20 @@ def parse_args() -> Namespace:
         if (parsed.text is not None and isinstance(parsed.text, int) and
             parsed.sep_text is None):
                 parser.error('When setting concat --text, you must specify a '
-                        '--sep_text with which to separate concatenated sequences')
+                             '--sep_text with which to separate concatenated sequences')
         if (parsed.tokens is not None and isinstance(parsed.tokens, int) and
             parsed.tokenizer is None):
                 parser.error('When setting concat --tokens, you must specify a '
-                        '--tokenizer')
+                             '--tokenizer')
     return parsed
 
 
 
 def build_hf_c4_dataset(split: str,
                         mode: ConcatMode,
-                        tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
+                        max_length: Optional[int] = None,
+                        sep_text: Optional[str] = None,
+                        tokenizer: Optional[PreTrainedTokenizerBase] = None) -> IterableDataset:
     """Collect the samples for this dataset split.
 
     Args:
@@ -73,7 +86,7 @@ def build_hf_c4_dataset(split: str,
         def __init__(self):
             self.dataset = hf_datasets.load_dataset(path='c4',
                                                     name='en',
-                                                    split=split,
+                                                    split='validation',
                                                     streaming=True)
 
         def num_shards(self):
@@ -137,16 +150,23 @@ def build_hf_c4_dataset(split: str,
                         return
 
 
-        class ConcatC4(IterableDataset):
+    class ConcatC4(IterableDataset):
 
-        def __init__(self, max_length: int, batch_size: int = 1000):
-            self.dataset = hf_datasets.load_dataset(path='c4',
-                                                    name='en',
-                                                    split=split,
-                                                    streaming=True)
+        def __init__(self, max_length: int, sep_text: str, batch_size: int = 1000, num_proc: Optional[int] = None):
+            self.dataset = hf_datasets.load_dataset('stas/c4-en-10k', #path='c4',
+                                                    # name='en',
+                                                    # split='validation',
+                                                    split='train',
+                                                    streaming=False)
+            # next 2 are needed for streaming
+            # self.dataset._resolve_features
+            if not hasattr(self.dataset, "column_names"):
+                self.dataset.column_names = list(self.dataset.features.keys())
             self.max_length = max_length
+            self.sep_text = sep_text
             self.batch_size = batch_size
-            self._tokenize_concat()
+            self.num_proc = cpu_count() - 1 if num_proc is None else num_proc
+            self._concat()
 
         def _concat(self):
             """concatenate samples ahead of time
@@ -166,23 +186,22 @@ def build_hf_c4_dataset(split: str,
                     while len(concat) < self.max_length:
                         if index >= len(examples['text']):
                             break
+                        concat += self.sep_text
                         concat += examples['text'][index]
                         index += 1
                     concatenated.append(concat[:self.max_length])
                 if len(concatenated[-1]) < self.max_length:
                     # throw away remainder
                     del concatenated[-1]
-                for c in concatenated:
-                    print(len(c))
 
-                return {'text': concatenated}
+                return {'text': ["".join(c) for c in concatenated]}
 
-            self.dataset.map(
+            self.dataset = self.dataset.map(
                 preprocess,
                 batched=True,
+                num_proc=self.num_proc,
                 # Arrow errors if you don't remove all other columns
-                remove_columns=self.dataset.columns,
-                load_from_cache_file=True,
+                remove_columns=self.dataset.column_names,
             )
 
         def __iter__(self):
@@ -197,12 +216,12 @@ def build_hf_c4_dataset(split: str,
             Yields:
                 Sample dicts.
             """
-            # Multiple workers is only supported on linux machines
-            if 'linux' in platform.platform().lower():
-                num_workers = 64  # make configurable
+            num_workers = self.num_proc
+
+            if expected_num_samples and expected_num_samples < 512:
+                batch_size = expected_num_samples
             else:
-                num_workers = 0
-            batch_size = 512
+                batch_size = 512
             # If using multiple workers, configure each worker to prefetch as many samples as it can, up to
             # the aggregate device batch size
             # If not using workers, the torch DataLoader expects the default value for prefetch_factor,
@@ -223,21 +242,51 @@ def build_hf_c4_dataset(split: str,
                 current_bs = len(batch[keys[0]])
                 for idx in range(current_bs):
                     yield {
-                        key: batch_values[idx]
+                        key: batch_values[idx].encode('utf-8')
                         for key, batch_values in batch.items()
                     }
 
     class TokenizedC4(IterableDataset):
+        """A tokenized, concatenated, iterable dataset
 
-        def __init__(self, tokenizer: PreTrainedTokenizerBase, max_length: int, batch_size: int = 1000):
-            self.dataset = hf_datasets.load_dataset(path='c4',
-                                                    name='en',
-                                                    split=split,
-                                                    streaming=True)
+        To use data created by this class and written to MDS format:
+
+        ```python
+        import io
+        import torch
+        from streaming.base import StreamingDataset
+        from transformers import AutoTokenizer
+
+        tokenizer = AutoTokenizer.from_pretrained("your/tokenizer)
+        ds = StreamingDataset(local="mds-data-folder", split="val")
+
+        tokens = torch.load(io.BytesIO(ds[1]['tokens']))
+        print(tokenizer.decode(tokens))
+        ```"""
+
+        def __init__(self, tokenizer: PreTrainedTokenizerBase, max_length: int,
+                     batch_size: int = 1000, num_proc: Optional[int] = None):
+            try:
+                import torch
+            except ImportError as e:
+                print('torch is required to pre-tokenize')
+                raise e
+
+            self.dataset = hf_datasets.load_dataset('stas/c4-en-10k', #path='c4',
+                                                    # name='en',
+                                                    # split='validation',
+                                                    split='train',
+                                                    streaming=False)
+            # next 2 are needed for streaming
+            # self.dataset._resolve_features
+            if not hasattr(self.dataset, "column_names"):
+                self.dataset.column_names = list(self.dataset.features.keys())
             self.tokenizer = tokenizer
             self.max_length = max_length
             self.batch_size = batch_size
+            self.num_proc = cpu_count() - 1 if num_proc is None else num_proc
             self._tokenize_concat()
+            print()
 
         def _tokenize_concat(self):
             """tokenize and concatenate samples ahead of time
@@ -266,16 +315,16 @@ def build_hf_c4_dataset(split: str,
                 if len(concatenated[-1]) < self.max_length:
                     # throw away remainder
                     del concatenated[-1]
-                for c in concatenated:
-                    print(len(c))
                 return {'tokens': concatenated}
 
-            self.dataset.map(
+            self.dataset = self.dataset.map(
                 preprocess,
                 batched=True,
+                num_proc=self.num_proc,
                 # Arrow errors if you don't remove all other columns
-                remove_columns=self.dataset.columns,
-                load_from_cache_file=True,
+                remove_columns=self.dataset.column_names,
+                # for development
+                load_from_cache_file=False,
             )
 
         def __iter__(self):
@@ -290,11 +339,9 @@ def build_hf_c4_dataset(split: str,
             Yields:
                 Sample dicts.
             """
-            # Multiple workers is only supported on linux machines
-            if 'linux' in platform.platform().lower():
-                num_workers = 64  # make configurable
-            else:
-                num_workers = 0
+            import torch
+
+            num_workers = self.num_proc
             batch_size = 512
             # If using multiple workers, configure each worker to prefetch as many samples as it can, up to
             # the aggregate device batch size
@@ -311,20 +358,21 @@ def build_hf_c4_dataset(split: str,
                 prefetch_factor=prefetch_factor,
             )
 
+            # TODO: figure out why rows and columns are transposed
             for batch in loader:
-                keys = list(batch.keys())
-                current_bs = len(batch[keys[0]])
-                for idx in range(current_bs):
+                transposed = torch.stack(tuple(batch['tokens'])).transpose(0,1)
+                for tokens in transposed:
+                    tok_bytes = tokens.byte()
+                    buffer = io.BytesIO()
+                    torch.save(tok_bytes, buffer)
                     yield {
-                        key: batch_values[idx]
-                        for key, batch_values in batch.items()
+                        'tokens': buffer.getvalue()
                     }
-
 
     if mode == ConcatMode.NO_CONCAT:
         dataset = ShardedC4()
     elif mode == ConcatMode.CONCAT_TEXT:
-        dataset = ConcatC4(max_length=max_length)
+        dataset = ConcatC4(max_length=max_length, sep_text=sep_text)
     else:
         dataset = TokenizedC4(tokenizer=tokenizer, max_length=max_length)
     return dataset
@@ -342,14 +390,16 @@ def main(args: Namespace) -> None:
 
     if args.tokens is not None:
         mode = ConcatMode.CONCAT_TOKENS
+        max_length = args.tokens
         tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
+        sep_text = None
         # concatenating makes us lose timestamp and url
-        columns = {'tokens': 'List[int]'}
+        columns = {'tokens': 'bytes'}
         split_samples = (None, None, None)
 
         test_tokens = tokenizer("test")
 
-        if ts['input_ids'][0] != tokenizer.bos_token_id and ts['input_ids'][-1] != tokenizer.eos_token_id:
+        if test_tokens['input_ids'][0] != tokenizer.bos_token_id and test_tokens['input_ids'][-1] != tokenizer.eos_token_id:
             warning_msg = 'This tokenizer does not insert an EOS nor BOS token.'
             warning_msg += 'Concatenating with this tokenizer will result in sequences being '
             warning_msg += 'attached without a separating token. Please use another tokenizer, '
@@ -358,13 +408,17 @@ def main(args: Namespace) -> None:
 
     elif args.text is not None:
         mode = ConcatMode.CONCAT_TEXT
+        max_length = args.text
         tokenizer = None
+        sep_text = args.sep_text
         # concatenating makes us lose timestamp and url
         columns = {'text': 'str'}
         split_samples = tuple([size // args.text for size in split_sizes_raw])
     else:
         mode = ConcatMode.NO_CONCAT
+        max_length = None
         tokenizer = None
+        sep_text = None
         columns = {'text': 'str', 'timestamp': 'str', 'url': 'str'}
         split_samples = split_sizes_raw
 
@@ -378,12 +432,14 @@ def main(args: Namespace) -> None:
             continue
 
         # Get samples
-        dataset = build_hf_c4_dataset(split=split, mode=mode, tokenizer=tokenizer)
+        print('Downloading and formatting dataset...')
+        dataset = build_hf_c4_dataset(split=split, mode=mode, max_length=max_length, sep_text=sep_text, tokenizer=tokenizer)
         samples = dataset.generate_samples(
             expected_num_samples=expected_num_samples
         )
 
         # Write samples
+        print('Converting to MDS format...')
         with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
                        columns=columns,
                        compression=args.compression) as out:
@@ -394,5 +450,4 @@ def main(args: Namespace) -> None:
 
 
 if __name__ == '__main__':
-    print(parse_args())
-    # main(parse_args())
+    main(parse_args())
