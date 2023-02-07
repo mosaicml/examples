@@ -213,7 +213,6 @@ class TokenizedC4(ProcessedC4):
     To use data created by this class and written to MDS format:
 
     ```python
-    import io
     import torch
     from streaming.base import StreamingDataset
     from transformers import AutoTokenizer
@@ -221,7 +220,10 @@ class TokenizedC4(ProcessedC4):
     tokenizer = AutoTokenizer.from_pretrained("your/tokenizer)
     ds = StreamingDataset(local="mds-data-folder", split="val")
 
-    tokens = torch.load(io.BytesIO(ds[1]['tokens']))
+    # note, you need to copy the numpy array because the original is non-writeable
+    # and torch does not support non-writeable tensors, so you get a scary warning and
+    # if you do try to write to the tensor you get undefined behavior
+    tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
     print(tokenizer.decode(tokens))
     ```
     """
@@ -269,8 +271,7 @@ class TokenizedC4(ProcessedC4):
         )
 
     def generate_samples(
-        self,
-        expected_num_samples: Optional[int] = None
+        self
     ) -> Iterable[Dict[str, bytes]]:
         """Generator over each dataset sample.
 
@@ -288,13 +289,12 @@ class TokenizedC4(ProcessedC4):
         for batch in self.loader:
             transposed = torch.stack(tuple(batch['tokens'])).transpose(0, 1)
             for tokens in transposed:
-                tok_bytes = tokens.byte()
-                buffer = io.BytesIO()
-                torch.save(tok_bytes, buffer)
-                yield {'tokens': buffer.getvalue()}
+                tokens_np = tokens.numpy()
+                tokens_bytes = tokens_np.tobytes()
+                yield {'tokens': tokens_bytes}
 
 
-class NonexistentDir(Action):
+class EmptyOrNonexistentDirectory(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         prospective_dir = values
@@ -312,7 +312,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--out_root',
                         type=str,
                         required=True,
-                        action=NonexistentDir)
+                        action=EmptyOrNonexistentDirectory)
     parser.add_argument('--compression', type=str, default=None)
     parser.add_argument('--splits',
                         nargs='+',
