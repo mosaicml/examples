@@ -12,8 +12,13 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 from einops import rearrange  # type: ignore (reportMissingImports)
-from flash_attn.flash_attn_triton import flash_attn_qkvpacked_func
 from torch import Tensor
+
+try:
+    from flash_attn.flash_attn_triton import \
+        flash_attn_qkvpacked_func  # type: ignore
+except ImportError as e:
+    raise e
 
 
 class FlashAttention(nn.Module):

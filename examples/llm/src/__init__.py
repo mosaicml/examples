@@ -1,8 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-import torch
-
 from examples.llm.src.flash_attention import FlashAttention, FlashMHA
 from examples.llm.src.hf_causal_lm import ComposerHFCausalLM
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
