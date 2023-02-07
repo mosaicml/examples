@@ -343,10 +343,8 @@ class MosaicGPT(nn.Module):
 
         if self.cfg.attn_impl == 'triton' and self._check_apply_key_padding_mask(key_padding_mask):
 
-            if self.attn_mask is not None:
-                attn_mask = self.attn_mask[..., :seq_len, :seq_len]
-            else:
-                attn_mask = key_padding_mask.zeros(((batch_size, 1, 1, seq_len)), dtype=dtype)
+            if attn_mask is None:
+                attn_mask = key_padding_mask.zeros(((batch_size, 1, seq_len, seq_len)), dtype=dtype)
 
             attn_mask = attn_mask.masked_fill(
                 ~key_padding_mask.view((batch_size, 1, 1, seq_len)),
@@ -411,7 +409,8 @@ class MosaicGPT(nn.Module):
                                     dtype=x.dtype)
         for block in self.transformer.blocks:  # type: ignore
             x = block(
-                x, None if self.cfg.attn_impl == 'triton' else key_padding_mask,
+                x,
+                None if self.cfg.attn_impl == 'triton' else key_padding_mask,
                 attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
