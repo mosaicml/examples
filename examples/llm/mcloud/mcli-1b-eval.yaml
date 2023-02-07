@@ -1,7 +1,7 @@
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  # git_branch: # use your branch
+  git_branch: feature/composer_icl_eval_ready_to_merge
   # git_commit: # OR use your commit hash
   pip_install: -e .[llm]
   ssh_clone: false
@@ -21,7 +21,7 @@ optimization_level: 0
 run_name: mosaic-gpt-1b-eval
 gpu_num: 8
 gpu_type: a100_80gb
-cluster: r0z0 # replace with your cluster here!
+cluster: r1z1 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # but is not used in this example.

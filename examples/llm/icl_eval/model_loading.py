@@ -25,7 +25,8 @@ def init_huggingface_causal_lm(model_name: str) -> Dict[str, HuggingFaceModel]:
 
 
 def init_composer_config_from_yaml(
-    config: str,) -> Dict[str, Union[torch.nn.Module, Any]]:
+        config: str,
+        has_fsdp_config: bool) -> Dict[str, Union[torch.nn.Module, Any]]:
     """Construct a MosaicGPT model from a config file and the FSDP config.
 
     Constructs the MosaicGPT model from the yaml config and extracts the FSDP config
@@ -47,11 +48,10 @@ def init_composer_config_from_yaml(
 
     # Build Model
     print('Initializing model...')
-    if 'fsdp_config' not in cfg:
+    if not has_fsdp_config:
         cfg.model.device = 'cpu'
 
     model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
-
 
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.2e}')
@@ -66,20 +66,20 @@ def load_model(model_type: str,
                load_path: Optional[str] = None,
                fsdp_config: Optional[dict] = None) -> Dict[str, Any]:
 
-   
-    fsdp_config = om.to_container(fsdp_config,
-                                  resolve=True) if fsdp_config else None
-
-    ret = {
-        "fsdp_config": fsdp_config
-    }
+    fsdp_config = om.to_container(
+        fsdp_config,  # pyright: ignore reportGeneralTypeIssues
+        resolve=True) if fsdp_config else None
+    ret = {'fsdp_config': fsdp_config}
     if model_type == 'pretrained_hf':
-        ret.update(init_huggingface_causal_lm(config))
+        ret.update(init_huggingface_causal_lm(
+            config))  # pyright: ignore reportGeneralTypeIssues
     elif model_type == 'mosaic_gpt':
-        ret.update(init_composer_config_from_yaml(config))
-        ret['load_path'] = load_path
+        ret.update(
+            init_composer_config_from_yaml(
+                config, fsdp_config
+                is not None))  # pyright: ignore reportGeneralTypeIssues
+        ret['load_path'] = load_path  # pyright: ignore reportGeneralTypeIssues
     else:
         raise Exception(f'Unrecogized model type: {model_type}')
-    
-    return ret
 
+    return ret
