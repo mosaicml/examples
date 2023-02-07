@@ -19,7 +19,7 @@ model:
   use_pretrained: false # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
   pretrained_model_name: *tokenizer_name
   tokenizer_name: *tokenizer_name
-  # This implementation of BERT generally uses the default architecture values for from the Hugging Face BertConfig object
+  # This implementation generally uses the default architecture values for from the Hugging Face BertConfig object
   # These values can be changed here:
   model_config:
     num_attention_heads: 12 # bert-base default
