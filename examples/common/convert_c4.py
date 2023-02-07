@@ -172,11 +172,12 @@ class ConcatC4(ProcessedC4):
     def _preprocess(self):
         """Concatenate samples ahead of time.
 
-        we could also do this on the fly in generate_samples, and that would be
+        We could also do this on the fly in generate_samples, and that would be
         more data efficient (we throw out the overflow each batch, whereas
-        tokenizing as needed would only throw out overflow once at the end).
-        However, doing it this way lets us use all cores, which is a massive
-        speedup on larger VMs
+        tokenizing as-needed would only throw out overflow once at the end).
+        However, doing it this way lets us use all cores, which is a speedup.
+        It may be possible to get the best of both worlds — I am not sure
+        how to, if so.
         """
 
         def concat_text(examples: dict):
@@ -236,14 +237,7 @@ class TokenizedC4(ProcessedC4):
         super().__init__(*args, **kwargs)
 
     def _preprocess(self):
-        """Tokenize and concatenate samples ahead of time.
-
-        we could also do this on the fly in generate_samples, and that would be
-        more data efficient (we throw out the overflow each batch, whereas
-        tokenizing as needed would only throw out overflow once at the end).
-        However, doing it this way lets us use all cores, which is a massive
-        speedup on larger VMs
-        """
+        """Tokenize and concatenate samples ahead of time."""
 
         def tokenize_concat(examples: dict):
             batch = self.tokenizer(examples['text'],
