@@ -27,6 +27,7 @@ cd "$DIRECTORY"
 
 # run tests using project pytest config
 python -m pytest tests
+STATUS=$?
 
 rm pyproject.toml
 
@@ -35,3 +36,5 @@ deactivate
 
 cd -
 rm -rf "$ENV_NAME"
+
+exit STATUS
