@@ -31,11 +31,11 @@ class FlashAttention(nn.Module):
 
         try:
             from flash_attn.flash_attn_triton import \
-                flash_attn_qkvpacked_func  # type: ignore
+                FlashAttnQKVPackedFunc  # type: ignore (reportMissingImports)
         except ImportError as e:
             raise e
 
-        self.attn_fn = flash_attn_qkvpacked_func
+        self.attn_fn = FlashAttnQKVPackedFunc.apply
 
     def forward(
             self,
