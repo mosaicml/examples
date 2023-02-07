@@ -18,6 +18,14 @@ model:
   name: mosaic_bert
   pretrained_model_name: *tokenizer_name
   tokenizer_name: *tokenizer_name
+  # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
+  # These values can be changed here:
+  model_config:
+    num_attention_heads: 12 # bert-base default
+    num_hidden_layers: 12 # bert-base default
+    max_position_embedding: 512 # This is used for defining the shape of the ALiBi mask
+    attention_probs_dropout_prob: 0.0 # This must be 0 for Flash Attention with triton to work
+      
 
 # Dataloaders
 train_loader:
