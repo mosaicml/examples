@@ -168,11 +168,11 @@ class TritonFlashCausalAttention(nn.Module):
                 device, dtype = attn_mask.device, attn_mask.dtype
                 attn_mask.add_(
                     alibi_bias(n_heads,
-                            seq_len,
-                            full=False,
-                            alibi_bias_max=alibi_bias_max,
-                            device=device,
-                            dtype=dtype))
+                               seq_len,
+                               full=False,
+                               alibi_bias_max=alibi_bias_max,
+                               device=device,
+                               dtype=dtype))
 
         return attn_mask
 
@@ -334,31 +334,39 @@ class MosaicGPT(nn.Module):
         if self.cfg.attn_impl == 'flash':
             return self.attn_mask  # None
 
-        attn_mask = None
+        attn_mask = self.attn_mask
+        if attn_mask is not None:
+            # select seq_len subset of attn mask
+            attn_mask = attn_mask[..., :seq_len, :seq_len]
+
+        kpm_fill_value = -1e4  # numerically stable -inf
 
         if self.cfg.attn_impl == 'triton' and self._check_apply_key_padding_mask(key_padding_mask):
-            mask_shape = (batch_size, 1, 1, seq_len)
 
             if self.attn_mask is not None:
                 attn_mask = self.attn_mask[..., :seq_len, :seq_len]
             else:
-                attn_mask = key_padding_mask.zeros(mask_shape, dtype=dtype)
+                attn_mask = key_padding_mask.zeros(((batch_size, 1, 1, seq_len)), dtype=dtype)
 
             attn_mask = attn_mask.masked_fill(
-                ~key_padding_mask.view(*mask_shape),
-                float('-inf'))
+                ~key_padding_mask.view((batch_size, 1, 1, seq_len)),
+                kpm_fill_value)
+            attn_mask = attn_mask.masked_fill(
+                ~key_padding_mask.view((batch_size, 1, seq_len, 1)),
+                kpm_fill_value)
 
         if self.cfg.attn_impl == 'torch':
-            # select seq_len subset of attn mask
-            assert self.attn_mask is not None, 'Internal logic error'
-            attn_mask = self.attn_mask[..., :seq_len, :seq_len]
+            assert attn_mask is not None, 'Internal logic error'
 
             if self._check_apply_key_padding_mask(key_padding_mask):
                 attn_mask = attn_mask.expand(batch_size, self.cfg.n_heads,
                                              seq_len, seq_len).clone()
                 attn_mask.masked_fill_(
                     ~key_padding_mask.view(batch_size, 1, 1, seq_len),
-                    float('-inf'))
+                    kpm_fill_value)
+                attn_mask.masked_fill_(
+                    ~key_padding_mask.view(batch_size, 1, seq_len, 1),
+                    kpm_fill_value)
                 attn_mask = attn_mask.reshape(-1, seq_len, seq_len)
             elif self.alibi:
                 # WARNING: Alibi with torch attn is not thoroughly tested
