@@ -318,11 +318,16 @@ class MosaicGPT(nn.Module):
                 # NOTE: I chose this algorithm given its vectorized; there is room for improvement...
                 c_sum = key_padding_mask.cumsum(1)
                 num_valid_tokens = c_sum[:, -1].long()
-                vals = c_sum[range(key_padding_mask.size(0)), num_valid_tokens - 1]
+                vals = c_sum[range(key_padding_mask.size(0)),
+                             num_valid_tokens - 1]
                 return any(vals != num_valid_tokens)
         return False
 
-    def _attn_mask(self, batch_size=None, seq_len=None, key_padding_mask=None, dtype=None):
+    def _attn_mask(self,
+                   batch_size=None,
+                   seq_len=None,
+                   key_padding_mask=None,
+                   dtype=None):
         if not self._attn_mask_initialized:
             self.causal_attn_cls.attn_mask_(self.attn_mask,
                                             self.cfg.n_heads,
@@ -341,10 +346,12 @@ class MosaicGPT(nn.Module):
 
         kpm_fill_value = -1e4  # numerically stable -inf
 
-        if self.cfg.attn_impl == 'triton' and self._check_apply_key_padding_mask(key_padding_mask):
+        if self.cfg.attn_impl == 'triton' and self._check_apply_key_padding_mask(
+                key_padding_mask):
 
             if attn_mask is None:
-                attn_mask = key_padding_mask.zeros(((batch_size, 1, seq_len, seq_len)), dtype=dtype)
+                attn_mask = key_padding_mask.zeros(
+                    ((batch_size, 1, seq_len, seq_len)), dtype=dtype)
 
             attn_mask = attn_mask.masked_fill(
                 ~key_padding_mask.view((batch_size, 1, 1, seq_len)),
@@ -409,8 +416,7 @@ class MosaicGPT(nn.Module):
                                     dtype=x.dtype)
         for block in self.transformer.blocks:  # type: ignore
             x = block(
-                x,
-                None if self.cfg.attn_impl == 'triton' else key_padding_mask,
+                x, None if self.cfg.attn_impl == 'triton' else key_padding_mask,
                 attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
