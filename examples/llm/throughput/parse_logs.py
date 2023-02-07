@@ -96,7 +96,7 @@ def parse_run(run) -> Dict[str, Any]:
 
     seq_len = run.config.parameters['max_seq_len']
     global_train_batch_size = run.config.parameters['global_train_batch_size']
-    activation_checkpointing = str(fsdp_config['activation_checkpointing'])
+    activation_checkpointing = fsdp_config['activation_checkpointing']
 
     logs = msdk.get_run_logs(run)
     lines = ''
