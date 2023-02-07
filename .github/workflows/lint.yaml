@@ -20,19 +20,19 @@ jobs:
     strategy:
       matrix:
         include:
-        - name: bert-pytest
+        - name: bert-lint
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
           subdir: bert
-        - name: cifar-pytest
+        - name: cifar-lint
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
           subdir: cifar
-        - name: deeplab-pytest
+        - name: deeplab-lint
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
           subdir: deeplab
-        - name: llm-pytest
+        - name: llm-lint
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
           subdir: llm
-        - name: resnet-pytest
+        - name: resnet-lint
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
           subdir: resnet
     name: ${{ matrix.name }}
