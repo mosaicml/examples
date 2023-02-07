@@ -13,8 +13,8 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
-from data import build_ade20k_dataspec
-from model import build_composer_deeplabv3
+from examples.deeplab.data import build_ade20k_dataspec
+from examples.deeplab.model import build_composer_deeplabv3
 from omegaconf import OmegaConf
 
 from examples.common.config_utils import log_config
@@ -180,8 +180,7 @@ def main(config):
     # Create the Trainer!
     print('Building Trainer')
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    #precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
-    precision = 'fp32'
+    precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
         model=composer_model,
