@@ -84,7 +84,6 @@ if __name__ == '__main__':
         load_weights_only=True,
         log_to_console=True)
 
-
     if torch.cuda.is_available():
         torch.cuda.synchronize()
     a = time.time()
