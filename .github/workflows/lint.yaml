@@ -19,14 +19,19 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        python_version:
-        - '3.9'
-        subdir:
-        - bert
-        - cifar
-        - deeplab
-        - llm
-        - resnet
+        include:
+        - name: bert-pytest
+          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
+        - name: cifar-pytest
+          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+        - name: deeplab-pytest
+          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+        - name: llm-pytest
+          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
+        - name: resnet-pytest
+          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+    name: ${{ matrix.name }}
+    container: ${{ matrix.container }}
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
