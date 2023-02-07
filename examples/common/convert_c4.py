@@ -213,18 +213,18 @@ class TokenizedC4(ProcessedC4):
     To use data created by this class and written to MDS format:
 
     ```python
-    import torch
-    from streaming.base import StreamingDataset
-    from transformers import AutoTokenizer
+        import torch
+        from streaming.base import StreamingDataset
+        from transformers import AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained("your/tokenizer)
-    ds = StreamingDataset(local="mds-data-folder", split="val")
+        tokenizer = AutoTokenizer.from_pretrained('your/tokenizer')
+        ds = StreamingDataset(local='mds-data-folder', split='val')
 
-    # note, you need to copy the numpy array because the original is non-writeable
-    # and torch does not support non-writeable tensors, so you get a scary warning and
-    # if you do try to write to the tensor you get undefined behavior
-    tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
-    print(tokenizer.decode(tokens))
+        # note, you need to copy the numpy array because the original is non-writeable
+        # and torch does not support non-writeable tensors, so you get a scary warning and
+        # if you do try to write to the tensor you get undefined behavior
+        tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
+        print(tokenizer.decode(tokens))
     ```
     """
 
