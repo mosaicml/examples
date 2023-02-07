@@ -840,13 +840,14 @@ class BertForMaskedLM(BertPreTrainedModel):
         sequence_output = outputs[0]
         prediction_scores = self.cls(sequence_output)
 
+        loss = None
         if labels is not None:
             # Compute loss
             loss_fct = nn.CrossEntropyLoss()
             masked_token_idx = torch.nonzero(labels.flatten() > 0,
                                              as_tuple=False).flatten()
-            masked_lm_loss = loss_fct(prediction_scores,
-                                      labels.flatten()[masked_token_idx])
+            loss = loss_fct(prediction_scores,
+                            labels.flatten()[masked_token_idx])
 
             assert input_ids is not None, 'Coding error; please open an issue'
             batch, seqlen = input_ids.shape[:2]
@@ -855,18 +856,12 @@ class BertForMaskedLM(BertPreTrainedModel):
                                           '(b s) d -> b s d',
                                           b=batch)
 
-            if not return_dict:
-                output = (prediction_scores,) + outputs[2:]
-                return ((masked_lm_loss,) + output)
-
-        else:
-            masked_lm_loss = None
-            if not return_dict:
-                output = (prediction_scores,) + outputs[2:]
-                return output
+        if not return_dict:
+            output = (prediction_scores,) + outputs[2:]
+            return ((loss,) + output) if loss is not None else output
 
         return MaskedLMOutput(
-            loss=masked_lm_loss,
+            loss=loss,
             logits=prediction_scores,
             hidden_states=None,
             attentions=None,
@@ -994,9 +989,9 @@ class BertForSequenceClassification(BertPreTrainedModel):
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
+        loss = None
         if labels is not None:
             # Compute loss
-            loss = None
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = 'regression'
@@ -1020,15 +1015,9 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 loss_fct = nn.BCEWithLogitsLoss()
                 loss = loss_fct(logits, labels)
 
-            if not return_dict:
-                output = (logits,) + outputs[2:]
-                return ((loss,) + output) if loss is not None else output
-
-        else:
-            loss = None
-            if not return_dict:
-                output = (logits,) + outputs[2:]
-                return output
+        if not return_dict:
+            output = (logits,) + outputs[2:]
+            return ((loss,) + output) if loss is not None else output
 
         return SequenceClassifierOutput(
             loss=loss,
