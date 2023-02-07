@@ -63,6 +63,9 @@ def parse_args():
     parser.add_argument('--fsdp_config_mixed_precision',
                         type=str,
                         default='DEFAULT')
+    parser.add_argument('--fsdp_config_activation_checkpointing',
+                        type=bool,
+                        default=None)
     parser.add_argument(
         '-s',
         '--seq_len_exp',
@@ -215,6 +218,7 @@ def mod_parameters(parameters,
                    global_train_batch_size,
                    precision,
                    fsdp_config_mixed_precision='DEFAULT',
+                   fsdp_config_activation_checkpointing=None,
                    run_name='',
                    data_remote=None,
                    max_duration='30ba',
@@ -269,6 +273,9 @@ def mod_parameters(parameters,
 
     parameters['precision'] = precision
     parameters['fsdp_config']['mixed_precision'] = fsdp_config_mixed_precision
+    if fsdp_config_activation_checkpointing is not None:
+        parameters['fsdp_config'][
+            'activation_checkpointing'] = fsdp_config_activation_checkpointing
 
     if wandb:
         # add wandb
@@ -308,7 +315,7 @@ def get_integrations(project, git_branch=None, git_commit=None, wandb=True):
 
 
 def run_config(config, args):
-    yaml_base, model_yaml, max_seq_len, global_train_batch_size, cluster, gpu_type, gpu_num, precision, fsdp_config_mixed_precision = config
+    yaml_base, model_yaml, max_seq_len, global_train_batch_size, cluster, gpu_type, gpu_num, precision = config
 
     integrations = get_integrations(
         args.project,
@@ -356,7 +363,9 @@ def run_config(config, args):
         max_seq_len,
         global_train_batch_size,
         precision,
-        fsdp_config_mixed_precision=fsdp_config_mixed_precision,
+        fsdp_config_mixed_precision=args.fsdp_config_mixed_precision,
+        fsdp_config_activation_checkpointing=args.
+        fsdp_config_activation_checkpointing,
         run_name=name,
         data_remote=args.data_remote,
         microbatch_size=microbatch_size,
@@ -430,8 +439,7 @@ if __name__ == '__main__':
                                     config = (args.yaml_base, model_yaml,
                                               max_seq_len,
                                               global_train_batch_size, cluster,
-                                              gpu_type, gpu_num, precision,
-                                              args.fsdp_config_mixed_precision)
+                                              gpu_type, gpu_num, precision)
                                     print(config)
                                     run_config(config, args)
                                     n_jobs += 1

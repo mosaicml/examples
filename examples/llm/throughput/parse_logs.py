@@ -95,7 +95,7 @@ def parse_run(run) -> Dict[str, Any]:
 
     seq_len = run.config.parameters['max_seq_len']
     global_train_batch_size = run.config.parameters['global_train_batch_size']
-    activation_checkpoint = str(fsdp_config['activation_checkpointing'])
+    activation_checkpointing = str(fsdp_config['activation_checkpointing'])
 
     logs = msdk.get_run_logs(run)
     lines = ''
@@ -137,7 +137,7 @@ def parse_run(run) -> Dict[str, Any]:
     mfu_w_attn = (3 * flops_per_seq + 3 * attn_flops_per_seq) * throughput / (
         gpu_num * GPU_AVAILABLE_FLOPS)
 
-    if activation_checkpoint:
+    if activation_checkpointing:
         hfu_w_attn = (4 * flops_per_seq + 4 * attn_flops_per_seq
                      ) * throughput / (gpu_num * GPU_AVAILABLE_FLOPS)
     else:
@@ -160,7 +160,7 @@ def parse_run(run) -> Dict[str, Any]:
         'Precision': run.config.parameters['precision'],
         'MP Mode': fsdp_config['mixed_precision'],
         'Sharding Strategy': fsdp_config['sharding_strategy'],
-        'Activation Checkpointing': activation_checkpoint,
+        'Activation Checkpointing': activation_checkpointing,
         'Activation CPUOffload': str(fsdp_config['activation_cpu_offload']),
         'NumParams': n_params,
     }
