@@ -40,9 +40,6 @@ jobs:
         # Look to see if there is a cache hit for the corresponding requirements file
         key: ${{ runner.os }}-pip-${{ hashFiles('setup.py', 'requirements.txt',  '${{
           matrix.subdir }}/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          ${{ runner.os }}-
     - name: Setup
       run: |
         set -ex
