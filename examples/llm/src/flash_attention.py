@@ -14,12 +14,6 @@ import torch.nn as nn
 from einops import rearrange  # type: ignore (reportMissingImports)
 from torch import Tensor
 
-try:
-    from flash_attn.flash_attn_triton import \
-        flash_attn_qkvpacked_func  # type: ignore
-except ImportError as e:
-    raise e
-
 
 class FlashAttention(nn.Module):
     """Implement the scaled dot product attention with softmax.
@@ -34,6 +28,14 @@ class FlashAttention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         self.softmax_scale = softmax_scale
+
+        try:
+            from flash_attn.flash_attn_triton import \
+                flash_attn_qkvpacked_func  # type: ignore
+        except ImportError as e:
+            raise e
+
+        self.attn_fn = flash_attn_qkvpacked_func
 
     def forward(
             self,
@@ -80,8 +82,8 @@ class FlashAttention(nn.Module):
                 f'assumes key_padding_mask is taken care of by attn_mask')
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_heads)
 
-        attn_output = flash_attn_qkvpacked_func(qkv, attn_mask, is_causal,
-                                                self.softmax_scale)
+        attn_output = self.attn_fn(qkv, attn_mask, is_causal,
+                                   self.softmax_scale)
         output = rearrange(attn_output, 'b s h d -> b s (h d)')
         return output, None
 
