@@ -285,7 +285,7 @@ class TokenizedC4(ProcessedC4):
 
         # TODO: figure out why rows and columns are transposed
         # if you step through with a debugger, the batch is definitely transposed here
-        # but then swapping rows and columns back here does not fix how garbled this data gets
+        # but it is not after self.dataset is generated
         for batch in self.loader:
             transposed = torch.stack(tuple(batch['tokens'])).transpose(0, 1)
             for tokens in transposed:
