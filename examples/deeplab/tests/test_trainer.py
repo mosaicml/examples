@@ -18,6 +18,11 @@ from examples.deeplab.tests.test_data import SynthADE20KDirectory
 
 @pytest.mark.parametrize('recipe_name', [None, 'mild', 'medium', 'hot'])
 def test_trainer(recipe_name):
+    if recipe_name == 'hot' and not torch.cuda.is_available():
+        pytest.xfail(
+            'SAM currently requires running with mixed precision due to a composer bug.'
+        )
+
     with open('yamls/deeplabv3.yaml') as f:
         base_config = OmegaConf.load(f)
 
