@@ -48,3 +48,4 @@ jobs:
       run: |
         export PATH=/composer-python:$PATH
         bash scripts/lint_subdirectory.sh ${{ matrix.subdir }}
+        cat /github/home/.cache/pre-commit/pre-commit.log
