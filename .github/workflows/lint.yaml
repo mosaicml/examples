@@ -19,33 +19,23 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        include:
-        - name: bert-lint
-          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: bert
-        - name: cifar-lint
-          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: cifar
-        - name: deeplab-lint
-          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: deeplab
-        - name: llm-lint
-          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: llm
-        - name: resnet-lint
-          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: resnet
-    name: ${{ matrix.name }}
-    container: ${{ matrix.container }}
+        python_version:
+        - '3.9'
+        subdir:
+        - bert
+        - cifar
+        - deeplab
+        - llm
+        - resnet
     steps:
     - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python_version }}
     - name: Setup
       run: |
         set -ex
-        export PATH=/composer-python:$PATH
         python -m pip install --upgrade 'pip<23' wheel
     - name: Lint
       run: |
-        export PATH=/composer-python:$PATH
         bash scripts/lint_subdirectory.sh ${{ matrix.subdir }}
-        cat /github/home/.cache/pre-commit/pre-commit.log
