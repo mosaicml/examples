@@ -66,7 +66,6 @@ class FlashAttention(nn.Module):
                 heads. Otherwise, ``attn_weights`` are provided separately per head. Note that this flag only has an
                 effect when ``need_weights=True``. Default: ``True`` (i.e. average weights across heads)
         """
-
         assert not need_weights and not average_attn_weights
         assert qkv.dtype in [torch.float16, torch.bfloat16]
         assert qkv.is_cuda
