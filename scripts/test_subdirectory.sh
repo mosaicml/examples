@@ -37,4 +37,4 @@ deactivate
 cd -
 rm -rf "$ENV_NAME"
 
-exit STATUS
+exit $STATUS
