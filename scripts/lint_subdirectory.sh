@@ -23,8 +23,6 @@ echo $FILES
 pre-commit run --files $FILES && pyright $FILES
 STATUS=$?
 
-cat /github/home/.cache/pre-commit/pre-commit.log
-
 echo "Cleaning up venv..."
 deactivate
 rm -rf "$ENV_NAME"
