@@ -22,14 +22,19 @@ jobs:
         include:
         - name: bert-pytest
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: bert
         - name: cifar-pytest
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: cifar
         - name: deeplab-pytest
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: deeplab
         - name: llm-pytest
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: llm
         - name: resnet-pytest
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: resnet
     name: ${{ matrix.name }}
     container: ${{ matrix.container }}
     steps:
