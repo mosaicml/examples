@@ -27,7 +27,8 @@ class FlashAttention(nn.Module):
     def __init__(self, num_heads, softmax_scale=None, device=None, dtype=None):
         # fail fast if flash_attn is not available
         try:
-            from flash_attn.flash_attn_triton import flash_attn_qkvpacked_func
+            from flash_attn.flash_attn_triton import \
+                flash_attn_qkvpacked_func  # type: ignore (reportMissingImports)
             del flash_attn_qkvpacked_func
         except ImportError:
             raise ImportError(
@@ -72,7 +73,8 @@ class FlashAttention(nn.Module):
                 heads. Otherwise, ``attn_weights`` are provided separately per head. Note that this flag only has an
                 effect when ``need_weights=True``. Default: ``True`` (i.e. average weights across heads)
         """
-        from flash_attn.flash_attn_triton import flash_attn_qkvpacked_func
+        from flash_attn.flash_attn_triton import \
+            flash_attn_qkvpacked_func  # type: ignore (reportMissingImports)
 
         assert not need_weights and not average_attn_weights
         assert qkv.dtype in [torch.float16, torch.bfloat16]
