@@ -128,18 +128,15 @@ def parse_args():
                         type=int,
                         default=None,
                         help='set microbatch_size')
+
+    parser.add_argument('--pad_vocab_multiple', type=int, default=None)
+
     parser.add_argument('--data_remote',
                         type=str,
                         default=None,
                         help='optional data remote path for streaming data')
 
     parser.add_argument('--wandb',
-                        type=str_to_bool,
-                        nargs='?',
-                        const=True,
-                        default=True)
-
-    parser.add_argument('--pad-vocab-to-64',
                         type=str_to_bool,
                         nargs='?',
                         const=True,
@@ -220,11 +217,11 @@ def mod_parameters(parameters,
                    fsdp_config_mixed_precision='DEFAULT',
                    run_name='',
                    data_remote=None,
-                   max_duration='20ba',
+                   max_duration='30ba',
                    eval_interval=0,
                    microbatch_size=None,
                    wandb=True,
-                   pad_vocab_to_64=True):
+                   pad_vocab_multiple=None):
     if run_name:
         parameters['run_name'] = run_name
     if data_remote is not None:
@@ -245,10 +242,11 @@ def mod_parameters(parameters,
     parameters['max_seq_len'] = max_seq_len
     parameters['model']['max_seq_len'] = max_seq_len
 
-    # Pad vocab size to multiple of 64 for A100 perf
-    if pad_vocab_to_64:
+    # Pad vocab size to multiple of N for A100 perf
+    if pad_vocab_multiple:
         vocab_size = parameters['model']['vocab_size']
-        parameters['model']['vocab_size'] = math.ceil(vocab_size / 8) * 8
+        parameters['model']['vocab_size'] = math.ceil(
+            vocab_size / pad_vocab_multiple) * pad_vocab_multiple
 
     parameters['tokenizer']['args']['max_seq_len'] = max_seq_len
     parameters['train_loader']['dataset']['max_seq_len'] = max_seq_len
@@ -362,7 +360,8 @@ def run_config(config, args):
         run_name=name,
         data_remote=args.data_remote,
         microbatch_size=microbatch_size,
-        wandb=args.wandb)
+        wandb=args.wandb,
+        pad_vocab_multiple=args.pad_vocab_multiple)
 
     # Create run config mcli sdk/api
     config = RunConfig(
