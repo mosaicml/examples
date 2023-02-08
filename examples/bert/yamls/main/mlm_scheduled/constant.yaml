@@ -35,7 +35,7 @@ parameters:
   tokenizer_name: &tokenizer_name bert-base-uncased
 
   # Run Name
-  run_name: schedule-constant-{parameters.train_loader.dataset.mlm_schedule.initial_mlm_rate}-{parameters.train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-{parameters.seed}
+  run_name: schedule-constant-${train_loader.dataset.mlm_schedule.initial_mlm_rate}-${train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-${seed}
 
   # Model
   model:
@@ -102,7 +102,7 @@ parameters:
 
   # System
   # Seeds tried 17, 3047
-  seed: 3047
+  seed: 17
   device_eval_batch_size: 128
   device_train_microbatch_size: 128
   precision: bf16
@@ -122,9 +122,9 @@ parameters:
       project: zack-schedule-mlm-speedup
       entity: mosaic-ml
 
-  # save_interval: 1000ba
-  # save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
-  # save_folder: # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+  save_interval: 1000ba
+  save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
+  save_folder: s3://mosaicml-internal-checkpoints-shared/zack/speedup-mlm-schedule/${run_name} # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
 #   (Optional) Load from local filesystem or remote object store to
 #  start from an existing model checkpoint;
 #   e.g. './ckpt/latest-rank{rank}.pt' (local), or

@@ -60,7 +60,7 @@ class MLMRateSetter(Callback):
 def build_mlm_scheduler_callback(cfg, distributed_mlm_rate: Value):
     initial_mlm_rate = cfg.initial_mlm_rate
     final_mlm_rate = cfg.final_mlm_rate
-    alpha_f = initial_mlm_rate / final_mlm_rate
+    alpha_f = final_mlm_rate / initial_mlm_rate
 
     if cfg.name == 'constant':
         mlm_schedule = ConstantScheduler()
