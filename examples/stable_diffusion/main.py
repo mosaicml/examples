@@ -120,7 +120,7 @@ def main(config: DictConfig):
 
     print('Train!')
     trainer.fit()
-    return trainer  # Return trainer for testing purposes
+    return trainer  # Return trainer for testing purposes.
 
 
 if __name__ == '__main__':
