@@ -72,11 +72,11 @@ nested:
 ```
 and we run:
 ```bash
-python script.py c=cat nested.foo=different
+python script.py b=baz nested.foo=different
 ```
 The `main.py` file will end up with:
 ```json
-{'a': 1, 'b': 'baz', 'c': 'cat', 'nested': 'different'}
+{'a': 1, 'b': 'baz', 'nested': 'different'}
 ```
 
 # Examples
