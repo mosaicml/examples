@@ -11,52 +11,8 @@ from model_loading import load_composer_model
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
-from examples.common.builders import build_evaluators
+from examples.common.builders import build_icl_evaluators
 from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
-
-
-def validate_cfg(eval_cfg):
-    assert eval_cfg.get('dataset_uri',
-                        None) is not None, 'dataset_uri is required!'
-    assert 'type' in eval_cfg
-    assert 'num_fewshot' in eval_cfg
-    assert 'batch_size' in eval_cfg
-    assert 'metrics' in eval_cfg
-    assert 'formatting_options' in eval_cfg
-    assert 'prompt_string' in eval_cfg.get('formatting_options')
-    assert 'example_delimiter' in eval_cfg.get('formatting_options')
-    assert 'continuation_delimiter' in eval_cfg.get('formatting_options')
-    assert 'label' in eval_cfg
-
-
-def get_evaluators_from_config(cfg):
-    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
-    evaluators = []
-    logger_keys = []
-    for eval_cfg in cfg.icl_tasks:
-        validate_cfg(eval_cfg)
-        dataset_uri = eval_cfg.get('dataset_uri')
-        icl_task_type = eval_cfg.get('type')
-        num_fewshots = eval_cfg.get('num_fewshot')
-        batch_size = eval_cfg.get('batch_size')
-        metrics = list(eval_cfg.get('metrics'))
-        prompt_string = eval_cfg.get('formatting_options').get('prompt_string')
-        example_delimiter = eval_cfg.get('formatting_options').get(
-            'example_delimiter')
-        continuation_delimiter = eval_cfg.get('formatting_options').get(
-            'continuation_delimiter')
-        label = eval_cfg.get('label')
-        max_seq_len = cfg.tokenizer.args.max_seq_len
-
-        res = build_evaluators(label, icl_task_type, dataset_uri, tokenizer,
-                               batch_size, max_seq_len, prompt_string,
-                               example_delimiter, continuation_delimiter,
-                               metrics, num_fewshots)
-        evaluators.extend(res[0])
-        logger_keys.extend(res[1])
-
-    return evaluators, logger_keys
-
 
 if __name__ == '__main__':
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
@@ -67,15 +23,16 @@ if __name__ == '__main__':
 
     composer_model = load_composer_model(cfg)
 
-    evaluators, logger_keys = get_evaluators_from_config(cfg)
+    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
+    evaluators, logger_keys = build_icl_evaluators(cfg, tokenizer)
     for evaluator in evaluators:
         composer_model.add_eval_metrics(evaluator)
 
     in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
 
     fsdp_config = cfg.get('fsdp_config', None)
-    fsdp_config = om.to_container(fsdp_config,
-                                  resolve=True) if fsdp_config is not None else None
+    fsdp_config = om.to_container(
+        fsdp_config, resolve=True) if fsdp_config is not None else None
 
     load_path = cfg.get('load_path', None)
 
