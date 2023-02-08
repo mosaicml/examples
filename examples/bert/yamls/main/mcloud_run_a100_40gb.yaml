@@ -44,8 +44,8 @@ parameters:
     pretrained_model_name: *tokenizer_name
     tokenizer_name: *tokenizer_name
     # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
-    # These values can be changed here when pretraining from scratch. Note that these should only be used
-    # if used_pretained: false, otherwise the model will not be loaded properly
+    # Note: if using the pretrained_checkpoint argument to create a model from an existing checkpoint, make sure
+    # the model_config settings match the architecture of the existing model
     model_config:
       num_attention_heads: 12 # bert-base default
       num_hidden_layers: 12 # bert-base default
