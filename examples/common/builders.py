@@ -85,16 +85,16 @@ def build_dataloader(cfg, device_batch_size):
         raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
 
 
-def build_evaluators(label, dataset_uri, tokenizer, batch_size, max_seq_len,
-                     prompt_string, example_delimiter, continuation_delimiter,
-                     metrics, num_fewshots, type):
+def build_evaluators(label, icl_task_type, dataset_uri, tokenizer, batch_size,
+                     max_seq_len, prompt_string, example_delimiter,
+                     continuation_delimiter, metrics, num_fewshots):
 
     evaluators = []
     logger_keys = []
     for num_fewshot in num_fewshots:
         label = f'{label}_{num_fewshot}-shot'
         dl = get_icl_task_dataloader(
-            type,
+            icl_task_type,
             dataset_uri,
             tokenizer,
             batch_size=batch_size,

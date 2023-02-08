@@ -36,7 +36,7 @@ def get_evaluators_from_config(cfg):
     for eval_cfg in cfg.icl_tasks:
         validate_cfg(eval_cfg)
         dataset_uri = eval_cfg.get('dataset_uri')
-        type = eval_cfg.get('type')
+        icl_task_type = eval_cfg.get('type')
         num_fewshots = eval_cfg.get('num_fewshot')
         batch_size = eval_cfg.get('batch_size')
         metrics = list(eval_cfg.get('metrics'))
@@ -48,10 +48,10 @@ def get_evaluators_from_config(cfg):
         label = eval_cfg.get('label')
         max_seq_len = cfg.tokenizer.args.max_seq_len
 
-        res = build_evaluators(label, dataset_uri, tokenizer, batch_size,
-                               max_seq_len, prompt_string, example_delimiter,
-                               continuation_delimiter, metrics, num_fewshots,
-                               type)
+        res = build_evaluators(label, icl_task_type, dataset_uri, tokenizer,
+                               batch_size, max_seq_len, prompt_string,
+                               example_delimiter, continuation_delimiter,
+                               metrics, num_fewshots)
         evaluators.extend(res[0])
         logger_keys.extend(res[1])
 

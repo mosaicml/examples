@@ -10,11 +10,12 @@ from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 
 from examples.common.builders import (build_algorithm, build_callback,
-                                      build_dataloader, build_logger,
-                                      build_optimizer, build_scheduler)
+                                      build_dataloader, build_evaluators,
+                                      build_logger, build_optimizer,
+                                      build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
-from examples.llm.icl_eval.evaluate_model import get_evaluators_from_config
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
+from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 
 def build_composer_model(cfg):
@@ -25,6 +26,40 @@ def build_composer_model(cfg):
         return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
     except:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
+
+
+def get_evaluators_from_config(cfg):
+    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
+    evaluators = []
+    for eval_cfg in cfg.icl_tasks:
+        dataset_uri = eval_cfg.get('dataset_uri')
+        icl_task_type = eval_cfg.get('type')
+        num_fewshots = eval_cfg.get('num_fewshot')
+        batch_size = eval_cfg.get('batch_size')
+        metrics = list(eval_cfg.get('metrics'))
+        prompt_string = eval_cfg.get('formatting_options').get('prompt_string')
+        example_delimiter = eval_cfg.get('formatting_options').get(
+            'example_delimiter')
+        continuation_delimiter = eval_cfg.get('formatting_options').get(
+            'continuation_delimiter')
+        label = eval_cfg.get('label')
+        max_seq_len = cfg.tokenizer.args.max_seq_len
+
+        res, _ = build_evaluators(
+            label,
+            icl_task_type,
+            dataset_uri,
+            tokenizer,
+            batch_size,
+            max_seq_len,
+            prompt_string,
+            example_delimiter,
+            continuation_delimiter,
+            metrics,
+            num_fewshots,
+        )
+        evaluators.extend(res)
+    return evaluators
 
 
 def main(cfg):
@@ -74,7 +109,7 @@ def main(cfg):
         evaluators.append(eval_loader)
 
     if 'icl_tasks' in cfg:
-        icl_task_evaluators, _ = get_evaluators_from_config(cfg)
+        icl_task_evaluators = get_evaluators_from_config(cfg)
         for evaluator in icl_task_evaluators:
             model.add_eval_metrics(evaluator)
         evaluators.extend(icl_task_evaluators)
