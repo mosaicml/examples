@@ -105,7 +105,7 @@ class StreamingTextDataset(StreamingDataset):
                     'input_ids'][-2] == self.tokenizer.eos_token_id:
                 self.add_special_tokens = False
             else:
-                # Normal text without special tokens added
+                # Normal (not pre-concatenated) text without special tokens added
                 self.add_special_tokens = True
 
         return self.tokenizer(text_sample['text'],
