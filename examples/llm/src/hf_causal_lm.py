@@ -22,6 +22,7 @@ class ComposerHFCausalLM(HuggingFaceModel):
         config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path)
         tokenizer = AutoTokenizer.from_pretrained(
             cfg.pretrained_model_name_or_path)
+
         metrics = [LanguageCrossEntropy(len(tokenizer)), Perplexity()]
 
         if cfg.pretrained:
@@ -58,9 +59,8 @@ class ComposerHFCausalLM(HuggingFaceModel):
     def update_metric(self, batch: dict, outputs: Tensor, metric: Metric):
         outputs = outputs.view(-1, outputs.size(-1))
         targets = self.get_targets(batch).view(-1)
-        if isinstance(metric, InContextLearningMetric) and batch.get(
-                'mode', None) == 'icl_task':
-            metric.update(batch, outputs, targets)
+        if isinstance(metric, InContextLearningMetric):
+            if batch.get('mode', None) == 'icl_task':
+                metric.update(batch, outputs, targets)
         else:
-            metric.update(outputs,
-                          targets)  # pyright: ignore [reportGeneralTypeIssues]
+            metric.update(outputs, targets)
