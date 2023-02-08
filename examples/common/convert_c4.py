@@ -1,15 +1,12 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""C4 streaming dataset conversion scripts"""
-import io
+"""C4 streaming dataset conversion scripts."""
 import os
 import platform
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from enum import Enum
-from functools import partial
-from multiprocessing import cpu_count
-from typing import Callable, Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 import datasets as hf_datasets
 import numpy as np
@@ -17,7 +14,6 @@ from streaming import MDSWriter
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
-
 
 # Utilities and parsers
 
@@ -93,10 +89,11 @@ def parse_args() -> Namespace:
 # Data Iterators
 
 class ShardedC4(IterableDataset):
-    """The class used for iterating through C4 shards when not concatenating
+    """The class used for iterating through C4 shards when not concatenating.
 
-    We override __iter__ and use the loops in generate_samples rather than hf_datasets.map
-    because .map effectively does not work for streaming data sets
+    We override __iter__ and use the loops in generate_samples rather than
+    hf_datasets.map because .map effectively does not work for streaming data
+    sets
     """
 
     def __init__(self,
@@ -173,7 +170,7 @@ class ShardedC4(IterableDataset):
                 }
                 n_samples += 1
                 if n_samples == self.expected_num_samples:
-                    print(f"{total_chars=}")
+                    print(f'{total_chars=}')
                     return
 
 
