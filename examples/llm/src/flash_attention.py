@@ -74,8 +74,7 @@ class FlashAttention(nn.Module):
                 heads. Otherwise, ``attn_weights`` are provided separately per head. Note that this flag only has an
                 effect when ``need_weights=True``. Default: ``True`` (i.e. average weights across heads)
         """
-        from flash_attn import \
-            flash_attn_triton  # type: ignore (reportMissingImports)
+        from flash_attn import flash_attn_triton  # type: ignore
 
         assert not need_weights and not average_attn_weights
         assert qkv.dtype in [torch.float16, torch.bfloat16]
