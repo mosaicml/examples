@@ -13,7 +13,7 @@ from composer import Trainer
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.optim import ConstantScheduler
-from composer.utils import reproducibility
+from composer.utils import reproducibility, dist
 from data import build_hf_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
@@ -22,6 +22,8 @@ from omegaconf import DictConfig, OmegaConf
 def main(config: DictConfig):
     reproducibility.seed_all(config.seed)
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
+    if dist.get_world_size() > 1: # initialize the pytorch distributed process group if training on multiple gpus.
+        dist.initialize_dist(device)
 
     if config.grad_accum == 'auto' and device == 'cpu':
         raise ValueError(

@@ -104,7 +104,6 @@ def build_hf_image_caption_datapsec(name: str,
         return examples
 
     if dist.get_world_size() > 1:
-        dist.initialize_dist()
         with dist.run_local_rank_zero_first():
             dataset = load_dataset(name, split='train')
     else:
