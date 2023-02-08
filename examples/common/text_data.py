@@ -27,8 +27,8 @@ class StreamingTextDataset(StreamingDataset):
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to
             tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
-        group_method (str): (Deprecated, use ``concat`` option in create_c4.py) How to group text
-            samples into token samples. Supports 'truncate' or 'concat'.
+        group_method (str): (Deprecated, use ``--concat_text`` or ``--concat_tokens`` option in
+            create_c4.py) How to group text samples into token samples. Supports 'truncate' or 'concat'.
         remote (str, optional): Download shards from this remote path or directory. If None, this
             rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
         split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
