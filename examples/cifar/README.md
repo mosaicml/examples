@@ -27,7 +27,7 @@
 
 This folder contains starter code for training a CIFAR ResNet architecture. You can swap out the model and dataset if desired, but we recommend using the [ResNet + ImageNet benchmark](../resnet/) for new models and datasets.
 
-# Overview
+## Overview
 
 The files in this folder are:
 * `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/stable/composer_model.html) from a CIFAR ResNet model defined in the script
@@ -40,7 +40,7 @@ The files in this folder are:
 
 Now that you've explored the code, let's get training.
 
-# Get Started With the MosaicML Cloud
+## Get started with the MosaicML Cloud
 
 If you're using the MosaicML cloud, all you need to install is [`mcli`](https://github.com/mosaicml/mosaicml-cli/):
 
@@ -67,9 +67,9 @@ mcli run -f yamls/mcloud_run.yaml
 
 You're done. You can skip the rest of the instructions except [saving and loading checkpoints](#saving-and-loading-checkpoints).
 
-# Get Started Without the MosaicML Cloud
+## Get started without the MosaicML Cloud
 
-## Prerequisites
+### Prerequisites
 
 If you're not using the MosaicML cloud, here's what you need to start training:
 
@@ -82,7 +82,7 @@ If you're not using the MosaicML cloud, here's what you need to start training:
     * Ubuntu Version: 20.04
 * System with NVIDIA GPUs
 
-## Installation
+### Installation
 
 Just clone this repo and install the requirements. If you want to customize the
 code, first fork this repo on GitHub and clone your fork instead.
@@ -94,7 +94,7 @@ pip install -e ".[cifar]"  # or pip install -e ".[cifar-cpu]" if no NVIDIA GPU
 cd examples/cifar
 ```
 
-## How to start training
+### How to start training
 
 Now that you've installed dependencies, let's start training!
 
@@ -108,7 +108,7 @@ For a single node, the `composer` launcher will autodetect the number of devices
 composer main.py yamls/resnet56.yaml
 ```
 
-## Results
+### Results
 
 You should see logs printed to your terminal like below. You can also easily enable other experiment trackers like Weights and Biases or CometML using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
@@ -148,9 +148,9 @@ You should see logs printed to your terminal like below. You can also easily ena
 train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23,  1.37ba/s, loss/train/total=7.1292]
 ```
 
-# Saving and Loading checkpoints
+## Saving and Loading checkpoints
 
 At the bottom of `yamls/resnet56.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
 
-# Contact Us
+## Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.
