@@ -1,4 +1,3 @@
-@@ -0,0 +1,56 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 
@@ -13,10 +12,8 @@ class SyntheticImageCaptionDataset(Dataset):
                  num_samples:int=10000):
         """
         Args:
-            num_samples (int): Number of samples in the dataset.
-            precache_latents (bool): If True, the dataset will mimic precached latent embeddings.
-            precache_embeddings (bool): If True, the dataset will mimic precached text embeddings.
-            image_size (int): Size of the images.
+            image_size (int): Size of the images. 
+            num_samples (int): Number of samples in the dataset. Default: `10000`.
         """
         self.num_samples = num_samples
         self.image_size = image_size
