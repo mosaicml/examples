@@ -409,6 +409,14 @@ class BertEncoder(nn.Module):
 
         self.num_attention_heads = config.num_attention_heads
 
+        self.alibi: Optional[torch.Tensor] = None
+        self._current_alibi_size = -1
+
+    @staticmethod
+    def build_alibi_tensor(
+            n_heads: int,
+            max_token_length: int,
+            device: Optional[Union[torch.device, str]] = None) -> torch.Tensor:
         # Alibi
         # Following https://github.com/ofirpress/attention_with_linear_biases/issues/5 (Implementation 1)
         # In the causal case, you can exploit the fact that softmax is invariant to a uniform translation
@@ -434,21 +442,20 @@ class BertEncoder(nn.Module):
                         2 * closest_power_of_2)[0::2][:n_heads -
                                                       closest_power_of_2]
 
-        max_token_length = config.max_position_embeddings
-        context_position = torch.arange(max_token_length)[:, None]
-        memory_position = torch.arange(max_token_length)[None, :]
+        context_position = torch.arange(max_token_length, device=device)[:,
+                                                                         None]
+        memory_position = torch.arange(max_token_length, device=device)[None, :]
         relative_position = torch.abs(memory_position - context_position)
         # [n_heads, max_token_length, max_token_length]
         relative_position = relative_position.unsqueeze(0).expand(
-            config.num_attention_heads, -1, -1)
-        slopes = torch.Tensor(_get_alibi_head_slopes(
-            config.num_attention_heads))
+            n_heads, -1, -1)
+        slopes = torch.Tensor(_get_alibi_head_slopes(n_heads), device=device)
         alibi = slopes.unsqueeze(1).unsqueeze(1) * -relative_position
         # [1, n_heads, max_token_length, max_token_length]
         alibi = alibi.unsqueeze(0)
         assert alibi.shape == torch.Size(
-            [1, config.num_attention_heads, max_token_length, max_token_length])
-        self.register_buffer('alibi', alibi)
+            [1, n_heads, max_token_length, max_token_length])
+        return alibi
 
     def forward(
         self,
@@ -474,7 +481,18 @@ class BertEncoder(nn.Module):
         #        hidden_states[ntokens,hidden] -> hidden_states[ntokens_unpad,hidden]
         hidden_states, indices, cu_seqlens, _ = unpad_input(
             hidden_states, attention_mask_bool)
+
         # Add alibi matrix to extended_attention_mask
+        if self._current_alibi_size < seqlen or self.alibi is None:
+            # Build/rebuild the alibi tensor if needed
+            self.alibi = self.build_alibi_tensor(
+                n_heads=self.num_attention_heads,
+                max_token_length=seqlen,
+                device=hidden_states.device)
+            self._current_alibi_size = int(seqlen)
+        if self.alibi.device != hidden_states.device:
+            # Device catch-up
+            self.alibi = self.alibi.to(hidden_states.device)
         alibi_bias = self.alibi[:, :, :seqlen, :seqlen]  # type: ignore
         alibi_attn_mask = extended_attention_mask[:, :, :, :seqlen] + alibi_bias
 
