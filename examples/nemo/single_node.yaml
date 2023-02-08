@@ -1,5 +1,5 @@
-run_name: #run-name-here
-cluster: #mcloud-cluster-name-here
+run_name: # run-name-here
+cluster: # mcloud-cluster-name-here
 gpu_num: 8
 image: nvcr.io/nvidia/nemo:22.09
 env_variables:
