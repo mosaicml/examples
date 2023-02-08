@@ -184,7 +184,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         batch_size=device_batch_size)
 
     print(cfg, "cfg in build_text_dataloader")
-    mlm_schedule = cfg.get('mlm_schedule', None)
+    mlm_schedule = cfg.dataset.get('mlm_schedule', None)
     dist_mlm_probability = None
     if mlm_schedule:
         dist_mlm_probability = multiprocessing.Value(
