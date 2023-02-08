@@ -27,8 +27,8 @@ class FlashAttention(nn.Module):
     def __init__(self, num_heads, softmax_scale=None, device=None, dtype=None):
         # fail fast if triton is not available
         try:
-            from flash_attn import \
-                flash_attn_triton  # type: ignore (reportMissingImports) # yapf: disable
+            from flash_attn import flash_attn_triton  # type: ignore
+
             del flash_attn_triton
         except ImportError:
             raise ImportError(
