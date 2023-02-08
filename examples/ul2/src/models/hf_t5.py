@@ -15,6 +15,7 @@ from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
+from examples.common.hf_fsdp import prepare_hf_enc_dec_model_for_fsdp
 from examples.ul2.src.super_glue.metrics import ExactMatch
 from examples.ul2.src.utils import AutoTokenizerForMOD
 
@@ -106,6 +107,9 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
     else:
         config = T5Config.from_pretrained(pretrained_model_name, **model_config)
         model = T5ForConditionalGeneration(config)
+
+    # Super charge
+    prepare_hf_enc_dec_model_for_fsdp(model)
 
     # We use `len(tokenizer) instead of `model.config.vocab_size` because
     # `HuggingFaceModel` will set the latter to the former

@@ -10,6 +10,7 @@ from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
+from examples.common.hf_fsdp import prepare_hf_causal_lm_model_for_fsdp
 from examples.ul2.src import utils
 from examples.ul2.src.super_glue.metrics import ExactMatch
 
@@ -122,6 +123,9 @@ def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
             pretrained_model_name, **model_config)
         assert transformers.AutoModelForCausalLM.from_config is not None, 'AutoModelForCausalLM has from_config method'
         model = transformers.AutoModelForCausalLM.from_config(config)
+
+    # Super charge
+    prepare_hf_causal_lm_model_for_fsdp(model)
 
     # Convert the Causal LM into a Prefix LM via our custom wrapper
     model = utils.convert_hf_causal_lm_to_prefix_lm(model)
