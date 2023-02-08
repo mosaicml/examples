@@ -42,7 +42,7 @@ parameters:
     emb_pdrop: 0.0
     attn_impl: flash
 
-  load_path: # Add your Composer checkpoint path here!
+  load_path: # Add your (optional) Composer checkpoint path here!
 
   # FSDP config for model sharding
   fsdp_config:

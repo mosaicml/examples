@@ -11,6 +11,12 @@ model:
   device: cpu
   pretrained: true
 
+load_path: # Add your (optional) Composer checkpoint path here!
+
+# FSDP config for model sharding
+# fsdp_config:
+#   sharding_strategy: FULL_SHARD
+
 icl_tasks:
 -
   label: piqa
