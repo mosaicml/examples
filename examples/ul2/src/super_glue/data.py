@@ -4,9 +4,10 @@
 """A preliminary implementation of SuperGLUE for EncDec fine-tuning."""
 
 import logging
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, Dict, List, Mapping, Optional, cast
 
 import datasets
+import torch
 import transformers
 from composer.core.evaluator import Evaluator
 from composer.core.types import Dataset
@@ -157,6 +158,9 @@ def create_super_glue_dataset(
         tokenizer_name,
         model_max_length=max_seq_length)  #type: ignore (thirdparty)
 
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
     log.info(f'Loading {task.upper()} on rank {dist.get_global_rank()}')
     download_config = datasets.DownloadConfig(max_retries=max_retries)
     dataset = datasets.load_dataset(
@@ -202,7 +206,53 @@ def create_super_glue_dataset(
         decoder_text = target_extractor(inp)
 
         if decoder_only_format:
-            raise NotImplementedError  # TODO(Alex): Implement this!
+            # raise NotImplementedError  # TODO(Alex): Implement this!
+            context_tokens = tokenizer(encoder_text +
+                                       tokenizer.eos_token).input_ids
+            target_tokens = tokenizer(decoder_text).input_ids
+
+            n_context = len(context_tokens)
+            n_target = len(target_tokens)
+
+            if n_target > max_seq_length:
+                raise ValueError(
+                    'max_seq_length is too small to fit the target tokens.')
+
+            # If we need to trim, trim from the context
+            if n_context + n_target > max_seq_length:
+                n_context = max_seq_length - n_target
+                context_tokens = context_tokens[-n_context:]
+
+            input_ids = context_tokens + target_tokens
+            n_tokens = n_context + n_target
+
+            # This creates a batch with `input_ids` and `attention_mask`
+            batch = tokenizer.pad(
+                {'input_ids': input_ids},
+                padding='max_length',
+                max_length=max_seq_length,
+                return_tensors='pt',
+            )
+
+            # Need to add `labels` and (for PrefixLMs) `bidirectional_mask`
+            labels = batch['input_ids'].clone()
+            bidirectional_mask = batch['attention_mask'].clone()
+
+            if tokenizer.padding_side == 'left':
+                labels[:-n_tokens] = _HF_IGNORE_INDEX
+                labels[:-n_target] = _HF_IGNORE_INDEX
+                bidirectional_mask[-n_target:] = 0
+            else:
+                labels[:n_context] = _HF_IGNORE_INDEX
+                labels[n_tokens:] = _HF_IGNORE_INDEX
+                bidirectional_mask[n_context:] = 0
+
+            return {
+                'input_ids': batch.input_ids,
+                'attention_mask': batch.attention_mask,
+                'labels': labels,
+                'bidirectional_mask': bidirectional_mask
+            }
 
         else:
             encoder_dict = tokenizer(
@@ -218,6 +268,11 @@ def create_super_glue_dataset(
                 truncation=True,
             )
 
+            # Best practice is to include decoder_input_ids (=shifted labels)
+            # (needs to be done before padding tokens are converted to -100s)
+            decoder_input_ids = [tokenizer.pad_token_id
+                                ] + decoder_dict['input_ids'][1:]
+
             # HF hardcodes the ignore_index to -100 in the loss, so ensure that
             # the padding id is -100 for the loss-generating batch keys
             decoder_dict['input_ids'] = convert_padding_token(
@@ -229,21 +284,68 @@ def create_super_glue_dataset(
                 'input_ids': encoder_dict.input_ids,
                 'attention_mask': encoder_dict.attention_mask,
                 'labels': decoder_dict.input_ids,
+                'decoder_input_ids': decoder_input_ids,
                 'decoder_attention_mask': decoder_dict.attention_mask,
             }
 
     assert isinstance(dataset, datasets.Dataset)
     columns_to_remove = list(dataset[0].keys())
+    # safe_tok_name = tokenizer_name.replace('/', ',')
     dataset = dataset.map(
         tokenize_function,
         batched=False,
         num_proc=None if num_workers == 0 else num_workers,
         remove_columns=columns_to_remove,
-        new_fingerprint=
-        f'{task}-{tokenizer_name}-tokenization-{max_seq_length}-{split}',
+        # new_fingerprint=
+        # f'{task}-{safe_tok_name}-tokenization-{max_seq_length}-{split}',
         load_from_cache_file=False,
     )
     return dataset
+
+
+class PadTrimCollator:
+    """Simple collator that trims excess padding."""
+
+    def __init__(self, tokenizer_name: str, max_seq_length: int,
+                 decoder_only_format: bool):
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            tokenizer_name,
+            model_max_length=max_seq_length)  #type: ignore (thirdparty)
+
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        self.decoder_only_format = decoder_only_format
+
+    def __call__(self, examples: List[Dict]) -> Dict[str, torch.Tensor]:
+        # This just combines the examples into a single dict of tensors
+        batch = self.tokenizer.pad(examples, return_tensors='pt')
+
+        multiple_of = 8
+        if self.decoder_only_format:
+            n_non_padding = batch['attention_mask'].sum(dim=1).max()
+            keep_tokens = int(multiple_of *
+                              torch.ceil(n_non_padding / multiple_of))
+            for k, v in batch.items():
+                if self.tokenizer.padding_side == 'left':
+                    batch[k] = v[:, -keep_tokens:].contiguous()
+                else:
+                    batch[k] = v[:, :keep_tokens].contiguous()
+            return batch
+
+        # First for the encoder
+        n_non_padding = batch['attention_mask'].sum(dim=1).max()
+        keep_tokens = int(multiple_of * torch.ceil(n_non_padding / multiple_of))
+        for k in ['input_ids', 'attention_mask']:
+            batch[k] = batch[k][:, :keep_tokens].contiguous()
+
+        # Then for the decoder
+        n_non_padding = batch['decoder_attention_mask'].sum(dim=1).max()
+        keep_tokens = int(multiple_of * torch.ceil(n_non_padding / multiple_of))
+        for k in ['decoder_input_ids', 'decoder_attention_mask', 'labels']:
+            batch[k] = batch[k][:, :keep_tokens].contiguous()
+
+        return batch
 
 
 def _build_dataloader(dataset, cfg, device_batch_size):
@@ -251,7 +353,11 @@ def _build_dataloader(dataset, cfg, device_batch_size):
 
     return DataLoader(
         dataset,
-        collate_fn=transformers.default_data_collator,
+        collate_fn=PadTrimCollator(
+            tokenizer_name=cfg.dataset.tokenizer_name,
+            max_seq_length=cfg.dataset.max_seq_length,
+            decoder_only_format=cfg.dataset.decoder_only_format,
+        ),
         batch_size=device_batch_size,
         sampler=dist.get_sampler(dataset,
                                  drop_last=cfg.drop_last,

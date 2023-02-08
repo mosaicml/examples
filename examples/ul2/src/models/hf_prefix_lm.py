@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 import torch
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
@@ -54,26 +54,6 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
         else:
             outputs[0] += z_loss
             return outputs[0]
-
-    # Workaround to fix bug related to labels not being shifted before computing eval metrics (bug only affects decoder-only models)
-    def eval_forward(self, batch, outputs: Optional[Any] = None):
-        output = outputs if outputs else self.forward(batch)
-        if self.use_logits:
-            self.labels = batch.pop('labels')
-            # HF CausalLM models internally shift labels before computing loss, so we do the same here
-            self.labels[:, :-1] = self.labels[:, 1:].clone()
-            self.labels[:, -1] = _HF_IGNORE_INDEX
-            if self.config.use_return_dict:
-                output = output['logits']
-            else:
-                # logits are at index 1 in the output tuple
-                output = output[1]
-
-            # if we are in the single class case, then remove the classes dimension
-            if output.shape[1] == 1:
-                output = output.squeeze(dim=1)
-
-        return output
 
 
 def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',

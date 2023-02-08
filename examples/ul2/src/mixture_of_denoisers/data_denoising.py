@@ -203,6 +203,8 @@ class MixtureOfDenoisersCollator:
             batch['labels'] = batch['labels'][:, :keep_tokens]
             batch['decoder_attention_mask'] = batch[
                 'decoder_attention_mask'][:, :keep_tokens]
+            batch['decoder_input_ids'] = batch[
+                'decoder_input_ids'][:, :keep_tokens]
 
         # This slicing can produce non-contiguous tensors, so use .contiguous
         # to prevent related problems
@@ -439,6 +441,11 @@ def _format_tokens_for_encoder_decoder(
     example['labels'][:len(tokens_labels)] = tokens_labels
     example['attention_mask'][:len(tokens_inputs)] = 1
     example['decoder_attention_mask'][:len(tokens_labels)] = 1
+
+    # Best practice is to include decoder_input_ids (= right-shifted labels)
+    example['decoder_input_ids'] = torch.full_like(example['labels'],
+                                                   pad_token_id)
+    example['decoder_input_ids'][1:len(tokens_labels)] = tokens_labels[:-1]
     return example
 
 
