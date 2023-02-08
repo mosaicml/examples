@@ -1,3 +1,7 @@
+# build requirements
+[build-system]
+requires = ["setuptools < 68.0.0"]
+build-backend = "setuptools.build_meta"
 
 # iSort
 [tool.isort]
@@ -7,15 +11,7 @@ skip = [ "env", "wandb", "runs", "build", "node_modules" ]
 
 # Pyright
 [tool.pyright]
-include = [
-    "bert/**",
-    "cifar/**",
-    "deeplab/**",
-    "llm/**",
-    "resnet/**",
-    "tests/**",
-]
-exclude = []
+exclude = ['env-**']
 stubPath = ""  # suppress useless 'stubPath is not a valid directory' errors
 
 reportUnnecessaryIsInstance = "warning"
@@ -51,8 +47,8 @@ reportUnusedCoroutine = "error"
 
 # Pytest
 [tool.pytest.ini_options]
-# By default, do not run remote tests
-addopts = "--tb=short"
+# By default, skip gpu tests
+addopts = "--tb=short -m 'not gpu'"
 
 markers = [
     # For distributed testing
@@ -61,6 +57,8 @@ markers = [
     "daily",
     # Whether the test will be reading data from a remote source, and may require credentials
     "remote",
+    # whether the test requires a gpu
+    "gpu",
 ]
 
 filterwarnings = [
