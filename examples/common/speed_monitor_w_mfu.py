@@ -223,6 +223,8 @@ class SpeedMonitorMFU(Callback):
         self.total_eval_wct = 0.0
 
         # Keep track of total device time
+        self.time = None
+        self.running_cost = 0.0
         self.device_time = 0.0
 
     def state_dict(self) -> Dict[str, Any]:
@@ -233,6 +235,7 @@ class SpeedMonitorMFU(Callback):
             'batch_num_samples_buffer': self.batch_num_samples_buffer,
             'total_eval_wct': self.total_eval_wct,
             'device_time': self.device_time,
+            'running_cost': self.running_cost,
         }
 
     def load_state_dict(self, state: Dict[str, Any]) -> None:
@@ -248,6 +251,7 @@ class SpeedMonitorMFU(Callback):
         )
         self.total_eval_wct = state['total_eval_wct']
         self.device_time = state['device_time']
+        self.running_cost = state['running_cost']
 
     def before_dataloader(self, state: State, logger: Logger) -> None:
         del logger  # unused
@@ -261,6 +265,9 @@ class SpeedMonitorMFU(Callback):
             if self.gpu_cost_per_hour is None:
                 self.gpu_cost_per_hour = gpu_cost_per_hour
 
+        if self.time is None:
+            self.time = state.timestamp.total_wct.total_seconds()
+
     def batch_end(self, state: State, logger: Logger):
         world_size = dist.get_world_size()
         batch_num_samples = int(
@@ -268,7 +275,9 @@ class SpeedMonitorMFU(Callback):
         batch_wct = state.timestamp.total_wct.total_seconds(
         ) - self.batch_start_wct
 
-        self.device_time += world_size * batch_wct
+        dt = state.timestamp.total_wct.total_seconds() - self.time
+        self.time = state.timestamp.total_wct.total_seconds()
+        self.device_time += world_size * dt
 
         # Add the new element
         self.batch_wct_buffer.append(batch_wct)
@@ -305,10 +314,9 @@ class SpeedMonitorMFU(Callback):
                 logger.log_metrics(
                     {'total_train_cost_estimate': train_cost_estimate})
 
-                logger.log_metrics({
-                    'running_cost':
-                        self.device_time / 3600 * self.gpu_cost_per_hour
-                })
+                # record running cost
+                self.running_cost += world_size * dt / 3600 * self.gpu_cost_per_hour
+                logger.log_metrics({'running_cost': self.running_cost})
 
             if isinstance(state.dataloader, DataLoader) and hasattr(
                     state.dataloader.dataset, 'max_seq_len'):
