@@ -27,7 +27,7 @@ def collate_fn(examples: dict):
     return {"image_tensor": image_tensor, "input_ids": input_ids}
 
 
-def build_image_caption_datapsec(name:str,
+def build_hf_image_caption_datapsec(name:str,
                                 resolution: int,
                                 tokenizer: callable,
                                 mean:list=[0.5],
@@ -40,18 +40,20 @@ def build_image_caption_datapsec(name:str,
                                 batch_size: int,
                                 drop_last: bool = True,
                                 shuffle: bool = True,
-                                seed: int = 1337,
                                 **dataloader_kwargs):
+    """
+    Args:
+        name (str):
+        resolution (int):
+        tokenizer ()
+    
+    """
     train_transforms = transforms.Compose([
-        transforms.Resize(resolution,
-                          interpolation=transforms.InterpolationMode.BILINEAR),
-        transforms.CenterCrop(resolution)
-        if center_crop else transforms.RandomCrop(resolution),
-        transforms.RandomHorizontalFlip()
-        if random_flip else transforms.Lambda(lambda x: x),
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std),
-    ])
+            transforms.Resize(resolution, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.CenterCrop(resolution) if center_crop else transforms.RandomCrop(resolution),
+            transforms.RandomHorizontalFlip() if random_flip else transforms.Lambda(lambda x: x),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)])
 
     def tokenize_captions(examples: dict,
                           tokenizer: callable = tokenizer,
@@ -114,7 +116,7 @@ def build_prompt_dataspec(prompts: list, batch_size: int, **dataloader_kwargs):
                                           sampler=sampler,
                                           drop_last=False,
                                           **dataloader_kwargs),
-                                          split_batch=split_list,
+                                        #   split_batch=split_list,
                                           get_num_samples_in_batch=lambda x: len(x))
     ds._num_microbatches_split_batch = split_list # hack to get auto gradient accumulation to work with list of strings.
     return ds

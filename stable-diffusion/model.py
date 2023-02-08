@@ -1,35 +1,38 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """Stable Diffusion ComposerModel."""
 
+import diffusers
 import torch
 import torch.nn.functional as F
 from composer.models import ComposerModel
-from torchmetrics import Metric, MetricCollection
-import diffusers
-from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel, LMSDiscreteScheduler
+from diffusers import (AutoencoderKL, DDPMScheduler, LMSDiscreteScheduler,
+                       UNet2DConditionModel)
 from diffusers.utils.import_utils import is_xformers_available
-from transformers import CLIPTextModel, CLIPTokenizer
+from torchmetrics import Metric, MetricCollection
 from tqdm.auto import tqdm
+from transformers import CLIPTextModel, CLIPTokenizer
 
 
 class StableDiffusion(ComposerModel):
-    """Latent diffusion conditioned on text prompts that are run through a pre-trained CLIP or LLM model. The CLIP outputs 
-    passed to as an additional input to our Unet during training and can later be used to guide the image generation process.
+    """A Latent diffusion model conditioned on text prompts that are run through a pre-trained CLIP or LLM model.
+    The CLIP outputs are then passed to as an additional input to our Unet during training and can later be used to guide the image generation process.
+
     Args:
-        unet: huggingface conditional unet, must accept a (B, C, H, W) input, (B,) timestep array of noise timesteps, and (B, 77, 768) text conditioning vectors.
-        vae: huggingface or compatible vae. must support `.encode()` and `decode()` functions.
+        unet: HuggingFace conditional unet, must accept a (B, C, H, W) input, (B,) timestep array of noise timesteps, and (B, 77, 768) text conditioning vectors.
+        vae: HuggingFace or compatible vae. must support `.encode()` and `decode()` functions.
         text_encoder: hugginface clip or llm.
-        tokenizer: tokenizer used for text_encoder. commonly clip tokenizer
-        noise_scheduler: huggingface diffusers noise scheduler.
+        tokenizer (~transformers.PreTrainedTokenizer): tokenizer used for text_encoder. For a `CLIPTextModel` this will be the `CLIPTokenizer` from HuggingFace transformers.
+        noise_scheduler: HuggingFace diffusers noise scheduler.
         loss_fn: torch loss function, Default: `F.mse_loss`.
         train_text_encoder(bool): It can be helpful to train the text encoder for fine-tuning. Default: `False`.
         prediction_type(str): `epsilon` or `v_prediction`. `v_prediction` is used in part of stable diffusion v2.1. see https://arxiv.org/pdf/2202.00512.pdf. Default: `None` (uses whatever the pretrained model used)
         train_metrics(list): list of torchmetrics to calculate during training. Default: `None`.
         val_metrics(list): list of torchmetrics to calculate during validation. Default: `None`.
         num_images_per_prompt (int, optional) — The number of images to generate per prompt. Default: `1`. Used during validation
-
     """
+
     def __init__(self,
                  unet: torch.nn.Module,
                  vae: torch.nn.Module,
@@ -93,34 +96,35 @@ class StableDiffusion(ComposerModel):
         conditioning = self.text_encoder(conditioning)[0]  # (batch_size, 77, 768)
 
         # Sample the diffusion timesteps
-        timesteps = torch.randint(0,len(self.noise_scheduler), (latents.shape[0], ), device=latents.device)
+        timesteps = torch.randint(0,
+                                  len(self.noise_scheduler),
+                                  (latents.shape[0],),
+                                  device=latents.device)
         # Add noise to the inputs (forward diffusion)
         noise = torch.randn_like(latents)
 
-        noised_latents = self.noise_scheduler.add_noise(
-            latents, noise, timesteps)
+        noised_latents = self.noise_scheduler.add_noise(latents, noise,
+                                                        timesteps)
 
         # Get the target for loss depending on the prediction type
-        if self.noise_scheduler.config.prediction_type == "epsilon":
+        if self.noise_scheduler.config.prediction_type == 'epsilon':
             target = noise
-        elif self.noise_scheduler.config.prediction_type == "v_prediction":
+        elif self.noise_scheduler.config.prediction_type == 'v_prediction':
             target = self.noise_scheduler.get_velocity(latents, noise,
                                                        timesteps)
         else:
             raise ValueError(
-                f"Unknown prediction type {self.noise_scheduler.config.prediction_type}"
+                f'Unknown prediction type {self.noise_scheduler.config.prediction_type}'
             )
         # Forward through the model
         return self.unet(noised_latents, timesteps,
                          conditioning)['sample'], target
 
     def loss(self, outputs, batch):
-        """loss between unet output and added noise, typically mse"""
+        """loss between unet output and added noise, typically mse."""
         return self.loss_fn(outputs[0], outputs[1])
 
     def eval_forward(self, batch, outputs=None):
-        if outputs:
-            return outputs
         return self.generate(batch)
 
     @torch.no_grad()
@@ -133,7 +137,7 @@ class StableDiffusion(ComposerModel):
                  negative_prompt: list = None,
                  num_images_per_prompt: int = None):
         """Generate images from noise using the backward diffusion process.
-            
+
         Args:
             prompt (str or List[str]) — The prompt or prompts to guide the image generation.
             height (int, optional, defaults to self.unet.config.sample_size * self.vae_scale_factor) — The height in pixels of the generated image.
@@ -147,7 +151,8 @@ class StableDiffusion(ComposerModel):
         batch_size = 1 if isinstance(prompt, str) else len(prompt)
 
         if negative_prompt:
-            negative_prompt_bs = 1 if isinstance(negative_prompt, str) else len(negative_prompt)
+            negative_prompt_bs = 1 if isinstance(negative_prompt,
+                                                 str) else len(negative_prompt)
             if negative_prompt_bs != batch_size:
                 raise ValueError(
                     f'len(prompts) and len(negative_prompts) must be the same. A negative prompt must be provided for each given prompt.'
@@ -160,30 +165,30 @@ class StableDiffusion(ComposerModel):
         device = self.vae.device
         # tokenize and encode text prompt
         text_input = self.tokenizer(prompt,
-                                    padding="max_length",
+                                    padding='max_length',
                                     max_length=self.tokenizer.model_max_length,
                                     truncation=True,
-                                    return_tensors="pt")
+                                    return_tensors='pt')
         text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0]
 
         # classifier free guidance + negative prompts
         # negative prompt is given in place of the unconditional input in classifier free guidance
-        unconditional_input = negative_prompt or ([""] * batch_size)
+        unconditional_input = negative_prompt or ([''] * batch_size)
 
         # tokenize + encode negative or uncoditional prompt
         unconditional_input = self.tokenizer(
             unconditional_input,
-            padding="max_length",
+            padding='max_length',
             max_length=self.tokenizer.model_max_length,
-            return_tensors="pt")
+            return_tensors='pt')
         unconditional_embeddings = self.text_encoder(
             unconditional_input.input_ids.to(device))[0]
 
         # duplicate text embeddings for each generation per prompt
         bs_embed, seq_len, _ = text_embeddings.shape
         text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
-        text_embeddings = text_embeddings.view(
-            bs_embed * num_images_per_prompt, seq_len, -1)
+        text_embeddings = text_embeddings.view(bs_embed * num_images_per_prompt,
+                                               seq_len, -1)
 
         # duplicate unconditional embeddings if we want to generate multiple images per prompt
         bs_embed, seq_len, _ = unconditional_embeddings.shape
@@ -193,8 +198,7 @@ class StableDiffusion(ComposerModel):
             bs_embed * num_images_per_prompt, seq_len, -1)
 
         # concat uncond + prompt
-        text_embeddings = torch.cat(
-            [unconditional_embeddings, text_embeddings])
+        text_embeddings = torch.cat([unconditional_embeddings, text_embeddings])
 
         # prepare for diffusion generation process
         latents = torch.randn(
@@ -215,9 +219,9 @@ class StableDiffusion(ComposerModel):
                 latent_model_input, t)
 
             # predict the noise residual
-            noise_pred = self.unet(
-                latent_model_input, t,
-                encoder_hidden_states=text_embeddings).sample
+            noise_pred = self.unet(latent_model_input,
+                                   t,
+                                   encoder_hidden_states=text_embeddings).sample
 
             # perform guidance
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
@@ -265,7 +269,12 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                  caption_key: str = 'input_ids'):
     """
     Args:
-        model_name_or_path(str): commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"
+        model_name_or_path (str): commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-1"
+        train_text_encoder (bool):
+        train_unet (bool):
+        num_images_per_promot (int):
+        image_key (str):
+
 
     """
     unet = UNet2DConditionModel.from_pretrained(model_name_or_path,
@@ -278,9 +287,9 @@ def build_stable_diffusion_model(model_name_or_path: str,
     noise_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
                                                     subfolder='scheduler')
     inference_scheduler = LMSDiscreteScheduler.from_pretrained(
-        model_name_or_path, subfolder="scheduler")
+        model_name_or_path, subfolder='scheduler')
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
-                                              subfolder="tokenizer")
+                                              subfolder='tokenizer')
     return StableDiffusion(unet=unet,
                            vae=vae,
                            text_encoder=text_encoder,

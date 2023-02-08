@@ -29,8 +29,8 @@ parameters:
       - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     std:
       - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
-    train_batch_size: 32    # total train batch size (2 per gpu with 8 gpus)
-    eval_batch_size: 32
+    global_train_batch_size: 32   # Training total batch size (4 per 40gb A100, 8 cards)
+    global_eval_batch_size: 32
     prompts:
       - "A Magestic Shiba Inu Doge wearing a blue sweater" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
       - "A cute bunny rabbit"

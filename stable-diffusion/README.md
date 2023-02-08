@@ -19,7 +19,7 @@
 </p>
 <br />
 
-This folder contains starter code for finetuning Stable Diffusion on the lambda labs pokemon dataset. You can finetune Stable Diffusion v1 or 2, save the model and generate your own pokemon, or swap out the dataset to adapt stable diffusion to your desired domain.
+This folder contains starter code for finetuning Stable Diffusion. You can easily finetune Stable Diffusion v1 or v2 on any available image-caption HuggingFace dataset, save the model, and generate your own images. Optionally, you can create your own dataset to adapt Stable Diffusion to your desired domain.
 
 
 # Quick Start
@@ -38,21 +38,24 @@ pip install -r requirements.txt
 ```
 composer main.py yamls/finetune.yaml
 ```
-## Try different configs
-The default config is in `yamls/finetune.yaml`
-try training for more iterations or with a different dataset and inspecting the results
 
 # Results
-Low learning rates and short training times seem to work best. Training longer can quickly lead to overfitting.
+The default config is `yamls/finetune.yaml`. It trains only the Unet portion of `Stable Diffusion v1-4` for `2000 batches` on the lambda labs `Pokemon` dataset. A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `200 batches`. 
 
-TODO: add some nice pictures here
+Results from the default config and the prompt  `"a magestic shiba inu doge wearing a blue sweater"`:
+<p align="center">
+  <picture>
+    <img alt="model outputs of a Shiba inu pokemon in a blue sweater" src="./assets/A_Magestic_Shiba_Inu_Doge_wearing_a_blue_sweater_2000_batches.png">
+  </picture>
+</p>
+
+Note: Low learning rates and short training times seem to work best. Training longer can quickly lead to overfitting.
 
 
+# To train on different data
+The `lambdalabs/pokemon` dataset was made with BLIP (a salesforce image captioning model) and uploaded to HuggingFace datasets. There are many other similar text-to-image datasets available on HuggingFace [here](https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color palettes such as spectrograms may require different normalization or pre-processing.
 
-# Train on different data
-The lambdalabs/pokemon dataset was made with BLIP (a salesforce image captioning model) and uploaded to huggingface datasets. There are many other similar text-to-image datasets available on huggingface [here](https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color pallets such as spectrograms may require different normalization or pre-processing.
-
-To add a non-huggingface dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations. 
+To add a non-HuggingFace dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_hf_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations. 
 
 # Using MCLOUD
 This example can be run with MCLOUD by configuring the `cluster` and `gpu_type` parameters in `yamls/mcloud_run.yaml` then running:

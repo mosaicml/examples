@@ -4,60 +4,39 @@
 
 import os
 import sys
-from typing import Dict
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 import torch
 from composer import Trainer
+from composer.utils import reproducibility
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import ConstantScheduler
 from composer.utils import dist
 
-from data import build_image_caption_datapsec, build_prompt_dataspec
+from data import build_hf_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from callbacks import LogDiffusionImages
+from common.builders import build_logger
+from common.logging_utils import log_config
 
 
-def build_logger(name: str, **kwargs: Any):
-    if name == 'progress_bar':
-        return ProgressBarLogger()
-    elif name == 'wandb':
-        return WandBLogger(**kwargs)
-    else:
-        raise ValueError(f'Not sure how to build logger: {name}')
 
-
-def log_config(cfg: DictConfig):
-    print(OmegaConf.to_yaml(cfg))
-    if 'wandb' in cfg.loggers:
-        try:
-            import wandb
-        except ImportError as e:
-            raise e
-        if wandb.run:
-            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
-
-
-def main(config):
-    if config.grad_accum == 'auto' and not torch.cuda.is_available():
-        raise ValueError(
-            'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
-        )
-    # Divide batch sizes by number of devices if running multi-gpu training
-    train_batch_size = config.dataset.train_batch_size
-    eval_batch_size = config.dataset.eval_batch_size
-
-    # Initialize dist to ensure dataset is only downloaded by rank 0
+def main(config: DictConfig):
+    reproducibility.seed_all(config.seed)
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
+    if config.grad_accum == 'auto' and not torch.cuda.is_available():
+        raise ValueError('grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer')
+    # Divide batch sizes by number of devices if running multi-gpu training
+    train_batch_size = config.dataset.global_train_batch_size
+    eval_batch_size = config.dataset.global_eval_batch_size
+
+    # If there is more than one device, initialize dist to ensure dataset 
+    # is only downloaded by rank 0 and divide global batch size by num devices
     if dist.get_world_size() > 1:
         dist.initialize_dist(device, timeout=180)
         train_batch_size //= dist.get_world_size()
-        train_batch_size = train_batch_size or 1
-
         eval_batch_size //= dist.get_world_size()
-        eval_batch_size = eval_batch_size or 1
 
     print('Building Composer model')
     model = build_stable_diffusion_model(
@@ -70,7 +49,7 @@ def main(config):
 
     # Train dataset
     print('Building dataloader')
-    train_dataspec = build_image_caption_datapsec(
+    train_dataspec = build_hf_image_caption_datapsec(
         name=config.dataset.name,
         resolution=config.dataset.resolution,
         tokenizer=model.tokenizer,
@@ -91,26 +70,20 @@ def main(config):
                                   lr=config.optimizer.lr,
                                   weight_decay=config.optimizer.weight_decay)
 
-    # Learning rate scheduler: LR warmup for 8 epochs, then cosine decay for the rest of training
+    # Constant LR for fine-tuning
     lr_scheduler = ConstantScheduler()
     print('Built optimizer and learning rate scheduler\n')
     
-    loggers = [
-        build_logger(name, logger_config)
-        for name, logger_config in config.loggers.items()
-    ]
+    loggers = [build_logger(name, logger_config) for name, logger_config in config.loggers.items()]
+    
     # Callbacks for logging
     print('Building Speed, LR, and Memory monitoring callbacks')
-    speed_monitor = SpeedMonitor(
-        window_size=50
-    )  # Measures throughput as samples/sec and tracks total training time
+    speed_monitor = SpeedMonitor(window_size=50)  # Measures throughput as samples/sec and tracks total training time
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
-
     image_logger = LogDiffusionImages()  # Logs images generated from prompts in the eval set
-
-    # Callback for checkpointing
     print('Built Speed, LR, and Memory monitoring callbacks\n')
+
 
     print('Building algorithms')
     if config.use_ema:
