@@ -63,4 +63,5 @@ class ComposerHFCausalLM(HuggingFaceModel):
             if batch.get('mode', None) == 'icl_task':
                 metric.update(batch, outputs, targets)
         else:
-            metric.update(outputs, targets)
+            if batch.get('mode', None) is None:
+                metric.update(outputs, targets)
