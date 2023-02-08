@@ -7,8 +7,8 @@ from composer.metrics.nlp import (HFCrossEntropy, LanguageCrossEntropy,
                                   Perplexity)
 from composer.models.huggingface import HuggingFaceModel
 from omegaconf import DictConfig
-from torch import Tensor
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from transformers.modeling_outputs import CausalLMOutput
 
 from examples.common.hf_fsdp import prepare_hf_causal_lm_model_for_fsdp
 
@@ -40,11 +40,11 @@ class ComposerHFCausalLM(HuggingFaceModel):
         targets[:, -1] = -100
         return targets
 
-    def forward(self, batch: dict):
+    def forward(self, batch: dict) -> CausalLMOutput:
         return self.model(input_ids=batch['input_ids'],
                           attention_mask=batch['attention_mask'].bool())
 
-    def loss(self, outputs: Tensor, batch: dict):
+    def loss(self, outputs: CausalLMOutput, batch: dict):
         logits = outputs.logits
         targets = self.get_targets(batch)
         return F.cross_entropy(logits.view(-1, logits.size(-1)),
