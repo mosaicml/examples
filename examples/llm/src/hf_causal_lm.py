@@ -3,10 +3,11 @@
 
 import torch
 import torch.nn.functional as F
-from composer.metrics.nlp import (HFCrossEntropy, LanguageCrossEntropy,
-                                  Perplexity)
+from composer.metrics.nlp import (HFCrossEntropy, InContextLearningMetric,
+                                  LanguageCrossEntropy, Perplexity)
 from composer.models.huggingface import HuggingFaceModel
 from omegaconf import DictConfig
+from torchmetrics import Metric
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 from transformers.modeling_outputs import CausalLMOutput
 
@@ -50,3 +51,14 @@ class ComposerHFCausalLM(HuggingFaceModel):
         return F.cross_entropy(logits.view(-1, logits.size(-1)),
                                targets.view(-1),
                                ignore_index=-100)
+
+    def update_metric(self, batch: dict, outputs: CausalLMOutput,
+                      metric: Metric) -> None:
+        logits = outputs.logits.view(-1, outputs.size(-1))
+        targets = self.get_targets(batch).view(-1)
+        if isinstance(metric, InContextLearningMetric) and batch.get(
+                'mode', None) == 'icl_task':
+            metric.update(batch, logits, targets)
+        else:
+            metric.update(logits,
+                          targets)  # pyright: ignore [reportGeneralTypeIssues]
