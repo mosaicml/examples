@@ -114,6 +114,9 @@ def main(config: DictConfig):
 
     print('Logging config')
     log_config(config)
+    
+    print('Eval!')
+    trainer.eval() # show outputs from model without fine-tuning.
 
     print('Train!')
     trainer.fit()
