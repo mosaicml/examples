@@ -8,7 +8,6 @@ from composer.metrics.nlp import (HFCrossEntropy, LanguageCrossEntropy,
 from composer.models.huggingface import HuggingFaceModel
 from omegaconf import DictConfig
 from torch import Tensor
-from torchmetrics import Metric
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.common.hf_fsdp import prepare_hf_causal_lm_model_for_fsdp
@@ -36,25 +35,18 @@ class ComposerHFCausalLM(HuggingFaceModel):
                          metrics=metrics,
                          use_logits=True)
 
-    # def get_targets(self, batch: dict):
-    #     targets = torch.roll(batch['labels'], shifts=-1)
-    #     targets[:, -1] = -100
-    #     return targets
+    def get_targets(self, batch: dict):
+        targets = torch.roll(batch['labels'], shifts=-1)
+        targets[:, -1] = -100
+        return targets
 
     def forward(self, batch: dict):
         return self.model(input_ids=batch['input_ids'],
                           attention_mask=batch['attention_mask'].bool())
 
-    # def eval_forward(self, batch: dict, outputs: Optional[Tensor] = None):
-    #     return outputs if outputs is not None else self.forward(batch)
-
-    # def loss(self, outputs: Tensor, batch: dict):
-    #     targets = self.get_targets(batch)
-    #     return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
-    #                            targets.view(-1),
-    #                            ignore_index=-100)
-
-    # def update_metric(self, batch: dict, outputs: Tensor, metric: Metric):
-    #     outputs = outputs.view(-1, outputs.size(-1))
-    #     targets = self.get_targets(batch).view(-1)
-    #     metric.update(outputs, targets)
+    def loss(self, outputs: Tensor, batch: dict):
+        logits = outputs.logits
+        targets = self.get_targets(batch)
+        return F.cross_entropy(logits.view(-1, logits.size(-1)),
+                               targets.view(-1),
+                               ignore_index=-100)
