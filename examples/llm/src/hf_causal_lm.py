@@ -10,7 +10,6 @@ from composer.metrics.nlp import (InContextLearningMetric, LanguageCrossEntropy,
 from composer.models.huggingface import HuggingFaceModel
 from omegaconf import DictConfig
 from torch import Tensor
-from torchmetrics import Metric
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.common.hf_fsdp import prepare_hf_causal_lm_model_for_fsdp
