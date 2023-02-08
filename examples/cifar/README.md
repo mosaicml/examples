@@ -29,7 +29,7 @@ This folder contains starter code for training a CIFAR ResNet architecture. You 
 
 # Overview
 
-The specific files in this folder are:
+The files in this folder are:
 * `model.py` - Creates a [ComposerModel](https://docs.mosaicml.com/en/stable/composer_model.html) from a CIFAR ResNet model defined in the script
 * `data.py` - Creates either a Torchvision dataset or a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) for CIFAR10
 * `main.py` - Trains a CIFAR ResNet on CIFAR10 using the [Composer](https://github.com/mosaicml/composer) [Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#trainer)
@@ -51,7 +51,7 @@ Here's what you need to start training:
     * CUDA Version: 11.6
     * Python Version: 3.9
     * Ubuntu Version: 20.04
-  * System with NVIDIA GPUs
+* System with NVIDIA GPUs
 
 # Installation
 

@@ -11,7 +11,7 @@ It currently features the following examples:
 
 # Installation
 
-To get started, either clone or fork this repo and install whichever example\[s\] you're interested in. E.g., to get started training GPT-style language models, just:
+To get started, either clone or fork this repo and install whichever example\[s\] you're interested in. E.g., to get started training GPT-style Large Language Models, just:
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
@@ -19,6 +19,8 @@ cd examples
 pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
 cd examples/llm
 ```
+
+Available examples include `bert`, `cifar`, `llm`, and `resnet`.
 
 # Extending an example
 
@@ -43,7 +45,7 @@ and instead write:
 opt = builders.build_optimizer(cfg.optimizer, model)
 ```
 
-with all the if-elif logic wrapped in this reusable function. You can easily extend these functions to include new options; e.g., to add an optimizer, you could extend `build_optimizer` in [common/builders.py](./examples/common/builders.py) to import and construct your optimizer.
+with all the if-elif logic wrapped in this reusable function. You can easily extend these functions to include new options; e.g., to add an optimizer, you could extend [`build_optimizer`](./examples/common/builders.py) to import and construct your optimizer.
 
 If you run into any issues extending the code, or just want to discuss an idea you have, please open an [issue](https://github.com/mosaicml/examples/issues/new) or join our [community Slack](https://join.slack.com/t/mosaicml-community/shared_invite/zt-1btms90mc-GipE2ufuPkKY0QBrmF3LSA)!
 
@@ -68,7 +70,7 @@ This repo features the following examples, each as their own subdirectory:
 
 *Figure 1: Comparison of MosaicML recipes against other results, all measured on 8x A100s on MosaicML Cloud.*
 
-Train the MosaicML ResNet, the fastest ResNet50 implementation that yields a :sparkles: 7x :sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-resnet) for more details and recipes. Our recipes were also demonstrated at [MLPerf](https://www.mosaicml.com/blog/mlperf-2022), a cross industry ML benchmark.
+Train the [MosaicML ResNet](https://www.mosaicml.com/blog/mosaic-resnet), which is currently the [fastest ResNet50 implementation there is](https://www.mosaicml.com/blog/mlperf-2022) and yields a :sparkles: 7x :sparkles: faster time-to-train than a strong baseline.
 
 :rocket: Get started with the code [here](./examples/resnet/).
 
@@ -76,7 +78,7 @@ Train the MosaicML ResNet, the fastest ResNet50 implementation that yields a :sp
 ## DeepLabV3 + ADE20k
 <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/637512d993030157b04ad4f8_Frame%2010%20(1).png" alt="drawing" width="500"/>
 
-Train the MosaicML DeepLabV3 that yields a :sparkles:5x:sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-image-segmentation) for more details and recipes.
+Train the [MosaicML DeepLabV3](https://www.mosaicml.com/blog/mosaic-image-segmentation), which yields a :sparkles:5x:sparkles: faster time-to-train than a strong baseline.
 
 :rocket: Get started with the code [here](./examples/deeplab/).
 
@@ -88,7 +90,7 @@ Train the MosaicML DeepLabV3 that yields a :sparkles:5x:sparkles: faster time-to
   <img alt="Training curves for various LLM sizes." src="./examples/llm/assets/loss-curve-light.png" width=500px>
 </picture>
 
-A simple yet feature complete implementation of GPT, that scales to 70B parameters while maintaining high performance on GPU clusters. Flexible code, written with vanilla PyTorch, that uses [PyTorch FSDP](https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/) and some recent efficiency improvements.
+A simple yet feature-complete implementation of GPT, which scales to 70B parameters while maintaining high performance on GPU clusters. Flexible code, written with vanilla PyTorch, that uses [PyTorch FSDP](https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/) and some recent efficiency improvements.
 
 :rocket: Get started with the code [here](./examples/llm/).
 
