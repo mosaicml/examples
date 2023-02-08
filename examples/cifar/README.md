@@ -38,7 +38,7 @@ The files in this folder are:
   * `resnet56.yaml` - Configuration for a CIFAR ResNet56 training run, to be used as the first argument to `main.py`
   * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
 
-Now that you have explored the code, let's jump into the prerequisites for training.
+Now that you've explored the code, let's get training.
 
 # Get Started With the MosaicML Cloud
 
@@ -84,7 +84,8 @@ If you're not using the MosaicML cloud, here's what you need to start training:
 
 ## Installation
 
-To get started, clone this repo and install the requirements:
+Just clone this repo and install the requirements. If you want to customize the
+code, first fork this repo on GitHub and clone your fork instead.
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
