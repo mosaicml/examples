@@ -15,6 +15,10 @@ class LogDiffusionImages(Callback):
 
     Requires Weights and Biases to be installed and setup.
     """
+    def eval_start(self, state: State, logger: Logger) -> None:
+        print('batch at eval start', state.batch)
+        
+
     def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch  # batch_size
         outputs = state.outputs.cpu()  # Tensor of shape [len(prompts) * num_images_per_prompt, 3, 512, 512]
