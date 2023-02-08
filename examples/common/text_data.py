@@ -183,14 +183,14 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
         batch_size=device_batch_size)
 
-    mlm_rate_schedule = cfg.get('mlm_rate_schedule', None)
+    mlm_schedule = cfg.get('mlm_schedule', None)
     dist_mlm_probability = None
-    if mlm_rate_schedule:
+    if mlm_schedule:
         dist_mlm_probability = multiprocessing.Value(
-            "d", mlm_rate_schedule.initial_mlm_rate)
+            "d", mlm_schedule.initial_mlm_rate)
     collate_fn = ScheduledDataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer,
-        mlm=mlm_rate_schedule is not None,
+        mlm=mlm_schedule is not None,
         dist_mlm_probability=dist_mlm_probability)
     print(dist_mlm_probability, "dist_mlm_probability in build_text_dataloader")
     return DataLoader(
