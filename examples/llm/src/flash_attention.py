@@ -14,11 +14,6 @@ import torch.nn as nn
 from einops import rearrange  # type: ignore (reportMissingImports)
 from torch import Tensor
 
-try:
-    from examples.llm.src.flash_attn_triton import flash_attn_qkvpacked_func
-except ImportError as e:
-    raise e
-
 
 class FlashAttention(nn.Module):
     """Implement the scaled dot product attention with softmax.
@@ -30,6 +25,16 @@ class FlashAttention(nn.Module):
     """
 
     def __init__(self, num_heads, softmax_scale=None, device=None, dtype=None):
+        # fail fast if triton is not available
+        try:
+            from flash_attn import flash_attn_triton  # type: ignore
+
+            del flash_attn_triton
+        except ImportError:
+            raise ImportError(
+                'examples was installed without flash attention + triton support. Please make sure you are in an environment with CUDA available and pip install .[llm]'
+            )
+
         super().__init__()
         self.num_heads = num_heads
         self.softmax_scale = softmax_scale
@@ -69,6 +74,8 @@ class FlashAttention(nn.Module):
                 heads. Otherwise, ``attn_weights`` are provided separately per head. Note that this flag only has an
                 effect when ``need_weights=True``. Default: ``True`` (i.e. average weights across heads)
         """
+        from flash_attn import flash_attn_triton  # type: ignore
+
         assert not need_weights and not average_attn_weights
         assert qkv.dtype in [torch.float16, torch.bfloat16]
         assert qkv.is_cuda
@@ -79,8 +86,8 @@ class FlashAttention(nn.Module):
                 f'assumes key_padding_mask is taken care of by attn_mask')
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_heads)
 
-        attn_output = flash_attn_qkvpacked_func(qkv, attn_mask, is_causal,
-                                                self.softmax_scale)
+        attn_output = flash_attn_triton.flash_attn_qkvpacked_func(
+            qkv, attn_mask, is_causal, self.softmax_scale)
         output = rearrange(attn_output, 'b s h d -> b s (h d)')
         return output, None
 
