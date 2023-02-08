@@ -412,13 +412,13 @@ class BertEncoder(nn.Module):
         # The alibi mask will be dynamically expanded if it is too small for
         # the input the model receives. But it generally helps to initialize it
         # to a reasonably large size to help pre-allocate CUDA memory.
-        # We initialize it here to handle any sequences up to 512 tokens.
-        self.alibi = self.build_alibi_tensor(self.num_attention_heads, size=512)
-        self._current_alibi_size = 512
+        # The default `alibi_starting_size` is 512.
+        self._current_alibi_size = int(config.alibi_starting_size)
+        self.alibi = None  # About to overwritten in the next line
+        self.rebuild_alibi_tensor(size=config.alibi_starting_size)
 
-    @staticmethod
-    def build_alibi_tensor(
-            n_heads: int,
+    def rebuild_alibi_tensor(
+            self,
             size: int,
             device: Optional[Union[torch.device, str]] = None) -> torch.Tensor:
         # Alibi
@@ -426,6 +426,8 @@ class BertEncoder(nn.Module):
         # In the causal case, you can exploit the fact that softmax is invariant to a uniform translation
         # of the logits, which makes the math work out *after* applying causal masking. If no causal masking
         # will be applied, it is necessary to construct the diagonal mask.
+        n_heads = self.num_attention_heads
+
         def _get_alibi_head_slopes(n_heads: int) -> List[float]:
 
             def get_slopes_power_of_2(n_heads: int) -> List[float]:
@@ -457,7 +459,9 @@ class BertEncoder(nn.Module):
         # [1, n_heads, max_token_length, max_token_length]
         alibi = alibi.unsqueeze(0)
         assert alibi.shape == torch.Size([1, n_heads, size, size])
-        return alibi
+
+        self._current_alibi_size = size
+        self.alibi = alibi
 
     def forward(
         self,
@@ -466,9 +470,6 @@ class BertEncoder(nn.Module):
         output_all_encoded_layers: Optional[bool] = True,
         subset_mask: Optional[torch.Tensor] = None,
     ) -> List[torch.Tensor]:
-        all_encoder_layers = []
-        batch = None
-        seqlen = None
 
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
         extended_attention_mask = extended_attention_mask.to(
@@ -477,27 +478,29 @@ class BertEncoder(nn.Module):
 
         attention_mask_bool = attention_mask.bool()
         batch, seqlen = hidden_states.shape[:2]
-        # Unpad inputs and mask. It will remove tokens that are padded. Assume ntokens is total number of tokens
-        # (padded and non-padded) and ntokens_unpad is total number of non-padded tokens.
+        # Unpad inputs and mask. It will remove tokens that are padded.
+        # Assume ntokens is total number of tokens (padded and non-padded)
+        # and ntokens_unpad is total number of non-padded tokens.
         # Then unpadding performs the following compression of the inputs:
-        #        hidden_states[ntokens,hidden] -> hidden_states[ntokens_unpad,hidden]
+        # hidden_states[ntokens,hidden] -> hidden_states[ntokens_unpad,hidden]
         hidden_states, indices, cu_seqlens, _ = unpad_input(
             hidden_states, attention_mask_bool)
 
         # Add alibi matrix to extended_attention_mask
         if self._current_alibi_size < seqlen:
-            # Build/rebuild the alibi tensor if needed
-            self.alibi = self.build_alibi_tensor(
-                n_heads=self.num_attention_heads,
-                size=seqlen,
-                device=hidden_states.device)
-            self._current_alibi_size = int(seqlen)
+            # Rebuild the alibi tensor when needed
+            warnings.warn(
+                f'Increasing alibi size from {self._current_alibi_size} to {seqlen}'
+            )
+            self.rebuild_alibi_tensor(size=seqlen, device=hidden_states.device)
         elif self.alibi.device != hidden_states.device:
             # Device catch-up
             self.alibi = self.alibi.to(hidden_states.device)
-        alibi_bias = self.alibi[:, :, :seqlen, :seqlen]  # type: ignore
-        alibi_attn_mask = extended_attention_mask[:, :, :, :seqlen] + alibi_bias
+        alibi_bias = self.alibi[:, :, :seqlen, :seqlen]
+        attn_bias = extended_attention_mask[:, :, :seqlen, :seqlen]
+        alibi_attn_mask = attn_bias + alibi_bias
 
+        all_encoder_layers = []
         if subset_mask is None:
             for layer_module in self.layer:
                 hidden_states = layer_module(hidden_states,
@@ -509,10 +512,11 @@ class BertEncoder(nn.Module):
                                              bias=alibi_attn_mask)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
-            # Pad inputs and mask. It will insert back zero-padded tokens. Assume ntokens is total number of tokens
-            # (padded and non-padded) and ntokens_unpad is total number of non-padded tokens.
+            # Pad inputs and mask. It will insert back zero-padded tokens.
+            # Assume ntokens is total number of tokens (padded and non-padded)
+            # and ntokens_unpad is total number of non-padded tokens.
             # Then padding performs the following de-compression:
-            #        hidden_states[ntokens_unpad,hidden] -> hidden_states[ntokens,hidden]
+            #     hidden_states[ntokens_unpad,hidden] -> hidden_states[ntokens,hidden]
             hidden_states = pad_input(hidden_states, indices, batch, seqlen)
         else:
             for i in range(len(self.layer) - 1):
