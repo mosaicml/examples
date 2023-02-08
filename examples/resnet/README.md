@@ -241,6 +241,7 @@ The ResNet50 and smaller models are dataloader-bottlenecked when training with o
 Our best results use FFCV, so an FFCV version of ImageNet is required to exactly match our best results.
 
 ---
+
 ## Saving and loading checkpoints
 
 At the bottom of [`yamls/resnet50.yaml`](./yamls/resnet50.yaml), we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!

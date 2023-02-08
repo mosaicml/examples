@@ -9,7 +9,7 @@ It currently features the following examples:
 * [GPT / Large Language Models](#large-language-models-llms)
 * [BERT](#bert)
 
-# Installation
+## Installation
 
 To get started, either clone or fork this repo and install whichever example\[s\] you're interested in. E.g., to get started training GPT-style Large Language Models, just:
 
@@ -22,7 +22,7 @@ cd examples/llm
 
 Available examples include `bert`, `cifar`, `llm`, and `resnet`.
 
-# Extending an example
+## Extending an example
 
 Each example provides a short `main.py` that constructs a `Trainer` object and all of the arguments to it. There are three easy ways to extend an example:
 
@@ -49,7 +49,7 @@ with all the if-elif logic wrapped in this reusable function. You can easily ext
 
 If you run into any issues extending the code, or just want to discuss an idea you have, please open an [issue](https://github.com/mosaicml/examples/issues/new) or join our [community Slack](https://join.slack.com/t/mosaicml-community/shared_invite/zt-1btms90mc-GipE2ufuPkKY0QBrmF3LSA)!
 
-# Tests and Linting
+## Tests and Linting
 
 If you already have the dependencies for a given example installed, you can just run:
 ```bash
@@ -60,6 +60,24 @@ pytest tests/  # run tests
 from the example's directory.
 
 To run the full suite of tests for all examples, invoke `make test` in the project's root directory. Similarly, invoke `make lint` to autoformat your code and detect type issues throughout the whole codebase. This is much slower than linting or testing just one example because it installs all the dependencies for each example from scratch in a fresh virtual environment.
+
+## Overriding Arguments
+These examples use [`OmegaConf`](https://github.com/omry/omegaconf) to manage configuration. OmegaConf allows us to make configuration explicit via separate YAML files while also allowing rapid experimentation and easy command line override. There's no special language or format for these configurations; they're just a convenient way of writing out a dictionary that gets used in each `main.py` file.
+
+Here's a simple example. Let's say you have this YAML config file:
+```yaml
+a: 1
+nested:
+    foo: bar
+```
+and we run:
+```bash
+python script.py c=cat nested.foo=different
+```
+The `main.py` file will end up with:
+```json
+{'a': 1, 'b': 'baz', 'c': 'cat', 'nested': 'different'}
+```
 
 # Examples
 
