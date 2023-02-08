@@ -50,6 +50,8 @@ class MLMRateSetter(Callback):
 
     def run_event(self, event: Event, state: State, logger: Logger):
         if event == Event.BATCH_END:
+            print(self.scheduler(state), "schedule multiple")
+            print(self.initial_mlm_rate, "initial multiple")
             mlm_rate = self.scheduler(state) * self.initial_mlm_rate
 
             self.dynamic_mlm_rate.value = mlm_rate
@@ -73,7 +75,7 @@ def build_mlm_scheduler_callback(cfg, distributed_mlm_rate: Value):
     else:
         raise ValueError(
             f'Not sure how to build masking rate scheduler: {cfg.name}')
-    print(distributed_mlm_rate, "mlm dist rate")
+
     return MLMRateSetter(mlm_schedule,
                          initial_mlm_rate=initial_mlm_rate,
                          dynamic_mlm_rate=distributed_mlm_rate)

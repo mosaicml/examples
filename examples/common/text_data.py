@@ -183,7 +183,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
         batch_size=device_batch_size)
 
-    print(cfg, "cfg in build_text_dataloader")
     mlm_schedule = cfg.dataset.get('mlm_schedule', None)
     dist_mlm_probability = None
     if mlm_schedule:
@@ -193,7 +192,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         tokenizer=dataset.tokenizer,
         mlm=mlm_schedule is not None,
         dist_mlm_probability=dist_mlm_probability)
-    print(dist_mlm_probability, "dist_mlm_probability in build_text_dataloader")
     return DataLoader(
         dataset,
         collate_fn=collate_fn,
