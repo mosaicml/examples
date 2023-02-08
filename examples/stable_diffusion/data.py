@@ -62,7 +62,6 @@ def build_hf_image_caption_datapsec(name: str,
         shuffle (bool): Whether to shuffle the dataset. Default: ``True``.
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the
             dataloader (e.g. num_workers, etc.)
-
     """
     train_transforms = transforms.Compose([
         transforms.Resize(resolution,
@@ -104,8 +103,13 @@ def build_hf_image_caption_datapsec(name: str,
         examples['input_ids'] = tokenize_captions(examples)
         return examples
 
-    with dist.run_local_rank_zero_first():
+    if dist.get_world_size() > 1:
+        dist.initialize_dist()
+        with dist.run_local_rank_zero_first():
+            dataset = load_dataset(name, split='train')
+    else:
         dataset = load_dataset(name, split='train')
+
 
     # add image_tensor and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)

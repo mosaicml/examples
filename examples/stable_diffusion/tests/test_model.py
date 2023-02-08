@@ -4,11 +4,12 @@ import pytest
 
 
 @pytest.mark.parametrize('model_name', ["CompVis/stable-diffusion-v1-4", "stabilityai/stable-diffusion-2-1"])
-def test_model_builder(model_name, num_classes):
-    model = build_stable_diffusion_model(model_name, num_classes)
+def test_model_builder(model_name):
+    model = build_stable_diffusion_model(model_name)
+    batch_size = 1
+    image = torch.randn(batch_size, 3, 64, 64)
+    caption = torch.randint(low=0, high=128, size=(batch_size, 77,), dtype=torch.long)
 
-    rand_input = torch.randn(1, 3, 64, 64)
-    rand_label = torch.randint(0, num_classes - 1, (1,))
-    output = model((rand_input, rand_label))
-    assert output.shape == (1, num_classes)
-    assert output.dtype == torch.float
+    batch = {'image_tensor': image, 'input_ids': caption}
+    output = model(batch)
+    print(output)

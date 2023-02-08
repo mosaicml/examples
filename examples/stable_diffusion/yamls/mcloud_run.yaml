@@ -7,9 +7,9 @@ integrations:
 - integration_type: git_repo
   git_repo: a-jacobson/examples
   git_branch: stable-diffusion-finetune
+  pip_install: .[stable_diffusion]
 command: |
   cd examples/examples/stable_diffusion
-  pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
