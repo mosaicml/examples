@@ -65,16 +65,19 @@ class StreamingTextDataset(StreamingDataset):
                  validate_hash: Optional[str] = None,
                  shuffle_seed: int = 9176,
                  num_canonical_nodes: Optional[int] = None,
-                 batch_size: Optional[int] = None):
+                 batch_size: Optional[int] = None,
+                 **kwargs):
 
         # Validation
-        warning_msg = textwrap.dedent("""\
-            The group_method argument is deprecated and will be removed in the future.
-             Using it makes the dataloader have no length and prevents deterministic resumption.
-             It is also no longer needed, because concatenation can happen when we create
-             the dataset in create_c4.py.
-            """)
-        warnings.warn(DeprecationWarning(warning_msg))
+        if 'group_method' in kwargs:
+            warnings.warn(
+                DeprecationWarning(
+                    textwrap.dedent("""\
+                The group_method argument is deprecated and will be removed in the future.
+                Using it makes the dataloader have no length and prevents deterministic resumption.
+                It is also no longer needed, because concatenation can happen when we create
+                the dataset in create_c4.py.
+                """)))
 
         if group_method not in ['truncate', 'concat']:
             raise ValueError(
