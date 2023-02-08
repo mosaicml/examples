@@ -86,6 +86,9 @@ def build_dataloader(cfg, device_batch_size):
 
 
 def build_icl_evaluators(cfg, tokenizer):
+    evaluators = []
+    logger_keys = []
+
     def _validate_cfg(icl_cfg):
         assert 'dataset_uri' in icl_cfg and icl_cfg.dataset_uri is not None
         assert 'icl_task_type' in icl_cfg
@@ -97,8 +100,6 @@ def build_icl_evaluators(cfg, tokenizer):
         assert 'continuation_delimiter' in icl_cfg
         assert 'label' in icl_cfg
 
-    evaluators = []
-    logger_keys = []
     for icl_cfg in cfg.icl_tasks:
         _validate_cfg(icl_cfg)
         for num_fewshot in list(icl_cfg.num_fewshot):
