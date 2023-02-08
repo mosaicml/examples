@@ -32,6 +32,10 @@ parameters:
     # load_path: ADD YOUR OWN CHECKPOINT
     config_path: ../yamls/mosaic_gpt/1b.yaml
 
+  # FSDP config for model sharding
+  fsdp_config:
+    sharding_strategy: FULL_SHARD
+
   icl_tasks:
   -
     label: piqa
