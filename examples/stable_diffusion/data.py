@@ -109,7 +109,6 @@ def build_hf_image_caption_datapsec(name: str,
     else:
         dataset = load_dataset(name, split='train')
 
-
     # add image_tensor and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)
     sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
@@ -130,27 +129,13 @@ def build_prompt_dataspec(prompts: list[str], batch_size: int, **dataloader_kwar
     """
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
-
-    # def split_list(l, microbatch_size: int):  # needed for gradient accumulation
-    #     if len(l) < microbatch_size:
-    #         microbatch_size = len(l)
-    #     num_microbatches = math.ceil(len(l) / microbatch_size)
-    #     # Note: this is to match the behavior of tensor.chunk, which is used in _split_tensor
-    #     chunked_microbatch_size = math.ceil(len(l) / num_microbatches)
-    #     return [
-    #         l[start:start + chunked_microbatch_size]
-    #         for start in range(0, len(l), chunked_microbatch_size)
-    #     ]
-
     ds = DataSpec(
         dataloader=DataLoader(dataset=dataset,
                               batch_size=batch_size,
                               sampler=sampler,
                               drop_last=False,
-                              **dataloader_kwargs))
-        #   split_batch=split_list,
-        # get_num_samples_in_batch=lambda x: len(x))
-    # ds._num_microbatches_split_batch = split_list  # hack to get auto gradient accumulation to work with list of strings.
+                              **dataloader_kwargs),
+        get_num_samples_in_batch=lambda x: len(x)) # composer will handle strings in the future.
     return ds
 
 
