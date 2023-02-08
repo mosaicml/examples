@@ -19,7 +19,6 @@ gpu_type: a100_80gb
 cluster: r0z0 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
-# but is not used in this example.
 parameters:
   tokenizer:
     type: hftokenizer
