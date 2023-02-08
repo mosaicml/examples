@@ -28,7 +28,7 @@ class FlashAttention(nn.Module):
         # fail fast if triton is not available
         try:
             from flash_attn import \
-                flash_attn_triton  # type: ignore (reportMissingImports)
+                flash_attn_triton  # type: ignore (reportMissingImports) # yapf: disable
             del flash_attn_triton
         except ImportError:
             raise ImportError(
