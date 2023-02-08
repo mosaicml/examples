@@ -137,10 +137,10 @@ class ShardedC4(IterableDataset):
         # the aggregate device batch size
         # If not using workers, the torch DataLoader expects the default value for prefetch_factor,
         # which non-intuitively must be 2.
-        prefetch_factor = max(1, 2 * batch_size //
+        prefetch_factor = max(1, 2 * self.batch_size //
                               num_workers) if num_workers > 0 else 2
 
-        self.loader = DataLoader(
+        self.loader = DataLoader(  # type: ignore
             dataset=self.dataset,
             sampler=None,
             batch_size=self.batch_size,
