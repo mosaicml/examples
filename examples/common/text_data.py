@@ -192,7 +192,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         tokenizer=dataset.tokenizer,
         mlm=mlm_rate_schedule is not None,
         dist_mlm_probability=dist_mlm_probability)
-
+    print(dist_mlm_probability, "dist_mlm_probability in build_text_dataloader")
     return DataLoader(
         dataset,
         collate_fn=collate_fn,
