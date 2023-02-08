@@ -222,10 +222,11 @@ class SpeedMonitorMFU(Callback):
         # Keep track of time spent evaluating
         self.total_eval_wct = 0.0
 
-        # Keep track of total device time
-        self.time = None
+        # Keep track of total time, total device time, and jobs running cost
+        self.time = 0.0
+        self.total_time = 0.0
+        self.total_device_time = 0.0
         self.running_cost = 0.0
-        self.device_time = 0.0
 
     def state_dict(self) -> Dict[str, Any]:
         return {
@@ -234,7 +235,8 @@ class SpeedMonitorMFU(Callback):
             'batch_wct_buffer': self.batch_wct_buffer,
             'batch_num_samples_buffer': self.batch_num_samples_buffer,
             'total_eval_wct': self.total_eval_wct,
-            'device_time': self.device_time,
+            'total_time': self.total_time,
+            'total_device_time': self.total_device_time,
             'running_cost': self.running_cost,
         }
 
@@ -250,34 +252,41 @@ class SpeedMonitorMFU(Callback):
             maxlen=self.window_size,
         )
         self.total_eval_wct = state['total_eval_wct']
-        self.device_time = state['device_time']
+
+        self.total_time = state['total_time']
+        self.total_device_time = state['total_device_time']
         self.running_cost = state['running_cost']
+
+    def init(self, state: State, logger: Logger):
+        self.time = state.timestamp.total_wct.total_seconds()
+
+        gpu_flops_available, gpu_cost_per_hour = get_gpu_info(state)
+        if self.gpu_flops_available is None:
+            self.gpu_flops_available = gpu_flops_available
+        if self.gpu_cost_per_hour is None:
+            self.gpu_cost_per_hour = gpu_cost_per_hour
 
     def before_dataloader(self, state: State, logger: Logger) -> None:
         del logger  # unused
         self.batch_start_wct = state.timestamp.total_wct.total_seconds()
         self.batch_start_num_samples = int(state.timestamp.sample)
 
-        if self.gpu_flops_available is None or self.gpu_cost_per_hour is None:
-            gpu_flops_available, gpu_cost_per_hour = get_gpu_info(state)
-            if self.gpu_flops_available is None:
-                self.gpu_flops_available = gpu_flops_available
-            if self.gpu_cost_per_hour is None:
-                self.gpu_cost_per_hour = gpu_cost_per_hour
-
-        if self.time is None:
-            self.time = state.timestamp.total_wct.total_seconds()
-
     def batch_end(self, state: State, logger: Logger):
         world_size = dist.get_world_size()
+        dt = state.timestamp.total_wct.total_seconds() - self.time
+        self.time = state.timestamp.total_wct.total_seconds()
+        self.total_time += dt
+        self.total_device_time += world_size * dt
+
+        if self.gpu_cost_per_hour:
+            # record running cost
+            self.running_cost += world_size * dt / 3600 * self.gpu_cost_per_hour
+            logger.log_metrics({'running_cost': self.running_cost})
+
         batch_num_samples = int(
             state.timestamp.sample) - self.batch_start_num_samples
         batch_wct = state.timestamp.total_wct.total_seconds(
         ) - self.batch_start_wct
-
-        dt = state.timestamp.total_wct.total_seconds() - self.time
-        self.time = state.timestamp.total_wct.total_seconds()
-        self.device_time += world_size * dt
 
         # Add the new element
         self.batch_wct_buffer.append(batch_wct)
@@ -314,10 +323,6 @@ class SpeedMonitorMFU(Callback):
                 logger.log_metrics(
                     {'total_train_cost_estimate': train_cost_estimate})
 
-                # record running cost
-                self.running_cost += world_size * dt / 3600 * self.gpu_cost_per_hour
-                logger.log_metrics({'running_cost': self.running_cost})
-
             if isinstance(state.dataloader, DataLoader) and hasattr(
                     state.dataloader.dataset, 'max_seq_len'):
                 max_seq_len = state.dataloader.dataset.max_seq_len  # type: ignore
@@ -350,12 +355,18 @@ class SpeedMonitorMFU(Callback):
         logger.log_metrics({
             'wall_clock/train': state.timestamp.total_wct.total_seconds(),
             'wall_clock/val': self.total_eval_wct,
-            'wall_clock/total':
-                (state.timestamp.total_wct.total_seconds() + self.total_eval_wct
-                ),
-            'wall_clock/device_time': self.device_time,
+            'wall_clock/total': self.total_time,
+            'wall_clock/total_device_time': self.total_device_time,
         })
 
     def eval_end(self, state: State, logger: Logger):
         del logger  # unused
-        self.total_eval_wct += state.eval_timestamp.total_wct.total_seconds()
+
+        world_size = dist.get_world_size()
+        eval_time = state.eval_timestamp.total_wct.total_seconds()
+
+        self.total_eval_wct += eval_time
+        self.total_time += eval_time
+        self.total_device_time += world_size * eval_time
+        if self.gpu_cost_per_hour:
+            self.running_cost += world_size * eval_time / 3600 * self.gpu_cost_per_hour
