@@ -35,7 +35,7 @@ parameters:
   tokenizer_name: &tokenizer_name bert-base-uncased
 
   # Run Name
-  run_name: schedule-constant-{train_loader.dataset.mlm_schedule.initial_mlm_rate}-{train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-{seed}
+  run_name: schedule-constant-{parameters.train_loader.dataset.mlm_schedule.initial_mlm_rate}-{parameters.train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-{parameters.seed}
 
   # Model
   model:

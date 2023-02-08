@@ -73,7 +73,7 @@ def build_mlm_scheduler_callback(cfg, distributed_mlm_rate: Value):
     else:
         raise ValueError(
             f'Not sure how to build masking rate scheduler: {cfg.name}')
-
+    print(distributed_mlm_rate, "mlm dist rate")
     return MLMRateSetter(mlm_schedule,
                          initial_mlm_rate=initial_mlm_rate,
                          dynamic_mlm_rate=distributed_mlm_rate)
@@ -93,9 +93,7 @@ class ScheduledDataCollatorForLanguageModeling(
 
     @property
     def mlm_probability(self):
-        if self.dist_mlm_probability:
-            return self.dist_mlm_probability.value
-        return None
+        return self.dist_mlm_probability.value
 
     @mlm_probability.setter
     def mlm_probability(self, _):
