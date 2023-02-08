@@ -129,7 +129,7 @@ class ShardedC4(IterableDataset):
     def _build_loader(self) -> None:
         # Multiple workers is only supported on linux machines
         if 'linux' in platform.platform().lower():
-            num_workers = min(64, self.dataset.num_shards())  # type: ignore
+            num_workers = min(64, self.num_shards())  # type: ignore
         else:
             num_workers = 0
 
