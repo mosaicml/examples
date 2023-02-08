@@ -35,6 +35,12 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
         self.z_loss = float(z_loss)
         assert self.z_loss >= 0.0
 
+    #### TEMPORARY ####
+    def forward(self, batch):
+        return self.model(**batch)
+
+    #### TEMPORARY ####
+
     def loss(self, outputs, batch):
         if self.config.use_return_dict:
             loss, logits = outputs['loss'], outputs['logits']
