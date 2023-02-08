@@ -9,15 +9,10 @@ model:
   model_type: pretrained_hf
   pretrained_model_name_or_path: EleutherAI/gpt-neo-125M
 
-# FSDP config for model sharding
-fsdp_config:
-  sharding_strategy: FULL_SHARD
-
 icl_tasks:
 -
   label: piqa
-  dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
-  # dataset_uri: ADD YOUR OWN S3/GCS URI
+  dataset_uri: # ADD YOUR OWN DATASET URI
   num_fewshot:
   - 5
   batch_size: 16
@@ -30,8 +25,7 @@ icl_tasks:
     continuation_delimiter: ' ' # this separates questions from answers
 -
   label: lambada
-  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json
-  # dataset_uri: ADD YOUR OWN S3/GCS URI
+  dataset_uri: # ADD YOUR OWN DATASET URI
   num_fewshot:
   - 0
   batch_size: 16

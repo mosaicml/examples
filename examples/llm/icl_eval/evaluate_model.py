@@ -16,7 +16,8 @@ from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 
 def validate_cfg(eval_cfg):
-    assert 'dataset_uri' in eval_cfg
+    assert eval_cfg.get('dataset_uri',
+                        None) is not None, 'dataset_uri is required!'
     assert 'type' in eval_cfg
     assert 'num_fewshot' in eval_cfg
     assert 'batch_size' in eval_cfg
@@ -84,6 +85,7 @@ if __name__ == '__main__':
         fsdp_config=fsdp_config,  # type: ignore
         load_path=load_path,
         load_weights_only=True,
+        progress_bar=False,
         log_to_console=True)
 
     if torch.cuda.is_available():

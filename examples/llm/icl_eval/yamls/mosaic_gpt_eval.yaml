@@ -6,8 +6,8 @@ tokenizer:
 
 model:
   model_type: mosaic_gpt
-  # load_path: ADD YOUR OWN CHECKPOINT
-  config_path: yamls/mosaic_gpt/1b.yaml
+  load_path: # ADD YOUR OWN CHECKPOINT
+  config_path: ../yamls/mosaic_gpt/1b.yaml
 
 # FSDP config for model sharding
 fsdp_config:
@@ -16,7 +16,7 @@ fsdp_config:
 icl_tasks:
 -
   label: piqa
-  # dataset_uri: ADD YOUR OWN S3/GCS URI
+  dataset_uri: # ADD YOUR OWN DATASET URI
   num_fewshot:
   - 5
   batch_size: 16
@@ -29,7 +29,7 @@ icl_tasks:
     continuation_delimiter: ' ' # this separates questions from answers
 -
   label: lambada
-  # dataset_uri: ADD YOUR OWN S3/GCS URI
+  dataset_uri: # ADD YOUR OWN DATASET URI
   num_fewshot:
   - 0
   batch_size: 16
