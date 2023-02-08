@@ -8,7 +8,7 @@
 #
 # When ready, use `mcli run -f yamls/main/mcloud_run_a100_40gb.yaml` to launch
 
-run_name: schedule-constant
+run_name: schedule-linear
 cluster: r1z1
 gpu_type: a100_80gb # Type of GPU to use
 gpu_num: 8 # Number of GPUs to use
@@ -35,7 +35,7 @@ parameters:
   tokenizer_name: &tokenizer_name bert-base-uncased
 
   # Run Name
-  run_name: schedule-constant-${train_loader.dataset.mlm_schedule.initial_mlm_rate}-${train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-${seed}
+  run_name: schedule-linear-${train_loader.dataset.mlm_schedule.initial_mlm_rate}-${train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-${seed}
 
   # Model
   model:
@@ -55,9 +55,9 @@ parameters:
       group_method: truncate
       shuffle: true
       mlm_schedule:
-        name: constant
+        name: linear
         initial_mlm_rate: 0.3
-        final_mlm_rate: 0.3
+        final_mlm_rate: 0.15
     drop_last: true
     num_workers: 8
 

@@ -22,8 +22,8 @@ class StepScheduler(ComposerScheduler):
     """
 
     def __init__(self,
-                 alpha_i: float = 0.3,
-                 alpha_f: float = 0.15,
+                 alpha_i: float = 1,
+                 alpha_f: float = 0.5,
                  t_step: Union[str, Time] = '0.5dur'):
         self.alpha_i = alpha_i
         self.alpha_f = alpha_f
