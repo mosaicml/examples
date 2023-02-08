@@ -6,8 +6,10 @@ tokenizer:
     max_seq_len: 2048
 
 model:
-  model_type: pretrained_hf
+  name: hf_causal_lm
   pretrained_model_name_or_path: EleutherAI/gpt-neo-125M
+  device: cpu
+  pretrained: true
 
 icl_tasks:
 -
