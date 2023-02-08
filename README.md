@@ -76,7 +76,7 @@ python script.py b=baz nested.foo=different
 ```
 The `main.py` file will end up with:
 ```json
-{'a': 1, 'b': 'baz', 'nested': 'different'}
+{'a': 1, 'b': 'baz', 'nested': {'foo': 'different'}}
 ```
 
 # Examples
