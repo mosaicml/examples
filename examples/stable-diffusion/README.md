@@ -53,7 +53,7 @@ Note: Low learning rates and short training times seem to work best. Training lo
 
 
 # To train on different data
-The `lambdalabs/pokemon` dataset was made with BLIP (a salesforce image captioning model) and uploaded to HuggingFace datasets. There are many other similar text-to-image datasets available on HuggingFace [here](https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color palettes such as spectrograms may require different normalization or pre-processing.
+The easiest way to train with new data is to make a new dataset in the same format as the `lambdalabs/pokemon` dataset. The `lambdalabs/pokemon` dataset was made with BLIP (a salesforce image captioning model) and uploaded to HuggingFace datasets. There are many other similar text-to-image datasets available on HuggingFace [here](https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color palettes such as spectrograms may require different normalization or pre-processing.
 
 To add a non-HuggingFace dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_hf_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations. 
 

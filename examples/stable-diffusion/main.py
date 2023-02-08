@@ -1,42 +1,36 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """Example script to finetune a Stable Diffusion Model."""
 
 import os
 import sys
-from omegaconf import OmegaConf, DictConfig
 
 import torch
+from callbacks import LogDiffusionImages
+from common import build_logger, log_config, calculate_batch_size_info
 from composer import Trainer
-from composer.utils import reproducibility
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.optim import ConstantScheduler
-from composer.utils import dist
-
+from composer.utils import reproducibility
 from data import build_hf_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
-from callbacks import LogDiffusionImages
-from common.builders import build_logger
-from common.logging_utils import log_config
-
+from omegaconf import DictConfig, OmegaConf
 
 
 def main(config: DictConfig):
     reproducibility.seed_all(config.seed)
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    if config.grad_accum == 'auto' and not torch.cuda.is_available():
-        raise ValueError('grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer')
-    # Divide batch sizes by number of devices if running multi-gpu training
-    train_batch_size = config.dataset.global_train_batch_size
-    eval_batch_size = config.dataset.global_eval_batch_size
 
-    # If there is more than one device, initialize dist to ensure dataset 
-    # is only downloaded by rank 0 and divide global batch size by num devices
-    if dist.get_world_size() > 1:
-        dist.initialize_dist(device, timeout=180)
-        train_batch_size //= dist.get_world_size()
-        eval_batch_size //= dist.get_world_size()
+    if config.grad_accum == 'auto' and device == 'cpu':
+        raise ValueError(
+            'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
+        )
+    # calculate batch size per device and add it to config (These calculations will be done inside the composer trainer in the future)
+    config.train_device_batch_size, _, _ = calculate_batch_size_info(config.global_train_batch_size, 'auto')
+    config.eval_device_batch_size, _, _ = calculate_batch_size_info(config.global_eval_batch_size, 'auto')
+
 
     print('Building Composer model')
     model = build_stable_diffusion_model(
@@ -48,7 +42,7 @@ def main(config: DictConfig):
         caption_key=config.model.caption_key)
 
     # Train dataset
-    print('Building dataloader')
+    print('Building dataloaders')
     train_dataspec = build_hf_image_caption_datapsec(
         name=config.dataset.name,
         resolution=config.dataset.resolution,
@@ -57,45 +51,44 @@ def main(config: DictConfig):
         std=config.dataset.std,
         image_column=config.dataset.image_column,
         caption_column=config.dataset.caption_column,
-        batch_size=train_batch_size)
+        batch_size=config.train_device_batch_size)
 
     # Eval dataset
     eval_dataspec = build_prompt_dataspec(config.dataset.prompts,
-                                          batch_size=eval_batch_size)
+                                          batch_size=config.eval_device_batch_size)
 
     # Optimizer
     print('Building optimizer and learning rate scheduler')
-
     optimizer = torch.optim.AdamW(params=model.parameters(),
                                   lr=config.optimizer.lr,
                                   weight_decay=config.optimizer.weight_decay)
-
+    
     # Constant LR for fine-tuning
     lr_scheduler = ConstantScheduler()
-    print('Built optimizer and learning rate scheduler\n')
-    
-    loggers = [build_logger(name, logger_config) for name, logger_config in config.loggers.items()]
-    
+
+    print('Building loggers')
+    loggers = [
+        build_logger(name, logger_config)
+        for name, logger_config in config.loggers.items()
+    ]
+
     # Callbacks for logging
     print('Building Speed, LR, and Memory monitoring callbacks')
-    speed_monitor = SpeedMonitor(window_size=50)  # Measures throughput as samples/sec and tracks total training time
-    lr_monitor = LRMonitor()  # Logs the learning rate
-    memory_monitor = MemoryMonitor()  # Logs memory utilization
-    image_logger = LogDiffusionImages()  # Logs images generated from prompts in the eval set
-    print('Built Speed, LR, and Memory monitoring callbacks\n')
-
+    speed_monitor = SpeedMonitor(
+        window_size=50
+    )  # Measures throughput as samples/sec and tracks total training time
+    lr_monitor = LRMonitor() # Logs the learning rate
+    memory_monitor = MemoryMonitor() # Logs memory utilization
+    image_logger = LogDiffusionImages() # Logs images generated from prompts in the eval set
 
     print('Building algorithms')
     if config.use_ema:
         algorithms = [EMA(half_life='100ba', update_interval='20ba')]
     else:
         algorithms = None
-    print('Built algorithms')
 
     # Create the Trainer!
     print('Building Trainer')
-    device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
         model=model,
@@ -113,10 +106,9 @@ def main(config: DictConfig):
         save_num_checkpoints_to_keep=config.save_num_checkpoints_to_keep,
         load_path=config.load_path,
         device=device,
-        precision=precision,
+        precision=config.precision,
         grad_accum=config.grad_accum,
         seed=config.seed)
-    print('Built Trainer\n')
 
     print('Logging config')
     log_config(config)
