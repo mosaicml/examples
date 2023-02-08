@@ -18,14 +18,17 @@ python -m venv "$ENV_NAME" --system-site-packages
 source "$ENV_NAME/bin/activate"
 
 echo "Installing requirements..."
-pip install --upgrade pip
-pip install ".[$1-cpu]"  # we rely on docker image to handle flash-attn, etc
+pip install --upgrade 'pip<23'
+pip install -I ".[$1-cpu]"  # we rely on docker image to handle flash-attn, etc
 
-cp pyproject.toml "$1"
-cd "$1"
+DIRECTORY="examples/$1"
+cp pyproject.toml "$DIRECTORY"
+cd "$DIRECTORY"
 
 # run tests using project pytest config
 python -m pytest tests
+STATUS=$?
+
 rm pyproject.toml
 
 echo "Cleaning up venv..."
@@ -33,3 +36,5 @@ deactivate
 
 cd -
 rm -rf "$ENV_NAME"
+
+exit $STATUS

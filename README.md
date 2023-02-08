@@ -1,4 +1,4 @@
-# MosaicmML Examples
+# MosaicML Examples
 
 This repo contains reference examples for training ML models quickly and to high accuracy. It's designed to be easily forked and modified.
 
@@ -16,9 +16,36 @@ To get started, either clone or fork this repo and install whichever example\[s\
 ```bash
 git clone https://github.com/mosaicml/examples.git
 cd examples
-pip install ".[llm]"  # or pip install ".[llm-cpu]" if no NVIDIA GPU
-cd llm
+pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
+cd examples/llm
 ```
+
+# Extending an example
+
+Each example provides a short `main.py` that constructs a `Trainer` object and all of the arguments to it. There are three easy ways to extend an example:
+
+1. **Change the configuration.** Each example has a `yamls` subdirectory, and each `yaml` file therein contains settings like the learning rate, where to load data from, and more. These settings are read within `main.py` and used to configure the `Trainer`.
+1. **Modify the arguments to `Trainer` directly.**  For example, if you want to use a different optimizer, the simplest way is to construct this optimizer in `main.py` and pass it as the `optimizer` argument to the `Trainer`.
+1. **Write an [Algorithm](https://docs.mosaicml.com/en/stable/trainer/algorithms.html#two-way-callbacks) and add it to the `Trainer`'s `algorithms` argument.** This lets you inject arbitrary code almost anywhere in your training loop and modify training as it happens. Composer includes [a big list](https://docs.mosaicml.com/en/stable/trainer/algorithms.html#robot-algorithms) of Algorithms whose [source code](https://github.com/mosaicml/composer/tree/dev/composer/algorithms) you can use as examples.
+
+We also provide some convenient string-to-object mappings in [common/builders.py](./examples/common/builders.py). These let you avoid cluttering `main.py` with code like:
+
+```python
+if cfg.optimizer == 'adam':
+   ...
+elif cfg.optimizer == 'sgd':
+  ...
+```
+
+and instead write:
+
+```python
+opt = builders.build_optimizer(cfg.optimizer, model)
+```
+
+with all the if-elif logic wrapped in this reusable function. You can easily extend these functions to include new options; e.g., to add an optimizer, you could extend `build_optimizer` in [common/builders.py](./examples/common/builders.py) to import and construct your optimizer.
+
+If you run into any issues extending the code, or just want to discuss an idea you have, please open an [issue](https://github.com/mosaicml/examples/issues/new) or join our [community Slack](https://join.slack.com/t/mosaicml-community/shared_invite/zt-1btms90mc-GipE2ufuPkKY0QBrmF3LSA)!
 
 # Tests and Linting
 
@@ -43,7 +70,7 @@ This repo features the following examples, each as their own subdirectory:
 
 Train the MosaicML ResNet, the fastest ResNet50 implementation that yields a :sparkles: 7x :sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-resnet) for more details and recipes. Our recipes were also demonstrated at [MLPerf](https://www.mosaicml.com/blog/mlperf-2022), a cross industry ML benchmark.
 
-:rocket: Get started with the code [here](./resnet/).
+:rocket: Get started with the code [here](./examples/resnet/).
 
 
 ## DeepLabV3 + ADE20k
@@ -51,19 +78,19 @@ Train the MosaicML ResNet, the fastest ResNet50 implementation that yields a :sp
 
 Train the MosaicML DeepLabV3 that yields a :sparkles:5x:sparkles: faster time-to-train compared to a strong baseline. See our [blog](https://www.mosaicml.com/blog/mosaic-image-segmentation) for more details and recipes.
 
-:rocket: Get started with the code [here](./deeplab/).
+:rocket: Get started with the code [here](./examples/deeplab/).
 
 
 ## Large Language Models (LLMs)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./llm/assets/loss-curve-dark.png">
-  <img alt="Training curves for various LLM sizes." src="./llm/assets/loss-curve-light.png" width=500px>
+  <source media="(prefers-color-scheme: dark)" srcset="./examples/llm/assets/loss-curve-dark.png">
+  <img alt="Training curves for various LLM sizes." src="./examples/llm/assets/loss-curve-light.png" width=500px>
 </picture>
 
 A simple yet feature complete implementation of GPT, that scales to 70B parameters while maintaining high performance on GPU clusters. Flexible code, written with vanilla PyTorch, that uses [PyTorch FSDP](https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/) and some recent efficiency improvements.
 
-:rocket: Get started with the code [here](./llm/).
+:rocket: Get started with the code [here](./examples/llm/).
 
 
 ## BERT
@@ -72,4 +99,4 @@ This benchmark covers both pre-training and fine-tuning a BERT model. With this 
 
 We also provide the source code and recipe behind our Mosaic BERT model, which you can train yourself using this repo.
 
-:rocket: Get started with the code [here](./bert/).
+:rocket: Get started with the code [here](./examples/bert/).
