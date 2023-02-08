@@ -6,7 +6,9 @@ import os
 import platform
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from enum import Enum
+from textwrap import dedent
 from typing import Dict, Iterable, Optional
+import warnings
 
 import datasets as hf_datasets
 import numpy as np
@@ -58,7 +60,8 @@ def parse_args() -> Namespace:
         help='Convert text to tokens and concatenate up to this many tokens')
 
     parser.add_argument('--tokenizer', type=str, required=False, default=None)
-    parser.add_argument('--sep_text', type=str, required=False, default=None)
+    parser.add_argument('--bos_text', type=str, required=False, default=None)
+    parser.add_argument('--eos_text', type=str, required=False, default=None)
 
     parsed = parser.parse_args()
 
@@ -66,15 +69,22 @@ def parse_args() -> Namespace:
         # Make sure we have needed concat options
         if (parsed.concat_text is not None and
                 isinstance(parsed.concat_text, int) and
-                parsed.sep_text is None):
+                parsed.bos_text is None and parsed.eos_text is None):
             parser.error(
-                'When setting --concat_text, you must specify a --sep_text with which to separate concatenated sequences'
-            )
+                dedent(
+                    'When setting --concat_text, you must specify at least one of --bos_text or --eos_text \
+                with which to separate concatenated sequences'))
         if (parsed.concat_tokens is not None and
                 isinstance(parsed.concat_tokens, int) and
                 parsed.tokenizer is None):
             parser.error(
                 'When setting --concat_tokens, you must specify a --tokenizer')
+
+    # now that we have validated them, change BOS/EOS to strings
+    if parsed.bos_text is None:
+        parsed.bos_text = ''
+    if parsed.eos_text is None:
+        parsed.eos_text = ''
     return parsed
 
 
@@ -166,8 +176,9 @@ class ShardedC4(IterableDataset):
 
 class ConcatC4(ShardedC4):
 
-    def __init__(self, sep_text: str, *args, **kwargs):
-        self.sep_text = sep_text
+    def __init__(self, bos_text: str, eos_text: str, *args, **kwargs):
+        self.bos_text = bos_text
+        self.eos_text = eos_text
         super().__init__(*args, **kwargs)
 
     def generate_samples(self) -> Iterable[Dict[str, bytes]]:
@@ -181,18 +192,17 @@ class ConcatC4(ShardedC4):
         """
 
         n_samples = 0
-        buffer = {}
+        buffer = ''
         while True:
             for batch in self.loader:
                 for sample in batch['text']:
-                    buffer['text'] = buffer.get('text',
-                                                '') + self.sep_text + sample
-                    while len(buffer['text']) >= self.max_length:
-                        concat_sample = {}
-                        concat_sample['text'] = buffer['text'][:self.max_length]
-                        buffer['text'] = buffer['text'][self.max_length:]
+                    buffer = buffer + self.bos_text + sample + self.eos_text
+                    while len(buffer) >= self.max_length:
+                        concat_sample = buffer[:self.max_length]
+                        buffer = buffer[self.max_length:]
 
-                        yield {'text': concat_sample['text'].encode('utf-8')}
+                        yield {'text': concat_sample.encode('utf-8')}
+
                         n_samples += 1
                         if n_samples == self.expected_num_samples:
                             return
@@ -219,8 +229,11 @@ class TokenizedC4(ShardedC4):
     ```
     """
 
-    def __init__(self, tokenizer: PreTrainedTokenizerBase, *args, **kwargs):
+    def __init__(self, tokenizer: PreTrainedTokenizerBase, bos_text: str,
+                 eos_text: str, *args, **kwargs):
         self.tokenizer = tokenizer
+        self.bos_text = bos_text
+        self.eos_text = eos_text
         super().__init__(*args, **kwargs)
 
     def generate_samples(self) -> Iterable[Dict[str, bytes]]:
@@ -233,44 +246,57 @@ class TokenizedC4(ShardedC4):
             Sample dicts.
         """
 
+        bos_tokens = self.tokenizer(self.bos_text,
+                                    truncation=False,
+                                    padding=False,
+                                    add_special_tokens=False)['input_ids']
+        if len(bos_tokens) > 1:
+            warnings.warn(
+                f'You specified --concat_tokens with --bos_text, but your BOS text is not tokenizing to one token\
+                , instead we got {bos_tokens}. Quit if this was in error.')
+
+        eos_tokens = self.tokenizer(self.eos_text,
+                                    truncation=False,
+                                    padding=False,
+                                    add_special_tokens=False)['input_ids']
+        if len(eos_tokens) > 1:
+            warnings.warn(
+                f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
+                , instead we got {eos_tokens}. Quit if this was in error.')
+
         n_samples = 0
-        buffer = {}
+        buffer = []
         while True:
             for batch in self.loader:
                 encoded = self.tokenizer(batch['text'],
                                          truncation=False,
                                          padding=False)
                 for iids in encoded['input_ids']:
-                    buffer['tokens'] = buffer.get('tokens', []) + iids
-                    while len(buffer['tokens']) >= self.max_length:
-                        concat_sample = {}
-                        concat_sample['tokens'] = buffer['tokens'][:self.
-                                                                   max_length]
-                        buffer['tokens'] = buffer['tokens'][self.max_length:]
+                    buffer = buffer + bos_tokens + iids + eos_tokens
+                    while len(buffer) >= self.max_length:
+                        concat_sample = buffer[:self.max_length]
+                        buffer = buffer[self.max_length:]
 
                         yield {
                             # convert to bytes to store in MDS binary format
-                            'tokens':
-                                np.asarray(concat_sample['tokens']).tobytes()
+                            'tokens': np.asarray(concat_sample).tobytes()
                         }
                         n_samples += 1
                         if n_samples == self.expected_num_samples:
                             return
 
 
-def build_hf_c4_dataset(
-        split: str,
-        mode: ConcatMode,
-        max_length: Optional[int] = None,
-        sep_text: Optional[str] = None,
-        tokenizer: Optional[PreTrainedTokenizerBase] = None,
-        expected_num_samples: Optional[int] = None) -> IterableDataset:
+def build_hf_c4_dataset(split: str, mode: ConcatMode, max_length: Optional[int],
+                        bos_text: Optional[str], eos_text: Optional[str],
+                        tokenizer: Optional[PreTrainedTokenizerBase],
+                        expected_num_samples: int) -> IterableDataset:
     """Collect the samples for this dataset split.
 
     Args:
         split (str): Split name.
         mode (ConcatMode): NO_CONCAT, CONCAT_TEXT, or CONCAT_TOKENS
-        sep_text (str): if mode is CONCAT_TEXT, what string to use to separate samples
+        bos_text (str): text to insert at the beginning of each sequence
+        eos_text (str): text to insert at the end of each sequence
         tokenizer (PreTrainedTokenizerBase): if mode is CONCAT_TOKENS, the tokenizer to use
         expected_num_samples (int): once we have generated this many samples, exit
 
@@ -282,12 +308,15 @@ def build_hf_c4_dataset(
     elif mode == ConcatMode.CONCAT_TEXT:
         dataset = ConcatC4(split=split,
                            max_length=max_length,
-                           sep_text=sep_text,
+                           bos_text=bos_text,
+                           eos_text=eos_text,
                            expected_num_samples=expected_num_samples)
     else:
         dataset = TokenizedC4(split=split,
                               tokenizer=tokenizer,
                               max_length=max_length,
+                              bos_text=bos_text,
+                              eos_text=eos_text,
                               expected_num_samples=expected_num_samples)
     return dataset
 
@@ -318,27 +347,34 @@ def _get_kwargs(args):
         mode = ConcatMode.CONCAT_TOKENS
         max_length = args.concat_tokens
         tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
-        sep_text = None
+        # we will enforce length, so suppress warnings about sequences too long for the model
+        tokenizer.model_max_length = int(1e30)
+        bos_text = args.bos_text
+        eos_text = args.eos_text
         # concatenating makes us lose timestamp and url
         columns = {'tokens': 'bytes'}
         split_samples = [
             _concat_sample_count(ct, mode, max_length) for ct in split_samples
         ]
 
-        test_tokens = tokenizer('test')
-        if test_tokens['input_ids'][0] != tokenizer.bos_token_id and test_tokens[
-                'input_ids'][-1] != tokenizer.eos_token_id:
-            warning_msg = 'This tokenizer does not insert an EOS nor BOS token.'
-            warning_msg += 'Concatenating with this tokenizer will result in sequences being '
-            warning_msg += 'attached without a separating token. Please use another tokenizer, '
-            warning_msg += 'such as facebook/opt-125m'
-            raise ValueError(warning_msg)
+        if bos_text + eos_text == '':
+            test_tokens = tokenizer('test')
+            if test_tokens['input_ids'][
+                    0] != tokenizer.bos_token_id and test_tokens['input_ids'][
+                        -1] != tokenizer.eos_token_id:
+                tok_error_msg = 'This tokenizer does not insert an EOS nor BOS token.'
+                tok_error_msg += 'Concatenating with this tokenizer will result in sequences being '
+                tok_error_msg += 'attached without a separating token. Please use another tokenizer, '
+                tok_error_msg += 'such as facebook/opt-125m, or specify EOS/BOS text with e.g. '
+                tok_error_msg += '--bos_text=<|endoftext|>.'
+                raise ValueError(tok_error_msg)
 
     elif hasattr(args, 'concat_text') and args.concat_text is not None:
         mode = ConcatMode.CONCAT_TEXT
         max_length = args.concat_text
         tokenizer = None
-        sep_text = args.sep_text
+        bos_text = args.bos_text
+        eos_text = args.eos_text
         # concatenating makes us lose timestamp and url
         columns = {'text': 'str'}
         split_samples = [
@@ -349,10 +385,11 @@ def _get_kwargs(args):
         mode = ConcatMode.NO_CONCAT
         max_length = None
         tokenizer = None
-        sep_text = None
+        bos_text = None
+        eos_text = None
         columns = {'text': 'str', 'timestamp': 'str', 'url': 'str'}
 
-    return mode, max_length, tokenizer, sep_text, columns, split_samples
+    return mode, max_length, tokenizer, bos_text, eos_text, columns, split_samples
 
 
 def main(args: Namespace) -> None:
@@ -364,7 +401,7 @@ def main(args: Namespace) -> None:
     splits = ('train', 'train', 'validation')
     split_names = ('train', 'train_small', 'val')
 
-    mode, max_length, tokenizer, sep_text, columns, split_samples = _get_kwargs(
+    mode, max_length, tokenizer, bos_text, eos_text, columns, split_samples = _get_kwargs(
         args)
 
     for (split, split_new_name,
@@ -378,7 +415,8 @@ def main(args: Namespace) -> None:
         dataset = build_hf_c4_dataset(split=split,
                                       mode=mode,
                                       max_length=max_length,
-                                      sep_text=sep_text,
+                                      bos_text=bos_text,
+                                      eos_text=eos_text,
                                       tokenizer=tokenizer,
                                       expected_num_samples=expected_num_samples)
         samples = dataset.generate_samples()

@@ -69,9 +69,10 @@ class StreamingTextDataset(StreamingDataset):
 
         # Validation
         warning_msg = textwrap.dedent("""\
-            The group_method argument is deprecated and will be
-             removed in the future. It is no longer needed, because concatenation now
-             happens when we create the dataset in create_c4.py
+            The group_method argument is deprecated and will be removed in the future.
+             Using it makes the dataloader have no length and prevents deterministic resumption.
+             It is also no longer needed, because concatenation can happen when we create
+             the dataset in create_c4.py.
             """)
         warnings.warn(DeprecationWarning(warning_msg))
 
@@ -125,36 +126,30 @@ class StreamingTextDataset(StreamingDataset):
         # The first time we tokenize we need to figure out the special token situation,
         # as pre-concatenated text will already have special tokens
         if self.add_special_tokens is None:
-            tokens = self.tokenizer(text_sample['text'],
-                                    truncation=truncation,
-                                    padding=padding,
-                                    max_length=max_length,
-                                    add_special_tokens=True)
             if self.group_method == 'concat':
                 # True is the default value so this will not change any behavior
                 self.add_special_tokens = True
             else:
                 # if the 2nd token is BOS or 2nd-to-last-is EOS, the special tokens
                 # were added as part of pre-concatenating the text, so don't add them again
+                tokens = self.tokenizer(text_sample['text'],
+                                        truncation=truncation,
+                                        padding=padding,
+                                        max_length=max_length,
+                                        add_special_tokens=True)
                 if tokens['input_ids'][
                         1] == self.tokenizer.bos_token_id or tokens[
                             'input_ids'][-2] == self.tokenizer.eos_token_id:
                     self.add_special_tokens = False
-                    tokens = self.tokenizer(text_sample['text'],
-                                            truncation=truncation,
-                                            padding=padding,
-                                            max_length=max_length,
-                                            add_special_tokens=False)
                 else:
                     # Normal text without special tokens added
                     self.add_special_tokens = True
-        else:
-            tokens = self.tokenizer(text_sample['text'],
-                                    truncation=truncation,
-                                    padding=padding,
-                                    max_length=max_length,
-                                    add_special_tokens=self.add_special_tokens)
-        return tokens
+
+        return self.tokenizer(text_sample['text'],
+                              truncation=truncation,
+                              padding=padding,
+                              max_length=max_length,
+                              add_special_tokens=self.add_special_tokens)
 
     def _read_binary_tokenized_sample(self, sample):
         return torch.from_numpy(
