@@ -171,12 +171,12 @@ def get_gpu_info(state: State):
             gpu_flops_available = int(
                 GPU_INFO[dev_name]['flops'][state.precision.value])
         except:
-            gpu_flops_available = None
+            pass
 
         try:
             gpu_cost_per_hour = GPU_INFO[dev_name]['cost_per_hour']
         except:
-            gpu_cost_per_hour = None
+            pass
 
     if gpu_flops_available is None:
         warnings.warn(
