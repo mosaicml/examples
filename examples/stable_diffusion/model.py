@@ -221,9 +221,8 @@ class StableDiffusion(ComposerModel):
             device=device)
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
-        # The K-LMS scheduler needs to multiply the `latents` by its `sigma` values.
-        if isinstance(self.inference_scheduler, LMSDiscreteScheduler):
-            latents = latents * self.inference_scheduler.init_noise_sigma
+        # scale the initial noise by the standard deviation required by the scheduler
+        latents = latents * self.inference_scheduler.init_noise_sigma
 
         # backward diffusion process
         for t in tqdm(self.inference_scheduler.timesteps):
@@ -299,11 +298,11 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                                  subfolder='text_encoder')
     noise_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
                                                     subfolder='scheduler')
-    inference_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
-                                                    subfolder='scheduler')
 
-    # inference_scheduler = LMSDiscreteScheduler.from_pretrained(
-    #     model_name_or_path, subfolder='scheduler')
+    # less parameters than DDIM and good results. 
+    # see https://arxiv.org/abs/2206.00364 for information on choosing inference schedulers.
+    inference_scheduler = LMSDiscreteScheduler.from_pretrained(
+        model_name_or_path, subfolder='scheduler')
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder='tokenizer')
     return StableDiffusion(unet=unet,
