@@ -8,45 +8,49 @@ integrations:
   git_repo: a-jacobson/examples
   git_branch: stable-diffusion-finetune
 command: |
-  cd examples/stable-diffusion
+  cd examples/examples/stable-diffusion
   pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
-  run_name: stable-diffusion-finetune-pokemon-onlyunet # Name of the  training run used for checkpointing and other logging
-  seed: 42               # Random seed
-  max_duration: '2000ba'    # Duration to train specified as a Time string
-  grad_accum: 'auto'       # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value
-  use_ema: false
-  eval_interval: '200ba'
+  run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
 
-  dataset: # dataset: Norod78/RickAndMorty-HorizontalMirror-blip-captions, lambdalabs/pokemon-blip-captions, YaYaB/onepiece-blip-captions, Gazoche/gundam-captioned
-    name: "lambdalabs/pokemon-blip-captions" # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
-    resolution: 512        # training image size
-    image_column: 'image'
-    caption_column: 'text'
+  seed: 42 # Random seed
+
+  max_duration: 2000ba # Duration to train specified as a Time string
+  eval_interval: 200ba
+
+  global_train_batch_size: 32 # Training total batch size (4 per 40gb A100, 8 cards)
+  global_eval_batch_size: 32
+
+  grad_accum: auto # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
+  precision: amp # (GPU only), set to fp32 if training on cpu
+
+  dataset:
+    name: lambdalabs/pokemon-blip-captions # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
+    resolution: 512 # training image size
+    image_column: image
+    caption_column: text
     mean:
-      - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
+      - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     std:
-      - 0.5                 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
-    global_train_batch_size: 32   # Training total batch size (4 per 40gb A100, 8 cards)
-    global_eval_batch_size: 32
+      - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     prompts:
-      - "A Magestic Shiba Inu Doge wearing a blue sweater" # prompts from https://lambdalabs.com/blog/how-to-fine-tune-stable-diffusion-how-we-made-the-text-to-pokemon-model-at-lambda
-      - "A cute bunny rabbit"
-      - "Yoda"
-      - "An epic landscape photo of a mountain"
-      - "Girl with a pearl earring"
-      - "Totoro"
-      - "Hello Kitty"
+      - Doge
+      - A cute bunny rabbit
+      - Yoda
+      - An epic landscape photo of a mountain
+      - Girl with a pearl earring
+      - Totoro
+      - Hello Kitty
 
   model:
-    name: "CompVis/stable-diffusion-v1-4" # commonly "CompVis/stable-diffusion-v1-4" or "stabilityai/stable-diffusion-2-base" use 2-1 for sizes > 512
+    name: CompVis/stable-diffusion-v1-4 # commonly CompVis/stable-diffusion-v1-4 or stabilityai/stable-diffusion-2-1 use 2-1 for sizes > 512
     train_text_encoder: false
     train_unet: true
-    num_images_per_prompt: 4 # number of images to generate per prompt during validation
-    image_key: "image_tensor"
-    caption_key: "input_ids"
+    num_images_per_prompt: 4 # number of images to generate per prompt at evaluation time
+    image_key: image_tensor
+    caption_key: input_ids
 
   optimizer:
     lr: 2.0e-05
@@ -56,14 +60,13 @@ parameters:
     progress_bar: {}
     wandb:     # Uncomment and fill below arguments to use WandB logger
       entity:  # Name of WandB entity, usually username or organization name
-      project: 'stable-diffusion-finetune' # Name of WandB project
-      group:  'stable-diffusion-finetune-pokemon-onlyunet' # Name of WandB group
-      rank_zero_only: false # enable to log all validation images on multiple gpus
+      project: stable-diffusion-finetune # Name of WandB project
+      group:   # Name of WandB group
 
   # Save checkpoint parameters
-  save_folder:                    # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-  save_interval: '200ba'             # Interval to checkpoint based on time string
-  save_num_checkpoints_to_keep: 5 # Cleans up checkpoints saved locally only! keep extra checkpoints as it's easy to overfit
+  save_folder: # e.g. ./{run_name}/ckpt (local) or s3://mybucket/mydir/{run_name}/ckpt (remote)
+  save_interval: 200ba # Interval to checkpoint based on time string
+  save_num_checkpoints_to_keep: 5 # Cleans up checkpoints saved locally only!
 
   # Load checkpoint parameters
-  load_path:      # e.g. './ckpt/latest-rank{rank}.pt' (local) or 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)
+  load_path: # e.g. ./ckpt/latest-rank{rank}.pt (local) or s3://mybucket/mydir/ckpt/latest-rank{rank}.pt (remote)

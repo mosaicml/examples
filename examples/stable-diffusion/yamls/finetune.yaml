@@ -3,7 +3,7 @@ run_name: stable-diffusion-finetune # Name of the  training run used for checkpo
 seed: 42 # Random seed
 max_duration: "2000ba" # Duration to train specified as a Time string
 grad_accum: "auto" # Amount of gradient accumulation, 'auto' (GPU only) means Composer will set the optimal value, set to 1 for cpu
-eval_interval: "2000ba"
+eval_interval: "200ba"
 
 global_train_batch_size: 32 # Training total batch size (4 per 40gb A100, 8 cards)
 global_eval_batch_size: 32
@@ -48,7 +48,7 @@ loggers:
 
 # Save checkpoint parameters
 save_folder: # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
-save_interval: "300ba" # Interval to checkpoint based on time string
+save_interval: "200ba" # Interval to checkpoint based on time string
 save_num_checkpoints_to_keep: 5 # Cleans up checkpoints saved locally only!
 
 # Load checkpoint parameters
