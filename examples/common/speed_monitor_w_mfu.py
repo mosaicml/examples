@@ -222,6 +222,9 @@ class SpeedMonitorMFU(Callback):
         # Keep track of time spent evaluating
         self.total_eval_wct = 0.0
 
+        # Keep track of total device time
+        self.device_time = 0.0
+
     def state_dict(self) -> Dict[str, Any]:
         return {
             'batch_start_num_samples': self.batch_start_num_samples,
@@ -229,6 +232,7 @@ class SpeedMonitorMFU(Callback):
             'batch_wct_buffer': self.batch_wct_buffer,
             'batch_num_samples_buffer': self.batch_num_samples_buffer,
             'total_eval_wct': self.total_eval_wct,
+            'device_time': self.device_time,
         }
 
     def load_state_dict(self, state: Dict[str, Any]) -> None:
@@ -243,6 +247,7 @@ class SpeedMonitorMFU(Callback):
             maxlen=self.window_size,
         )
         self.total_eval_wct = state['total_eval_wct']
+        self.device_time = state['device_time']
 
     def before_dataloader(self, state: State, logger: Logger) -> None:
         del logger  # unused
@@ -257,10 +262,13 @@ class SpeedMonitorMFU(Callback):
                 self.gpu_cost_per_hour = gpu_cost_per_hour
 
     def batch_end(self, state: State, logger: Logger):
+        world_size = dist.get_world_size()
         batch_num_samples = int(
             state.timestamp.sample) - self.batch_start_num_samples
         batch_wct = state.timestamp.total_wct.total_seconds(
         ) - self.batch_start_wct
+
+        self.device_time += world_size * batch_wct
 
         # Add the new element
         self.batch_wct_buffer.append(batch_wct)
@@ -268,7 +276,6 @@ class SpeedMonitorMFU(Callback):
 
         # Log the throughput
         if len(self.batch_num_samples_buffer) == self.window_size:
-            world_size = dist.get_world_size()
             batches_per_sec = len(self.batch_num_samples_buffer) / sum(
                 self.batch_wct_buffer)
             samples_per_sec = sum(self.batch_num_samples_buffer) / sum(
@@ -295,7 +302,13 @@ class SpeedMonitorMFU(Callback):
                         f'not able to estimate training cost based on')
                 train_time_hours = train_time_sec / 3600
                 train_cost_estimate = self.gpu_cost_per_hour * world_size * train_time_hours
-                logger.log_metrics({'train_cost_estimate': train_cost_estimate})
+                logger.log_metrics(
+                    {'total_train_cost_estimate': train_cost_estimate})
+
+                logger.log_metrics({
+                    'running_cost':
+                        self.device_time / 3600 * self.gpu_cost_per_hour
+                })
 
             if isinstance(state.dataloader, DataLoader) and hasattr(
                     state.dataloader.dataset, 'max_seq_len'):
@@ -327,13 +340,12 @@ class SpeedMonitorMFU(Callback):
         # Log the time
         # `state.timestamp` excludes any time spent in evaluation
         logger.log_metrics({
-            'wall_clock/train':
-                state.timestamp.total_wct.total_seconds(),
-            'wall_clock/val':
-                self.total_eval_wct,
+            'wall_clock/train': state.timestamp.total_wct.total_seconds(),
+            'wall_clock/val': self.total_eval_wct,
             'wall_clock/total':
                 (state.timestamp.total_wct.total_seconds() + self.total_eval_wct
                 ),
+            'wall_clock/device_time': self.device_time,
         })
 
     def eval_end(self, state: State, logger: Logger):

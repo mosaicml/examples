@@ -12,7 +12,7 @@ try:
                                          prepare_hf_enc_dec_model_for_fsdp,
                                          prepare_hf_model_for_fsdp)
     from examples.common.speed_monitor_w_mfu import (SpeedMonitorMFU,
-                                                     get_gpu_flops_available)
+                                                     get_gpu_info)
     from examples.common.text_data import (StreamingTextDataset,
                                            build_text_dataloader)
 except ImportError as e:

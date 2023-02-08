@@ -19,11 +19,10 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
-                               gpu_flops_available=kwargs.get(
-                                   'gpu_flops_available', None),
-                               gpu_cost_per_hour=kwargs.get(
-                                   'gpu_cost_per_hour', None))
+        return SpeedMonitorMFU(
+            window_size=kwargs.get('window_size', 1),
+            gpu_flops_available=kwargs.get('gpu_flops_available', None),
+            gpu_cost_per_hour=kwargs.get('gpu_cost_per_hour', None))
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
