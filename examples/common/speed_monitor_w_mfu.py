@@ -267,7 +267,8 @@ class SpeedMonitorMFU(Callback):
             self.gpu_cost_per_hour = gpu_cost_per_hour
             warnings.warn(
                 f'total_train_cost_estimate estimates the cost of training ' +\
-                f'and does not include the cost of eval durring training.'
+                f'based on the current throughput estimate. This can vary over ' +\
+                f'time and does not include the cost of eval durring training.'
             )
 
     def before_dataloader(self, state: State, logger: Logger) -> None:
