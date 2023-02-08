@@ -19,12 +19,13 @@ from examples.common.hf_fsdp import prepare_hf_causal_lm_model_for_fsdp
 class ComposerHFCausalLM(HuggingFaceModel):
 
     def __init__(self, cfg: DictConfig):
-        config = AutoConfig.from_pretrained(cfg.hf_config_name_or_path)
-        tokenizer = AutoTokenizer.from_pretrained(cfg.hf_config_name_or_path)
+        config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(
+            cfg.pretrained_model_name_or_path)
 
         if cfg.pretrained:
             model = AutoModelForCausalLM.from_pretrained(
-                cfg.hf_config_name_or_path, config=config)
+                cfg.pretrained_model_name_or_path, config=config)
             metrics = [HFCrossEntropy(), Perplexity()]
         else:
             model = AutoModelForCausalLM.from_config(config)
