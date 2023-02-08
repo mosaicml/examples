@@ -27,7 +27,7 @@ jobs:
         - deeplab
         - llm
         - resnet
-        - stable-diffusion
+        - stable_diffusion
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4

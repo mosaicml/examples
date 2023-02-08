@@ -37,7 +37,7 @@ jobs:
           subdir: resnet
         - name: stable-diffusion-pytest
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: stable-diffusion
+          subdir: stable_diffusion
         
     name: ${{ matrix.name }}
     container: ${{ matrix.container }}
