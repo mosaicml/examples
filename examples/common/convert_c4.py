@@ -50,7 +50,7 @@ def parse_args() -> Namespace:
                         nargs='+',
                         default=['train', 'train_small', 'val'])
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--concat_text',
                        type=int,
                        help='Number of characters to concatenate to')
