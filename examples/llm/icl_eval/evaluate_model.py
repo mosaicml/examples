@@ -7,7 +7,8 @@ import time
 import torch
 from composer.loggers import InMemoryLogger
 from composer.trainer import Trainer
-from icl_eval.model_loading import load_model
+from model_loading import load_composer_model
+from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
 from examples.common.builders import build_evaluators
@@ -61,26 +62,27 @@ if __name__ == '__main__':
     with open(yaml_path) as f:
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
-    cfg = om.merge(yaml_cfg, cli_cfg)
+    cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
 
-    model_dict = load_model(**cfg.get(
-        'model'))  # pyright: ignore reportGeneralTypeIssues
+    composer_model = load_composer_model(cfg)
+
     evaluators, logger_keys = get_evaluators_from_config(cfg)
-    in_memory_logger = InMemoryLogger(
-    )  # track the logged metrics in the in_memory_logger
-
     for evaluator in evaluators:
-        model_dict['model'].add_eval_metrics(
-            evaluator)  # pyright: ignore reportGeneralTypeIssues
+        composer_model.add_eval_metrics(evaluator)
+
+    in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
+
+    fsdp_config = cfg.get('fsdp_config', None)
+    fsdp_config = om.to_container(fsdp_config,
+                                  resolve=True) if fsdp_config else None
+
+    load_path = cfg.get('load_path', None)
 
     trainer = Trainer(
-        model=model_dict.get(
-            'model'),  # pyright: ignore reportGeneralTypeIssues
+        model=composer_model,
         loggers=in_memory_logger,
-        fsdp_config=model_dict.get(
-            'fsdp_config', None),  # pyright: ignore reportGeneralTypeIssues
-        load_path=model_dict.get(
-            'load_path', None),  # pyright: ignore reportGeneralTypeIssues
+        fsdp_config=fsdp_config,  # type: ignore
+        load_path=load_path,
         load_weights_only=True,
         log_to_console=True)
 

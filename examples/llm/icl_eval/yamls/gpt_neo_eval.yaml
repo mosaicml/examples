@@ -7,7 +7,11 @@ tokenizer:
 
 model:
   model_type: pretrained_hf
-  config: EleutherAI/gpt-neo-125M
+  pretrained_model_name_or_path: EleutherAI/gpt-neo-125M
+
+# FSDP config for model sharding
+fsdp_config:
+  sharding_strategy: FULL_SHARD
 
 icl_tasks:
 -

@@ -7,15 +7,11 @@ tokenizer:
 model:
   model_type: mosaic_gpt
   # load_path: ADD YOUR OWN CHECKPOINT
-  config: yamls/mosaic_gpt/1b.yaml
-  # FSDP
-  fsdp_config:
-    sharding_strategy: FULL_SHARD
-    min_params: 2e8
-    mixed_precision: DEFAULT
-    activation_checkpointing: true
-    activation_cpu_offload: false
-    verbose: true
+  config_path: yamls/mosaic_gpt/1b.yaml
+
+# FSDP config for model sharding
+fsdp_config:
+  sharding_strategy: FULL_SHARD
 
 icl_tasks:
 -
