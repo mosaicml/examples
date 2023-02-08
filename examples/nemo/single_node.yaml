@@ -5,7 +5,7 @@ image: nvcr.io/nvidia/nemo:22.09
 env_variables:
   - key: PYTHONUNBUFFERED
     value: '1'
-command: | 
+command: |
 
   # getting the vocab, merge files for the tokenizer
   wget https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-vocab.json
