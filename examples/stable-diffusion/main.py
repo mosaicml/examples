@@ -8,7 +8,7 @@ import sys
 
 import torch
 from callbacks import LogDiffusionImages
-from common import build_logger, log_config, calculate_batch_size_info
+from examples.common import build_logger, log_config, calculate_batch_size_info
 from composer import Trainer
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
