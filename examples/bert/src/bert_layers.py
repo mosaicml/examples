@@ -419,10 +419,9 @@ class BertEncoder(nn.Module):
              self._current_alibi_size))
         self.rebuild_alibi_tensor(size=config.alibi_starting_size)
 
-    def rebuild_alibi_tensor(
-            self,
-            size: int,
-            device: Optional[Union[torch.device, str]] = None) -> torch.Tensor:
+    def rebuild_alibi_tensor(self,
+                             size: int,
+                             device: Optional[Union[torch.device, str]] = None):
         # Alibi
         # Following https://github.com/ofirpress/attention_with_linear_biases/issues/5 (Implementation 1)
         # In the causal case, you can exploit the fact that softmax is invariant to a uniform translation
