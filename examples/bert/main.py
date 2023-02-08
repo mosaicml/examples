@@ -58,6 +58,8 @@ def main(cfg: DictConfig,
     print('Building train loader...')
     train_loader, distributed_mlm_rate = build_dataloader(
         cfg.train_loader, cfg.device_train_batch_size)
+    print(train_loader, "train_loader")
+    print(distributed_mlm_rate, "distributed_mlm_rate")
     print('Building eval loader...')
     eval_loader, _ = build_dataloader(cfg.eval_loader,
                                       cfg.device_eval_batch_size)
