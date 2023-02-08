@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
-# Utilities and parsers
 
 class ConcatMode(Enum):
     NO_CONCAT = 'NO_CONCAT'
@@ -37,7 +36,9 @@ class EmptyOrNonexistentDirectory(Action):
 
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
-    parser = ArgumentParser(description='Convert C4 into MDS format, optionally concatenating')
+    parser = ArgumentParser(
+        description=
+        'Convert C4 into MDS format, optionally concatenating and tokenizing')
     parser.add_argument('--out_root',
                         type=str,
                         required=True,
@@ -47,46 +48,35 @@ def parse_args() -> Namespace:
                         nargs='+',
                         default=['train', 'train_small', 'val'])
 
-    subparsers = parser.add_subparsers(required=False,
-                                       help='Concatenation utilities')
-    concat_parser = subparsers.add_parser(
-        'concat', help='Pre-concatenate before converting to MDS, either based on text or tokens')
-
-    group = concat_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--text',
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--concat_text',
                        type=int,
                        help='Number of characters to concatenate to')
     group.add_argument(
-        '--tokens',
+        '--concat_tokens',
         type=int,
         help='Convert text to tokens and concatenate up to this many tokens')
 
-    concat_parser.add_argument('--tokenizer',
-                               type=str,
-                               required=False,
-                               default=None)
-    concat_parser.add_argument('--sep_text',
-                               type=str,
-                               required=False,
-                               default=None)
+    parser.add_argument('--tokenizer', type=str, required=False, default=None)
+    parser.add_argument('--sep_text', type=str, required=False, default=None)
 
     parsed = parser.parse_args()
 
-    if hasattr(parsed, 'text') or hasattr(parsed, 'tokens'):
+    if hasattr(parsed, 'concat_text') or hasattr(parsed, 'concat_tokens'):
         # Make sure we have needed concat options
-        if (parsed.text is not None and isinstance(parsed.text, int) and
+        if (parsed.concat_text is not None and
+                isinstance(parsed.concat_text, int) and
                 parsed.sep_text is None):
             parser.error(
-                'When setting concat --text, you must specify a '
-                '--sep_text with which to separate concatenated sequences')
-        if (parsed.tokens is not None and isinstance(parsed.tokens, int) and
+                'When setting --concat_text, you must specify a --sep_text with which to separate concatenated sequences'
+            )
+        if (parsed.concat_tokens is not None and
+                isinstance(parsed.concat_tokens, int) and
                 parsed.tokenizer is None):
-            parser.error('When setting concat --tokens, you must specify a '
-                         '--tokenizer')
+            parser.error(
+                'When setting --concat_tokens, you must specify a --tokenizer')
     return parsed
 
-
-# Data Iterators
 
 class ShardedC4(IterableDataset):
     """The class used for iterating through C4 shards when not concatenating.
@@ -116,7 +106,7 @@ class ShardedC4(IterableDataset):
 
     def __iter__(self):
         worker_info = get_worker_info()
-        if worker_info:
+        if worker_info is not None:
             num_workers = worker_info.num_workers
             worker_id = worker_info.id
             it = self.dataset._ex_iterable  # type: ignore
@@ -195,16 +185,14 @@ class ConcatC4(ShardedC4):
         while True:
             for batch in self.loader:
                 for sample in batch['text']:
-                    buffer['text'] = buffer.get('text', '') + self.sep_text + sample
+                    buffer['text'] = buffer.get('text',
+                                                '') + self.sep_text + sample
                     while len(buffer['text']) >= self.max_length:
                         concat_sample = {}
-                        concat_sample['text'] = buffer['text'][:self.
-                                                                max_length]
+                        concat_sample['text'] = buffer['text'][:self.max_length]
                         buffer['text'] = buffer['text'][self.max_length:]
 
-                        yield {
-                            'text': concat_sample['text'].encode('utf-8')
-                        }
+                        yield {'text': concat_sample['text'].encode('utf-8')}
                         n_samples += 1
                         if n_samples == self.expected_num_samples:
                             return
@@ -249,18 +237,21 @@ class TokenizedC4(ShardedC4):
         buffer = {}
         while True:
             for batch in self.loader:
-                encoded = self.tokenizer(batch['text'], truncation=False, padding=False)
+                encoded = self.tokenizer(batch['text'],
+                                         truncation=False,
+                                         padding=False)
                 for iids in encoded['input_ids']:
                     buffer['tokens'] = buffer.get('tokens', []) + iids
                     while len(buffer['tokens']) >= self.max_length:
                         concat_sample = {}
                         concat_sample['tokens'] = buffer['tokens'][:self.
-                                                                max_length]
+                                                                   max_length]
                         buffer['tokens'] = buffer['tokens'][self.max_length:]
 
                         yield {
                             # convert to bytes to store in MDS binary format
-                            'tokens': np.asarray(concat_sample['tokens']).tobytes()
+                            'tokens':
+                                np.asarray(concat_sample['tokens']).tobytes()
                         }
                         n_samples += 1
                         if n_samples == self.expected_num_samples:
@@ -281,7 +272,7 @@ def build_hf_c4_dataset(
         mode (ConcatMode): NO_CONCAT, CONCAT_TEXT, or CONCAT_TOKENS
         sep_text (str): if mode is CONCAT_TEXT, what string to use to separate samples
         tokenizer (PreTrainedTokenizerBase): if mode is CONCAT_TOKENS, the tokenizer to use
-        expected_num_samples (int): _not yet implemented_ once we have generated this many samples, quit
+        expected_num_samples (int): once we have generated this many samples, exit
 
     Returns:
         An IterableDataset.
@@ -306,30 +297,33 @@ def _concat_sample_count(sample_count: int,
                          max_length: Optional[int] = None) -> int:
     emp_chars_per_sample = 2163  # measured for val split
     est_tokens_per_samples = 540  # using est_char_per_token = 4
-    match mode:
-        case ConcatMode.NO_CONCAT:
-            return sample_count
-        case ConcatMode.CONCAT_TEXT if max_length is not None:
-            total_char = sample_count * emp_chars_per_sample
-            return total_char // max_length
-        case ConcatMode.CONCAT_TOKENS if max_length is not None:
-            total_tokens = sample_count * est_tokens_per_samples
-            return total_tokens // max_length
-        case _:
-            raise ValueError("max_length can't be None")
+
+    if max_length is None and mode != ConcatMode.NO_CONCAT:
+        raise ValueError("max_length can't be None when concatenating")
+
+    if mode == ConcatMode.NO_CONCAT:
+        return sample_count
+    elif mode == ConcatMode.CONCAT_TEXT:
+        total_char = sample_count * emp_chars_per_sample
+        return total_char // max_length
+    elif mode == ConcatMode.CONCAT_TOKENS:
+        total_tokens = sample_count * est_tokens_per_samples
+        return total_tokens // max_length
 
 
 def _get_kwargs(args):
     split_samples = (364868892, 327680, 364608)
 
-    if hasattr(args, 'tokens') and args.tokens is not None:
+    if hasattr(args, 'concat_tokens') and args.concat_tokens is not None:
         mode = ConcatMode.CONCAT_TOKENS
-        max_length = args.tokens
+        max_length = args.concat_tokens
         tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
         sep_text = None
         # concatenating makes us lose timestamp and url
         columns = {'tokens': 'bytes'}
-        split_samples = [_concat_sample_count(ct, mode, max_length) for ct in split_samples]
+        split_samples = [
+            _concat_sample_count(ct, mode, max_length) for ct in split_samples
+        ]
 
         test_tokens = tokenizer('test')
         if test_tokens['input_ids'][0] != tokenizer.bos_token_id and test_tokens[
@@ -340,14 +334,16 @@ def _get_kwargs(args):
             warning_msg += 'such as facebook/opt-125m'
             raise ValueError(warning_msg)
 
-    elif hasattr(args, 'text') and args.text is not None:
+    elif hasattr(args, 'concat_text') and args.concat_text is not None:
         mode = ConcatMode.CONCAT_TEXT
-        max_length = args.text
+        max_length = args.concat_text
         tokenizer = None
         sep_text = args.sep_text
         # concatenating makes us lose timestamp and url
         columns = {'text': 'str'}
-        split_samples = [_concat_sample_count(ct, mode, max_length) for ct in split_samples]
+        split_samples = [
+            _concat_sample_count(ct, mode, max_length) for ct in split_samples
+        ]
 
     else:
         mode = ConcatMode.NO_CONCAT
@@ -368,7 +364,8 @@ def main(args: Namespace) -> None:
     splits = ('train', 'train', 'validation')
     split_names = ('train', 'train_small', 'val')
 
-    mode, max_length, tokenizer, sep_text, columns, split_samples = _get_kwargs(args)
+    mode, max_length, tokenizer, sep_text, columns, split_samples = _get_kwargs(
+        args)
 
     for (split, split_new_name,
          expected_num_samples) in zip(splits, split_names, split_samples):
@@ -377,7 +374,7 @@ def main(args: Namespace) -> None:
             continue
 
         # Get samples
-        print('Downloading and formatting dataset...')
+        print(f'Downloading and formatting {split_new_name}...')
         dataset = build_hf_c4_dataset(split=split,
                                       mode=mode,
                                       max_length=max_length,
@@ -386,18 +383,8 @@ def main(args: Namespace) -> None:
                                       expected_num_samples=expected_num_samples)
         samples = dataset.generate_samples()
 
-        # When concatenating text I notice a ~6x slowdown the first time I ran this:
-        #   no concat iterations/s = ~6800 it/s
-        #   with length 10_000 char, that's ~5x longer sequences,
-        #   so we'd expect ~1350 it/s, but observe ~220 it/sec
-        # However, subsequent runs were 5x faster... ¯\_(ツ)_/¯
-        #
-        # Concatenating tokens is, at least on a Mac, much worse
-        #   I got 85 it/s, despite their being half as many sequences
-        #   which is an 80x slowdown
-
         # Write samples
-        print('Converting to MDS format...')
+        print(f'Converting {split_new_name} to MDS format...')
         with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
                        columns=columns,
                        compression=args.compression) as out:

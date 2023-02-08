@@ -5,9 +5,13 @@
 
 import os
 import sys
+import textwrap
+import warnings
 from itertools import islice
 from typing import Any, Dict, Iterator, Optional
 
+import numpy as np
+import torch
 import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
@@ -23,8 +27,8 @@ class StreamingTextDataset(StreamingDataset):
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to
             tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
-        group_method (str): How to group text samples into token samples.
-            Supports 'truncate' or 'concat'.
+        group_method (str): (Deprecated, use ``concat`` option in create_c4.py) How to group text
+            samples into token samples. Supports 'truncate' or 'concat'.
         remote (str, optional): Download shards from this remote path or directory. If None, this
             rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
         split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
@@ -50,7 +54,7 @@ class StreamingTextDataset(StreamingDataset):
                  local: str,
                  tokenizer_name: str,
                  max_seq_len: int,
-                 group_method: str,
+                 group_method: str = 'truncate',
                  remote: Optional[str] = None,
                  split: Optional[str] = None,
                  shuffle: bool = False,
@@ -64,6 +68,13 @@ class StreamingTextDataset(StreamingDataset):
                  batch_size: Optional[int] = None):
 
         # Validation
+        warning_msg = textwrap.dedent("""\
+            The group_method argument is deprecated and will be
+             removed in the future. It is no longer needed, because concatenation now
+             happens when we create the dataset in create_c4.py
+            """)
+        warnings.warn(DeprecationWarning(warning_msg))
+
         if group_method not in ['truncate', 'concat']:
             raise ValueError(
                 f"group_method='{group_method}' must be one of ['truncate', 'concat']."
@@ -96,6 +107,8 @@ class StreamingTextDataset(StreamingDataset):
         # suppress warnings when using group_method='concat' and no truncation
         self.tokenizer.model_max_length = int(1e30)
 
+        self.add_special_tokens = None
+
     # How to tokenize a text sample to a token sample
     def _tokenize(self, text_sample):
         if self.group_method == 'truncate':
@@ -108,15 +121,52 @@ class StreamingTextDataset(StreamingDataset):
             max_length = None
         else:
             raise ValueError(f"Got unknown group_method='{self.group_method}'.")
-        return self.tokenizer(text_sample['text'],
-                              truncation=truncation,
-                              padding=padding,
-                              max_length=max_length)
+
+        # The first time we tokenize we need to figure out the special token situation,
+        # as pre-concatenated text will already have special tokens
+        if self.add_special_tokens is None:
+            tokens = self.tokenizer(text_sample['text'],
+                                    truncation=truncation,
+                                    padding=padding,
+                                    max_length=max_length,
+                                    add_special_tokens=True)
+            if self.group_method == 'concat':
+                # True is the default value so this will not change any behavior
+                self.add_special_tokens = True
+            else:
+                # if the 2nd token is BOS or 2nd-to-last-is EOS, the special tokens
+                # were added as part of pre-concatenating the text, so don't add them again
+                if tokens['input_ids'][
+                        1] == self.tokenizer.bos_token_id or tokens[
+                            'input_ids'][-2] == self.tokenizer.eos_token_id:
+                    self.add_special_tokens = False
+                    tokens = self.tokenizer(text_sample['text'],
+                                            truncation=truncation,
+                                            padding=padding,
+                                            max_length=max_length,
+                                            add_special_tokens=False)
+                else:
+                    # Normal text without special tokens added
+                    self.add_special_tokens = True
+        else:
+            tokens = self.tokenizer(text_sample['text'],
+                                    truncation=truncation,
+                                    padding=padding,
+                                    max_length=max_length,
+                                    add_special_tokens=self.add_special_tokens)
+        return tokens
+
+    def _read_binary_tokenized_sample(self, sample):
+        return torch.from_numpy(
+            np.frombuffer(sample['tokens'], dtype=np.int64).copy())
 
     # How to process a sample
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        text_sample = super().__getitem__(idx)
-        token_sample = self._tokenize(text_sample)
+        sample = super().__getitem__(idx)
+        if sample.get('text', None) is not None:
+            token_sample = self._tokenize(sample)
+        elif sample.get('tokens', None) is not None:
+            token_sample = self._read_binary_tokenized_sample(sample)
         return token_sample
 
     # Define iterable over samples
@@ -218,7 +268,7 @@ if __name__ == '__main__':
             'remote': remote,
             'split': 'val',
             'shuffle': False,
-            'tokenizer_name': 'gpt2',
+            'tokenizer_name': 'facebook/opt-125m',
             'max_seq_len': 32,
             'group_method': 'truncate',
             'keep_zip': True,  # in case we need compressed files after testing
