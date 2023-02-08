@@ -170,9 +170,12 @@ def get_gpu_info(state: State):
         try:
             gpu_flops_available = int(
                 GPU_INFO[dev_name]['flops'][state.precision.value])
-            gpu_cost_per_hour = GPU_INFO[dev_name]['cost_per_hour']
         except:
             gpu_flops_available = None
+
+        try:
+            gpu_cost_per_hour = GPU_INFO[dev_name]['cost_per_hour']
+        except:
             gpu_cost_per_hour = None
 
     if gpu_flops_available is None:
@@ -186,9 +189,9 @@ def get_gpu_info(state: State):
         gpu_flops_available = 0
     if gpu_cost_per_hour is None:
         warnings.warn(
-            f'gpu_cost_per_hour not found for {dev_name}; job training cost cannot be calculated and reported. ' +\
-            f'gpu_cost_per_hour can be manually overridden by setting gpu_cost_per_hour in SpeedMonitorMFU() ' +\
-            f'or environment variable `DEVICE_PRICE_PER_HOUR`'
+            f'gpu_cost_per_hour not found for {dev_name}; job training cost cannot be calculated ' +\
+            f'and reported. gpu_cost_per_hour can be manually overridden by setting gpu_cost_per_hour ' +\
+            f'in SpeedMonitorMFU() or environment variable `DEVICE_PRICE_PER_HOUR`'
         )
         # Setting to 0 will disable cost tracking and prevent
         # the speed monitor from running this helper every batch
