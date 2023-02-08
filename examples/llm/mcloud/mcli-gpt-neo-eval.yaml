@@ -6,59 +6,19 @@ integrations:
   pip_install: -e .[llm]
   ssh_clone: false
 
-# We are fetching, converting, and training on the 'val' split
-# as it is small and quick to get going for this demo.
-# For real training runs, follow the instructions in `examples/llm/README.md`
-# to convert and host the full 'train' dataset.
 command: |
-  cd examples/examples/llm
-  composer -m icl_eval.evaluate_model /mnt/config/parameters.yaml
+  cd examples/examples/llm/icl_eval
+  composer evaluate_model yamls/gpt_neo_eval.yaml \
+    model.pretrained_model_name_or_path="EleutherAI/gpt-neo-125M"
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
-run_name: gpt-neo-eval
+run_name: gpt-neo-125m-eval
 gpu_num: 8
 gpu_type: a100_80gb
 cluster: r0z0 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 # but is not used in this example.
-parameters:
-  tokenizer:
-    type: hftokenizer
-    args:
-      tokenizer_name: gpt2
-      max_seq_len: 2048
-
-  model:
-    model_type: pretrained_hf
-    config: EleutherAI/gpt-neo-1.3B
-
-  icl_tasks:
-  -
-    label: piqa
-    # dataset_uri: ADD YOUR OWN S3/GCS URI
-    num_fewshot:
-    - 5
-    batch_size: 16
-    type: multiple_choice
-    metrics:
-    - InContextLearningMultipleChoiceAccuracy
-    formatting_options:
-      prompt_string: '' # this goes at the beginning of each input
-      example_delimiter: '\n' # this goes between fewshot examples
-      continuation_delimiter: ' ' # this separates questions from answers
-  -
-    label: lambada
-    # dataset_uri: ADD YOUR OWN S3/GCS URI
-    num_fewshot:
-    - 0
-    batch_size: 16
-    type: language_modeling
-    metrics:
-    - InContextLearningLMAccuracy
-    formatting_options:
-      prompt_string: '' # this goes at the beginning of each input
-      example_delimiter: '\n' # this goes between fewshot examples
-      continuation_delimiter: '' # this separates contexts from continuations
+parameters: {}
