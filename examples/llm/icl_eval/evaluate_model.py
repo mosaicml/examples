@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     fsdp_config = cfg.get('fsdp_config', None)
     fsdp_config = om.to_container(fsdp_config,
-                                  resolve=True) if fsdp_config else None
+                                  resolve=True) if fsdp_config is not None else None
 
     load_path = cfg.get('load_path', None)
 
