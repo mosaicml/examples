@@ -125,6 +125,10 @@ class StreamingTextDataset(StreamingDataset):
             token_sample = self._tokenize(sample)
         elif sample.get('tokens', None) is not None:
             token_sample = self._read_binary_tokenized_sample(sample)
+        else:
+            raise RuntimeError(
+                'StreamingTextDataset needs samples to have a `text` or `tokens` column'
+            )
         return token_sample
 
 
@@ -184,7 +188,7 @@ if __name__ == '__main__':
             'remote': remote,
             'split': 'val',
             'shuffle': False,
-            'tokenizer_name': 'facebook/opt-125m',
+            'tokenizer_name': 'gpt2',
             'max_seq_len': 32,
             'keep_zip': True,  # in case we need compressed files after testing
         },
