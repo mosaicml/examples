@@ -50,8 +50,6 @@ class MLMRateSetter(Callback):
 
     def run_event(self, event: Event, state: State, logger: Logger):
         if event == Event.BATCH_END:
-            print(self.scheduler(state), "schedule multiple")
-            print(self.initial_mlm_rate, "initial multiple")
             mlm_rate = self.scheduler(state) * self.initial_mlm_rate
 
             self.dynamic_mlm_rate.value = mlm_rate
@@ -65,7 +63,7 @@ def build_mlm_scheduler_callback(cfg, distributed_mlm_rate: Value):
     alpha_f = initial_mlm_rate / final_mlm_rate
 
     if cfg.name == 'constant':
-        mlm_schedule = ConstantScheduler(alpha=initial_mlm_rate)
+        mlm_schedule = ConstantScheduler()
     elif cfg.name == 'cosine':
         mlm_schedule = CosineAnnealingScheduler(alpha_f=alpha_f)
     elif cfg.name == 'linear':
