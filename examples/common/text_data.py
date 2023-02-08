@@ -5,10 +5,8 @@
 
 import os
 import sys
-import textwrap
-import warnings
 from itertools import islice
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
@@ -27,8 +25,6 @@ class StreamingTextDataset(StreamingDataset):
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to
             tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
-        group_method (str): (Deprecated, use ``--concat_text`` or ``--concat_tokens`` option in
-            create_c4.py) How to group text samples into token samples. Supports 'truncate' or 'concat'.
         remote (str, optional): Download shards from this remote path or directory. If None, this
             rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
         split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
@@ -54,7 +50,6 @@ class StreamingTextDataset(StreamingDataset):
                  local: str,
                  tokenizer_name: str,
                  max_seq_len: int,
-                 group_method: str = 'truncate',
                  remote: Optional[str] = None,
                  split: Optional[str] = None,
                  shuffle: bool = False,
@@ -65,24 +60,7 @@ class StreamingTextDataset(StreamingDataset):
                  validate_hash: Optional[str] = None,
                  shuffle_seed: int = 9176,
                  num_canonical_nodes: Optional[int] = None,
-                 batch_size: Optional[int] = None,
-                 **kwargs):
-
-        # Validation
-        if 'group_method' in kwargs:
-            warnings.warn(
-                DeprecationWarning(
-                    textwrap.dedent("""\
-                The group_method argument is deprecated and will be removed in the future.
-                Using it makes the dataloader have no length and prevents deterministic resumption.
-                It is also no longer needed, because concatenation can happen when we create
-                the dataset in create_c4.py.
-                """)))
-
-        if group_method not in ['truncate', 'concat']:
-            raise ValueError(
-                f"group_method='{group_method}' must be one of ['truncate', 'concat']."
-            )
+                 batch_size: Optional[int] = None):
 
         # Build Dataset
         super().__init__(local=local,
@@ -99,7 +77,6 @@ class StreamingTextDataset(StreamingDataset):
                          batch_size=batch_size)
         self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
-        self.group_method = group_method
 
         # Build tokenizer
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
@@ -115,43 +92,26 @@ class StreamingTextDataset(StreamingDataset):
 
     # How to tokenize a text sample to a token sample
     def _tokenize(self, text_sample):
-        if self.group_method == 'truncate':
-            truncation = True
-            padding = 'max_length'
-            max_length = self.max_seq_len
-        elif self.group_method == 'concat':
-            truncation = False
-            padding = False
-            max_length = None
-        else:
-            raise ValueError(f"Got unknown group_method='{self.group_method}'.")
-
         # The first time we tokenize we need to figure out the special token situation,
         # as pre-concatenated text will already have special tokens
         if self.add_special_tokens is None:
-            if self.group_method == 'concat':
-                # True is the default value so this will not change any behavior
-                self.add_special_tokens = True
+            # if the 2nd token is BOS or 2nd-to-last-is EOS, the special tokens
+            # were added as part of pre-concatenating the text, so don't add them again
+            tokens = self.tokenizer(text_sample['text'],
+                                    truncation=False,
+                                    padding=False,
+                                    add_special_tokens=True)
+            if tokens['input_ids'][1] == self.tokenizer.bos_token_id or tokens[
+                    'input_ids'][-2] == self.tokenizer.eos_token_id:
+                self.add_special_tokens = False
             else:
-                # if the 2nd token is BOS or 2nd-to-last-is EOS, the special tokens
-                # were added as part of pre-concatenating the text, so don't add them again
-                tokens = self.tokenizer(text_sample['text'],
-                                        truncation=truncation,
-                                        padding=padding,
-                                        max_length=max_length,
-                                        add_special_tokens=True)
-                if tokens['input_ids'][
-                        1] == self.tokenizer.bos_token_id or tokens[
-                            'input_ids'][-2] == self.tokenizer.eos_token_id:
-                    self.add_special_tokens = False
-                else:
-                    # Normal text without special tokens added
-                    self.add_special_tokens = True
+                # Normal text without special tokens added
+                self.add_special_tokens = True
 
         return self.tokenizer(text_sample['text'],
-                              truncation=truncation,
-                              padding=padding,
-                              max_length=max_length,
+                              truncation=True,
+                              padding='max_length',
+                              max_length=self.max_seq_len,
                               add_special_tokens=self.add_special_tokens)
 
     def _read_binary_tokenized_sample(self, sample):
@@ -167,47 +127,6 @@ class StreamingTextDataset(StreamingDataset):
             token_sample = self._read_binary_tokenized_sample(sample)
         return token_sample
 
-    # Define iterable over samples
-    # Usually this can be left alone and inherited directly from super()
-    # class StreamingDataset, but concatenating samples is custom behavior.
-    # If group_method=='truncate', we simply return the token sample.
-    # If group_method=='concat', then we keep fetching token samples until we
-    # fill up max_seq_len.
-    def __iter__(self) -> Iterator[Any]:
-        if self.group_method == 'truncate':
-            iterator = super().__iter__()
-            yield from iterator
-
-        elif self.group_method == 'concat':
-            buffer = {}
-            while True:
-                iterator = super().__iter__()
-                for sample in iterator:
-
-                    for k, v in sample.items():
-                        buffer[k] = buffer.get(k, []) + v
-                    while len(buffer['input_ids']) >= self.max_seq_len:
-                        concat_sample = {}
-                        for k, v in buffer.items():
-                            concat_sample[k] = v[:self.max_seq_len]
-                            buffer[k] = v[self.max_seq_len:]
-                        yield concat_sample
-        else:
-            raise ValueError(f"Got unknown group_method='{self.group_method}'.")
-
-    # Define length
-    # Usually this can be left alone and inherited directly from super() class
-    # Dataset, but concatenating samples is custom behavior.
-    # If group_method=='truncate', we simply return the # samples.
-    # If group_method=='concat', we repeat forever, and have no defined length.
-    def __len__(self) -> Optional[int]:
-        if self.group_method == 'truncate':
-            return super().__len__()
-        elif self.group_method == 'concat':
-            return None
-        else:
-            raise ValueError(f"Got unknown group_method='{self.group_method}'.")
-
 
 def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
     assert cfg.name == 'text', f'Tried to build text dataloader with cfg.name={cfg.name}'
@@ -215,7 +134,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
-        group_method=cfg.dataset.group_method,
         remote=cfg.dataset.get('remote', None),
         split=cfg.dataset.get('split', None),
         shuffle=cfg.dataset.get('shuffle', False),
@@ -268,7 +186,6 @@ if __name__ == '__main__':
             'shuffle': False,
             'tokenizer_name': 'facebook/opt-125m',
             'max_seq_len': 32,
-            'group_method': 'truncate',
             'keep_zip': True,  # in case we need compressed files after testing
         },
         'drop_last': False,
