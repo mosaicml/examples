@@ -56,12 +56,14 @@ class ComposerHFCausalLM(HuggingFaceModel):
                                targets.view(-1),
                                ignore_index=-100)
 
-    def update_metric(self, batch: dict, outputs: Tensor, metric: Metric):
-        outputs = outputs.view(-1, outputs.size(-1))
-        targets = self.get_targets(batch).view(-1)
+    def update_metric(self, batch, outputs, metric) -> None:
         if isinstance(metric, InContextLearningMetric):
             if batch.get('mode', None) == 'icl_task':
+                # only apply ICL metrics to specially constructed
+                # icl_task batches
+                targets = self.get_targets(batch)
                 metric.update(batch, outputs, targets)
         else:
-            if batch.get('mode', None) is None:
-                metric.update(outputs, targets)
+            outputs = outputs.view(-1, outputs.size(-1))
+            targets = self.get_targets(batch).view(-1)
+            metric.update(outputs, targets)
