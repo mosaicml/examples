@@ -40,9 +40,38 @@ The files in this folder are:
 
 Now that you have explored the code, let's jump into the prerequisites for training.
 
-# Prerequisites
+# Get Started With the MosaicML Cloud
 
-Here's what you need to start training:
+If you're using the MosaicML cloud, all you need to install is [`mcli`](https://github.com/mosaicml/mosaicml-cli/):
+
+```bash
+pip install --upgrade mosaicml-cli
+```
+
+Then, just fill in a few fields in [yamls/mcloud_run.yaml](./yamls/mcloud_run.yaml):
+
+```yaml
+cluster:   # Add the name of the cluster to use for this run
+gpu_type:   # Type of GPU to use; usually a100_40gb
+...
+  git_repo: mosaicml/examples  # Replace with your fork to use custom code
+  git_branch: main             # Replace with your branch to use custom code
+```
+
+These tell `mcli` where to get your code and what cluster your organization is using.
+
+With this information provided, you can now run the code in this directory on a remote machine like so:
+```bash
+mcli run -f yamls/mcloud_run.yaml
+```
+
+You're done. You can skip the rest of the instructions except [saving and loading checkpoints](#saving-and-loading-checkpoints).
+
+# Get Started Without the MosaicML Cloud
+
+## Prerequisites
+
+If you're not using the MosaicML cloud, here's what you need to start training:
 
 * Docker image with PyTorch 1.12+, e.g. [MosaicML's PyTorch image](https://hub.docker.com/r/mosaicml/pytorch/tags)
   * Recommended tag: `mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04`
@@ -53,7 +82,7 @@ Here's what you need to start training:
     * Ubuntu Version: 20.04
 * System with NVIDIA GPUs
 
-# Installation
+## Installation
 
 To get started, clone this repo and install the requirements:
 
@@ -64,7 +93,7 @@ pip install -e ".[cifar]"  # or pip install -e ".[cifar-cpu]" if no NVIDIA GPU
 cd examples/cifar
 ```
 
-# How to start training
+## How to start training
 
 Now that you've installed dependencies, let's start training!
 
