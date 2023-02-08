@@ -449,7 +449,7 @@ class BertEncoder(nn.Module):
         # [n_heads, max_token_length, max_token_length]
         relative_position = relative_position.unsqueeze(0).expand(
             n_heads, -1, -1)
-        slopes = torch.Tensor(_get_alibi_head_slopes(n_heads), device=device)
+        slopes = torch.Tensor(_get_alibi_head_slopes(n_heads)).to(device)
         alibi = slopes.unsqueeze(1).unsqueeze(1) * -relative_position
         # [1, n_heads, max_token_length, max_token_length]
         alibi = alibi.unsqueeze(0)
