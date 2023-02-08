@@ -5,15 +5,7 @@ try:
     import torch
 
     from examples.llm.src.flash_attention import FlashAttention, FlashMHA
-    if torch.cuda.is_available():
-        from examples.llm.src.flash_attn_triton import \
-            flash_attn_func as flash_attn_func_llm # type: ignore
-        from examples.llm.src.flash_attn_triton import \
-            flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_llm # type: ignore
-    from examples.llm.src.hf_causal_lm import (
-        ComposerHFCausalLM, hf_get_causal_base_model,
-        hf_get_causal_hidden_layers, hf_get_lm_head,
-        hf_get_tied_embedding_weights, prepare_hf_causal_lm_model_for_fsdp)
+    from examples.llm.src.hf_causal_lm import ComposerHFCausalLM
     from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
     from examples.llm.src.mosaic_gpt import (GPTMLP, ComposerMosaicGPT,
                                              FlashCausalAttention, GPTBlock,
@@ -36,11 +28,6 @@ except ImportError as e:
 __all__ = [
     'FlashAttention',
     'FlashMHA',
-    'hf_get_causal_base_model',
-    'hf_get_lm_head',
-    'hf_get_causal_hidden_layers',
-    'hf_get_tied_embedding_weights',
-    'prepare_hf_causal_lm_model_for_fsdp',
     'ComposerHFCausalLM',
     'COMPOSER_MODEL_REGISTRY',
     'TorchCausalAttention',
@@ -54,8 +41,4 @@ __all__ = [
     'LLMTokenizer',
     'HFTokenizer',
     'TOKENIZER_REGISTRY',
-
-    # These are commented out because they only exist if CUDA is available
-    # 'flash_attn_func_llm',
-    # 'flash_attn_qkvpacked_func_llm'
 ]
