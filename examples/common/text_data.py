@@ -87,6 +87,7 @@ class StreamingTextDataset(StreamingDataset):
 
         # Build tokenizer
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             self.tokenizer_name)
 
