@@ -88,205 +88,136 @@ def parse_args() -> Namespace:
     return parsed
 
 
-class ShardedC4(IterableDataset):
-    """The class used for iterating through C4 shards when not concatenating.
+class NoConcatC4(IterableDataset):
+    """The class is a wrapper around HuggingFace's streaming dataset to allow us to modify the iterator over samples
 
-    We override __iter__ and use the loops in generate_samples rather than
-    hf_datasets.map because .map effectively does not work for streaming data
-    sets
+    We override __iter__ to return dicts of {'text': bytes}
     """
 
-    def __init__(self,
-                 split: str,
-                 expected_num_samples: int,
-                 max_length: Optional[int] = None,
-                 batch_size: int = 512):
-        self.dataset = hf_datasets.load_dataset(path='c4',
-                                                name='en',
-                                                split=split,
-                                                streaming=True)
-        self.expected_num_samples = expected_num_samples
-        self.max_length = max_length
-        self.batch_size = batch_size
-        self._build_loader()
-
-    def num_shards(self):
-        it = self.dataset._ex_iterable  # type: ignore
-        return len(it.kwargs['filepaths'])  # type: ignore
+    def __init__(self, split: str):
+        self.hf_dataset = hf_datasets.load_dataset(path='c4',
+                                                   name='en',
+                                                   split=split,
+                                                   streaming=True)
 
     def __iter__(self):
-        worker_info = get_worker_info()
-        if worker_info is not None:
-            num_workers = worker_info.num_workers
-            worker_id = worker_info.id
-            it = self.dataset._ex_iterable  # type: ignore
-            shards = it.kwargs['filepaths']  # type: ignore
-            assert len(shards) % num_workers == 0
-            it.kwargs['filepaths'] = shards[  # type: ignore
-                worker_id::num_workers]
-        return iter(self.dataset)
-
-    def _build_loader(self) -> None:
-        # Multiple workers is only supported on linux machines
-        if 'linux' in platform.platform().lower():
-            num_workers = min(64, self.num_shards())  # type: ignore
-        else:
-            num_workers = 0
-
-        # If using multiple workers, configure each worker to prefetch as many samples as it can, up to
-        # the aggregate device batch size
-        # If not using workers, the torch DataLoader expects the default value for prefetch_factor,
-        # which non-intuitively must be 2.
-        prefetch_factor = max(1, 2 * self.batch_size //
-                              num_workers) if num_workers > 0 else 2
-
-        self.loader = DataLoader(  # type: ignore
-            dataset=self.dataset,
-            sampler=None,
-            batch_size=self.batch_size,
-            num_workers=num_workers,
-            prefetch_factor=prefetch_factor,
-        )
-
-    def generate_samples(self) -> Iterable[Dict[str, bytes]]:
-        """Generator over each dataset sample.
-
-        Args:
-            samples (IterableDataset): An iterable dataset that is multi-worker compatible
-
-        Yields:
-            Sample dicts.
-        """
-        total_chars = 0
-        n_samples = 0
-        for batch in self.loader:
-            keys = list(batch.keys())
-            current_bs = len(batch[keys[0]])
-            for idx in range(current_bs):
-                total_chars += len(batch['text'][idx].encode('utf-8'))
-                yield {
-                    key: batch_values[idx].encode('utf-8')
-                    for key, batch_values in batch.items()
-                }
-                n_samples += 1
-                if n_samples == self.expected_num_samples:
-                    return
+        for sample in self.hf_dataset:
+            yield {'text': sample['text'].encode('utf-8')}
 
 
-class ConcatC4(ShardedC4):
+# class ConcatC4(ShardedC4):
 
-    def __init__(self, bos_text: str, eos_text: str, *args, **kwargs):
-        self.bos_text = bos_text
-        self.eos_text = eos_text
-        super().__init__(*args, **kwargs)
+#     def __init__(self, bos_text: str, eos_text: str, *args, **kwargs):
+#         self.bos_text = bos_text
+#         self.eos_text = eos_text
+#         super().__init__(*args, **kwargs)
 
-    def generate_samples(self) -> Iterable[Dict[str, bytes]]:
-        """Generator over each dataset sample.
+#     def generate_samples(self) -> Iterable[Dict[str, bytes]]:
+#         """Generator over each dataset sample.
 
-        Args:
-            samples (IterableDataset): An iterable dataset that is multi-worker compatible
+#         Args:
+#             samples (IterableDataset): An iterable dataset that is multi-worker compatible
 
-        Yields:
-            Sample dicts.
-        """
-        n_samples = 0
-        buffer = ''
-        while True:
-            for batch in self.loader:
-                for sample in batch['text']:
-                    n_samples += 1
-                    buffer = buffer + self.bos_text + sample + self.eos_text
-                    while len(buffer) >= self.max_length:
-                        concat_sample = buffer[:self.max_length]
-                        buffer = buffer[self.max_length:]
+#         Yields:
+#             Sample dicts.
+#         """
+#         n_samples = 0
+#         buffer = ''
+#         while True:
+#             for batch in self.loader:
+#                 for sample in batch['text']:
+#                     n_samples += 1
+#                     buffer = buffer + self.bos_text + sample + self.eos_text
+#                     while len(buffer) >= self.max_length:
+#                         concat_sample = buffer[:self.max_length]
+#                         buffer = buffer[self.max_length:]
 
-                        yield {'text': concat_sample.encode('utf-8')}
+#                         yield {'text': concat_sample.encode('utf-8')}
 
-                        if n_samples >= self.expected_num_samples:
-                            return
+#                         if n_samples >= self.expected_num_samples:
+#                             return
+
+# class TokenizedC4(ShardedC4):
+#     """A tokenized, concatenated, iterable dataset.
+
+#     To use data created by this class and written to MDS format:
+
+#     ```python
+#         import torch
+#         from streaming.base import StreamingDataset
+#         from transformers import AutoTokenizer
+
+#         tokenizer = AutoTokenizer.from_pretrained('your/tokenizer')
+#         ds = StreamingDataset(local='mds-data-folder', split='val')
+
+#         # note, you need to copy the numpy array because the original is non-writeable
+#         # and torch does not support non-writeable tensors, so you get a scary warning and
+#         # if you do try to write to the tensor you get undefined behavior
+#         tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
+#         print(tokenizer.decode(tokens))
+#     ```
+#     """
+
+#     def __init__(self, tokenizer: PreTrainedTokenizerBase, bos_text: str,
+#                  eos_text: str, *args, **kwargs):
+#         self.tokenizer = tokenizer
+#         self.bos_text = bos_text
+#         self.eos_text = eos_text
+#         super().__init__(*args, **kwargs)
+
+#     def generate_samples(self) -> Iterable[Dict[str, bytes]]:
+#         """Generator over each dataset sample.
+
+#         Args:
+#             samples (IterableDataset): An iterable dataset that is multi-worker compatible
+
+#         Yields:
+#             Sample dicts.
+#         """
+#         bos_tokens = self.tokenizer(self.bos_text,
+#                                     truncation=False,
+#                                     padding=False,
+#                                     add_special_tokens=False)['input_ids']
+#         if len(bos_tokens) > 1:
+#             warnings.warn(
+#                 f'You specified --concat_tokens with --bos_text, but your BOS text is not tokenizing to one token\
+#                 , instead we got {bos_tokens}. Quit if this was in error.')
+
+#         eos_tokens = self.tokenizer(self.eos_text,
+#                                     truncation=False,
+#                                     padding=False,
+#                                     add_special_tokens=False)['input_ids']
+#         if len(eos_tokens) > 1:
+#             warnings.warn(
+#                 f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
+#                 , instead we got {eos_tokens}. Quit if this was in error.')
+
+#         n_samples = 0
+#         buffer = []
+#         while True:
+#             for batch in self.loader:
+#                 encoded = self.tokenizer(batch['text'],
+#                                          truncation=False,
+#                                          padding=False)
+#                 for iids in encoded['input_ids']:
+#                     n_samples += 1
+#                     buffer = buffer + bos_tokens + iids + eos_tokens
+#                     while len(buffer) >= self.max_length:
+#                         concat_sample = buffer[:self.max_length]
+#                         buffer = buffer[self.max_length:]
+
+#                         yield {
+#                             # convert to bytes to store in MDS binary format
+#                             'tokens': np.asarray(concat_sample).tobytes()
+#                         }
+#                         if n_samples >= self.expected_num_samples:
+#                             return
 
 
-class TokenizedC4(ShardedC4):
-    """A tokenized, concatenated, iterable dataset.
-
-    To use data created by this class and written to MDS format:
-
-    ```python
-        import torch
-        from streaming.base import StreamingDataset
-        from transformers import AutoTokenizer
-
-        tokenizer = AutoTokenizer.from_pretrained('your/tokenizer')
-        ds = StreamingDataset(local='mds-data-folder', split='val')
-
-        # note, you need to copy the numpy array because the original is non-writeable
-        # and torch does not support non-writeable tensors, so you get a scary warning and
-        # if you do try to write to the tensor you get undefined behavior
-        tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
-        print(tokenizer.decode(tokens))
-    ```
-    """
-
-    def __init__(self, tokenizer: PreTrainedTokenizerBase, bos_text: str,
-                 eos_text: str, *args, **kwargs):
-        self.tokenizer = tokenizer
-        self.bos_text = bos_text
-        self.eos_text = eos_text
-        super().__init__(*args, **kwargs)
-
-    def generate_samples(self) -> Iterable[Dict[str, bytes]]:
-        """Generator over each dataset sample.
-
-        Args:
-            samples (IterableDataset): An iterable dataset that is multi-worker compatible
-
-        Yields:
-            Sample dicts.
-        """
-        bos_tokens = self.tokenizer(self.bos_text,
-                                    truncation=False,
-                                    padding=False,
-                                    add_special_tokens=False)['input_ids']
-        if len(bos_tokens) > 1:
-            warnings.warn(
-                f'You specified --concat_tokens with --bos_text, but your BOS text is not tokenizing to one token\
-                , instead we got {bos_tokens}. Quit if this was in error.')
-
-        eos_tokens = self.tokenizer(self.eos_text,
-                                    truncation=False,
-                                    padding=False,
-                                    add_special_tokens=False)['input_ids']
-        if len(eos_tokens) > 1:
-            warnings.warn(
-                f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
-                , instead we got {eos_tokens}. Quit if this was in error.')
-
-        n_samples = 0
-        buffer = []
-        while True:
-            for batch in self.loader:
-                encoded = self.tokenizer(batch['text'],
-                                         truncation=False,
-                                         padding=False)
-                for iids in encoded['input_ids']:
-                    n_samples += 1
-                    buffer = buffer + bos_tokens + iids + eos_tokens
-                    while len(buffer) >= self.max_length:
-                        concat_sample = buffer[:self.max_length]
-                        buffer = buffer[self.max_length:]
-
-                        yield {
-                            # convert to bytes to store in MDS binary format
-                            'tokens': np.asarray(concat_sample).tobytes()
-                        }
-                        if n_samples >= self.expected_num_samples:
-                            return
-
-
-def build_hf_c4_dataset(split: str, mode: ConcatMode, max_length: Optional[int],
-                        bos_text: Optional[str], eos_text: Optional[str],
-                        tokenizer: Optional[PreTrainedTokenizerBase],
-                        expected_num_samples: int) -> IterableDataset:
+def build_hf_c4_dataset(
+        split: str, mode: ConcatMode, max_length: Optional[int],
+        bos_text: Optional[str], eos_text: Optional[str],
+        tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
     """Collect the samples for this dataset split.
 
     Args:
@@ -295,26 +226,25 @@ def build_hf_c4_dataset(split: str, mode: ConcatMode, max_length: Optional[int],
         bos_text (str): text to insert at the beginning of each sequence
         eos_text (str): text to insert at the end of each sequence
         tokenizer (PreTrainedTokenizerBase): if mode is CONCAT_TOKENS, the tokenizer to use
-        expected_num_samples (int): once we have generated this many samples, exit
 
     Returns:
         An IterableDataset.
     """
     if mode == ConcatMode.NO_CONCAT:
-        dataset = ShardedC4(split, expected_num_samples=expected_num_samples)
-    elif mode == ConcatMode.CONCAT_TEXT:
-        dataset = ConcatC4(split=split,
-                           max_length=max_length,
-                           bos_text=bos_text,
-                           eos_text=eos_text,
-                           expected_num_samples=expected_num_samples)
-    else:
-        dataset = TokenizedC4(split=split,
-                              tokenizer=tokenizer,
-                              max_length=max_length,
-                              bos_text=bos_text,
-                              eos_text=eos_text,
-                              expected_num_samples=expected_num_samples)
+        dataset = NoConcatC4(split)
+    # elif mode == ConcatMode.CONCAT_TEXT:
+    #     dataset = ConcatC4(split=split,
+    #                        max_length=max_length,
+    #                        bos_text=bos_text,
+    #                        eos_text=eos_text,
+    #                        expected_num_samples=expected_num_samples)
+    # else:
+    #     dataset = TokenizedC4(split=split,
+    #                           tokenizer=tokenizer,
+    #                           max_length=max_length,
+    #                           bos_text=bos_text,
+    #                           eos_text=eos_text,
+    #                           expected_num_samples=expected_num_samples)
     return dataset
 
 
@@ -357,7 +287,7 @@ def _get_kwargs(args):
         tokenizer = None
         bos_text = None
         eos_text = None
-        columns = {'text': 'str', 'timestamp': 'str', 'url': 'str'}
+        columns = {'text': 'str'}
 
     return mode, max_length, tokenizer, bos_text, eos_text, columns
 
@@ -374,44 +304,91 @@ def _est_progress_denominator(total_samples: int, mode: ConcatMode,
         return total_samples * est_tokens_per_samples // max_length
 
 
+def build_dataloader(dataset, batch_size) -> None:
+    # Multiple workers is only supported on linux machines
+    if 'linux' in platform.platform().lower():
+        num_workers = min(64, dataset.hf_dataset.n_shards)  # type: ignore
+    else:
+        num_workers = 0
+
+    # If using multiple workers, configure each worker to prefetch as many samples as it can, up to
+    # the aggregate device batch size
+    # If not using workers, the torch DataLoader expects the default value for prefetch_factor,
+    # which non-intuitively must be 2.
+    prefetch_factor = max(1, 2 * batch_size //
+                          num_workers) if num_workers > 0 else 2
+
+    return DataLoader(
+        dataset=dataset,
+        sampler=None,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        prefetch_factor=prefetch_factor,
+    )
+
+
+def generate_samples(loader,
+                     truncate_num_samples=None) -> Iterable[Dict[str, bytes]]:
+    """Generator over each dataset sample.
+
+    Args:
+        samples (IterableDataset): An iterable dataset that is multi-worker compatible
+
+    Yields:
+        Sample dicts.
+    """
+    n_samples = 0
+    for batch in loader:
+        keys = list(batch.keys())
+        current_bs = len(batch[keys[0]])
+        for idx in range(current_bs):
+            if truncate_num_samples is not None and n_samples == truncate_num_samples:
+                return
+            n_samples += 1
+            yield {k: v[idx] for k, v in batch.items()}
+
+
 def main(args: Namespace) -> None:
     """Main: create C4 streaming dataset.
 
     Args:
         args (Namespace): Commandline arguments.
     """
-    splits = ('train', 'train', 'validation')
-    split_names = ('train', 'train_small', 'val')
-    sample_counts = (364868892, 327680, 364608)
+    hf_splits = ('train', 'train', 'validation')
+    folder_splits = ('train', 'train_small', 'val')
+    expected_counts = (364868892, 655360, 364608)
+    truncate_counts = (None, 655360, None)
 
     mode, max_length, tokenizer, bos_text, eos_text, columns = _get_kwargs(args)
 
-    for (split, split_new_name,
-         expected_num_samples) in zip(splits, split_names, sample_counts):
+    for (hf_split, folder_split, expected_num_samples,
+         truncate_num_samples) in zip(hf_splits, folder_splits, expected_counts,
+                                      truncate_counts):
         # Only generate the splits requested
-        if split_new_name not in args.splits:
+        if folder_split not in args.splits:
             continue
 
         # Get samples
-        print(f'Downloading and formatting {split_new_name}...')
-        dataset = build_hf_c4_dataset(split=split,
+        print(f'Downloading and formatting {folder_split}...')
+        dataset = build_hf_c4_dataset(split=hf_split,
                                       mode=mode,
                                       max_length=max_length,
                                       bos_text=bos_text,
                                       eos_text=eos_text,
-                                      tokenizer=tokenizer,
-                                      expected_num_samples=expected_num_samples)
-        samples = dataset.generate_samples()
+                                      tokenizer=tokenizer)
+        loader = build_dataloader(dataset=dataset, batch_size=512)
+        samples = generate_samples(loader,
+                                   truncate_num_samples=truncate_num_samples)
 
-        denominator = _est_progress_denominator(expected_num_samples, mode,
-                                                max_length)
+        denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
+            expected_num_samples, mode, max_length)
 
         # Write samples
-        print(f'Converting {split_new_name} to MDS format...')
-        with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
+        print(f'Converting {folder_split} to MDS format...')
+        with MDSWriter(dirname=os.path.join(args.out_root, folder_split),
                        columns=columns,
                        compression=args.compression) as out:
-            for sample in tqdm(samples, desc=split_new_name, total=denominator):
+            for sample in tqdm(samples, desc=folder_split, total=denominator):
                 out.write(sample)
 
 
