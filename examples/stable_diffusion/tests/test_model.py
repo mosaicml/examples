@@ -73,5 +73,3 @@ def test_model_builder(model_name):
     output, target = model(batch) # model.forward generates the unet output noise or v_pred target.
     assert output.shape == latent.shape
     assert target.shape == latent.shape
-    print(output)
-

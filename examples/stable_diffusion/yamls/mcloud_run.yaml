@@ -1,6 +1,6 @@
 run_name: stable-diffusion-finetune
-cluster:  r1z1      # Name of the cluster to use for this run
-gpu_type: a100_80gb   # Type of GPU to use
+cluster:  r7z2      # Name of the cluster to use for this run
+gpu_type: a100_40gb   # Type of GPU to use
 gpu_num: 8            # Number of GPUs to use
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
@@ -25,6 +25,7 @@ parameters:
 
   grad_accum: auto # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
   precision: amp # (GPU only), set to fp32 if training on cpu
+  use_ema: false
 
   dataset:
     name: lambdalabs/pokemon-blip-captions # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
@@ -36,13 +37,16 @@ parameters:
     std:
       - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     prompts:
-      - Doge
+      - A Magestic Shiba Inu Doge wearing a blue sweater
       - A cute bunny rabbit
       - Yoda
       - An epic landscape photo of a mountain
       - Girl with a pearl earring
       - Totoro
       - Hello Kitty
+      - Waffle
+      - IPhone
+      - Mustache
 
   model:
     name: CompVis/stable-diffusion-v1-4 # commonly CompVis/stable-diffusion-v1-4 or stabilityai/stable-diffusion-2-1 use 2-1 for sizes > 512
@@ -57,11 +61,11 @@ parameters:
     weight_decay: 1.0e-3
 
   loggers:
-    progress_bar: {}
     wandb:     # Uncomment and fill below arguments to use WandB logger
       entity:  # Name of WandB entity, usually username or organization name
       project: stable-diffusion-finetune # Name of WandB project
       group:   # Name of WandB group
+      rank_zero_only: false
 
   # Save checkpoint parameters
   save_folder: # e.g. ./{run_name}/ckpt (local) or s3://mybucket/mydir/{run_name}/ckpt (remote)
