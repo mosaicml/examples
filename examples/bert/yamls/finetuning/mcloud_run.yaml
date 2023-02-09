@@ -1,4 +1,4 @@
-# This YAML is built to work with the `classification.py` starter script!
+# This YAML is built to work with the `sequence_classification.py` starter script!
 #
 #   Follow the instructions in that script to modify the `build_my_dataloader` function
 #   and fine-tune a BERT model on your own dataset!
@@ -21,7 +21,7 @@ integrations:
   pip_install: -e .[bert]
 command: |
   cd examples/examples/bert
-  composer classification.py /mnt/config/parameters.yaml
+  composer sequence_classification.py /mnt/config/parameters.yaml
 
 parameters:
   # Run Name

@@ -1,7 +1,7 @@
 # Use this YAML to verify that fine-tuning starter script works. Runs on CPU or GPUs (if available).
 # From `examples/bert`, run:
-#   `composer classification.py yamls/test/classification.yaml` to run using the HuggingFace BERT
-#   `composer classification.py yamls/test/classification.yaml model.name=mosaic_bert` to run using the Mosaic BERT
+#   `composer sequence_classification.py yamls/test/sequence_classification.yaml` (HuggingFace BERT)
+#   `composer sequence_classification.py yamls/test/sequence_classification.yaml model.name=mosaic_bert` (Mosaic BERT)
 
 tokenizer_name: &tokenizer_name prajjwal1/bert-tiny
 max_seq_len: &max_seq_len 128

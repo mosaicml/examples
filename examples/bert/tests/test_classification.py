@@ -3,7 +3,7 @@
 
 from omegaconf import DictConfig, OmegaConf
 
-from examples.bert.classification import main
+from examples.bert.sequence_classification import main
 
 
 def test_classification_script():
