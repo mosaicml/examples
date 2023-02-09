@@ -90,6 +90,8 @@ class StreamingTextDataset(StreamingDataset):
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             self.tokenizer_name)
 
+        # suppress warnings when using longer 'max_seq_len'
+        self.tokenizer.model_max_length = int(1e30)
         self.add_special_tokens = None
 
     # How to tokenize a text sample to a token sample
