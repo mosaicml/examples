@@ -6,7 +6,7 @@
 import functools
 from typing import Any, Iterable, List
 
-from transformers import GPTNeoXForCausalLM, PreTrainedModel
+from transformers import PreTrainedModel
 
 # helper functions
 
