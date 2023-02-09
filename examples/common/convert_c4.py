@@ -27,11 +27,11 @@ class ConcatMode(Enum):
 class EmptyOrNonexistentDirectory(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
+        import ipdb; ipdb.set_trace()
         prospective_dir = values
-        if os.path.isdir(prospective_dir) and len(
-                os.listdir(prospective_dir)) > 0:
+        if os.path.isdir(prospective_dir) and len(set(os.listdir(values)).intersection(set(namespace.splits))) > 0:
             raise ArgumentError(self,
-                                f'--out_root={prospective_dir} must be empty')
+                                f'--out_root={prospective_dir} must not already have folders for splits you are trying to write.')
         else:
             setattr(namespace, 'out_root', prospective_dir)
 
