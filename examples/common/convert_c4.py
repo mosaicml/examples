@@ -89,9 +89,9 @@ def parse_args() -> Namespace:
 
 
 class NoConcatC4(IterableDataset):
-    """The class is a wrapper around HuggingFace's streaming dataset to allow us to modify the iterator over samples
+    """An IterableDataset that returns text samples for MDSWriter.
 
-    We override __iter__ to return dicts of {'text': bytes}
+    Returns dicts of {'text': bytes}
     """
 
     def __init__(self, split: str):
@@ -102,20 +102,21 @@ class NoConcatC4(IterableDataset):
 
     def __iter__(self) -> Iterable[Dict[str, bytes]]:
         for sample in self.hf_dataset:
+            # convert to bytes to store in MDS binary format
             yield {'text': sample['text'].encode('utf-8')}
 
 
 class ConcatTextC4(IterableDataset):
-    """The class is a wrapper around HuggingFace's streaming dataset to allow us to modify the iterator over samples
+    """An IterableDataset that returns text samples for MDSWriter.
 
-    We override __iter__ to return dicts of {'text': bytes}
+    Returns dicts of {'text': bytes}
     """
 
-    def __init__(self, split: str, bos_text: str, eos_text: str,
-                 max_length: int):
+    def __init__(self, split: str, max_length: int, bos_text: str,
+                 eos_text: str):
+        self.max_length = max_length
         self.bos_text = bos_text
         self.eos_text = eos_text
-        self.max_length = max_length
         self.hf_dataset = hf_datasets.load_dataset(path='c4',
                                                    name='en',
                                                    split=split,
@@ -128,91 +129,92 @@ class ConcatTextC4(IterableDataset):
             while len(buffer) >= self.max_length:
                 concat_sample = buffer[:self.max_length]
                 buffer = buffer[self.max_length:]
+                # convert to bytes to store in MDS binary format
                 yield {'text': concat_sample.encode('utf-8')}
 
 
-# class TokenizedC4(ShardedC4):
-#     """A tokenized, concatenated, iterable dataset.
+class ConcatTokensC4(IterableDataset):
+    """An IterableDataset that returns token samples for MDSWriter.
 
-#     To use data created by this class and written to MDS format:
+    Returns dicts of {'tokens': bytes}
 
-#     ```python
-#         import torch
-#         from streaming.base import StreamingDataset
-#         from transformers import AutoTokenizer
+    To use data created by this class and written to MDS format:
 
-#         tokenizer = AutoTokenizer.from_pretrained('your/tokenizer')
-#         ds = StreamingDataset(local='mds-data-folder', split='val')
+    ```python
+        import torch
+        from streaming.base import StreamingDataset
+        from transformers import AutoTokenizer
 
-#         # note, you need to copy the numpy array because the original is non-writeable
-#         # and torch does not support non-writeable tensors, so you get a scary warning and
-#         # if you do try to write to the tensor you get undefined behavior
-#         tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
-#         print(tokenizer.decode(tokens))
-#     ```
-#     """
+        tokenizer = AutoTokenizer.from_pretrained('your/tokenizer')
+        ds = StreamingDataset(local='mds-data-folder', split='val')
 
-#     def __init__(self, tokenizer: PreTrainedTokenizerBase, bos_text: str,
-#                  eos_text: str, *args, **kwargs):
-#         self.tokenizer = tokenizer
-#         self.bos_text = bos_text
-#         self.eos_text = eos_text
-#         super().__init__(*args, **kwargs)
+        # note, you need to copy the numpy array because the original is non-writeable
+        # and torch does not support non-writeable tensors, so you get a scary warning and
+        # if you do try to write to the tensor you get undefined behavior
+        tokens = torch.from_numpy(np.frombuffer(ds[0]['tokens'], dtype=np.int64).copy())
+        print(tokenizer.decode(tokens))
+    ```
+    """
 
-#     def generate_samples(self) -> Iterable[Dict[str, bytes]]:
-#         """Generator over each dataset sample.
+    def __init__(
+        self,
+        split: str,
+        tokenizer: PreTrainedTokenizerBase,
+        max_length: int,
+        bos_text: str,
+        eos_text: str,
+    ):
+        self.tokenizer = tokenizer
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+        self.max_length = max_length
+        self.bos_text = bos_text
+        self.eos_text = eos_text
+        self.hf_dataset = hf_datasets.load_dataset(path='c4',
+                                                   name='en',
+                                                   split=split,
+                                                   streaming=True)
 
-#         Args:
-#             samples (IterableDataset): An iterable dataset that is multi-worker compatible
+        self.bos_tokens = self.tokenizer(self.bos_text,
+                                         truncation=False,
+                                         padding=False,
+                                         add_special_tokens=False)['input_ids']
+        if len(self.bos_tokens) > 1:
+            warnings.warn(
+                f'You specified --concat_tokens with --bos_text, but your BOS text is not tokenizing to one token\
+                , instead we got {self.bos_tokens}. Quit if this was in error.')
 
-#         Yields:
-#             Sample dicts.
-#         """
-#         bos_tokens = self.tokenizer(self.bos_text,
-#                                     truncation=False,
-#                                     padding=False,
-#                                     add_special_tokens=False)['input_ids']
-#         if len(bos_tokens) > 1:
-#             warnings.warn(
-#                 f'You specified --concat_tokens with --bos_text, but your BOS text is not tokenizing to one token\
-#                 , instead we got {bos_tokens}. Quit if this was in error.')
+        self.eos_tokens = self.tokenizer(self.eos_text,
+                                         truncation=False,
+                                         padding=False,
+                                         add_special_tokens=False)['input_ids']
+        if len(self.eos_tokens) > 1:
+            warnings.warn(
+                f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
+                , instead we got {self.eos_tokens}. Quit if this was in error.')
 
-#         eos_tokens = self.tokenizer(self.eos_text,
-#                                     truncation=False,
-#                                     padding=False,
-#                                     add_special_tokens=False)['input_ids']
-#         if len(eos_tokens) > 1:
-#             warnings.warn(
-#                 f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
-#                 , instead we got {eos_tokens}. Quit if this was in error.')
+    def __iter__(self) -> Iterable[Dict[str, bytes]]:
 
-#         n_samples = 0
-#         buffer = []
-#         while True:
-#             for batch in self.loader:
-#                 encoded = self.tokenizer(batch['text'],
-#                                          truncation=False,
-#                                          padding=False)
-#                 for iids in encoded['input_ids']:
-#                     n_samples += 1
-#                     buffer = buffer + bos_tokens + iids + eos_tokens
-#                     while len(buffer) >= self.max_length:
-#                         concat_sample = buffer[:self.max_length]
-#                         buffer = buffer[self.max_length:]
-
-#                         yield {
-#                             # convert to bytes to store in MDS binary format
-#                             'tokens': np.asarray(concat_sample).tobytes()
-#                         }
-#                         if n_samples >= self.expected_num_samples:
-#                             return
+        buffer = []
+        for sample in self.hf_dataset:
+            encoded = self.tokenizer(sample['text'],
+                                     truncation=False,
+                                     padding=False)
+            iids = encoded['input_ids']
+            buffer = buffer + self.bos_tokens + iids + self.eos_tokens
+            while len(buffer) >= self.max_length:
+                concat_sample = buffer[:self.max_length]
+                buffer = buffer[self.max_length:]
+                yield {
+                    # convert to bytes to store in MDS binary format
+                    'tokens': np.asarray(concat_sample).tobytes()
+                }
 
 
 def build_hf_c4_dataset(
         split: str, mode: ConcatMode, max_length: Optional[int],
         bos_text: Optional[str], eos_text: Optional[str],
         tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
-    """Collect the samples for this dataset split.
+    """Build an IterableDataset over the HF C4 source data.
 
     Args:
         split (str): Split name.
@@ -232,14 +234,11 @@ def build_hf_c4_dataset(
                                bos_text=bos_text,
                                eos_text=eos_text)
     else:
-        raise ValueError()
-    # else:
-    #     dataset = TokenizedC4(split=split,
-    #                           tokenizer=tokenizer,
-    #                           max_length=max_length,
-    #                           bos_text=bos_text,
-    #                           eos_text=eos_text,
-    #                           expected_num_samples=expected_num_samples)
+        dataset = ConcatTokensC4(split=split,
+                                 tokenizer=tokenizer,
+                                 max_length=max_length,
+                                 bos_text=bos_text,
+                                 eos_text=eos_text)
     return dataset
 
 
@@ -252,7 +251,6 @@ def _get_kwargs(args):
         tokenizer.model_max_length = int(1e30)
         bos_text = args.bos_text
         eos_text = args.eos_text
-        # concatenating makes us lose timestamp and url
         columns = {'tokens': 'bytes'}
 
         if bos_text + eos_text == '':
@@ -273,7 +271,6 @@ def _get_kwargs(args):
         tokenizer = None
         bos_text = args.bos_text
         eos_text = args.eos_text
-        # concatenating makes us lose timestamp and url
         columns = {'text': 'str'}
 
     else:

@@ -123,14 +123,15 @@ class StreamingTextDataset(StreamingDataset):
 
     def _read_binary_tokenized_sample(self, sample):
         return torch.from_numpy(
-            np.frombuffer(sample['tokens'], dtype=np.int64).copy())
+            np.frombuffer(sample['tokens'],
+                          dtype=np.int64)[:self.max_seq_len].copy())
 
     # How to process a sample
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
-        if sample.get('text', None) is not None:
+        if 'text' in sample:
             token_sample = self._tokenize(sample)
-        elif sample.get('tokens', None) is not None:
+        elif 'tokens' in sample:
             token_sample = self._read_binary_tokenized_sample(sample)
         else:
             raise RuntimeError(
@@ -145,7 +146,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
-        group_method=cfg.dataset.get('group_method', None),
         remote=cfg.dataset.get('remote', None),
         split=cfg.dataset.get('split', None),
         shuffle=cfg.dataset.get('shuffle', False),
