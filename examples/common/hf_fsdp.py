@@ -91,23 +91,6 @@ def hf_get_hidden_layers(model: PreTrainedModel):
     return findattr(model, hidden_layers_attrs)
 
 
-def hf_get_tied_embedding_weights(model: PreTrainedModel):
-    """Returns the embeddings, which are weight tied layers.
-
-    NOTE: Different model configurations have different embedding attribute names.
-        - wte: (GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM)
-        - word_embeddings: (BloomForCausalLM)
-        - embed_tokens: (OPTForCausalLM)
-        - GPT NeoX doesn't weight tie
-    """
-    tied_embedding_attrs = (
-        'wte',
-        'word_embeddings',
-        'embed_tokens',
-    )
-    return findattr(model, tied_embedding_attrs)
-
-
 # /end helper functions
 
 
@@ -133,8 +116,9 @@ def prepare_hf_causal_lm_model_for_fsdp(model: PreTrainedModel) -> None:
     causal_base_model = hf_get_causal_base_model(model)
     model_block = hf_get_hidden_layers(model)  # type: ignore
     lm_head = hf_get_lm_head(model)
-    tied_embeddings = hf_get_tied_embedding_weights(
-        causal_base_model)  # type: ignore
+    # some models (OPT) implement .get_input_embeddings for the causal subclass
+    # but all of them implement it for the base model
+    tied_embeddings = causal_base_model.get_input_embeddings()
     modules = {
         'base_model': causal_base_model,
         'model_block': model_block,
@@ -143,10 +127,6 @@ def prepare_hf_causal_lm_model_for_fsdp(model: PreTrainedModel) -> None:
     }
 
     for mod_name, module in modules.items():
-        if isinstance(model,
-                      GPTNeoXForCausalLM) and mod_name == 'tied_embeddings':
-            # This is expected to have module = None
-            continue
         if module is None:
             raise ValueError(
                 f'Unable to FSDP-wrap this model! `{mod_name}` does not ' +
