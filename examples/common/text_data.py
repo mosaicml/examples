@@ -197,7 +197,7 @@ if __name__ == '__main__':
         'dataset': {
             'local': local,
             'remote': remote,
-            'split': 'val_small',
+            'split': 'val',
             'shuffle': False,
             'tokenizer_name': 'facebook/opt-125m',
             'max_seq_len': 32,
