@@ -5,7 +5,7 @@
 import os
 import platform
 import warnings
-from argparse import Action, ArgumentError, ArgumentParser, Namespace
+from argparse import ArgumentError, ArgumentParser, Namespace
 from enum import Enum
 from textwrap import dedent
 from typing import Dict, Iterable, Optional
@@ -24,30 +24,16 @@ class ConcatMode(Enum):
     CONCAT_TOKENS = 'CONCAT_TOKENS'
 
 
-class EmptyOrNonexistentDirectory(Action):
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        prospective_dir = values
-        if os.path.isdir(prospective_dir) and len(set(os.listdir(values)).intersection(set(namespace.splits))) > 0:
-            raise ArgumentError(self,
-                                f'--out_root={prospective_dir} must not already have folders for splits you are trying to write.')
-        else:
-            setattr(namespace, 'out_root', prospective_dir)
-
-
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(
         description=
         'Convert C4 into MDS format, optionally concatenating and tokenizing')
-    parser.add_argument('--out_root',
-                        type=str,
-                        required=True,
-                        action=EmptyOrNonexistentDirectory)
-    parser.add_argument('--compression', type=str, default=None)
     parser.add_argument('--splits',
                         nargs='+',
                         default=['train', 'train_small', 'val'])
+    parser.add_argument('--out_root', type=str, required=True)
+    parser.add_argument('--compression', type=str, default=None)
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--concat_text',
@@ -64,6 +50,14 @@ def parse_args() -> Namespace:
     parser.add_argument('--no_wrap', default=False, action='store_true')
 
     parsed = parser.parse_args()
+
+    if os.path.isdir(parsed.out_root) and len(
+            set(os.listdir(parsed.out_root)).intersection(set(
+                parsed.splits))) > 0:
+        raise ArgumentError(
+            self,
+            f'--out_root={prospective_dir} must not already have folders for splits you are trying to write.'
+        )
 
     if hasattr(parsed, 'concat_text') or hasattr(parsed, 'concat_tokens'):
         # Make sure we have needed concat options
@@ -215,7 +209,8 @@ class ConcatTokensC4(IterableDataset):
 
 def build_hf_c4_dataset(
         split: str, mode: ConcatMode, max_length: Optional[int],
-        bos_text: Optional[str], eos_text: Optional[str], no_wrap: Optional[bool],
+        bos_text: Optional[str], eos_text: Optional[str],
+        no_wrap: Optional[bool],
         tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
     """Build an IterableDataset over the HF C4 source data.
 
