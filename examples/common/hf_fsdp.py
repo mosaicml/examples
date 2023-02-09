@@ -6,7 +6,7 @@
 import functools
 from typing import Any, Iterable, List
 
-from transformers import PreTrainedModel
+from transformers import GPTNeoXForCausalLM, PreTrainedModel
 
 # helper functions
 
@@ -143,6 +143,10 @@ def prepare_hf_causal_lm_model_for_fsdp(model: PreTrainedModel) -> None:
     }
 
     for mod_name, module in modules.items():
+        if isinstance(model,
+                      GPTNeoXForCausalLM) and mod_name == 'tied_embeddings':
+            # This is expected to have module = None
+            continue
         if module is None:
             raise ValueError(
                 f'Unable to FSDP-wrap this model! `{mod_name}` does not ' +
