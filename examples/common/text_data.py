@@ -60,7 +60,14 @@ class StreamingTextDataset(StreamingDataset):
                  validate_hash: Optional[str] = None,
                  shuffle_seed: int = 9176,
                  num_canonical_nodes: Optional[int] = None,
-                 batch_size: Optional[int] = None):
+                 batch_size: Optional[int] = None,
+                 **kwargs: Dict[str, Any]):
+
+        if 'group_method' in kwargs:
+            raise DeprecationWarning(
+                'group_method is deprecated and has been removed.\nTo ' +
+                'concatenate, use the --concat_text or --concat_tokens ' +
+                'argument to concat_c4.py when creating your MDS dataset')
 
         # Build Dataset
         super().__init__(local=local,
@@ -138,6 +145,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
+        group_method=cfg.dataset.get('group_method', None),
         remote=cfg.dataset.get('remote', None),
         split=cfg.dataset.get('split', None),
         shuffle=cfg.dataset.get('shuffle', False),
