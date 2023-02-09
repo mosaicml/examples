@@ -89,11 +89,6 @@ class StreamingTextDataset(StreamingDataset):
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             self.tokenizer_name)
-        if self.tokenizer._pad_token is None:
-            # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
-            self.tokenizer._pad_token = self.tokenizer._eos_token
-        # suppress warnings when using group_method='concat' and no truncation
-        self.tokenizer.model_max_length = int(1e30)
 
         self.add_special_tokens = None
 
@@ -114,6 +109,11 @@ class StreamingTextDataset(StreamingDataset):
             else:
                 # Normal (not pre-concatenated) text without special tokens added
                 self.add_special_tokens = True
+
+        if self.tokenizer._pad_token is None:
+            # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
+            raise RuntimeError(
+                'If tokenizing on-the-fly, tokenizer must have a pad_token_id')
 
         return self.tokenizer(text_sample['text'],
                               truncation=True,
