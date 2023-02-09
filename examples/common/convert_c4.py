@@ -5,7 +5,7 @@
 import os
 import platform
 import warnings
-from argparse import ArgumentError, ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace
 from enum import Enum
 from textwrap import dedent
 from typing import Dict, Iterable, Optional
@@ -54,9 +54,8 @@ def parse_args() -> Namespace:
     if os.path.isdir(parsed.out_root) and len(
             set(os.listdir(parsed.out_root)).intersection(set(
                 parsed.splits))) > 0:
-        raise ArgumentError(
-            self,
-            f'--out_root={prospective_dir} must not already have folders for splits you are trying to write.'
+        raise ValueError(
+            f'--out_root={parsed.out_root} contains {os.listdir(parsed.out_root)} which cannot overlap with the requested splits {parsed.splits}.'
         )
 
     if hasattr(parsed, 'concat_text') or hasattr(parsed, 'concat_tokens'):
