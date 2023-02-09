@@ -9,6 +9,7 @@ from typing import Optional, cast
 
 import transformers
 from composer import Trainer
+from composer.core.types import Dataset
 from composer.utils import dist, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
@@ -26,11 +27,11 @@ from examples.common.config_utils import log_config, update_batch_size_info
 def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
     """Create a dataloader for classification.
 
+    **Modify this function to train on your own dataset!**
+
     This function is provided as a starter code to simplify fine-tuning a BERT
     classifier on your dataset. We'll use the dataset for QNLI (one of the
     GLUE tasks) as a demonstration.
-
-    **Modify this function to train on your own dataset!**
 
     Args:
         cfg (DictConfig): An omegaconf config that houses all the configuration
@@ -66,6 +67,7 @@ def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
         max_seq_length=cfg.max_seq_len,
     )
 
+    dataset = cast(Dataset, dataset)
     dataloader = DataLoader(
         dataset,
         # As an alternative to formatting the examples inside the dataloader,
