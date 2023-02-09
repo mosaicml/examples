@@ -2,12 +2,12 @@
 tokenizer:
   type: hftokenizer
   args:
-    tokenizer_name: gpt2
+    tokenizer_name: facebook/opt-125m
     max_seq_len: 2048
 
 model:
   name: hf_causal_lm
-  pretrained_model_name_or_path: EleutherAI/gpt-neo-125M
+  pretrained_model_name_or_path: facebook/opt-125m
   device: cpu
   pretrained: true
 
@@ -20,7 +20,7 @@ load_path: # Add your (optional) Composer checkpoint path here!
 icl_tasks:
 # -
 #   label: piqa
-#   dataset_uri: # ADD YOUR OWN DATASET URI
+#   dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz
 #   num_fewshot:
 #   - 5
 #   batch_size: 16

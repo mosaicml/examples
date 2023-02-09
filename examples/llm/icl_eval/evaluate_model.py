@@ -3,7 +3,7 @@
 
 import sys
 import time
-
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from composer.loggers import InMemoryLogger
 from composer.trainer import Trainer
@@ -24,6 +24,7 @@ if __name__ == '__main__':
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
     evaluators, logger_keys = build_icl_evaluators(cfg, tokenizer)
+
     for evaluator in evaluators:
         composer_model.add_eval_metrics(evaluator)
 
