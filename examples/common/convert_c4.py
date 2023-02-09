@@ -62,6 +62,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--tokenizer', type=str, required=False, default=None)
     parser.add_argument('--bos_text', type=str, required=False, default=None)
     parser.add_argument('--eos_text', type=str, required=False, default=None)
+    parser.add_argument('--wrap', default=False, action='store_true')
 
     parsed = parser.parse_args()
 
@@ -113,10 +114,11 @@ class ConcatTextC4(IterableDataset):
     """
 
     def __init__(self, split: str, max_length: int, bos_text: str,
-                 eos_text: str):
+                 eos_text: str, wrap: bool):
         self.max_length = max_length
         self.bos_text = bos_text
         self.eos_text = eos_text
+        self.wrap = wrap
         self.hf_dataset = hf_datasets.load_dataset(path='c4',
                                                    name='en',
                                                    split=split,
@@ -128,7 +130,7 @@ class ConcatTextC4(IterableDataset):
             buffer = buffer + self.bos_text + sample['text'] + self.eos_text
             while len(buffer) >= self.max_length:
                 concat_sample = buffer[:self.max_length]
-                buffer = buffer[self.max_length:]
+                buffer = buffer[self.max_length:] if self.wrap else ''
                 # convert to bytes to store in MDS binary format
                 yield {'text': concat_sample.encode('utf-8')}
 
@@ -163,12 +165,14 @@ class ConcatTokensC4(IterableDataset):
         max_length: int,
         bos_text: str,
         eos_text: str,
+        wrap: bool,
     ):
         self.tokenizer = tokenizer
         os.environ['TOKENIZERS_PARALLELISM'] = 'false'
         self.max_length = max_length
         self.bos_text = bos_text
         self.eos_text = eos_text
+        self.wrap = wrap
         self.hf_dataset = hf_datasets.load_dataset(path='c4',
                                                    name='en',
                                                    split=split,
@@ -203,7 +207,7 @@ class ConcatTokensC4(IterableDataset):
             buffer = buffer + self.bos_tokens + iids + self.eos_tokens
             while len(buffer) >= self.max_length:
                 concat_sample = buffer[:self.max_length]
-                buffer = buffer[self.max_length:]
+                buffer = buffer[self.max_length:] if self.wrap else []
                 yield {
                     # convert to bytes to store in MDS binary format
                     'tokens': np.asarray(concat_sample).tobytes()
@@ -212,7 +216,7 @@ class ConcatTokensC4(IterableDataset):
 
 def build_hf_c4_dataset(
         split: str, mode: ConcatMode, max_length: Optional[int],
-        bos_text: Optional[str], eos_text: Optional[str],
+        bos_text: Optional[str], eos_text: Optional[str], wrap: Optional[bool],
         tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
     """Build an IterableDataset over the HF C4 source data.
 
@@ -221,6 +225,7 @@ def build_hf_c4_dataset(
         mode (ConcatMode): NO_CONCAT, CONCAT_TEXT, or CONCAT_TOKENS
         bos_text (str): text to insert at the beginning of each sequence
         eos_text (str): text to insert at the end of each sequence
+        wrap (bool): if concatenating, whether to wrap text across `max_length` boundaries
         tokenizer (PreTrainedTokenizerBase): if mode is CONCAT_TOKENS, the tokenizer to use
 
     Returns:
@@ -232,13 +237,15 @@ def build_hf_c4_dataset(
         dataset = ConcatTextC4(split=split,
                                max_length=max_length,
                                bos_text=bos_text,
-                               eos_text=eos_text)
+                               eos_text=eos_text,
+                               wrap=wrap)
     else:
         dataset = ConcatTokensC4(split=split,
                                  tokenizer=tokenizer,
                                  max_length=max_length,
                                  bos_text=bos_text,
-                                 eos_text=eos_text)
+                                 eos_text=eos_text,
+                                 wrap=wrap)
     return dataset
 
 
@@ -251,6 +258,7 @@ def _get_kwargs(args):
         tokenizer.model_max_length = int(1e30)
         bos_text = args.bos_text
         eos_text = args.eos_text
+        wrap = args.wrap
         columns = {'tokens': 'bytes'}
 
         if bos_text + eos_text == '':
@@ -271,6 +279,7 @@ def _get_kwargs(args):
         tokenizer = None
         bos_text = args.bos_text
         eos_text = args.eos_text
+        wrap = args.wrap
         columns = {'text': 'str'}
 
     else:
@@ -279,21 +288,22 @@ def _get_kwargs(args):
         tokenizer = None
         bos_text = None
         eos_text = None
+        wrap = None
         columns = {'text': 'str'}
 
-    return mode, max_length, tokenizer, bos_text, eos_text, columns
+    return mode, max_length, tokenizer, bos_text, eos_text, wrap, columns
 
 
 def _est_progress_denominator(total_samples: int, mode: ConcatMode,
                               max_length: int):
     emp_chars_per_sample = 2163  # measured for val split
-    est_tokens_per_samples = 540  # using est_char_per_token = 4
+    est_tokens_per_sample = 540  # using est_char_per_token = 4
     if mode == ConcatMode.NO_CONCAT:
         return total_samples
     elif mode == ConcatMode.CONCAT_TEXT:
         return total_samples * emp_chars_per_sample // max_length
     elif mode == ConcatMode.CONCAT_TOKENS:
-        return total_samples * est_tokens_per_samples // max_length
+        return total_samples * est_tokens_per_sample // max_length
 
 
 def build_dataloader(dataset, batch_size) -> None:
@@ -354,7 +364,8 @@ def main(args: Namespace) -> None:
     expected_counts = (364868892, 1000000, 364608, 10000)
     truncate_counts = (None, 100000, None, 10000)
 
-    mode, max_length, tokenizer, bos_text, eos_text, columns = _get_kwargs(args)
+    mode, max_length, tokenizer, bos_text, eos_text, wrap, columns = _get_kwargs(
+        args)
 
     for (hf_split, folder_split, expected_num_samples,
          truncate_num_samples) in zip(hf_splits, folder_splits, expected_counts,
@@ -364,12 +375,12 @@ def main(args: Namespace) -> None:
             continue
 
         # Get samples
-        # print(f'Downloading and formatting {folder_split}...')
         dataset = build_hf_c4_dataset(split=hf_split,
                                       mode=mode,
                                       max_length=max_length,
                                       bos_text=bos_text,
                                       eos_text=eos_text,
+                                      wrap=wrap,
                                       tokenizer=tokenizer)
         loader = build_dataloader(dataset=dataset, batch_size=512)
         samples = generate_samples(loader,
