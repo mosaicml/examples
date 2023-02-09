@@ -100,42 +100,36 @@ class NoConcatC4(IterableDataset):
                                                    split=split,
                                                    streaming=True)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Dict[str, bytes]]:
         for sample in self.hf_dataset:
             yield {'text': sample['text'].encode('utf-8')}
 
 
-# class ConcatC4(ShardedC4):
+class ConcatTextC4(IterableDataset):
+    """The class is a wrapper around HuggingFace's streaming dataset to allow us to modify the iterator over samples
 
-#     def __init__(self, bos_text: str, eos_text: str, *args, **kwargs):
-#         self.bos_text = bos_text
-#         self.eos_text = eos_text
-#         super().__init__(*args, **kwargs)
+    We override __iter__ to return dicts of {'text': bytes}
+    """
 
-#     def generate_samples(self) -> Iterable[Dict[str, bytes]]:
-#         """Generator over each dataset sample.
+    def __init__(self, split: str, bos_text: str, eos_text: str,
+                 max_length: int):
+        self.bos_text = bos_text
+        self.eos_text = eos_text
+        self.max_length = max_length
+        self.hf_dataset = hf_datasets.load_dataset(path='c4',
+                                                   name='en',
+                                                   split=split,
+                                                   streaming=True)
 
-#         Args:
-#             samples (IterableDataset): An iterable dataset that is multi-worker compatible
+    def __iter__(self) -> Iterable[Dict[str, bytes]]:
+        buffer = ''
+        for sample in self.hf_dataset:
+            buffer = buffer + self.bos_text + sample['text'] + self.eos_text
+            while len(buffer) >= self.max_length:
+                concat_sample = buffer[:self.max_length]
+                buffer = buffer[self.max_length:]
+                yield {'text': concat_sample.encode('utf-8')}
 
-#         Yields:
-#             Sample dicts.
-#         """
-#         n_samples = 0
-#         buffer = ''
-#         while True:
-#             for batch in self.loader:
-#                 for sample in batch['text']:
-#                     n_samples += 1
-#                     buffer = buffer + self.bos_text + sample + self.eos_text
-#                     while len(buffer) >= self.max_length:
-#                         concat_sample = buffer[:self.max_length]
-#                         buffer = buffer[self.max_length:]
-
-#                         yield {'text': concat_sample.encode('utf-8')}
-
-#                         if n_samples >= self.expected_num_samples:
-#                             return
 
 # class TokenizedC4(ShardedC4):
 #     """A tokenized, concatenated, iterable dataset.
@@ -231,13 +225,14 @@ def build_hf_c4_dataset(
         An IterableDataset.
     """
     if mode == ConcatMode.NO_CONCAT:
-        dataset = NoConcatC4(split)
-    # elif mode == ConcatMode.CONCAT_TEXT:
-    #     dataset = ConcatC4(split=split,
-    #                        max_length=max_length,
-    #                        bos_text=bos_text,
-    #                        eos_text=eos_text,
-    #                        expected_num_samples=expected_num_samples)
+        dataset = NoConcatC4(split=split)
+    elif mode == ConcatMode.CONCAT_TEXT:
+        dataset = ConcatTextC4(split=split,
+                               max_length=max_length,
+                               bos_text=bos_text,
+                               eos_text=eos_text)
+    else:
+        raise ValueError()
     # else:
     #     dataset = TokenizedC4(split=split,
     #                           tokenizer=tokenizer,
@@ -327,12 +322,15 @@ def build_dataloader(dataset, batch_size) -> None:
     )
 
 
-def generate_samples(loader,
-                     truncate_num_samples=None) -> Iterable[Dict[str, bytes]]:
-    """Generator over each dataset sample.
+def generate_samples(
+        loader: DataLoader,
+        truncate_num_samples: Optional[int] = None
+) -> Iterable[Dict[str, bytes]]:
+    """Generator over samples of a dataloader.
 
     Args:
-        samples (IterableDataset): An iterable dataset that is multi-worker compatible
+       loader (DataLoader): A dataloader emitting batches like {key: [sample0_bytes, sample1_bytes, sample2_bytes, ...]}
+       truncate_num_samples (Optional[int]): An optional # of samples to stop at.
 
     Yields:
         Sample dicts.
@@ -354,10 +352,10 @@ def main(args: Namespace) -> None:
     Args:
         args (Namespace): Commandline arguments.
     """
-    hf_splits = ('train', 'train', 'validation')
-    folder_splits = ('train', 'train_small', 'val')
-    expected_counts = (364868892, 655360, 364608)
-    truncate_counts = (None, 655360, None)
+    hf_splits = ('train', 'train', 'validation', 'validation')
+    folder_splits = ('train', 'train_small', 'val', 'val_small')
+    expected_counts = (364868892, 1000000, 364608, 10000)
+    truncate_counts = (None, 100000, None, 10000)
 
     mode, max_length, tokenizer, bos_text, eos_text, columns = _get_kwargs(args)
 
@@ -369,7 +367,7 @@ def main(args: Namespace) -> None:
             continue
 
         # Get samples
-        print(f'Downloading and formatting {folder_split}...')
+        # print(f'Downloading and formatting {folder_split}...')
         dataset = build_hf_c4_dataset(split=hf_split,
                                       mode=mode,
                                       max_length=max_length,
