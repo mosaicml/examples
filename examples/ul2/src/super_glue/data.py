@@ -85,7 +85,8 @@ def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
             cfg.dataset.split,
             cfg.dataset.max_seq_length,
             cfg.dataset.decoder_only_format,
-            extra_prefix=cfg.dataset.get('extra_prefix'))
+            extra_prefix=cfg.dataset.get('extra_prefix'),
+            include_extra_example_info=True)
         return _build_dataloader(dataset, cfg, device_batch_size)
 
     # Task mixture
@@ -105,7 +106,8 @@ def build_super_glue_task_dataloader(cfg: Mapping[str, Any],
                 cfg.dataset.split,
                 cfg.dataset.max_seq_length,
                 cfg.dataset.decoder_only_format,
-                extra_prefix=cfg.dataset.get('extra_prefix')) for task in tasks
+                extra_prefix=cfg.dataset.get('extra_prefix'),
+                include_extra_example_info=(mode == 'eval')) for task in tasks
         ]
 
         # Merge these task datasets into one dataset, sampling from each with
@@ -144,6 +146,7 @@ def create_super_glue_dataset(
     max_retries: int = 10,
     num_workers: int = 0,
     extra_prefix: Optional[str] = None,
+    include_extra_example_info: bool = False,
 ):
     if task not in _task_prefix_column_names:
         raise ValueError(
@@ -206,7 +209,6 @@ def create_super_glue_dataset(
         decoder_text = target_extractor(inp)
 
         if decoder_only_format:
-            # raise NotImplementedError  # TODO(Alex): Implement this!
             context_tokens = tokenizer(encoder_text +
                                        tokenizer.eos_token).input_ids
             target_tokens = tokenizer(decoder_text).input_ids
@@ -247,7 +249,7 @@ def create_super_glue_dataset(
                 labels[n_tokens:] = _HF_IGNORE_INDEX
                 bidirectional_mask[n_context:] = 0
 
-            return {
+            model_args = {
                 'input_ids': batch.input_ids,
                 'attention_mask': batch.attention_mask,
                 'labels': labels,
@@ -280,7 +282,7 @@ def create_super_glue_dataset(
                 decoder_dict['attention_mask'],
                 new_pad_id=_HF_IGNORE_INDEX)
 
-            return {
+            model_args = {
                 'input_ids': encoder_dict.input_ids,
                 'attention_mask': encoder_dict.attention_mask,
                 'labels': decoder_dict.input_ids,
@@ -288,17 +290,24 @@ def create_super_glue_dataset(
                 'decoder_attention_mask': decoder_dict.attention_mask,
             }
 
+        if include_extra_example_info:
+            # Keep things like `idx` and `label`
+            model_args.update(
+                {k: v for k, v in inp.items() if not isinstance(v, str)})
+
+        return model_args
+
     assert isinstance(dataset, datasets.Dataset)
     columns_to_remove = list(dataset[0].keys())
-    # safe_tok_name = tokenizer_name.replace('/', ',')
+    safe_tok_name = tokenizer_name.replace('/', ',')
     dataset = dataset.map(
         tokenize_function,
         batched=False,
         num_proc=None if num_workers == 0 else num_workers,
         remove_columns=columns_to_remove,
-        # new_fingerprint=
-        # f'{task}-{safe_tok_name}-tokenization-{max_seq_length}-{split}',
-        load_from_cache_file=False,
+        new_fingerprint=
+        f'{task}-{safe_tok_name}-tokenization-{max_seq_length}-{split}',
+        load_from_cache_file=True,
     )
     return dataset
 
@@ -327,6 +336,8 @@ class PadTrimCollator:
             keep_tokens = int(multiple_of *
                               torch.ceil(n_non_padding / multiple_of))
             for k, v in batch.items():
+                if len(v.shape) < 2:
+                    continue
                 if self.tokenizer.padding_side == 'left':
                     batch[k] = v[:, -keep_tokens:].contiguous()
                 else:
