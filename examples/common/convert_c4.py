@@ -362,7 +362,7 @@ def _get_kwargs(args):
             if test_tokens['input_ids'][
                     0] != tokenizer.bos_token_id and test_tokens['input_ids'][
                         -1] != tokenizer.eos_token_id:
-                tok_error_msg = 'This tokenizer does not insert an EOS nor BOS token.'
+                tok_error_msg = 'This tokenizer does not insert an EOS nor BOS token. '
                 tok_error_msg += 'Concatenating with this tokenizer will result in sequences being '
                 tok_error_msg += 'attached without a separating token. Please use another tokenizer, '
                 tok_error_msg += 'such as facebook/opt-125m, or specify EOS/BOS text with e.g. '
