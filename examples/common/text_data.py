@@ -183,7 +183,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out
 if __name__ == '__main__':
-
     if len(sys.argv) > 2:
         local, remote = sys.argv[1:3]
         print(f'Reading val split from {local} <- streamed from <- {remote}')
@@ -197,9 +196,9 @@ if __name__ == '__main__':
         'dataset': {
             'local': local,
             'remote': remote,
-            'split': 'val',
+            'split': 'val_small',
             'shuffle': False,
-            'tokenizer_name': 'gpt2',
+            'tokenizer_name': 'facebook/opt-125m',
             'max_seq_len': 32,
             'keep_zip': True,  # in case we need compressed files after testing
         },
