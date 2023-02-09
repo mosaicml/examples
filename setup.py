@@ -93,7 +93,7 @@ setup(
     version=repo_version,
     author='MosaicML',
     author_email='team@mosaicml.com',
-    description='Optimized starter code for deep learning training + evaulation',
+    description='Optimized starter code for deep learning training + evaluation',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/mosaicml/examples/',
