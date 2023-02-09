@@ -184,22 +184,29 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out
 if __name__ == '__main__':
-    if len(sys.argv) > 2:
-        local, remote = sys.argv[1:3]
-        print(f'Reading val split from {local} <- streamed from <- {remote}')
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tokenizer", type=str, default="gpt2", help="the name of the tokenizer to use")
+    parser.add_argument("--local_path", type=str, required=True, help='the path to the local copy of the dataset')
+    parser.add_argument("--remote_path", type=str, default=None, help='the path to the remote copy to stream from (optional)')
+    parser.add_argument("--split", type=str, default="val", help='which split of the dataset to use')
+
+    args = parser.parse_args()
+
+    if args.remote_path is not None:
+        print(f'Reading val split from {args.local_path} <- streamed from <- {remote_path}')
     else:
-        local = sys.argv[1]
-        remote = None
-        print(f'Reading val split from {local}')
+        print(f'Reading val split from {args.local_path}')
 
     cfg = {
         'name': 'text',
         'dataset': {
-            'local': local,
-            'remote': remote,
-            'split': 'val',
+            'local': args.local_path,
+            'remote': args.remote_path,
+            'split': args.split,
             'shuffle': False,
-            'tokenizer_name': 'facebook/opt-125m',
+            'tokenizer_name': args.tokenizer,
             'max_seq_len': 32,
             'keep_zip': True,  # in case we need compressed files after testing
         },

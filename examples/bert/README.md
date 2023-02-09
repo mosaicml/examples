@@ -63,7 +63,7 @@ To verify that pre-training runs correctly, first prepare a local copy of the C4
 # Download the 'train_small' and 'val' splits and convert to StreamingDataset format
 # This will take 20-60 seconds depending on your Internet bandwidth
 # You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val --concat_tokens 128 --tokenizer bert-base-uncased
 
 # Run the pre-training script with the test config and HuggingFace BERT
 composer main.py yamls/test/main.yaml
@@ -103,18 +103,20 @@ You can read more about the benefits of using mosaicml-streaming [here](https://
 To make yourself a copy of C4, use `convert_c4.py` like so:
 
 ```bash
-# Download the 'train_small', 'val' splits and convert to StreamingDataset format
-# This will take 20 sec to 1 min depending on your Internet bandwidth
-# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+# Download the 'train_small' and 'val' splits and convert to StreamingDataset format
+# This will take 20-60 seconds depending on your Internet bandwidth
+# You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+# Note: for BERT we are not doing any concatenation of samples, so we do not use the `--concat_tokens`
+# or `--concat_text` options here. Instead, samples will simply get padded or truncated to the max sequence length
 python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
+# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train --concat_tokens 2048 --tokenizer bert-base-uncased
 
 # For any of the above commands, you can also choose to compress the .mds files.
-# This is useful if your plan is to store these in an object store after conversion.
+# This is useful if your plan is to store these in object store after conversion.
 # python ../common/convert_c4.py ... --compression zstd
 ```
 
