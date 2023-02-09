@@ -37,6 +37,7 @@ import copy
 import logging
 import math
 import warnings
+from functools import partial
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -544,6 +545,70 @@ class BertEncoder(nn.Module):
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)
         return all_encoder_layers
+
+    # Param Initialization, needed for device='meta' fast initialization
+    def param_init_fn(self, module):
+        init_fn = partial(torch.nn.init.normal_,
+                          mean=0.0,
+                          std=self.cfg.init_std)
+        # Linear
+        if isinstance(module, nn.Linear):
+            init_fn(module.weight)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+
+            if getattr(module, '_is_residual', False):
+                module.weight.data.normal_(
+                    mean=0.0,
+                    std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+
+        # Embedding
+        if isinstance(module, nn.Embedding):
+            init_fn(module.weight)
+
+        # LayerNorm
+        if isinstance(module, nn.LayerNorm):
+            torch.nn.init.zeros_(module.bias)
+            torch.nn.init.ones_(module.weight)
+
+        # torch's MultiheadAttention
+        if isinstance(module, nn.MultiheadAttention):
+            if module._qkv_same_embed_dim:
+                assert module.in_proj_weight is not None
+                assert module.q_proj_weight is None and module.k_proj_weight is None and module.v_proj_weight is None
+                init_fn(module.in_proj_weight)
+            else:
+                assert module.q_proj_weight is not None and module.k_proj_weight is not None and module.v_proj_weight is not None
+                assert module.in_proj_weight is None
+                init_fn(module.q_proj_weight)
+                init_fn(module.k_proj_weight)
+                init_fn(module.v_proj_weight)
+
+            # bias
+            if module.in_proj_bias is not None:
+                torch.nn.init.zeros_(module.in_proj_bias)
+            if module.bias_k is not None:
+                torch.nn.init.zeros_(module.bias_k)
+            if module.bias_v is not None:
+                torch.nn.init.zeros_(module.bias_v)
+
+            # out proj
+            if module.out_proj._is_residual:
+                module.out_proj.weight.data.normal_(
+                    mean=0.0,
+                    std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+            else:
+                init_fn(module.out_proj.weight)
+            if module.out_proj.bias is not None:
+                torch.nn.init.zeros_(module.out_proj.bias)
+
+    # FSDP Wrap function
+    def fsdp_wrap_fn(self, module):
+        return isinstance(module, BertLayer)
+
+    # Activation Checkpointing
+    def activation_checkpointing_fn(self, module):
+        return isinstance(module, BertLayer)
 
 
 class BertPooler(nn.Module):
