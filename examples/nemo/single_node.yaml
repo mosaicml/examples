@@ -26,6 +26,4 @@ command: |
   model.tokenizer.vocab_file=gpt2-vocab.json \
   model.tokenizer.merge_file=gpt2-merges.txt \
   model.optim.name="fused_adam" \
-  trainer.devices=8 \
-  model.micro_batch_size=32 \
-  model.global_batch_size=2048
+  trainer.devices=8

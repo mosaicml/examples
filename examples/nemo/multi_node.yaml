@@ -33,9 +33,4 @@ command: |
   model.tokenizer.vocab_file=gpt2-vocab.json \
   model.tokenizer.merge_file=gpt2-merges.txt \
   model.optim.name="fused_adam" \
-  trainer.devices=1 \
-  model.micro_batch_size=32 \
-  model.global_batch_size=2048 \
-  model.max_position_embeddings=1024 \
-  model.encoder_seq_length=32 \
-  model.data.seq_length=32'
+  trainer.devices=1'
