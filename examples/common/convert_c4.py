@@ -4,11 +4,11 @@
 """C4 streaming dataset conversion scripts."""
 import os
 import platform
+import warnings
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from enum import Enum
 from textwrap import dedent
 from typing import Dict, Iterable, Optional
-import warnings
 
 import datasets as hf_datasets
 import numpy as np
@@ -170,7 +170,6 @@ class ShardedC4(IterableDataset):
                 }
                 n_samples += 1
                 if n_samples == self.expected_num_samples:
-                    print(f'{total_chars=}')
                     return
 
 
@@ -190,12 +189,12 @@ class ConcatC4(ShardedC4):
         Yields:
             Sample dicts.
         """
-
         n_samples = 0
         buffer = ''
         while True:
             for batch in self.loader:
                 for sample in batch['text']:
+                    n_samples += 1
                     buffer = buffer + self.bos_text + sample + self.eos_text
                     while len(buffer) >= self.max_length:
                         concat_sample = buffer[:self.max_length]
@@ -203,8 +202,7 @@ class ConcatC4(ShardedC4):
 
                         yield {'text': concat_sample.encode('utf-8')}
 
-                        n_samples += 1
-                        if n_samples == self.expected_num_samples:
+                        if n_samples >= self.expected_num_samples:
                             return
 
 
@@ -245,7 +243,6 @@ class TokenizedC4(ShardedC4):
         Yields:
             Sample dicts.
         """
-
         bos_tokens = self.tokenizer(self.bos_text,
                                     truncation=False,
                                     padding=False,
@@ -272,6 +269,7 @@ class TokenizedC4(ShardedC4):
                                          truncation=False,
                                          padding=False)
                 for iids in encoded['input_ids']:
+                    n_samples += 1
                     buffer = buffer + bos_tokens + iids + eos_tokens
                     while len(buffer) >= self.max_length:
                         concat_sample = buffer[:self.max_length]
@@ -281,8 +279,7 @@ class TokenizedC4(ShardedC4):
                             # convert to bytes to store in MDS binary format
                             'tokens': np.asarray(concat_sample).tobytes()
                         }
-                        n_samples += 1
-                        if n_samples == self.expected_num_samples:
+                        if n_samples >= self.expected_num_samples:
                             return
 
 
@@ -321,28 +318,7 @@ def build_hf_c4_dataset(split: str, mode: ConcatMode, max_length: Optional[int],
     return dataset
 
 
-def _concat_sample_count(sample_count: int,
-                         mode: ConcatMode,
-                         max_length: Optional[int] = None) -> int:
-    emp_chars_per_sample = 2163  # measured for val split
-    est_tokens_per_samples = 540  # using est_char_per_token = 4
-
-    if max_length is None and mode != ConcatMode.NO_CONCAT:
-        raise ValueError("max_length can't be None when concatenating")
-
-    if mode == ConcatMode.NO_CONCAT:
-        return sample_count
-    elif mode == ConcatMode.CONCAT_TEXT:
-        total_char = sample_count * emp_chars_per_sample
-        return total_char // max_length
-    elif mode == ConcatMode.CONCAT_TOKENS:
-        total_tokens = sample_count * est_tokens_per_samples
-        return total_tokens // max_length
-
-
 def _get_kwargs(args):
-    split_samples = (364868892, 327680, 364608)
-
     if hasattr(args, 'concat_tokens') and args.concat_tokens is not None:
         mode = ConcatMode.CONCAT_TOKENS
         max_length = args.concat_tokens
@@ -353,9 +329,6 @@ def _get_kwargs(args):
         eos_text = args.eos_text
         # concatenating makes us lose timestamp and url
         columns = {'tokens': 'bytes'}
-        split_samples = [
-            _concat_sample_count(ct, mode, max_length) for ct in split_samples
-        ]
 
         if bos_text + eos_text == '':
             test_tokens = tokenizer('test')
@@ -377,9 +350,6 @@ def _get_kwargs(args):
         eos_text = args.eos_text
         # concatenating makes us lose timestamp and url
         columns = {'text': 'str'}
-        split_samples = [
-            _concat_sample_count(ct, mode, max_length) for ct in split_samples
-        ]
 
     else:
         mode = ConcatMode.NO_CONCAT
@@ -389,7 +359,19 @@ def _get_kwargs(args):
         eos_text = None
         columns = {'text': 'str', 'timestamp': 'str', 'url': 'str'}
 
-    return mode, max_length, tokenizer, bos_text, eos_text, columns, split_samples
+    return mode, max_length, tokenizer, bos_text, eos_text, columns
+
+
+def _est_progress_denominator(total_samples: int, mode: ConcatMode,
+                              max_length: int):
+    emp_chars_per_sample = 2163  # measured for val split
+    est_tokens_per_samples = 540  # using est_char_per_token = 4
+    if mode == ConcatMode.NO_CONCAT:
+        return total_samples
+    elif mode == ConcatMode.CONCAT_TEXT:
+        return total_samples * emp_chars_per_sample // max_length
+    elif mode == ConcatMode.CONCAT_TOKENS:
+        return total_samples * est_tokens_per_samples // max_length
 
 
 def main(args: Namespace) -> None:
@@ -400,12 +382,12 @@ def main(args: Namespace) -> None:
     """
     splits = ('train', 'train', 'validation')
     split_names = ('train', 'train_small', 'val')
+    sample_counts = (364868892, 327680, 364608)
 
-    mode, max_length, tokenizer, bos_text, eos_text, columns, split_samples = _get_kwargs(
-        args)
+    mode, max_length, tokenizer, bos_text, eos_text, columns = _get_kwargs(args)
 
     for (split, split_new_name,
-         expected_num_samples) in zip(splits, split_names, split_samples):
+         expected_num_samples) in zip(splits, split_names, sample_counts):
         # Only generate the splits requested
         if split_new_name not in args.splits:
             continue
@@ -421,14 +403,15 @@ def main(args: Namespace) -> None:
                                       expected_num_samples=expected_num_samples)
         samples = dataset.generate_samples()
 
+        denominator = _est_progress_denominator(expected_num_samples, mode,
+                                                max_length)
+
         # Write samples
         print(f'Converting {split_new_name} to MDS format...')
         with MDSWriter(dirname=os.path.join(args.out_root, split_new_name),
                        columns=columns,
                        compression=args.compression) as out:
-            for sample in tqdm(samples,
-                               desc=split_new_name,
-                               total=expected_num_samples):
+            for sample in tqdm(samples, desc=split_new_name, total=denominator):
                 out.write(sample)
 
 
