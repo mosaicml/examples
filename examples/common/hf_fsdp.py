@@ -63,16 +63,6 @@ def hf_get_causal_base_model(model: PreTrainedModel):
     return findattr(model, decoder_attrs)
 
 
-def hf_get_lm_head(model: PreTrainedModel):
-    """Returns the lm head of the specified HuggingFace model.
-
-    NOTE: Different model configurations have different `lm_head` attribute names.
-        - lm_head: (GPT2LMHeadModel, BloomForCausalLM)
-        - embed_out: (GPTNeoXForCausalLM)
-    """
-    return model.get_output_embeddings()
-
-
 def hf_get_hidden_layers(model: PreTrainedModel):
     """Returns the hidden layers of the specified model.
 
@@ -115,7 +105,7 @@ def prepare_hf_causal_lm_model_for_fsdp(model: PreTrainedModel) -> None:
     """
     causal_base_model = hf_get_causal_base_model(model)
     model_block = hf_get_hidden_layers(model)  # type: ignore
-    lm_head = hf_get_lm_head(model)
+    lm_head = model.get_output_embeddings()
     # some models (OPT) implement .get_input_embeddings for the causal subclass
     # but all of them implement it for the base model
     tied_embeddings = causal_base_model.get_input_embeddings()
@@ -161,7 +151,7 @@ def prepare_hf_enc_dec_model_for_fsdp(model: PreTrainedModel) -> None:
     tied_embeddings = model.get_input_embeddings()
     encoder = model.get_encoder()
     decoder = model.get_decoder()
-    lm_head = hf_get_lm_head(model)
+    lm_head = model.get_output_embeddings()
     # some encoder/decoders have different layers for encoder vs decoder
     encoder_block = hf_get_hidden_layers(encoder)
     decoder_block = hf_get_hidden_layers(decoder)
