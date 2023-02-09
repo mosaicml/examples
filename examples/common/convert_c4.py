@@ -58,20 +58,18 @@ def parse_args() -> Namespace:
             f'--out_root={parsed.out_root} contains {os.listdir(parsed.out_root)} which cannot overlap with the requested splits {parsed.splits}.'
         )
 
-    if hasattr(parsed, 'concat_text') or hasattr(parsed, 'concat_tokens'):
-        # Make sure we have needed concat options
-        if (parsed.concat_text is not None and
-                isinstance(parsed.concat_text, int) and
-                parsed.bos_text is None and parsed.eos_text is None):
-            parser.error(
-                dedent(
-                    'When setting --concat_text, you must specify at least one of --bos_text or --eos_text \
-                with which to separate concatenated sequences'))
-        if (parsed.concat_tokens is not None and
-                isinstance(parsed.concat_tokens, int) and
-                parsed.tokenizer is None):
-            parser.error(
-                'When setting --concat_tokens, you must specify a --tokenizer')
+    # Make sure we have needed concat options
+    if (parsed.concat_text is not None and
+            isinstance(parsed.concat_text, int) and parsed.bos_text is None and
+            parsed.eos_text is None):
+        parser.error(
+            dedent(
+                'When setting --concat_text, you must specify at least one of --bos_text or --eos_text \
+            with which to separate concatenated sequences'))
+    if (parsed.concat_tokens is not None and
+            isinstance(parsed.concat_tokens, int) and parsed.tokenizer is None):
+        parser.error(
+            'When setting --concat_tokens, you must specify a --tokenizer')
 
     # now that we have validated them, change BOS/EOS to strings
     if parsed.bos_text is None:
