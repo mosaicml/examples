@@ -63,11 +63,15 @@ class StreamingTextDataset(StreamingDataset):
                  batch_size: Optional[int] = None,
                  **kwargs: Dict[str, Any]):
 
-        if 'group_method' in kwargs:
-            raise DeprecationWarning(
+        group_method = kwargs.pop('group_method', None)
+        if group_method is not None:
+            raise NotImplementedError(
                 'group_method is deprecated and has been removed.\nTo ' +
                 'concatenate, use the --concat_text or --concat_tokens ' +
                 'argument to concat_c4.py when creating your MDS dataset')
+        
+        if kwargs is not None and len(kwargs) > 0:
+            raise ValueError(f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}')
 
         # Build Dataset
         super().__init__(local=local,
