@@ -113,7 +113,7 @@ callbacks:
 
 loggers:
   wandb:     # Uncomment and fill below arguments to use WandB logger
-    entity: mosaicml # Name of WandB entity, usually username or organization name
+    entity: mosaic-ml # Name of WandB entity, usually username or organization name
     project: wandb_demo # Name of WandB project
     log_artifacts: True
 
