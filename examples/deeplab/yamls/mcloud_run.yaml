@@ -29,9 +29,9 @@ parameters:
 
   # Training Dataset Parameters
   train_dataset:
-    is_streaming: true                 # If true, use streaming dataset
-    path: s3://my-bucket/ade20k        # Path to S3 bucket if streaming, otherwise path to local data directory
-    local: /tmp/mds-cache/mds-ade20k/  # Local cache when streaming data
+    is_streaming: false                # If true, use streaming dataset
+    path: ./ade20k                     # Path to S3 bucket if streaming, otherwise path to local data directory
+    local: null                        # Local cache when streaming data
     base_size: 512                     # Initial size of the image and target before other augmentations
     min_resize_scale: 0.5              # The minimum value the samples can be rescaled
     max_resize_scale: 2.0              # The maximum value the samples can be rescaled
@@ -41,9 +41,9 @@ parameters:
 
   # Validation Dataset Parameters
   eval_dataset:
-    is_streaming: true                # If true, use streaming dataset
-    path: s3://my-bucket/ade20k       # S3 bucket if streaming, otherwise path to local data
-    local: /tmp/mds-cache/mds-ade20k/ # Local cache when streaming data
+    is_streaming: false               # If true, use streaming dataset
+    path: ./ade20k                    # S3 bucket if streaming, otherwise path to local data
+    local: null                       # Local cache when streaming data
     base_size: 512                    # Initial size of the image and target before other augmentations
     min_resize_scale: 0.5             # The minimum value the samples can be rescaled
     max_resize_scale: 2.0             # The maximum value the samples can be rescaled
