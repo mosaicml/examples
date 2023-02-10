@@ -81,12 +81,12 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # Note: We are using the `--concat_tokens` option to pre tokenize our samples to be of the max sequence length without padding
 # `--concat_text` is also an option if you don't want to pre tokenize, but may result in some padding or truncated text in your samples,
 # which affects the MFU calculation
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val --concat_tokens 2048 --tokenizer gpt2 --bos_text '<|endoftext|>'
+python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train --concat_tokens 2048 --tokenizer gpt2 --bos_text '<|endoftext|>'
+# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
