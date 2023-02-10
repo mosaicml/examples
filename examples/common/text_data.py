@@ -164,7 +164,6 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         shuffle_seed=cfg.dataset.get('shuffle_seed', None),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
         batch_size=device_batch_size)
-    print(f'num_samples: {len(dataset)}')
 
     mlm_probability = cfg.dataset.get('mlm_probability', None)
     collate_fn = transformers.DataCollatorForLanguageModeling(
