@@ -15,7 +15,10 @@ model:
     # WARNING: is setting `pretrained: false`, `max_position_embeddings` must match the 
     # `max_position_embeddings` used durring pre-training
     max_position_embeddings: *max_seq_len
+<<<<<<< Updated upstream
   device: cpu  # this is where to initialize weights; cpu memory or meta tensor
+=======
+>>>>>>> Stashed changes
   pretrained: false  # false: only use the architecture; true: initialize with pretrained weights
 
 # Tokenizer
