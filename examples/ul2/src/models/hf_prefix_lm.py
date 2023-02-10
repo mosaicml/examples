@@ -142,15 +142,15 @@ def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
         assert transformers.AutoModelForCausalLM.from_config is not None, 'AutoModelForCausalLM has from_config method'
         model = transformers.AutoModelForCausalLM.from_config(config)
 
-    # Super charge
-    prepare_hf_causal_lm_model_for_fsdp(model)
-
     # Convert the Causal LM into a Prefix LM via our custom wrapper
     model = utils.convert_hf_causal_lm_to_prefix_lm(model)
 
     # Expand the embeddings/vocab size to match the tokenizer
     if model.config.vocab_size != vocab_size:
         model.resize_token_embeddings(new_num_tokens=vocab_size)
+
+    # Super charge
+    prepare_hf_causal_lm_model_for_fsdp(model)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore

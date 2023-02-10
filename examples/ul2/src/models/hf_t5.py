@@ -115,6 +115,7 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
     # setup the tokenizer
     tokenizer_name = tokenizer_name or pretrained_model_name
     tokenizer = AutoTokenizerForMOD.from_pretrained(tokenizer_name)
+    vocab_size = tokenizer.vocab_size
 
     if not model_config:
         model_config = {}
@@ -125,6 +126,10 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
     else:
         config = T5Config.from_pretrained(pretrained_model_name, **model_config)
         model = T5ForConditionalGeneration(config)
+
+    # Expand the embeddings/vocab size to match the tokenizer
+    if model.config.vocab_size != vocab_size:
+        model.resize_token_embeddings(new_num_tokens=vocab_size)
 
     # Super charge
     prepare_hf_enc_dec_model_for_fsdp(model)
