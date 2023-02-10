@@ -59,6 +59,7 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
 # Note: for BERT we are not doing any concatenation of samples, so we do not use the `--concat_tokens`
 # or `--concat_text` options here. Instead, samples will simply get padded or truncated to the max sequence length
+# in the dataloader
 python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
