@@ -47,7 +47,7 @@ def parse_args():
         default='mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04')
     parser.add_argument('--git_branch',
                         type=str,
-                        default='main',
+                        default=None,
                         help='what git branch to use.')
     parser.add_argument('--git_commit',
                         type=str,
