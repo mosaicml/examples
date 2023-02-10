@@ -68,7 +68,7 @@ class StreamingTextDataset(StreamingDataset):
             raise NotImplementedError(
                 'group_method is deprecated and has been removed.\nTo ' +
                 'concatenate, use the --concat_text or --concat_tokens ' +
-                'argument to concat_c4.py when creating your MDS dataset')
+                'argument when creating your MDS dataset with concat_c4.py')
         
         if kwargs is not None and len(kwargs) > 0:
             raise ValueError(f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}')
