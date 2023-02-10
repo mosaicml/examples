@@ -30,11 +30,19 @@ def build_composer_model(cfg):
 
 
 def main(cfg):
+    # Filter deprecation warning from torch internal usage
+    warnings.filterwarnings(
+        action='ignore',
+        category=UserWarning,
+        message=
+        f'torch.distributed.*_base is a private function and will be deprecated.*'
+    )
+
     reproducibility.seed_all(cfg.seed)
 
     # Run Name
-    cfg.run_name = cfg.get('run_name', os.environ.get('COMPOSER_RUN_NAME',
-                                                      'llm'))
+    cfg.run_name = cfg.get('run_name') or os.environ.get(
+        'COMPOSER_RUN_NAME', 'llm')
 
     # Get batch size info
     cfg = update_batch_size_info(cfg)
