@@ -11,6 +11,10 @@ run_name: gpt2-small
 model:
   name: hf_causal_lm
   pretrained_model_name_or_path: gpt2
+  config_overrides:
+    # WARNING: is setting `pretrained: false`, `max_position_embeddings` must match the 
+    # `max_position_embeddings` used durring pre-training
+    n_positions: *max_seq_len
   device: cpu  # this is where to initialize weights; cpu memory or meta tensor
   pretrained: false  # false: only use the architecture; true: initialize with pretrained weights
 
@@ -72,10 +76,11 @@ algorithms:
 
 max_duration: 4800ba # ~ 2.5B tokens
 eval_interval: 500ba
++eval_subset_num_batches: -1
 global_train_batch_size: 512
 
 # System
-seed: 17
++seed: *global_seed
 device_eval_batch_size: 8
 device_train_microbatch_size: 8
 # device_train_microbatch_size: auto
