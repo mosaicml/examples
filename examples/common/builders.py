@@ -16,7 +16,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
-
+from examples.llm.loss_spikes.loss_spike_detection_callback import LossSpikeDetectionCallback
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -30,6 +30,10 @@ def build_callback(name, kwargs):
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
+    elif name == 'loss_spike_detector':
+        return LossSpikeDetectionCallback(
+            **kwargs
+        )
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
