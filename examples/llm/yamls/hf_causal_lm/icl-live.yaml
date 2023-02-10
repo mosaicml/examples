@@ -1,0 +1,135 @@
+data_local: ./my-copy-c4
+data_remote: null
+tokenizer_name: gpt2
+max_seq_len: 2048
+global_seed: 17
+
+
+model:
+  name: hf_causal_lm
+  pretrained_model_name_or_path: EleutherAI/gpt-neo-125M
+  device: cpu
+  pretrained: false
+
+# Tokenizer
+tokenizer:
+  type: hftokenizer
+  args:
+    tokenizer_name: ${tokenizer_name}
+    max_seq_len: ${max_seq_len}
+
+# Dataloaders
+train_loader:
+  name: text
+  dataset:
+    local: ${data_local}
+    remote: ${data_remote}
+    split: train_small
+    shuffle: true
+    tokenizer_name: ${tokenizer_name}
+    max_seq_len: ${max_seq_len}
+    group_method: truncate
+    shuffle_seed: ${global_seed}
+  drop_last: true
+  num_workers: 8
+
+# eval_loader:
+#   name: text
+#   dataset:
+#     local: ${data_local}
+#     remote: ${data_remote}
+#     split: val
+#     shuffle: false
+#     tokenizer_name: ${tokenizer_name}
+#     max_seq_len: ${max_seq_len}
+#     group_method: truncate
+#     shuffle_seed: ${global_seed}
+#   drop_last: false
+#   num_workers: 8
+
+# Optimization
+scheduler:
+  name: cosine_with_warmup
+  t_warmup: 100ba
+  alpha_f: 0.1
+
+optimizer:
+  name: decoupled_adamw
+  lr: 6.0e-4
+  betas:
+  - 0.9
+  - 0.95
+  eps: 1.0e-08
+  weight_decay: 0.0
+
+algorithms:
+  gradient_clipping:
+    clipping_type: norm
+    clipping_threshold: 1.0
+
+max_duration: 4800ba # ~ 2.5B tokens
+eval_interval: 2ba
+eval_subset_num_batches: 10
+global_train_batch_size: 256
+
+# System
+seed: 17
+device_eval_batch_size: 1
+device_train_microbatch_size: 1
+# device_train_microbatch_size: auto
+precision: amp_bf16
+
+# FSDP
+# fsdp_config:
+#   sharding_strategy: FULL_SHARD
+#   min_params: 2e8
+#   mixed_precision: DEFAULT
+#   activation_checkpointing: false
+#   activation_cpu_offload: false
+#   verbose: true
+
+# Logging
+progress_bar: false
+log_to_console: true
+console_log_interval: 20ba
+
+callbacks:
+  speed_monitor:
+    window_size: 10
+  lr_monitor: {}
+  memory_monitor: {}
+
+# loggers:
+#   wandb: {}
+
+
+# ICL Eval
+icl_tasks:
+-
+  label: piqa
+  dataset_uri: s3://mosaicml-internal-dataset-hellaswag/piqa.jsonz # ADD YOUR OWN DATASET URI
+  num_fewshot:
+  - 0
+  # - 1
+  # - 5
+  batch_size: 16
+  icl_task_type: multiple_choice
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  prompt_string: '' # this goes at the beginning of each input
+  example_delimiter: '\n' # this goes between fewshot examples
+  continuation_delimiter: ' ' # this separates questions from answers
+# -
+#   label: lambada
+#   dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_test.json # ADD YOUR OWN DATASET URI
+#   num_fewshot:
+#   - 0
+#   - 1
+#   - 5
+#   batch_size: 16
+#   icl_task_type: language_modeling
+#   metric_names:
+#   - InContextLearningLMAccuracy
+#   prompt_string: '' # this goes at the beginning of each input
+#   example_delimiter: '\n' # this goes between fewshot examples
+#   continuation_delimiter: '' # this separates contexts from continuations
