@@ -198,7 +198,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.remote_path is not None:
-        print(f'Reading val split from {args.local_path} <- streamed from <- {remote_path}')
+        print(f'Reading val split from {args.local_path} <- streamed from <- {args.remote_path}')
     else:
         print(f'Reading val split from {args.local_path}')
 
