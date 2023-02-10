@@ -14,7 +14,7 @@ model:
   config_overrides:
     # WARNING: if setting `pretrained: true`, `max_position_embeddings` must match the
     # `max_position_embeddings` used during pre-training
-    max_position_embeddings: *max_seq_len
+    max_position_embeddings: ${max_seq_len}
   pretrained: false  # false: only use the architecture; true: initialize with pretrained weights
 
 # Tokenizer
@@ -79,7 +79,7 @@ eval_subset_num_batches: -1
 global_train_batch_size: 256
 
 # System
-seed: *global_seed
+seed: ${global_seed}
 device_eval_batch_size: 4
 device_train_microbatch_size: 4
 # device_train_microbatch_size: auto
