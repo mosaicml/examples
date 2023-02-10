@@ -299,6 +299,9 @@ class MosaicGPT(nn.Module):
             {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
         if cfg.init_device != 'meta':
+            print(
+                f'You are using {cfg.init_device=}, but you can also use cfg.init_device="meta" with Composer + FSDP for fast initialization.'
+            )
             self.apply(self.param_init_fn)
 
         # define attn mask
