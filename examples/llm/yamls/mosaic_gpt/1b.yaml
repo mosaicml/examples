@@ -113,12 +113,12 @@ callbacks:
 
 loggers:
   wandb:     # Uncomment and fill below arguments to use WandB logger
-    # entity: mosaic-ml # Name of WandB entity, usually username or organization name
-    # project: wandb_demo # Name of WandB project
+    entity: mosaic-ml # Name of WandB entity, usually username or organization name
+    project: wandb_demo # Name of WandB project
     log_artifacts: True
 
 # Checkpoint to local filesystem or remote object store
-save_interval: 100ba
+save_interval: 50ba
 save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
 save_folder: ./{run_name}/checkpoints
 # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
