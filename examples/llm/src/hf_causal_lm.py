@@ -19,7 +19,8 @@ class ComposerHFCausalLM(HuggingFaceModel):
 
     def __init__(self, cfg: DictConfig):
         config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path)
-        config.n_positions = cfg.get('max_seq_len', config.n_positions)
+        for k, v in cfg.get('config_overrides', {}).items():
+            setattr(config, k, v)
 
         tokenizer = AutoTokenizer.from_pretrained(
             cfg.pretrained_model_name_or_path)
