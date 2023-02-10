@@ -1,5 +1,5 @@
 data_local: ./my-copy-c4
-data_remote: null
+data_remote: s3://mosaicml-internal-dataset-c4/mds/2/
 tokenizer_name: gpt2
 max_seq_len: 2048
 global_seed: 17
@@ -102,7 +102,6 @@ fsdp_config:
   verbose: true
 
 # Logging
-progress_bar: false
 log_to_console: true
 console_log_interval: 1ba
 
@@ -112,13 +111,16 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
 
-# loggers:
-#   wandb: {}
+loggers:
+  wandb:     # Uncomment and fill below arguments to use WandB logger
+    entity: mosaicml # Name of WandB entity, usually username or organization name
+    project: wandb_demo # Name of WandB project
+    log_artifacts: True
 
 # Checkpoint to local filesystem or remote object store
-# save_interval: 2000ba
-# save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-# save_folder: ./{run_name}/checkpoints
+save_interval: 100ba
+save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+save_folder: ./{run_name}/checkpoints
 # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
 # Load from local filesystem or remote object store
