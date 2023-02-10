@@ -12,13 +12,9 @@ model:
   name: hf_causal_lm
   pretrained_model_name_or_path: gpt2
   config_overrides:
-    # WARNING: is setting `pretrained: false`, `max_position_embeddings` must match the 
+    # WARNING: if setting `pretrained: true`, `max_position_embeddings` must match the 
     # `max_position_embeddings` used durring pre-training
     n_positions: *max_seq_len
-<<<<<<< Updated upstream
-  device: cpu  # this is where to initialize weights; cpu memory or meta tensor
-=======
->>>>>>> Stashed changes
   pretrained: false  # false: only use the architecture; true: initialize with pretrained weights
 
 # Tokenizer
@@ -83,11 +79,7 @@ eval_interval: 500ba
 global_train_batch_size: 512
 
 # System
-<<<<<<< Updated upstream
-+seed: *global_seed
-=======
 seed: *global_seed
->>>>>>> Stashed changes
 device_eval_batch_size: 8
 device_train_microbatch_size: 8
 # device_train_microbatch_size: auto
