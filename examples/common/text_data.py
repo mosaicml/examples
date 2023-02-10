@@ -194,6 +194,7 @@ if __name__ == '__main__':
     parser.add_argument("--local_path", type=str, required=True, help='the path to the local copy of the dataset')
     parser.add_argument("--remote_path", type=str, default=None, help='the path to the remote copy to stream from (optional)')
     parser.add_argument("--split", type=str, default="val", help='which split of the dataset to use')
+    parser.add_argument("--max_seq_len", type=int, default=32, help='max sequence length to test')
 
     args = parser.parse_args()
 
@@ -210,7 +211,7 @@ if __name__ == '__main__':
             'split': args.split,
             'shuffle': False,
             'tokenizer_name': args.tokenizer,
-            'max_seq_len': 32,
+            'max_seq_len': args.max_seq_len,
             'keep_zip': True,  # in case we need compressed files after testing
         },
         'drop_last': False,
