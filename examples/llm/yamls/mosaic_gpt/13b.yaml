@@ -10,7 +10,7 @@ run_name: null
 # Model
 model:
   name: mosaic_gpt
-  device: meta
+  init_device: meta
   tokenizer_name: ${tokenizer_name}
   d_model: 5120
   n_heads: 40
