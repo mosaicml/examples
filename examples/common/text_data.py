@@ -4,7 +4,6 @@
 """Build a StreamingTextDataset dataset and dataloader for training."""
 
 import os
-import sys
 from itertools import islice
 from typing import Any, Dict, Optional
 
@@ -69,9 +68,11 @@ class StreamingTextDataset(StreamingDataset):
                 'group_method is deprecated and has been removed.\nTo ' +
                 'concatenate, use the --concat_text or --concat_tokens ' +
                 'argument when creating your MDS dataset with concat_c4.py')
-        
+
         if kwargs is not None and len(kwargs) > 0:
-            raise ValueError(f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}')
+            raise ValueError(
+                f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}'
+            )
 
         # Build Dataset
         super().__init__(local=local,
@@ -86,14 +87,13 @@ class StreamingTextDataset(StreamingDataset):
                          shuffle_seed=shuffle_seed,
                          num_canonical_nodes=num_canonical_nodes,
                          batch_size=batch_size)
-        self.tokenizer_name = tokenizer_name
         self.max_seq_len = max_seq_len
 
         # Build tokenizer
         os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
         os.environ['TOKENIZERS_PARALLELISM'] = 'false'
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            self.tokenizer_name)
+            tokenizer_name)
 
         # suppress warnings when using longer 'max_seq_len'
         self.tokenizer.model_max_length = int(1e30)
@@ -190,16 +190,34 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tokenizer", type=str, default="gpt2", help="the name of the tokenizer to use")
-    parser.add_argument("--local_path", type=str, required=True, help='the path to the local copy of the dataset')
-    parser.add_argument("--remote_path", type=str, default=None, help='the path to the remote copy to stream from (optional)')
-    parser.add_argument("--split", type=str, default="val", help='which split of the dataset to use')
-    parser.add_argument("--max_seq_len", type=int, default=32, help='max sequence length to test')
+    parser.add_argument('--tokenizer',
+                        type=str,
+                        default='gpt2',
+                        help='the name of the tokenizer to use')
+    parser.add_argument('--local_path',
+                        type=str,
+                        required=True,
+                        help='the path to the local copy of the dataset')
+    parser.add_argument(
+        '--remote_path',
+        type=str,
+        default=None,
+        help='the path to the remote copy to stream from (optional)')
+    parser.add_argument('--split',
+                        type=str,
+                        default='val',
+                        help='which split of the dataset to use')
+    parser.add_argument('--max_seq_len',
+                        type=int,
+                        default=32,
+                        help='max sequence length to test')
 
     args = parser.parse_args()
 
     if args.remote_path is not None:
-        print(f'Reading val split from {args.local_path} <- streamed from <- {args.remote_path}')
+        print(
+            f'Reading val split from {args.local_path} <- streamed from <- {args.remote_path}'
+        )
     else:
         print(f'Reading val split from {args.local_path}')
 
