@@ -135,7 +135,7 @@ composer main.py yamls/test/main.yaml model.name=mosaic_bert
 
 ### Test fine-tuning
 
-To verify that fine-tuning runs correctly, run each of the fine-tuning scripts twice using our testing configs.
+To verify that fine-tuning runs correctly, run the fine-tuning script using our testing configs and both the HuggingFace and Mosaic BERT models.
 First, verify `sequence_classification.py` with the baseline HuggingFace BERT and again with the Mosaic BERT.
 
 ```bash
@@ -282,7 +282,7 @@ Similarly, for sequence classification fine-tuning, just fill in the missing YAM
 mcli run -f yamls/finetuning/mcloud_run.yaml
 ```
 
-The same applies, for GLUE fine-tuning. Fill in the missing YAML fields and run:
+The same applies for GLUE fine-tuning. Fill in the missing YAML fields and run:
 
 ```bash
 mcli run -f yamls/finetuning/glue/mcloud_run.yaml
