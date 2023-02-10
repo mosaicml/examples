@@ -18,9 +18,8 @@ from examples.common.hf_fsdp import prepare_hf_causal_lm_model_for_fsdp
 class ComposerHFCausalLM(HuggingFaceModel):
 
     def __init__(self, cfg: DictConfig):
-        config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path)
-        for k, v in cfg.get('config_overrides', {}).items():
-            setattr(config, k, v)
+        config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path,
+                                            **cfg.get('config_overrides', {}))
 
         tokenizer = AutoTokenizer.from_pretrained(
             cfg.pretrained_model_name_or_path)
