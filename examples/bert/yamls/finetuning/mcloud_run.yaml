@@ -24,9 +24,6 @@ command: |
   composer sequence_classification.py /mnt/config/parameters.yaml
 
 parameters:
-  # Run Name
-  run_name: *run_name
-
   tokenizer_name: bert-base-uncased
   max_seq_len: 128
 

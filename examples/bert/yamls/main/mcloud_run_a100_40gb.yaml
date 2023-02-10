@@ -35,8 +35,6 @@ parameters:
   tokenizer_name: bert-base-uncased
   mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
-  # Run Name
-  run_name: *run_name
 
   # Model
   model:

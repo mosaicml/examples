@@ -160,7 +160,8 @@ def main(cfg: DictConfig,
     if 'run_name' in cfg:
         run_name = cfg['run_name']
     else:
-        run_name = os.environ['COMPOSER_RUN_NAME']
+        run_name = os.environ.get('COMPOSER_RUN_NAME',
+                                  'sequence-classification')
 
     # Build the Trainer
     trainer = Trainer(
