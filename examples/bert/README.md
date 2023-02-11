@@ -86,8 +86,8 @@ python ../common/text_data.py --local_path ./my-copy-c4 --tokenizer bert-base-un
 
 # This will do the same thing, but stream data to {local} from {remote}.
 # The remote path can be a filesystem or object store URI.
-python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path ./my-copy-c4 --tokenizer bert-base-uncased # stream from filesystem, e.g. a slow NFS volume to fast local disk
-python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path s3://my-bucket/my-copy-c4 --tokenizer bert-base-uncased # stream from object store
+# python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path ./my-copy-c4 --tokenizer bert-base-uncased # stream from filesystem, e.g. a slow NFS volume to fast local disk
+# python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path s3://my-bucket/my-copy-c4 --tokenizer bert-base-uncased # stream from object store
 ```
 
 With our data prepared, we can now start training.
