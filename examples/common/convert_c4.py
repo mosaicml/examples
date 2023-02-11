@@ -146,11 +146,11 @@ class ConcatTokensC4(IterableDataset):
                 f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
                 , instead we got {self.eos_tokens}. Quit if this was in error.')
 
+        eos_text_provided = self.eos_text != ''
+        bos_text_provided = self.bos_text != ''
         test_text = self.tokenizer('')
-        if len(test_text['input_ids']
-              ) > 0 and eos_text_provided or bos_text_provided:
-            eos_text_provided = self.eos_text != ''
-            bos_text_provided = self.bos_text != ''
+        if len(test_text['input_ids']) > 0 and (eos_text_provided or
+                                                bos_text_provided):
             message = 'both eos and bos' if eos_text_provided and bos_text_provided else (
                 'eos_text' if eos_text_provided else 'bos_text')
             warnings.warn(

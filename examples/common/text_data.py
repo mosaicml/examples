@@ -21,9 +21,9 @@ class StreamingTextDataset(StreamingDataset):
 
     Args:
         local (str): Local dataset directory where shards are cached by split.
+        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
+            tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
-        tokenizer_name (str, optional): The name of the HuggingFace tokenizer to use to
-            tokenize samples. You do not need to provide this if your dataset is pre-tokenized
         remote (str, optional): Download shards from this remote path or directory. If None, this
             rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
         split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
@@ -47,8 +47,8 @@ class StreamingTextDataset(StreamingDataset):
 
     def __init__(self,
                  local: str,
+                 tokenizer_name: str,
                  max_seq_len: int,
-                 tokenizer_name: Optional[str] = None,
                  remote: Optional[str] = None,
                  split: Optional[str] = None,
                  shuffle: bool = False,
@@ -98,16 +98,13 @@ class StreamingTextDataset(StreamingDataset):
         self.max_seq_len = max_seq_len
 
         # Build tokenizer
-        self.tokenizer = None
-        if self.tokenizer_name is not None:
-            os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-            os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-            self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-                tokenizer_name)
+        os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+            tokenizer_name)
 
         # suppress warnings when using longer 'max_seq_len'
         self.tokenizer.model_max_length = int(1e30)
-        self.add_special_tokens = None
 
     # How to tokenize a text sample to a token sample
     def _tokenize(self, text_sample):
