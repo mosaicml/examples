@@ -41,7 +41,7 @@ Now that you have explored the code, let's jump into the prerequisites for train
 
 ## Prepare your data
 
-This benchmark assumes that [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. ADE20K can be downloaded by running the command below. By default, this will store the dataset in `./ade20k` and takes up about 1GB of storage.
+This benchmark assumes that [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. ADE20K can be downloaded by running the command below. This takes up about 1GB of storage and will default to storing the dataset in `./ade20k`.
 
 ```bash
 # download ADE20k to specified local directory
