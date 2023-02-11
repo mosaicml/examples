@@ -8,6 +8,7 @@
 #
 # When ready, use `mcli run -f yamls/finetuning/glue/mcloud_run.yaml` to launch
 
+# Mosaic Cloud will use run_name to populate the env var $COMPOSER_RUN_NAME
 run_name: mosaic-bert-base-uncased-glue-finetuning
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb)

@@ -8,7 +8,7 @@
 #   Please resolve any empty fields before launching!
 #   When ready, use `mcli run -f yamls/finetuning/mcloud_run.yaml` to launch
 
-run_name: finetune-mosaic-bert
+run_name: finetune-mosaic-bert # Mosaic Cloud will use this to populate the env var $COMPOSER_RUN_NAME
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb in our experiments)
 gpu_num: 8  # Number of GPUs to use

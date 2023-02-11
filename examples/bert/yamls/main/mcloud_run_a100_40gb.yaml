@@ -8,7 +8,7 @@
 #
 # When ready, use `mcli run -f yamls/main/mcloud_run_a100_40gb.yaml` to launch
 
-run_name: mosaic-bert-base-uncased
+run_name: mosaic-bert-base-uncased # Mosaic Cloud will use this to populate the env var $COMPOSER_RUN_NAME
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_40gb # Type of GPU to use
 gpu_num: 8  # Number of GPUs to use
@@ -32,7 +32,7 @@ parameters:
 
   # Supply a path to your remote data path
   data_local: /tmp/mds-cache/
-  data_remote: null
+  data_remote: # If blank, files must be present in data_local
 
   max_seq_len: 128
   tokenizer_name: bert-base-uncased
