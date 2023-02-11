@@ -1,0 +1,215 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Copyright 2022 MosaicML Composer authors
+# SPDX-License-Identifier: Apache-2.0
+
+import logging
+from typing import Any, Dict, List, Optional, Union
+
+import torch
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
+
+__all__ = ['Seq2SeqFinetuningCollator']
+
+log = logging.getLogger(__name__)
+
+# HuggingFace hardcodes the ignore index to -100
+_HF_IGNORE_INDEX = -100
+
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+
+
+class Seq2SeqFinetuningCollator:
+
+    def __init__(
+        self,
+        tokenizer: Tokenizer,
+        max_seq_length: int,
+        decoder_only_format: bool,
+        separator_text: Optional[Union[str, bool]] = None,
+    ):
+        self.tokenizer = tokenizer
+        self.max_seq_length = max_seq_length
+        self.decoder_only_format = decoder_only_format
+
+        if (max_seq_length % 8) != 0:
+            log.warning(
+                'For performance, a max_seq_length as a multiple of 8 is recommended.'
+            )
+
+        if self.tokenizer.pad_token_id is None:
+            raise ValueError(
+                f'{self.__class__.__name__} requires that the tokenizer has the pad token set, but it is None'
+            )
+
+        self.separator_tokens = []
+        if separator_text and decoder_only_format:
+            if separator_text == True:
+                # Use the tokenizer's sep token or throw an error if undefined
+                if self.tokenizer.sep_token_id is None:
+                    raise ValueError(
+                        'Setting separator_text=True requires that the tokenizer has sep_token_id but it has not been set. ' +\
+                        'Please pass a string argument for separator_text or set sep_token_id in the tokenizer.'
+                    )
+                self.separator_tokens = [self.tokenizer.sep_token_id]
+            else:
+                # Convert the string separator_text into token(s)
+                self.separator_tokens = tokenizer(
+                    separator_text, add_special_tokens=False).input_ids
+
+    def __call__(self, examples: List[Dict[str,
+                                           Any]]) -> Dict[str, torch.Tensor]:
+        for check_key in ['input_ids', 'labels', 'attention_mask']:
+            if check_key not in examples[0]:
+                raise KeyError(
+                    f'Examples returned by dataset do not include required key: {check_key}'
+                )
+
+        def ensure_list(x: Union[List, torch.Tensor]):
+            if isinstance(x, torch.Tensor):
+                x = list(x.flatten())
+            assert isinstance(x, list)
+            return x
+
+        # The encoder-decoder case is has some gotchas.
+        # Steps are explained in comments.
+        if not self.decoder_only_format:
+            for example in examples:
+                context = ensure_list(example['input_ids'])
+                target = ensure_list(example['labels'])
+                # ... first, get rid of any padding that was already applied
+                context = [
+                    t for t in context if t != self.tokenizer.pad_token_id
+                ]
+                target = [t for t in target if t != self.tokenizer.pad_token_id]
+                # ... second, ensure that the target text ends with an eos tag
+                if target[-1] != self.tokenizer.eos_token_id:
+                    target = target + [self.tokenizer.eos_token_id]
+                # ... third, we need to pad labels ourselves. Because HF.
+                if len(target) < self.max_seq_length:
+                    i_pad = [_HF_IGNORE_INDEX
+                            ] * (self.max_seq_length - len(target))
+                    target = target + i_pad
+                else:
+                    raise ValueError(
+                        f'max_seq_length={self.max_seq_length} is too small to fit ' +\
+                        f'the target token sequence of length={n_target}.')
+
+                # We might need to truncate the context. Preserve the end.
+                context = context[-self.max_seq_length:]
+
+                # Back into the example
+                example['input_ids'] = context
+                example['attention_mask'] = [1] * len(context)
+                example['labels'] = target
+
+            # Batch examples into a single dict (this also pads)
+            batch = self.tokenizer.pad(
+                examples,
+                padding='max_length',
+                max_length=self.max_seq_length,
+                return_tensors='pt',
+            )
+            # We're still missing decoder_input_ids and decoder_attention_mask
+            batch['decoder_input_ids'] = torch.cat([
+                torch.full((len(examples), 1), self.tokenizer.pad_token_id),
+                batch['labels']
+            ],
+                                                   dim=1)
+            batch['decoder_input_ids'].masked_fill_(
+                batch['decoder_input_ids'] == _HF_IGNORE_INDEX,
+                self.tokenizer.pad_token_id)
+            batch['decoder_attention_mask'] = torch.not_equal(
+                batch['labels'], _HF_IGNORE_INDEX)
+
+            # The batch is now valid, but we can trim padding for efficiency
+            multiple_of = 8
+            # (first for the encoder)
+            n_non_padding = batch['attention_mask'].sum(dim=1).max()
+            keep_tokens = int(multiple_of *
+                              torch.ceil(n_non_padding / multiple_of))
+            for k in ['input_ids', 'attention_mask']:
+                batch[k] = batch[k][:, :keep_tokens].contiguous()
+            # (then for the decoder)
+            n_non_padding = batch['decoder_attention_mask'].sum(dim=1).max()
+            keep_tokens = int(multiple_of *
+                              torch.ceil(n_non_padding / multiple_of))
+            for k in ['decoder_input_ids', 'decoder_attention_mask', 'labels']:
+                batch[k] = batch[k][:, :keep_tokens].contiguous()
+            return batch
+
+        # The decoder-only case is also somewhat involved...
+        for example in examples:
+            context = ensure_list(example['input_ids'])
+            target = ensure_list(example['labels'])
+            # First, get rid of any padding tokens
+            context = [t for t in context if t != self.tokenizer.pad_token_id]
+            target = [t for t in target if t != self.tokenizer.pad_token_id]
+            # Second, append any separator tokens to the context tokens
+            if self.separator_tokens:
+                context = context + self.separator_tokens
+            # Third, ensure that the target text ends with an eos tag
+            if target[-1] != self.tokenizer.eos_token_id:
+                target = target + [self.tokenizer.eos_token_id]
+
+            # Now we need to concatenate the context and target to get the
+            # full input sequence, cutting off any excess tokens from the
+            # start of the context
+            n_context = len(context)
+            n_target = len(target)
+
+            if n_target > self.max_seq_length:
+                raise ValueError(
+                    f'max_seq_length={self.max_seq_length} is too small to fit ' +\
+                    f'the target token sequence of length={n_target}.')
+
+            # If we need to trim, trim from the context
+            if n_context + n_target > self.max_seq_length:
+                n_context = self.max_seq_length - n_target
+                context = context[-n_context:]
+            n_total = n_context + n_target
+
+            input_ids = context + target
+            labels = ([_HF_IGNORE_INDEX] * n_context) + target
+            attention_mask = [1] * n_total
+            # bidirectional_mask is used by our prefix lm model variants
+            bidirectional_mask = ([1] * n_context) + ([0] * n_target)
+
+            # Annoyingly, we need to pad the everything but input_ids
+            # and attention_mask ourselves
+            i_pad = [_HF_IGNORE_INDEX] * (self.max_seq_length - n_total)
+            z_pad = [0] * (self.max_seq_length - n_total)
+            if self.tokenizer.padding_side == 'left':
+                labels = i_pad + labels
+                bidirectional_mask = z_pad + bidirectional_mask
+            else:
+                labels = labels + i_pad
+                bidirectional_mask = bidirectional_mask + z_pad
+
+            # Update the example
+            example['input_ids'] = input_ids
+            example['labels'] = labels
+            example['attention_mask'] = attention_mask
+            example['bidirectional_mask'] = bidirectional_mask
+
+        batch = self.tokenizer.pad(
+            examples,
+            padding='max_length',
+            max_length=self.max_seq_length,
+            return_tensors='pt',
+        )
+
+        # The batch is ready, but we can trim padding for efficiency
+        multiple_of = 8
+
+        n_non_padding = batch['attention_mask'].sum(dim=1).max()
+        keep_tokens = int(multiple_of * torch.ceil(n_non_padding / multiple_of))
+        for k, v in batch.items():
+            if len(v.shape) < 2:
+                continue
+            if self.tokenizer.padding_side == 'left':
+                batch[k] = v[:, -keep_tokens:].contiguous()
+            else:
+                batch[k] = v[:, :keep_tokens].contiguous()
+        return batch
