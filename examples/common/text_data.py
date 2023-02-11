@@ -193,7 +193,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
 
 
 # Helpful to test if your dataloader is working locally
-# Run `python data.py [remote] [local, optional]` and verify that batches are printed out
+# Run `python data.py  --local_path [local] [--remote_path remote, optional]` and verify that batches are printed out
 if __name__ == '__main__':
     import argparse
 
