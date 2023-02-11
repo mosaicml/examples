@@ -7,7 +7,6 @@ import platform
 import warnings
 from argparse import ArgumentParser, Namespace
 from enum import Enum
-from textwrap import dedent
 from typing import Dict, Iterable, Optional
 
 import datasets as hf_datasets
@@ -62,10 +61,9 @@ def parse_args() -> Namespace:
     if (parsed.concat_text is not None and
             isinstance(parsed.concat_text, int) and parsed.bos_text is None and
             parsed.eos_text is None):
-        parser.error(
-            dedent(
-                'When setting --concat_text, you must specify at least one of --bos_text or --eos_text \
-            with which to separate concatenated sequences'))
+        parser.error((
+            'When setting --concat_text, you must specify at least one of --bos_text or --eos_text '
+            'with which to separate concatenated sequences'))
     if (parsed.concat_tokens is not None and
             isinstance(parsed.concat_tokens, int) and parsed.tokenizer is None):
         parser.error(
