@@ -40,7 +40,7 @@ class StreamingTextDataset(StreamingDataset):
             shards. Defaults to ``None``.
         shuffle_seed (int): Seed for Deterministic data shuffling. Defaults to ``9176``.
         num_canonical_nodes (int, optional): Canonical number of nodes for shuffling with resumption.
-            Defaults to ``None``, which is interpreted as the number of nodes of the initial run.
+            If ``None``, defaults to the number of nodes of the initial run. Defaults to 128.
         batch_size (int, optional): Batch size of its DataLoader, which affects how the dataset is
             partitioned over the workers. Defaults to ``None``.
     """
@@ -58,7 +58,7 @@ class StreamingTextDataset(StreamingDataset):
                  download_timeout: float = 60,
                  validate_hash: Optional[str] = None,
                  shuffle_seed: int = 9176,
-                 num_canonical_nodes: Optional[int] = None,
+                 num_canonical_nodes: Optional[int] = 128,
                  batch_size: Optional[int] = None,
                  **kwargs: Dict[str, Any]):
 
@@ -165,11 +165,11 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         split=cfg.dataset.get('split', None),
         shuffle=cfg.dataset.get('shuffle', False),
         predownload=cfg.dataset.get('predownload', 100_000),
-        keep_zip=cfg.dataset.get('keep_zip', False),
+        keep_zip=cfg.dataset.get('keep_zip', None),
         download_retry=cfg.dataset.get('download_retry', 2),
         download_timeout=cfg.dataset.get('download_timeout', 60),
         validate_hash=cfg.dataset.get('validate_hash', None),
-        shuffle_seed=cfg.dataset.get('shuffle_seed', None),
+        shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
         batch_size=device_batch_size)
 
