@@ -231,27 +231,6 @@ def build_hf_c4_dataset(
                                eos_text=eos_text,
                                no_wrap=no_wrap)
     else:
-        dataset = ConcatTokensC4(split=split,
-                                 tokenizer=tokenizer,
-                                 max_length=max_length,
-                                 bos_text=bos_text,
-                                 eos_text=eos_text,
-                                 no_wrap=no_wrap)
-    return dataset
-
-
-def _get_kwargs(args):
-    if hasattr(args, 'concat_tokens') and args.concat_tokens is not None:
-        mode = ConcatMode.CONCAT_TOKENS
-        max_length = args.concat_tokens
-        tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
-        # we will enforce length, so suppress warnings about sequences too long for the model
-        tokenizer.model_max_length = int(1e30)
-        bos_text = args.bos_text
-        eos_text = args.eos_text
-        no_wrap = args.no_wrap
-        columns = {'tokens': 'bytes'}
-
         if bos_text + eos_text == '':
             test_tokens = tokenizer('test')
             if test_tokens['input_ids'][
@@ -263,26 +242,13 @@ def _get_kwargs(args):
                 tok_error_msg += 'such as facebook/opt-125m, or specify EOS/BOS text with e.g. '
                 tok_error_msg += '--bos_text=<|endoftext|>.'
                 raise ValueError(tok_error_msg)
-
-    elif hasattr(args, 'concat_text') and args.concat_text is not None:
-        mode = ConcatMode.CONCAT_TEXT
-        max_length = args.concat_text
-        tokenizer = None
-        bos_text = args.bos_text
-        eos_text = args.eos_text
-        no_wrap = args.no_wrap
-        columns = {'text': 'str'}
-
-    else:
-        mode = ConcatMode.NO_CONCAT
-        max_length = None
-        tokenizer = None
-        bos_text = None
-        eos_text = None
-        no_wrap = None
-        columns = {'text': 'str'}
-
-    return mode, max_length, tokenizer, bos_text, eos_text, no_wrap, columns
+        dataset = ConcatTokensC4(split=split,
+                                 tokenizer=tokenizer,
+                                 max_length=max_length,
+                                 bos_text=bos_text,
+                                 eos_text=eos_text,
+                                 no_wrap=no_wrap)
+    return dataset
 
 
 def _est_progress_denominator(total_samples: int, mode: ConcatMode,
@@ -355,8 +321,20 @@ def main(args: Namespace) -> None:
     expected_counts = (364868892, 1000000, 364608, 10000)
     truncate_counts = (None, 100000, None, 10000)
 
-    mode, max_length, tokenizer, bos_text, eos_text, no_wrap, columns = _get_kwargs(
-        args)
+    if args.concat_tokens is not None:
+        mode = ConcatMode.CONCAT_TOKENS
+        tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
+        # we will enforce length, so suppress warnings about sequences too long for the model
+        tokenizer.model_max_length = int(1e30)
+        columns = {'tokens': 'bytes'}
+    elif args.concat_text is not None:
+        mode = ConcatMode.CONCAT_TEXT
+        tokenizer = None
+        columns = {'text': 'str'}
+    else:
+        mode = ConcatMode.NO_CONCAT
+        tokenizer = None
+        columns = {'text': 'str'}
 
     for (hf_split, folder_split, expected_num_samples,
          truncate_num_samples) in zip(hf_splits, folder_splits, expected_counts,
@@ -368,17 +346,21 @@ def main(args: Namespace) -> None:
         # Get samples
         dataset = build_hf_c4_dataset(split=hf_split,
                                       mode=mode,
-                                      max_length=max_length,
-                                      bos_text=bos_text,
-                                      eos_text=eos_text,
-                                      no_wrap=no_wrap,
+                                      max_length=args.concat_tokens or
+                                      args.concat_text,
+                                      bos_text=args.bos_text,
+                                      eos_text=args.eos_text,
+                                      no_wrap=args.no_wrap,
                                       tokenizer=tokenizer)
         loader = build_dataloader(dataset=dataset, batch_size=512)
         samples = generate_samples(loader,
                                    truncate_num_samples=truncate_num_samples)
 
         denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
-            expected_num_samples, mode, max_length)
+            expected_num_samples,
+            mode,
+            args.concat_tokens or args.concat_text,
+        )
 
         # Write samples
         print(f'Converting {folder_split} to MDS format...')
