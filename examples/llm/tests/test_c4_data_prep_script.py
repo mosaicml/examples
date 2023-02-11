@@ -18,7 +18,6 @@ def test_download_script_from_api():
                 'splits': ['val'],
                 'out_root': './my-copy-c4-1',
                 'compression': None,
-                'concat_text': None,
                 'concat_tokens': None,
                 'bos_text': None,
                 'eos_text': None,

@@ -21,9 +21,9 @@ class StreamingTextDataset(StreamingDataset):
 
     Args:
         local (str): Local dataset directory where shards are cached by split.
-        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
-            tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
+        tokenizer_name (str, optional): The name of the HuggingFace tokenizer to use to
+            tokenize samples. You do not need to provide this if your dataset is pre-tokenized
         remote (str, optional): Download shards from this remote path or directory. If None, this
             rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
         split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
@@ -47,8 +47,8 @@ class StreamingTextDataset(StreamingDataset):
 
     def __init__(self,
                  local: str,
-                 tokenizer_name: str,
                  max_seq_len: int,
+                 tokenizer_name: Optional[str] = None,
                  remote: Optional[str] = None,
                  split: Optional[str] = None,
                  shuffle: bool = False,
@@ -66,7 +66,7 @@ class StreamingTextDataset(StreamingDataset):
         if group_method is not None:
             raise NotImplementedError(
                 'group_method is deprecated and has been removed.\nTo ' +
-                'concatenate, use the --concat_text or --concat_tokens ' +
+                'concatenate, use the --concat_tokens ' +
                 'argument when creating your MDS dataset with concat_c4.py')
 
         if kwargs is not None and len(kwargs) > 0:
@@ -98,10 +98,12 @@ class StreamingTextDataset(StreamingDataset):
         self.max_seq_len = max_seq_len
 
         # Build tokenizer
-        os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            tokenizer_name)
+        self.tokenizer = None
+        if self.tokenizer_name is not None:
+            os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+            os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+            self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+                tokenizer_name)
 
         # suppress warnings when using longer 'max_seq_len'
         self.tokenizer.model_max_length = int(1e30)
@@ -109,22 +111,6 @@ class StreamingTextDataset(StreamingDataset):
 
     # How to tokenize a text sample to a token sample
     def _tokenize(self, text_sample):
-        # The first time we tokenize we need to figure out the special token situation,
-        # as pre-concatenated text will already have special tokens
-        if self.add_special_tokens is None:
-            # if the 2nd token is BOS or 2nd-to-last-is EOS, the special tokens
-            # were added as part of pre-concatenating the text, so don't add them again
-            tokens = self.tokenizer(text_sample['text'],
-                                    truncation=False,
-                                    padding=False,
-                                    add_special_tokens=True)
-            if tokens['input_ids'][1] == self.tokenizer.bos_token_id or tokens[
-                    'input_ids'][-2] == self.tokenizer.eos_token_id:
-                self.add_special_tokens = False
-            else:
-                # Normal (not pre-concatenated) text without special tokens added
-                self.add_special_tokens = True
-
         if self.tokenizer._pad_token is None:
             # Some tokenizers (e.g. GPT2 tokenizer) have no padding token which causes bugs
             raise RuntimeError(
@@ -133,8 +119,7 @@ class StreamingTextDataset(StreamingDataset):
         return self.tokenizer(text_sample['text'],
                               truncation=True,
                               padding='max_length',
-                              max_length=self.max_seq_len,
-                              add_special_tokens=self.add_special_tokens)
+                              max_length=self.max_seq_len)
 
     def _read_binary_tokenized_sample(self, sample):
         return torch.from_numpy(

@@ -79,8 +79,6 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # This will take 20-60 seconds depending on your Internet bandwidth
 # You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
 # Note: We are using the `--concat_tokens` option to pre tokenize our samples to be of the max sequence length without padding
-# `--concat_text` is also an option if you don't want to pre tokenize, but may result in some padding or truncated text in your samples,
-# which affects the MFU calculation
 python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
 
 # Download the 'train' split if you really want to train the model (not just profile)

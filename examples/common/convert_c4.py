@@ -19,7 +19,6 @@ from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 class ConcatMode(Enum):
     NO_CONCAT = 'NO_CONCAT'
-    CONCAT_TEXT = 'CONCAT_TEXT'
     CONCAT_TOKENS = 'CONCAT_TOKENS'
 
 
@@ -35,9 +34,6 @@ def parse_args() -> Namespace:
     parser.add_argument('--compression', type=str, default=None)
 
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--concat_text',
-                       type=int,
-                       help='Number of characters to concatenate to')
     group.add_argument(
         '--concat_tokens',
         type=int,
@@ -58,12 +54,6 @@ def parse_args() -> Namespace:
         )
 
     # Make sure we have needed concat options
-    if (parsed.concat_text is not None and
-            isinstance(parsed.concat_text, int) and parsed.bos_text is None and
-            parsed.eos_text is None):
-        parser.error((
-            'When setting --concat_text, you must specify at least one of --bos_text or --eos_text '
-            'with which to separate concatenated sequences'))
     if (parsed.concat_tokens is not None and
             isinstance(parsed.concat_tokens, int) and parsed.tokenizer is None):
         parser.error(
@@ -93,34 +83,6 @@ class NoConcatC4(IterableDataset):
         for sample in self.hf_dataset:
             # convert to bytes to store in MDS binary format
             yield {'text': sample['text'].encode('utf-8')}
-
-
-class ConcatTextC4(IterableDataset):
-    """An IterableDataset that returns text samples for MDSWriter.
-
-    Returns dicts of {'text': bytes}
-    """
-
-    def __init__(self, split: str, max_length: int, bos_text: str,
-                 eos_text: str, no_wrap: bool):
-        self.max_length = max_length
-        self.bos_text = bos_text
-        self.eos_text = eos_text
-        self.should_wrap = not no_wrap
-        self.hf_dataset = hf_datasets.load_dataset(path='c4',
-                                                   name='en',
-                                                   split=split,
-                                                   streaming=True)
-
-    def __iter__(self) -> Iterable[Dict[str, bytes]]:
-        buffer = ''
-        for sample in self.hf_dataset:
-            buffer = buffer + self.bos_text + sample['text'] + self.eos_text
-            while len(buffer) >= self.max_length:
-                concat_sample = buffer[:self.max_length]
-                buffer = buffer[self.max_length:] if self.should_wrap else ''
-                # convert to bytes to store in MDS binary format
-                yield {'text': concat_sample.encode('utf-8')}
 
 
 class ConcatTokensC4(IterableDataset):
@@ -184,6 +146,18 @@ class ConcatTokensC4(IterableDataset):
                 f'You specified --concat_tokens with --eos_text, but your EOS text is not tokenizing to one token\
                 , instead we got {self.eos_tokens}. Quit if this was in error.')
 
+        test_text = self.tokenizer('')
+        if len(test_text['input_ids']
+              ) > 0 and eos_text_provided or bos_text_provided:
+            eos_text_provided = self.eos_text != ''
+            bos_text_provided = self.bos_text != ''
+            message = 'both eos and bos' if eos_text_provided and bos_text_provided else (
+                'eos_text' if eos_text_provided else 'bos_text')
+            warnings.warn(
+                f'The provided tokenizer adds special tokens, but you also specified {message}. This may result '
+                'in duplicated special tokens. Please be sure this is what you intend.'
+            )
+
     def __iter__(self) -> Iterable[Dict[str, bytes]]:
 
         buffer = []
@@ -211,7 +185,7 @@ def build_hf_c4_dataset(
 
     Args:
         split (str): Split name.
-        mode (ConcatMode): NO_CONCAT, CONCAT_TEXT, or CONCAT_TOKENS
+        mode (ConcatMode): NO_CONCAT, or CONCAT_TOKENS
         bos_text (str): text to insert at the beginning of each sequence
         eos_text (str): text to insert at the end of each sequence
         no_wrap (bool): if concatenating, whether to wrap text across `max_length` boundaries
@@ -222,12 +196,6 @@ def build_hf_c4_dataset(
     """
     if mode == ConcatMode.NO_CONCAT:
         dataset = NoConcatC4(split=split)
-    elif mode == ConcatMode.CONCAT_TEXT:
-        dataset = ConcatTextC4(split=split,
-                               max_length=max_length,
-                               bos_text=bos_text,
-                               eos_text=eos_text,
-                               no_wrap=no_wrap)
     else:
         if bos_text + eos_text == '':
             test_tokens = tokenizer('test')
@@ -255,8 +223,6 @@ def _est_progress_denominator(total_samples: int, mode: ConcatMode,
     est_tokens_per_sample = 540  # using est_char_per_token = 4
     if mode == ConcatMode.NO_CONCAT:
         return total_samples
-    elif mode == ConcatMode.CONCAT_TEXT:
-        return total_samples * emp_chars_per_sample // max_length
     elif mode == ConcatMode.CONCAT_TOKENS:
         return total_samples * est_tokens_per_sample // max_length
 
@@ -325,10 +291,6 @@ def main(args: Namespace) -> None:
         # we will enforce length, so suppress warnings about sequences too long for the model
         tokenizer.model_max_length = int(1e30)
         columns = {'tokens': 'bytes'}
-    elif args.concat_text is not None:
-        mode = ConcatMode.CONCAT_TEXT
-        tokenizer = None
-        columns = {'text': 'str'}
     else:
         mode = ConcatMode.NO_CONCAT
         tokenizer = None
@@ -344,8 +306,7 @@ def main(args: Namespace) -> None:
         # Get samples
         dataset = build_hf_c4_dataset(split=hf_split,
                                       mode=mode,
-                                      max_length=args.concat_tokens or
-                                      args.concat_text,
+                                      max_length=args.concat_tokens,
                                       bos_text=args.bos_text,
                                       eos_text=args.eos_text,
                                       no_wrap=args.no_wrap,
@@ -357,7 +318,7 @@ def main(args: Namespace) -> None:
         denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
             expected_num_samples,
             mode,
-            args.concat_tokens or args.concat_text,
+            args.concat_tokens,
         )
 
         # Write samples
