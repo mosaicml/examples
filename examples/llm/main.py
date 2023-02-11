@@ -41,8 +41,8 @@ def main(cfg):
     reproducibility.seed_all(cfg.seed)
 
     # Run Name
-    cfg.run_name = cfg.get('run_name') or os.environ.get(
-        'COMPOSER_RUN_NAME', 'llm')
+    if cfg.get('run_name') is None:
+        cfg.run_name = os.environ.get('COMPOSER_RUN_NAME', 'llm')
 
     # Get batch size info
     cfg = update_batch_size_info(cfg)

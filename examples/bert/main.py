@@ -84,8 +84,8 @@ def main(cfg: DictConfig,
         for name, algorithm_cfg in cfg.get('algorithms', {}).items()
     ]
 
-    cfg.run_name = cfg.get('run_name') or os.environ.get(
-        'COMPOSER_RUN_NAME', 'bert')
+    if cfg.get('run_name') is None:
+        cfg.run_name = os.environ.get('COMPOSER_RUN_NAME', 'bert')
 
     # Build the Trainer
     trainer = Trainer(
