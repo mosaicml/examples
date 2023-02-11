@@ -74,6 +74,14 @@ class StreamingTextDataset(StreamingDataset):
                 f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}'
             )
 
+        if remote is None or (local == remote):
+            if os.path.isdir(local):
+                contents = set(os.listdir(local))
+                if split not in contents:
+                    raise ValueError(
+                        f'local directory {local} does not contain split {split}'
+                    )
+
         # Build Dataset
         super().__init__(local=local,
                          remote=remote,
