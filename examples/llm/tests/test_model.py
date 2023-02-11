@@ -250,7 +250,6 @@ def test_opt_wrapping():
     conf = {
         'name': 'hf_causal_lm',
         'pretrained_model_name_or_path': 'facebook/opt-125m',
-        'device': 'cpu',
         'pretrained': 'false'
     }
     config = DictConfig(conf)
