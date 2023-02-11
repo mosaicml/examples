@@ -18,7 +18,8 @@ command: |
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
-run_name: mosaic-gpt-1b-ctx-8k-gpus-8 # Mosaic Cloud will use this to populate the env var $COMPOSER_RUN_NAME
+# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
+run_name: mosaic-gpt-1b-ctx-8k-gpus-8
 
 gpu_num: 8
 gpu_type: a100_40gb
