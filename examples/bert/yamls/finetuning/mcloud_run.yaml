@@ -8,7 +8,7 @@
 #   Please resolve any empty fields before launching!
 #   When ready, use `mcli run -f yamls/finetuning/mcloud_run.yaml` to launch
 
-run_name: &run_name finetune-mosaic-bert
+run_name: finetune-mosaic-bert
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb in our experiments)
 gpu_num: 8  # Number of GPUs to use
@@ -24,6 +24,9 @@ command: |
   composer sequence_classification.py /mnt/config/parameters.yaml
 
 parameters:
+  # Run Name
+  run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
+
   tokenizer_name: bert-base-uncased
   max_seq_len: 128
 

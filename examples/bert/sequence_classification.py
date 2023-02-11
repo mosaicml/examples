@@ -157,15 +157,12 @@ def main(cfg: DictConfig,
         for name, algorithm_cfg in cfg.get('algorithms', {}).items()
     ]
 
-    if 'run_name' in cfg:
-        run_name = cfg['run_name']
-    else:
-        run_name = os.environ.get('COMPOSER_RUN_NAME',
-                                  'sequence-classification')
+    cfg.run_name = cfg.get('run_name') or os.environ.get(
+        'COMPOSER_RUN_NAME', 'sequence-classification')
 
     # Build the Trainer
     trainer = Trainer(
-        run_name=run_name,
+        run_name=cfg.run_name,
         seed=cfg.seed,
         model=model,
         algorithms=algorithms,

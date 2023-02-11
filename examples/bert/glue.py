@@ -123,14 +123,12 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str],
                        pretrained_checkpoint_path: Optional[str]):
     configs = []
     for task_name, task_config in main_config.tasks.items():
-        if 'base_run_name' in main_config:
-            base_run_name = main_config.base_run_name
-        else:
-            base_run_name = os.environ('COMPOSER_RUN_NAME', 'glue')
+        main_config.base_run_name = main_config.get(
+            'base_run_name') or os.environ.get('COMPOSER_RUN_NAME', 'glue')
         if task_name not in tasks_to_run:
             continue
         for task_seed in task_config.get('seeds', [main_config.default_seed]):
-            run_name = f'{base_run_name}_task={task_name}_seed={str(task_seed)}'
+            run_name = f'{main_config.base_run_name}_task={task_name}_seed={str(task_seed)}'
             logger_configs = copy.deepcopy(main_config.get('loggers', {}))
             for logger_name, logger_config in logger_configs.items():
                 if logger_name == 'wandb':

@@ -8,7 +8,7 @@
 #
 # When ready, use `mcli run -f yamls/main/mcloud_run_a100_40gb.yaml` to launch
 
-run_name: &run_name mosaic-bert-base-uncased
+run_name: mosaic-bert-base-uncased
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_40gb # Type of GPU to use
 gpu_num: 8  # Number of GPUs to use
@@ -27,6 +27,9 @@ command: |
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
 # is the config that `main.py` uses in the above command.
 parameters:
+  # Run Name
+  run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
+
   # Supply a path to your remote data path
   data_local: /tmp/mds-cache/
   data_remote: null
