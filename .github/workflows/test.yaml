@@ -1,0 +1,50 @@
+name: Test
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+  workflow_dispatch: {}
+defaults:
+  run:
+    working-directory: .
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        include:
+        - name: bert-pytest
+          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: bert
+        - name: cifar-pytest
+          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: cifar
+        - name: deeplab-pytest
+          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: deeplab
+        - name: llm-pytest
+          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: llm
+        - name: resnet-pytest
+          container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
+          subdir: resnet
+    name: ${{ matrix.name }}
+    container: ${{ matrix.container }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup
+      run: |
+        set -ex
+        export PATH=/composer-python:$PATH
+        python -m pip install --upgrade 'pip<23' wheel
+    - name: Test
+      run: |
+        export PATH=/composer-python:$PATH
+        bash scripts/test_subdirectory.sh ${{ matrix.subdir }}
