@@ -246,11 +246,10 @@ class GPTMLPMoE(nn.Module):
             'type': cfg.moe.get('gate_type', 'top'),
             'k': cfg.moe.get('gate_k', 1),
             'fp32_gate': cfg.moe.get('fp32_gate', True),
-            'device': device}
-
+            'device': device
+        }
         if cfg.moe.get('capacity_factor', None) is not None:
             gate_type['capacity_factor'] = cfg.moe.get('capacity_factor')
-
         if cfg.moe.get('gate_noise', None) is not None:
             gate_type['gate_noise'] = cfg.moe.get('gate_noise')
 
@@ -617,27 +616,10 @@ class MosaicGPT(nn.Module):
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        if not self.cfg.get('moe', None):
-            return isinstance(module, GPTBlock)
-        else:
-            # MoE wrapping fn
-            # modules not wrapped:
-            #   FusedExpertsNetwork: sharding handled by tutel
-            #                        this helps guarentee FSDP does not touch these weights
-            #                        experts are part of GPTMLPMoE to it is excluded as well
-            #   nn.Embedding: weights are shared with output embedding layer and must be
-            #                 handled as part of the main model
-            #   nn.LayerNorm: such a small portion of weights that they can be part of any
-            #                 block including the main model fsdp block
-            #   nn.Linear: already part of GPTMLP, Attnetion layer or gate layer
-            #   every other type of layer not in model
-            if isinstance(module, (GPTMLPMoE, MOELayer, FusedExpertsNetwork)):
-                return False
-            wrapable_cls = (
-                TorchCausalAttention, FlashCausalAttention, TritonFlashCausalAttention, GPTMLP,
-                CosineTopKGate, LinearTopKGate,
-            )
-            return isinstance(module, wrapable_cls)
+        if isinstance(module, GPTBlock):
+            return True
+        if isinstance(module, FusedExpertsNetwork):
+            return {'process_group': torch.distributed.new_group(ranks=[dist.get_global_rank()])}
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
