@@ -13,10 +13,12 @@ You'll find in this folder:
 * `yamls/test/main.yaml` - A config for quickly verifying that `main.py` runs.
 
 ### Fine-tuning
+* `sequence_classification.py` - A starter script to simplify fine-tuning with your own dataset on a single classification task, locally or on Mosaic's cloud.
 * `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud.
 * `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning.
 * `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`. These handle individual fine-tuning jobs and task-specific hyperparameters.
-* `yamls/glue/` - Pre-baked configs for pre-training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `glue.py`.
+* `yamls/finetuning/` - Pre-baked configs for fine-tuning both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `sequence_classification.py` and `glue.py`.
+* `yamls/test/sequence_classification.yaml` - A config for quickly verifying that `sequence_classification.py` runs.
 * `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
 
 ### Shared
@@ -29,61 +31,7 @@ You'll find in this folder:
 * This `README.md`
 
 In the [common](../common) folder, you will also find:
-* `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
-
-## Prepare your data
-
-*(If you have a small dataset that's stored locally or doesn't take much time to download from cloud storage, you can skip this section).*
-
-In this benchmark, we train BERTs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4). To run pre-training on C4, you'll need to make yourself a copy of this dataset.
-
-Alternatively, feel free to substitute our dataloader with one of your own in the script [main.py](./main.py#L101)!
-
-We first convert the dataset from its native format (a collection of zipped JSONs)
-to MosaicML's streaming dataset format (a collection of binary `.mds` files).
-Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
-and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all just works.
-You can read more about the benefits of using mosaicml-streaming [here](https://streaming.docs.mosaicml.com/en/stable/).
-
-### Converting C4 to streaming dataset `.mds` format
-
-To make yourself a copy of C4, use `convert_c4.py` like so:
-
-```bash
-# Download the 'train_small', 'val' splits and convert to StreamingDataset format
-# This will take 20 sec to 1 min depending on your Internet bandwidth
-# You should see two folders `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
-
-# Download the 'train' split if you really want to train the model (not just profile)
-# This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
-# The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
-
-# For any of the above commands, you can also choose to compress the .mds files.
-# This is useful if your plan is to store these in an object store after conversion.
-# python ../common/convert_c4.py ... --compression zstd
-```
-
-If you're planning on doing multiple training runs, you can upload the **local** copy of C4 you just created to a central location. This will allow you to skip the dataset preparation step in the future. Once you have done so, modify the YAMLs in `yamls/main/` so that the `data_remote` field points to the new location. Then you can simply stream the dataset instead of creating a local copy!
-
-### Test the Dataloader
-
-To verify that the dataloader works, run a quick test on your `val` split like so:
-
-```bash
-# This will construct a `StreamingTextDataset` dataset from your `val` split,
-# pass it into a PyTorch Dataloader, and iterate over it and print samples.
-# Since we only provide a local path, no streaming/copying takes place.
-python ../common/text_data.py ./my-copy-c4
-
-# This will do the same thing, but stream data to {local} from {remote}.
-# The remote path can be a filesystem or object store URI.
-python ../common/text_data.py /tmp/cache-c4 ./my-copy-c4  # stream from filesystem, e.g. a slow NFS volume to fast local disk
-python ../common/text_data.py /tmp/cache-c4 s3://my-bucket/my-copy-c4  # stream from object store
-```
-
-With our data prepared, we can now start training.
+* `../common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
 
 ## Quick start
 
@@ -110,16 +58,73 @@ pip install -e ".[bert]"  # or pip install -e ".[bert-cpu]" if no NVIDIA GPU
 cd examples/bert
 ```
 
-### Test pre-training
+## Prepare your data
 
-To verify that pre-training runs correctly, first prepare a local copy of the C4 validation split, and then run the `main.py` pre-training script twice using our testing config. First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
+*(If you have a small dataset that's stored locally or doesn't take much time to download from cloud storage, you can skip this section).*
+
+In this benchmark, we train BERTs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4). To run pre-training on C4, you'll need to make yourself a copy of this dataset.
+
+Alternatively, feel free to substitute our dataloader with one of your own in the script [main.py](./main.py#L98).
+When you move on to fine-tuning, you can train on your own dataset by adding it into the script [sequence_classification.py](./sequence_classification.py#L63).
+For now, let's focus on preparing the C4 data for pre-training.
+
+We first convert the dataset from its native format (a collection of zipped JSONs)
+to MosaicML's streaming dataset format (a collection of binary `.mds` files).
+Once in `.mds` format, we can store the dataset in a central location (filesystem, S3, GCS, etc.)
+and stream the data to any compute cluster, with any number of devices, and any number of CPU workers, and it all just works.
+You can read more about the benefits of using mosaicml-streaming [here](https://streaming.docs.mosaicml.com/en/stable/).
+
+### Converting C4 to streaming dataset `.mds` format
+
+To make yourself a copy of C4, use `convert_c4.py` like so:
 
 ```bash
 # Download the 'train_small' and 'val' splits and convert to StreamingDataset format
 # This will take 20-60 seconds depending on your Internet bandwidth
 # You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
+# Note: for BERT we are not doing any concatenation of samples, so we do not use the `--concat_tokens`
+# option here. Instead, samples will simply get padded or truncated to the max sequence length
+# in the dataloader
 python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
 
+# Download the 'train' split if you really want to train the model (not just profile)
+# This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
+# The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
+# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
+
+# For any of the above commands, you can also choose to compress the .mds files.
+# This is useful if your plan is to store these in object store after conversion.
+# python ../common/convert_c4.py ... --compression zstd
+```
+
+If you're planning on doing multiple training runs, you can upload the **local** copy of C4 you just created to a central location. This will allow you to skip the dataset preparation step in the future. Once you have done so, modify the YAMLs in `yamls/main/` so that the `data_remote` field points to the new location. Then you can simply stream the dataset instead of creating a local copy!
+
+### Test the Dataloader
+
+To verify that the dataloader works, run a quick test on your `val` split like so:
+
+```bash
+# This will construct a `StreamingTextDataset` dataset from your `val` split,
+# pass it into a PyTorch Dataloader, and iterate over it and print samples.
+# Since we only provide a local path, no streaming/copying takes place.
+python ../common/text_data.py --local_path ./my-copy-c4 --tokenizer bert-base-uncased
+
+# This will do the same thing, but stream data to {local} from {remote}.
+# The remote path can be a filesystem or object store URI.
+python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path ./my-copy-c4 --tokenizer bert-base-uncased # stream from filesystem, e.g. a slow NFS volume to fast local disk
+# python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path s3://my-bucket/my-copy-c4 --tokenizer bert-base-uncased # stream from object store
+```
+
+With our data prepared, we can now start training.
+
+
+
+### Test pre-training
+
+To verify that pre-training runs correctly, first prepare a local copy of the C4 validation split (see the above section), and then run the `main.py` pre-training script twice using our testing config.
+First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
+
+```bash
 # Run the pre-training script with the test config and HuggingFace BERT
 composer main.py yamls/test/main.yaml
 
@@ -129,16 +134,25 @@ composer main.py yamls/test/main.yaml model.name=mosaic_bert
 
 ### Test fine-tuning
 
-To verify that fine-tuning runs correctly, run the `glue.py` fine-tuning script twice using our testing config. First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
+To verify that fine-tuning runs correctly, run the fine-tuning script using our testing configs and both the HuggingFace and Mosaic BERT models.
+First, verify `sequence_classification.py` with the baseline HuggingFace BERT and again with the Mosaic BERT.
 
 ```bash
 # Run the fine-tuning script with the test config and HuggingFace BERT
-python glue.py yamls/test/glue.yaml
-rm -rf local-finetune-checkpoints
+composer sequence_classification.py yamls/test/sequence_classification.yaml
 
 # Run the fine-tuning script with the test config and Mosaic BERT
-python glue.py yamls/test/glue.yaml model.name=mosaic_bert
-rm -rf local-finetune-checkpoints
+composer sequence_classification.py yamls/test/sequence_classification.yaml model.name=mosaic_bert
+```
+
+Second, verify `glue.py` for both models.
+
+```bash
+# Run the GLUE script with the test config and HuggingFace BERT
+python glue.py yamls/test/glue.yaml && rm -rf local-finetune-checkpoints
+
+# Run the GLUE script with the test config and Mosaic BERT
+python glue.py yamls/test/glue.yaml model.name=mosaic_bert && rm -rf local-finetune-checkpoints
 ```
 
 ## Training for real
@@ -149,7 +163,7 @@ Now that you've installed dependencies and built a local copy of the C4 dataset,
 
 **Also remember** that if you only downloaded the `train_small` split, you need to make sure your train_dataloader is pointed at that split.
 Just change `split: train` to `split: train_small` in your YAML.
-This is already done in the testing YAML `yamls/test/main.py`, which you can also use to test your configuration (see [Quick Start](#quick-start)).
+This is already done in the testing YAML `yamls/test/main.py`, which you can also use to test your configuration (see [Test pre-training](#test-pre-training)).
 
 ### MLM pre-training
 
@@ -167,7 +181,18 @@ composer main.py yamls/main/hf-bert-base-uncased.yaml
 composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 ```
 
-**Please remember** to modify the reference YAMLs (e.g., `yamls/main/mosaic-bert-base-uncased.yaml`) to customize saving and loading locations—only the YAMLs in `yamls/test/` are ready to use out-of-the-box. See the [configs](#configs) section for more detail.
+**Please remember** to modify the reference YAMLs (e.g., `yamls/main/mosaic-bert-base-uncased.yaml`) to customize saving and loading locations. Only the YAMLs in `yamls/test/` are ready to use out-of-the-box. See the [configs](#configs) section for more detail.
+
+### Single-task fine-tuning
+
+After pre-training comes fine-tuning. We provide `sequence_classification.py` as a handy starter script to simplify fine-tuning a pre-trained BERT model on your own custom dataset. **Just modify this script by plugging in your dataset, and you can fine-tune your BERT model on the task you care about.** Check the script itself for more detailed instructions.
+
+After modifying the starter script, update the reference YAMLs (e.g., `yamls/finetuning/mosaic-bert-base-uncased.yaml`) to reflect your changes. Use the `composer` launcher when you're ready.
+
+```bash
+# Fine-tune your BERT model on your custom classification task!
+composer sequence_classification.py yamls/finetuning/mosaic-bert-base-uncased.yaml
+```
 
 ### GLUE fine-tuning
 
@@ -184,14 +209,16 @@ Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained 
 
 ```bash
 # This will run GLUE fine-tuning evaluation on your HuggingFace BERT
-python glue.py yamls/glue/hf-bert-base-uncased.yaml
+python glue.py yamls/finetuning/glue/hf-bert-base-uncased.yaml
 
 # This will run GLUE fine-tuning evaluation on your Mosaic BERT
-python glue.py yamls/glue/mosaic-bert-base-uncased.yaml
+python glue.py yamls/finetuning/glue/mosaic-bert-base-uncased.yaml
 ```
 
 Aggregate GLUE scores will be printed out at the end of the script and can also be tracked using Weights and Biases, if enabled via the YAML.
 Any of the other [composer supported loggers](https://docs.mosaicml.com/en/stable/trainer/logging.html#available-loggers) can be added easily as well!
+
+Fair warning: all the processes launched inside of `glue.py` will generate their own printouts during training. So don't be surprised if your console looks a bit chaotic. That means it's working :)
 
 ## Configs
 
@@ -209,14 +236,23 @@ In other words, you're free to modify this starter code to suit your project and
 Before using the configs in `yamls/main/` when running `main.py`, you'll need to fill in:
 
 * `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
-* `data_remote` - Set this to the filepath of your streaming C4 directory. The default value of `./my-copy-c4` will work if you built a local C4 copy, following the [datset preparation](#dataset-preparation) instructions. If you moved your dataset to a central location, you simply need to point `data_remote` to that new location.
+* `data_remote` - Set this to the filepath of your streaming C4 directory. The default value of `./my-copy-c4` will work if you built a local C4 copy, following the [dataset preparation](#prepare-your-data) instructions. If you moved your dataset to a central location, you simply need to point `data_remote` to that new location.
 * `data_local` - This is the path to the local directory where the dataset is streamed to. If `data_remote` is local, you can use the same path for `data_local` so no additional copying is done. The default values of `./my-copy-c4` are set up to work with such a local copy. If you moved your dataset to a central location, setting `data_local` to `/tmp/cache-c4` should work fine.
 * `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
 * `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that.
 
+### sequence_classification.py
+
+Before using the configs in `yamls/finetuning/` when running `sequence_classification.py`, you'll need to fill in:
+
+* `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that. If you're fine-tuning a Mosaic BERT, this should not be left empty.
+* `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
+* `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
+* `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
+
 ### glue.py
 
-Before using the configs in `yamls/glue/` when running `glue.py`, you'll need to fill in:
+Before using the configs in `yamls/finetuning/glue/` when running `glue.py`, you'll need to fill in:
 
 * `starting_checkpoint_load_path` - This determines which checkpoint you start from when doing fine-tuning. This should look like `<save_folder>/<checkpoint>`, where `<save_folder>` is the location you set in your pre-training config (see above section).
 * `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
@@ -239,10 +275,16 @@ Or, if your cluster has A100 GPUs with 40gb of memory:
 mcli run -f yamls/main/mcloud_run_a100_40gb.yaml
 ```
 
-Similarly, for GLUE fine-tuning, just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
+Similarly, for sequence classification fine-tuning, just fill in the missing YAML fields (e.g., to use the pre-training checkpoint as the starting point) and run:
 
 ```bash
-mcli run -f yamls/glue/mcloud_run.yaml
+mcli run -f yamls/finetuning/mcloud_run.yaml
+```
+
+The same applies for GLUE fine-tuning. Fill in the missing YAML fields and run:
+
+```bash
+mcli run -f yamls/finetuning/glue/mcloud_run.yaml
 ```
 
 ### Multi-node training

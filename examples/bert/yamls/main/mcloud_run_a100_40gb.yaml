@@ -8,7 +8,8 @@
 #
 # When ready, use `mcli run -f yamls/main/mcloud_run_a100_40gb.yaml` to launch
 
-run_name: &run_name mosaic-bert-base-uncased
+# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
+run_name: mosaic-bert-base-uncased
 cluster:       # Name of the cluster to use for this run
 gpu_type: a100_40gb # Type of GPU to use
 gpu_num: 8  # Number of GPUs to use
@@ -27,22 +28,23 @@ command: |
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
 # is the config that `main.py` uses in the above command.
 parameters:
-  # Supply a path to your remote data path
-  data_local: &data_local /tmp/mds-cache/
-  data_remote: &data_remote null
-
-  max_seq_len: &max_seq_len 128
-  tokenizer_name: &tokenizer_name bert-base-uncased
-  mlm_probability: &mlm_probability 0.3 # Mosaic BERT should use 30% masking for optimal performance
-
   # Run Name
-  run_name: *run_name
+  run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
+
+  # Supply a path to your remote data path
+  data_local: /tmp/mds-cache/
+  data_remote: # If blank, files must be present in data_local
+
+  max_seq_len: 128
+  tokenizer_name: bert-base-uncased
+  mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
+
 
   # Model
   model:
     name: mosaic_bert
-    pretrained_model_name: *tokenizer_name
-    tokenizer_name: *tokenizer_name
+    pretrained_model_name: ${tokenizer_name}
+    tokenizer_name: ${tokenizer_name}
     # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
     # Note: if using the pretrained_checkpoint argument to create a model from an existing checkpoint, make sure
     # the model_config settings match the architecture of the existing model
@@ -55,25 +57,25 @@ parameters:
   train_loader:
     name: text
     dataset:
-      local: *data_local
-      remote: *data_remote
+      local: ${data_local}
+      remote: ${data_remote}
       split: train
-      tokenizer_name: *tokenizer_name
-      max_seq_len: *max_seq_len
+      tokenizer_name: ${tokenizer_name}
+      max_seq_len: ${max_seq_len}
       group_method: truncate
       shuffle: true
-      mlm_probability: *mlm_probability
+      mlm_probability: ${mlm_probability}
     drop_last: true
     num_workers: 8
 
   eval_loader:
     name: text
     dataset:
-      local: *data_local
-      remote: *data_remote
+      local: ${data_local}
+      remote: ${data_remote}
       split: val
-      tokenizer_name: *tokenizer_name
-      max_seq_len: *max_seq_len
+      tokenizer_name: ${tokenizer_name}
+      max_seq_len: ${max_seq_len}
       group_method: truncate
       shuffle: false
       mlm_probability: 0.15 # We always evaluate at 15% masking for consistent comparison

@@ -14,6 +14,7 @@ from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
+from examples.llm.src.hf_causal_lm import ComposerHFCausalLM
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
@@ -49,7 +50,7 @@ def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
     test_cfg.model.attn_impl = 'torch'
     # device = 'cuda'
     # test_cfg.precision = 'amp'
-    test_cfg.model.device = device
+    test_cfg.model.init_device = device
     test_cfg.device = device
 
     test_cfg.global_train_batch_size = 2
@@ -165,6 +166,7 @@ def test_full_forward_and_backward_gpt2_small(batch_size=2):
 
     device = 'cpu'
     neo_cfg.device = device
+    neo_cfg.max_seq_len = 1024
 
     model = COMPOSER_MODEL_REGISTRY[neo_cfg.model.name](
         neo_cfg.model).to(device)
@@ -180,7 +182,8 @@ def test_full_forward_and_backward_gpt2_small(batch_size=2):
     neo_cfg.model.vocab_size = model.model.transformer.wte.num_embeddings
     batch = gen_random_batch(batch_size, neo_cfg)
 
-    batch['input_ids'].shape == torch.Size([batch_size, neo_cfg.max_seq_len])
+    assert batch['input_ids'].shape == torch.Size(
+        [batch_size, neo_cfg.max_seq_len])
     model.train()
     original_params = next(model.parameters()).clone().data
     outputs = model(batch)
@@ -208,7 +211,7 @@ def test_determinism(attention_type: str, precision):
         test_cfg = om.load(f)
 
     test_cfg.model.attn_impl = attention_type
-    test_cfg.model.device = 'cuda:0'
+    test_cfg.model.init_device = 'cuda:0'
     test_cfg.device = 'cuda:0'
 
     model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model).to(
@@ -241,3 +244,20 @@ def test_determinism(attention_type: str, precision):
             loss_2.backward()
             optimizer_1.step()
             optimizer_2.step()
+
+
+def test_opt_wrapping():
+    conf = {
+        'name': 'hf_causal_lm',
+        'pretrained_model_name_or_path': 'facebook/opt-125m',
+        'pretrained': 'false'
+    }
+    config = DictConfig(conf)
+
+    model = ComposerHFCausalLM(config)
+
+    # check that all the modules we except are blocked from FSDP wrapping
+    assert not model.model.model._fsdp_wrap
+    assert not model.model.model.decoder._fsdp_wrap
+    assert not model.model.model.decoder.embed_tokens._fsdp_wrap
+    assert not model.model.lm_head._fsdp_wrap

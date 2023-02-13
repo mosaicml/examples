@@ -15,9 +15,9 @@ To get started, either clone or fork this repo and install whichever example\[s\
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
-cd examples
+cd examples # cd into the repo
 pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
-cd examples/llm
+cd examples/llm # cd into the specific example's folder
 ```
 
 Available examples include `bert`, `cifar`, `llm`, `resnet`, `deeplab`, and `nemo`.
@@ -53,7 +53,8 @@ If you run into any issues extending the code, or just want to discuss an idea y
 
 If you already have the dependencies for a given example installed, you can just run:
 ```bash
-pre-commit run --all-files  # autoformatting
+pre-commit run --all-files  # autoformatting for whole repo
+cd examples/llm  # or bert, resnet, etc
 pyright .  # type checking
 pytest tests/  # run tests
 ```
@@ -75,7 +76,7 @@ and we run:
 python script.py b=baz nested.foo=different
 ```
 The `main.py` file will end up with:
-```json
+```python
 {'a': 1, 'b': 'baz', 'nested': {'foo': 'different'}}
 ```
 

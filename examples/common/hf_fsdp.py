@@ -7,6 +7,7 @@ import functools
 from typing import Any, Iterable, List
 
 from transformers import PreTrainedModel
+from transformers.models.opt.modeling_opt import OPTDecoder
 
 # helper functions
 
@@ -63,16 +64,6 @@ def hf_get_causal_base_model(model: PreTrainedModel):
     return findattr(model, decoder_attrs)
 
 
-def hf_get_lm_head(model: PreTrainedModel):
-    """Returns the lm head of the specified HuggingFace model.
-
-    NOTE: Different model configurations have different `lm_head` attribute names.
-        - lm_head: (GPT2LMHeadModel, BloomForCausalLM)
-        - embed_out: (GPTNeoXForCausalLM)
-    """
-    return model.get_output_embeddings()
-
-
 def hf_get_hidden_layers(model: PreTrainedModel):
     """Returns the hidden layers of the specified model.
 
@@ -89,23 +80,6 @@ def hf_get_hidden_layers(model: PreTrainedModel):
         'layers',  # ProphetNet, Marian (from encoder)
     )
     return findattr(model, hidden_layers_attrs)
-
-
-def hf_get_tied_embedding_weights(model: PreTrainedModel):
-    """Returns the embeddings, which are weight tied layers.
-
-    NOTE: Different model configurations have different embedding attribute names.
-        - wte: (GPT2LMHeadModel, GPTJForCausalLM, GPTNeoForCausalLM)
-        - word_embeddings: (BloomForCausalLM)
-        - embed_tokens: (OPTForCausalLM)
-        - GPT NeoX doesn't weight tie
-    """
-    tied_embedding_attrs = (
-        'wte',
-        'word_embeddings',
-        'embed_tokens',
-    )
-    return findattr(model, tied_embedding_attrs)
 
 
 # /end helper functions
@@ -131,10 +105,14 @@ def prepare_hf_causal_lm_model_for_fsdp(model: PreTrainedModel) -> None:
     HuggingFace for decoder-only LLMs.
     """
     causal_base_model = hf_get_causal_base_model(model)
+    # OPT has an extra layer of wrapping, so special case here
+    if isinstance(causal_base_model, OPTDecoder):
+        model.model._fsdp_wrap = False
     model_block = hf_get_hidden_layers(model)  # type: ignore
-    lm_head = hf_get_lm_head(model)
-    tied_embeddings = hf_get_tied_embedding_weights(
-        causal_base_model)  # type: ignore
+    lm_head = model.get_output_embeddings()
+    # some models (OPT) implement .get_input_embeddings for the causal subclass
+    # but all of them implement it for the base model
+    tied_embeddings = causal_base_model.get_input_embeddings()
     modules = {
         'base_model': causal_base_model,
         'model_block': model_block,
@@ -177,7 +155,7 @@ def prepare_hf_enc_dec_model_for_fsdp(model: PreTrainedModel) -> None:
     tied_embeddings = model.get_input_embeddings()
     encoder = model.get_encoder()
     decoder = model.get_decoder()
-    lm_head = hf_get_lm_head(model)
+    lm_head = model.get_output_embeddings()
     # some encoder/decoders have different layers for encoder vs decoder
     encoder_block = hf_get_hidden_layers(encoder)
     decoder_block = hf_get_hidden_layers(decoder)

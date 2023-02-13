@@ -41,11 +41,11 @@ Now that you have explored the code, let's jump into the prerequisites for train
 
 ## Prepare your data
 
-This benchmark assumes that [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. ADE20K can be downloaded by running:
+This benchmark assumes that [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. ADE20K can be downloaded by running the command below. This takes up about 1GB of storage and will default to storing the dataset in `./ade20k`.
 
 ```bash
 # download ADE20k to specified local directory
-python download_ade20k.py path/to/data
+python download_ade20k.py
 ```
 
 To convert ADE20k to a [streaming format](https://github.com/mosaicml/streaming) for efficient training from an object store like S3, use [this script](https://github.com/mosaicml/streaming/blob/main/streaming/vision/convert/ade20k.py).
@@ -108,7 +108,7 @@ Here's what you need to get started:
    * The image comes pre-configured with the following dependencies:
       * PyTorch Version: 1.12.1
       * CUDA Version: 11.6
-      * MMCV Version: 1.4.4
+      * MMCV Version: 1.4.8
       * mmsegmentation Version: 0.22.0
       * Python Version: 3.9
       * Ubuntu Version: 20.04
@@ -125,7 +125,7 @@ cd examples
 pip install -e ".[deeplab]"  # or pip install -e ".[deeplab-cpu]" if no NVIDIA GPU
 cd examples/deeplab
 # Note: mmcv-full is not in requirements.txt since it is difficult to install automatically
-# If you are not using the suggested docker image, install mmcv using the instructions at https://mmcv.readthedocs.io/en/latest/get_started/installation.html#install-with-pip
+# If you are not using the suggested docker image, install mmcv using the instructions at https://mmcv.readthedocs.io/en/latest/get_started/installation.html#install-with-pip (we use version 1.4.8)
 ```
 
 ---
