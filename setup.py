@@ -74,7 +74,6 @@ def _merge_dependencies(deps_base: List[str],
         # a GPU on your machine
         base_dict.pop('flash-attn', None)
         base_dict.pop('triton', None)
-        base_dict.pop('mmcv-full', None)
     return [k + v for k, v in base_dict.items()]  # 'foo': '>3' -> 'foo>3'
 
 
@@ -95,7 +94,7 @@ setup(
     version=repo_version,
     author='MosaicML',
     author_email='team@mosaicml.com',
-    description='Optimized starter code for deep learning training + evaulation',
+    description='Optimized starter code for deep learning training + evaluation',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/mosaicml/examples/',

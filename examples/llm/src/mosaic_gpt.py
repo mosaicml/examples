@@ -14,6 +14,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
@@ -272,14 +273,17 @@ class MosaicGPT(nn.Module):
         assert 0 < self.embedding_fraction <= 1, 'model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!'
 
         self.transformer = nn.ModuleDict({
-            'wte': nn.Embedding(cfg.vocab_size, cfg.d_model, device=cfg.device)
+            'wte':
+                nn.Embedding(cfg.vocab_size,
+                             cfg.d_model,
+                             device=cfg.init_device)
         })
         if not self.alibi:
             self.transformer.update({
                 'wpe':
                     nn.Embedding(cfg.max_seq_len,
                                  cfg.d_model,
-                                 device=cfg.device)
+                                 device=cfg.init_device)
             })
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
         self.transformer.update({
@@ -287,13 +291,17 @@ class MosaicGPT(nn.Module):
                 nn.ModuleList([
                     GPTBlock(cfg,
                              causal_attn_cls=self.causal_attn_cls,
-                             device=cfg.device) for _ in range(cfg.n_layers)
+                             device=cfg.init_device)
+                    for _ in range(cfg.n_layers)
                 ])
         })
         self.transformer.update(
-            {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.device)})
+            {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
-        if cfg.device != 'meta':
+        if cfg.init_device != 'meta':
+            print(
+                f'You are using {cfg.init_device=}, but you can also use cfg.init_device="meta" with Composer + FSDP for fast initialization.'
+            )
             self.apply(self.param_init_fn)
 
         # define attn mask
@@ -302,8 +310,8 @@ class MosaicGPT(nn.Module):
                                                      cfg.max_seq_len,
                                                      self.alibi)
         if mask_shape is not None:
-            self.register_buffer('attn_mask',
-                                 torch.empty(mask_shape, device=cfg.device))
+            self.register_buffer(
+                'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
         else:
             self.attn_mask = None
 
@@ -510,8 +518,11 @@ class ComposerMosaicGPT(ComposerModel):
         return targets
 
     def forward(self, batch):
-        return self.model(batch['input_ids'],
-                          key_padding_mask=batch['attention_mask'].bool())
+        input_ids = batch['input_ids']
+        key_padding_mask = batch['attention_mask'].bool(
+        ) if 'attention_mask' in batch else None
+        return self.model(input_ids=input_ids,
+                          key_padding_mask=key_padding_mask)
 
     def eval_forward(self, batch, outputs=None):
         return outputs if outputs is not None else self.forward(batch)
@@ -525,10 +536,26 @@ class ComposerMosaicGPT(ComposerModel):
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
 
-    def update_metric(self, batch, outputs, metric):
-        outputs = outputs.view(-1, outputs.size(-1))
-        targets = self.get_targets(batch).view(-1)
-        metric.update(outputs, targets)
+    def update_metric(self, batch, outputs, metric) -> None:
+        if isinstance(metric, InContextLearningMetric):
+            if batch.get('mode', None) == 'icl_task':
+                # only apply ICL metrics to specially constructed
+                # icl_task batches
+                targets = self.get_targets(batch)
+                metric.update(batch, outputs, targets)
+        else:
+            outputs = outputs.view(-1, outputs.size(-1))
+            targets = self.get_targets(batch).view(-1)
+            metric.update(outputs, targets)
+
+    def add_eval_metrics(self, evaluator):
+        evaluator_metrics = {
+            m: METRIC_DEFAULT_CTORS[m]() for m in evaluator.metric_names
+        }
+        if self.eval_metrics is not None:
+            self.eval_metrics.update(evaluator_metrics)
+        else:
+            self.eval_metrics = evaluator_metrics
 
     @property
     def num_fwd_flops(self):

@@ -28,6 +28,7 @@ jobs:
         - llm
         - resnet
         - stable_diffusion
+        - nemo
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
