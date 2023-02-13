@@ -26,7 +26,7 @@ model:
     num_attention_heads: 12 # bert-base default
     num_hidden_layers: 12 # bert-base default
     max_position_embedding: 512
-    attention_probs_dropout_prob: 0.0
+    attention_probs_dropout_prob: 0.1 # bert-base default
 
 # Dataloaders
 train_loader:
