@@ -15,7 +15,8 @@ from examples.ul2.src import (InverseSquareRootScheduler,
                               MixtureOfDenoisersPrinterCallback,
                               build_super_glue_task_dataloader,
                               build_text_denoising_dataloader,
-                              create_hf_prefix_lm, create_hf_t5)
+                              build_xsum_dataloader, create_hf_prefix_lm,
+                              create_hf_t5)
 
 
 def build_callback(name, cfg):
@@ -61,6 +62,7 @@ def build_model(cfg):
             tokenizer_name=cfg.get('tokenizer_name'),
             z_loss=cfg.get('z_loss', 0.0),
             task_finetuning=cfg.get('task_finetuning', False),
+            generation_eval=cfg.get('generation_eval', False),
         )
     elif cfg.name == 'hf_prefix_lm':
         return create_hf_prefix_lm(
@@ -76,11 +78,13 @@ def build_model(cfg):
 
 
 def build_dataloader(cfg, device_batch_size, mode):
-    """Constructs a text_denoising or super_glue dataloader."""
+    """Constructs a text_denoising, super_glue, or xsum dataloader."""
     if cfg.name == 'text_denoising':
         return build_text_denoising_dataloader(cfg, device_batch_size)
     elif cfg.name == 'super_glue':
         return build_super_glue_task_dataloader(cfg, device_batch_size, mode)
+    elif cfg.name == 'xsum':
+        return build_xsum_dataloader(cfg, device_batch_size, mode)
     else:
         raise ValueError(
             f'Not sure how to build dataloader with name={cfg.name}')

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import inspect
 from collections import UserDict
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
@@ -18,6 +18,7 @@ from composer.models.huggingface import HuggingFaceModel
 from composer.utils.import_helpers import MissingConditionalImportError
 
 from examples.common.hf_fsdp import prepare_hf_enc_dec_model_for_fsdp
+from examples.ul2.src.summarization.metrics import RougeWithDetokenizer
 from examples.ul2.src.super_glue.metrics import ExactMatch
 from examples.ul2.src.utils import AutoTokenizerForMOD
 
@@ -76,13 +77,30 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
             outputs[0] += z_loss
             return outputs[0]
 
+    def eval_forward(self, batch, outputs: Optional[Any] = None):
+        if 'generate_output' in batch:
+            self.labels = batch.pop('labels')
+            return self.model.generate(
+                batch['input_ids'],
+                max_new_tokens=512,
+                do_sample=True,
+                top_p=0.90,
+                top_k=0,
+                no_repeat_ngram_size=3,
+            )
 
-def create_hf_t5(pretrained_model_name: str = 't5-base',
-                 use_pretrained: Optional[bool] = False,
-                 model_config: Optional[dict] = None,
-                 tokenizer_name: Optional[str] = None,
-                 z_loss: float = 0.0,
-                 task_finetuning: Optional[bool] = False):
+        return super().eval_forward(batch, outputs)
+
+
+def create_hf_t5(
+    pretrained_model_name: str = 't5-base',
+    use_pretrained: Optional[bool] = False,
+    model_config: Optional[dict] = None,
+    tokenizer_name: Optional[str] = None,
+    z_loss: float = 0.0,
+    task_finetuning: Optional[bool] = False,
+    generation_eval: bool = False,
+):
     """T5 model based on |:hugging_face:| Transformers.
 
     For more information, see `Transformers <https://huggingface.co/transformers/>`_.
@@ -95,6 +113,8 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
         tokenizer_name (str, optional): Tokenizer name used to preprocess the dataset and validate the models inputs.
         z_loss (float, optional): Coefficient of `z-loss` term to use during training. Default: ``0.0``.
         task_finetuning (bool, optional): Whether to add ExactMatch metric used in fine-tuning. Default: ``False``.
+        generation_eval (bool, optional): Whether evaluation requires generation, in which case RougeWithDetokenizer
+            is used for for the validation metric. Default: ``False``.
 
     To create a |:hugging_face:| T5 model for Masked Language Model pretraining:
 
@@ -144,7 +164,13 @@ def create_hf_t5(pretrained_model_name: str = 't5-base',
     ]
     if task_finetuning:
         metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))
-    return HuggingFaceModelWithZLoss(model=model,
-                                     tokenizer=tokenizer,
-                                     metrics=metrics,
-                                     z_loss=z_loss)
+    model = HuggingFaceModelWithZLoss(model=model,
+                                      tokenizer=tokenizer,
+                                      metrics=metrics,
+                                      z_loss=z_loss)
+    if generation_eval:
+        model.val_metrics = {
+            RougeWithDetokenizer.__name__:
+                RougeWithDetokenizer(detokenizer=tokenizer, rouge_keys='rougeL')
+        }
+    return model

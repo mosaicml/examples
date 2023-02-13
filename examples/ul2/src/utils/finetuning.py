@@ -28,10 +28,24 @@ class Seq2SeqFinetuningCollator:
         max_seq_length: int,
         decoder_only_format: bool,
         separator_text: Optional[Union[str, bool]] = None,
+        batch_metadata: Optional[Dict[str, Any]] = None,
     ):
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
         self.decoder_only_format = decoder_only_format
+        self.batch_metadata = batch_metadata or {}
+
+        illegal_keys = ['input_ids', 'labels', 'attention_mask']
+        if not self.decoder_only_format:
+            illegal_keys += ['decoder_input_ids', 'decoder_attention_mask']
+        found_keys = []
+        for illegal_key in illegal_keys:
+            if illegal_key in self.batch_metadata:
+                found_keys.append(illegal_key)
+        if found_keys:
+            raise ValueError(
+                f'The following keys are in batch_metadata but are not allowed: {", ".join(found_keys)}.'
+            )
 
         if (max_seq_length % 8) != 0:
             log.warning(
@@ -137,6 +151,14 @@ class Seq2SeqFinetuningCollator:
                               torch.ceil(n_non_padding / multiple_of))
             for k in ['decoder_input_ids', 'decoder_attention_mask', 'labels']:
                 batch[k] = batch[k][:, :keep_tokens].contiguous()
+
+            # Add batch_metadata
+            batch_size = batch['input_ids'].shape[0]
+            batch.update({
+                k: torch.tensor([v] * batch_size)
+                for k, v in self.batch_metadata.items()
+            })
+
             return batch
 
         # The decoder-only case is also somewhat involved...
@@ -212,4 +234,12 @@ class Seq2SeqFinetuningCollator:
                 batch[k] = v[:, -keep_tokens:].contiguous()
             else:
                 batch[k] = v[:, :keep_tokens].contiguous()
+
+        # Add batch_metadata
+        batch_size = batch['input_ids'].shape[0]
+        batch.update({
+            k: torch.tensor([v] * batch_size)
+            for k, v in self.batch_metadata.items()
+        })
+
         return batch
