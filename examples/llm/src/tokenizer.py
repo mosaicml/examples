@@ -34,7 +34,6 @@ class LLMTokenizer(ABC):
 class HFTokenizer(LLMTokenizer):
     tokenizer_name: str
     max_seq_len: int
-    group_method: str  # type: ignore (reportUninitializedInstanceVariable)
     tokenizer: transformers.AutoTokenizer
 
     def __init__(self, tokenizer_name: str, max_seq_len: int):
@@ -43,7 +42,7 @@ class HFTokenizer(LLMTokenizer):
         # Build tokenizer
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             self.tokenizer_name)
-        # suppress warnings when using group_method='concat' and no truncation
+        # suppress warnings about max length
         self.tokenizer.model_max_length = int(1e30)
 
     def __call__(self, *args, **kwargs):

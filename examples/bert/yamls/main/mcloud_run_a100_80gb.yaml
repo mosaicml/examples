@@ -61,7 +61,6 @@ parameters:
       split: train
       tokenizer_name: ${tokenizer_name}
       max_seq_len: ${max_seq_len}
-      group_method: truncate
       shuffle: true
       mlm_probability: ${mlm_probability}
     drop_last: true
@@ -75,7 +74,6 @@ parameters:
       split: val
       tokenizer_name: ${tokenizer_name}
       max_seq_len: ${max_seq_len}
-      group_method: truncate
       shuffle: false
       mlm_probability: 0.15 # We always evaluate at 15% masking for consistent comparison
     drop_last: false
