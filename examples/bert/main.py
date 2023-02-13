@@ -47,6 +47,11 @@ def main(cfg: DictConfig,
     # Get batch size info
     cfg = update_batch_size_info(cfg)
 
+    # Read FSDP Config as a dict
+    fsdp_config = cfg.get('fsdp_config', None)
+    fsdp_config = om.to_container(fsdp_config,
+                                  resolve=True) if fsdp_config else None
+
     # Build Model
     print('Initializing model...')
     model = build_model(cfg.model)
@@ -110,6 +115,7 @@ def main(cfg: DictConfig,
         device=cfg.get('device', None),
         device_train_microbatch_size=cfg.get('device_train_microbatch_size',
                                              'auto'),
+        fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',

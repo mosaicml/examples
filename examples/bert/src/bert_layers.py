@@ -915,6 +915,14 @@ class BertForMaskedLM(BertPreTrainedModel):
 
         return {'input_ids': input_ids, 'attention_mask': attention_mask}
 
+    # FSDP Wrap function
+    def fsdp_wrap_fn(self, module):
+        return isinstance(module, BertLayer)
+
+    # Activation Checkpointing
+    def activation_checkpointing_fn(self, module):
+        return isinstance(module, BertLayer)
+
 
 class BertForNextSentencePrediction(BertPreTrainedModel):
     #TBD: Push in future commit
