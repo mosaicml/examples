@@ -26,6 +26,8 @@ from tutel.experts.ffn import FusedExpertsNetwork
 from tutel.gates.cosine_top import CosineTopKGate
 from tutel.gates.top import LinearTopKGate
 
+from examples.common.seed_ctx_manager import SeedContextManager
+
 
 class TorchCausalAttention(nn.Module):
 
@@ -229,7 +231,7 @@ class GPTMLPMoE(nn.Module):
 
     def __init__(self, cfg: DictConfig, block_idx: int, device: Optional[str] = None):
         super().__init__()
-        dist.initialize_dist(get_device(None), timeout=1800)
+        dist.initialize_dist(get_device(None))
         world_size = dist.get_world_size()
         num_experts = cfg.moe.get('num_experts')
         if isinstance(num_experts, ListConfig):
@@ -259,32 +261,28 @@ class GPTMLPMoE(nn.Module):
             'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
             'activation_fn': lambda x: F.gelu(x, approximate='none')}
 
-        cpu_rng_state = torch.get_rng_state()
-        if torch.cuda.is_initialized():
-            from torch.utils.checkpoint import get_device_states, set_device_states
-            gpu_devices, gpu_rng_states = get_device_states(dist.get_global_rank())
-
         rank_seed = torch.initial_seed() + dist.get_global_rank()
-        self.moe = tutel_moe.moe_layer(
-            gate_type=gate_type,
-            model_dim=cfg.d_model,
-            experts=experts,
-            scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
-            result_func=cfg.moe.get('result_func', None),
-            group=cfg.moe.get('group', None),
-            seeds=(rank_seed, rank_seed, rank_seed),
-            a2a_ffn_overlap_degree=cfg.moe.get('a2a_ffn_overlap_degree', 1),
-            is_postscore=cfg.moe.get('is_postscore', True),
-            batch_prioritized_routing=cfg.moe.get('batch_prioritized_routing', False),
-            normalize_gate=cfg.moe.get('normalize_gate', True),
-            is_gshard_loss=cfg.moe.get('is_gshard_loss', True),
-            parallel_type=cfg.moe.get('parallel_type', 'auto'),
-            use_2dh=cfg.moe.get('use_2dh', False),
-        )
-
-        torch.set_rng_state(cpu_rng_state)
-        if torch.cuda.is_initialized():
-            set_device_states(gpu_devices, gpu_rng_states)
+        gpu_devices = [torch.cuda.current_device()]
+        # guarentee init seeds are different for all devices
+        # SeedContextManager sets the given seed, then restore local seed on ctx mgr exit
+        with SeedContextManager(gpu_devices=gpu_devices, seed=rank_seed) as s_ctx_mgr:
+            self.moe = tutel_moe.moe_layer(
+                gate_type=gate_type,
+                model_dim=cfg.d_model,
+                experts=experts,
+                scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
+                result_func=cfg.moe.get('result_func', None),
+                group=cfg.moe.get('group', None),
+                seeds=(rank_seed, rank_seed, rank_seed),
+                a2a_ffn_overlap_degree=cfg.moe.get('a2a_ffn_overlap_degree', 1),
+                is_postscore=cfg.moe.get('is_postscore', True),
+                batch_prioritized_routing=cfg.moe.get('batch_prioritized_routing', False),
+                normalize_gate=cfg.moe.get('normalize_gate', True),
+                is_gshard_loss=cfg.moe.get('is_gshard_loss', True),
+                parallel_type=cfg.moe.get('parallel_type', 'auto'),
+                use_2dh=cfg.moe.get('use_2dh', False),
+                device=device,
+            )
 
         self.moe.experts.batched_fc2_w._is_residual = True  # type: ignore
 
@@ -577,34 +575,23 @@ class MosaicGPT(nn.Module):
             module._num_global_experts = torch.tensor(module.global_expert_count(local_expert, module.group))
 
         if isinstance(module, FusedExpertsNetwork):
-            # although the module is supposed to be ignored by FSDP,
-            # model.apply will still run param_init_fn on the entire model
-            # so FusedExpertsNetwork must be initialized here
-            cpu_rng_state = torch.get_rng_state()
-            if torch.cuda.is_initialized():
-                from torch.utils.checkpoint import get_device_states, set_device_states
-                gpu_devices, gpu_rng_states = get_device_states(
-                    module.batched_fc1_w, module.batched_fc2_w)
-
             # guarentee init seeds are different for all devices
-            torch.manual_seed(torch.initial_seed() + dist.get_global_rank())
+            # SeedContextManager sets the given seed, then restore local when finished
+            rank_seed = torch.initial_seed() + dist.get_global_rank()
+            tensors = module.batched_fc1_w, module.batched_fc2_w
+            with SeedContextManager(*tensors, seed=rank_seed) as s_ctx_mgr:
+                if self.cfg.get('init_experts', False):
+                    # init fc1
+                    init_fn(module.batched_fc1_w)
+                    torch.nn.init.zeros_(module.batched_fc1_bias)
 
-            if self.cfg.get('init_experts', False):
-                init_fn(module.batched_fc1_w)
-                module.batched_fc2_w.data.normal_(
-                    mean=0.0,
-                    std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
-            else:
-                # use default linear init since that is what is used by tutel
-                # still zero init bias)
-                torch.nn.init.kaiming_uniform_(module.batched_fc1_w, a=math.sqrt(5))
-                torch.nn.init.kaiming_uniform_(module.batched_fc2_w, a=math.sqrt(5))
-            torch.nn.init.zeros_(module.batched_fc1_bias)
-            torch.nn.init.zeros_(module.batched_fc2_bias)
-
-            torch.set_rng_state(cpu_rng_state)
-            if torch.cuda.is_initialized():
-                set_device_states(gpu_devices, gpu_rng_states)
+                    # init fc2
+                    module.batched_fc2_w.data.normal_(
+                        mean=0.0,
+                        std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
+                    torch.nn.init.zeros_(module.batched_fc2_bias)
+                else:
+                    module.reset_parameters()
 
         if isinstance(module, CosineTopKGate):
             # Linear handeled by nn.Linear

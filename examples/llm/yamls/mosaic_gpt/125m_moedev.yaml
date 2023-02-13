@@ -21,8 +21,9 @@ model:
     l_aux_wt: 0.01
     a2a_ffn_overlap_degree: 2
     use_2dh: false
-    capacity_factor: 1
+    capacity_factor: -2
     gate_noise: 0.01
+    init_experts: true
   max_seq_len: ${max_seq_len}
   vocab_size: 50257
   init_std: 0.02
