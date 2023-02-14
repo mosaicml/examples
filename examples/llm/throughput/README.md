@@ -1,4 +1,4 @@
-## Warning: The numbers in the tables below are based on torch 1.12 and are out of date. The current setup achieves higher throughput / MFU. This warning will be removed once the tables are updated.
+## Warning: Some of the numbers below, particularly for 30B and 70B models, are out of date. The current repo achieves higher throughput / MFU. This warning will be removed once the tables are updated.
 
 # MosaicGPT Training Benchmarks
 
