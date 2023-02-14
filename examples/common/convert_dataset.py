@@ -32,7 +32,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--data_subset', type=str, default=None, help='E.g. "all" or "en"')
     parser.add_argument('--splits',
                         nargs='+',
-                        default=['train', 'val'])
+                        default=['train', 'train_small', 'val'])
     parser.add_argument('--out_root', type=str, required=True)
     parser.add_argument('--compression', type=str, default=None)
 
@@ -112,7 +112,7 @@ class ValSmallConstants(DataSplitConstants):
 
 
 pileconstants = DatasetConstants(
-    chars_per_sample=6212,
+    chars_per_sample=6212, # Computed over validation set
     chars_per_token=4
 )
 pileconstants.splits["train"] = DataSplitConstants(
@@ -142,28 +142,28 @@ pileconstants.splits["val_small"] = DataSplitConstants(
 
 
 c4constants = DatasetConstants(
-    chars_per_sample=2163,
+    chars_per_sample=2163, # Computed over validation set
     chars_per_token=4
 )
-pileconstants.splits["train"] = DataSplitConstants(
+c4constants.splits["train"] = DataSplitConstants(
     hf_split='train',
     folder_split='train',
     raw_samples=364868892,
     truncated_samples=None
 )
-pileconstants.splits["train_small"] = DataSplitConstants(
+c4constants.splits["train_small"] = DataSplitConstants(
     hf_split='train',
     folder_split='train_small',
     raw_samples=1000000,
     truncated_samples=100000
 )
-pileconstants.splits["val"] = DataSplitConstants(
+c4constants.splits["val"] = DataSplitConstants(
     hf_split='validation',
     folder_split='val',
     raw_samples=364608,
     truncated_samples=None
 )
-pileconstants.splits["val_small"] = DataSplitConstants(
+c4constants.splits["val_small"] = DataSplitConstants(
     hf_split='validation',
     folder_split='val_small',
     raw_samples=10000,
@@ -181,9 +181,9 @@ class NoConcatDataset(IterableDataset):
     Returns dicts of {'text': bytes}
     """
 
-    def __init__(self, split: str):
-        self.hf_dataset = hf_datasets.load_dataset(path='the_pile',
-                                                   name='all',
+    def __init__(self, dataset_name: str, data_subset: Union[str, None], split: str):
+        self.hf_dataset = hf_datasets.load_dataset(path=dataset_name,
+                                                   name=data_subset,
                                                    split=split,
                                                    streaming=True)
 
@@ -310,7 +310,7 @@ def build_hf_dataset(
         An IterableDataset.
     """
     if mode == ConcatMode.NO_CONCAT:
-        dataset = NoConcatDataset(split=split)
+        dataset = NoConcatDataset(dataset_name=dataset_name, data_subset=data_subset,split=split)
     else:
         if bos_text + eos_text == '':
             test_tokens = tokenizer('test')
@@ -444,7 +444,7 @@ def main(args: Namespace) -> None:
         samples = generate_samples(loader,
                                    truncate_num_samples=truncate_num_samples)
 
-        if expected_num_samples:
+        if expected_num_samples is not None:
             denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
                 total_samples=expected_num_samples,
                 chars_per_sample=dataset_constants.chars_per_sample,
