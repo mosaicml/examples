@@ -5,7 +5,7 @@ import os
 import shutil
 from argparse import Namespace
 
-from examples.common.convert_c4 import main
+from examples.common.convert_dataset import main
 
 
 def test_download_script_from_api():
@@ -15,6 +15,8 @@ def test_download_script_from_api():
     main(
         Namespace(
             **{
+                'dataset': 'c4',
+                'data_subset': 'en',
                 'splits': ['val'],
                 'out_root': './my-copy-c4-1',
                 'compression': None,
