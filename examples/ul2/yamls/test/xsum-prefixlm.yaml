@@ -1,17 +1,17 @@
 # Use this YAML to verify that fine-tuning on the SuperGLUE task mixture works. Runs on CPU or GPUs (if available).
 # From `examples/ul2`, run:
-#   `composer main.py yamls/test/superglue-t5.yaml` to run using the HuggingFace T5
+#   `composer main.py yamls/test/xsum-prefixlm.yaml` to run using the HuggingFace T5
 
-tokenizer_name: t5-small
+tokenizer_name: gpt2
 max_seq_len: 128
-decoder_only_format: false
+decoder_only_format: true
 
 # Run Name
 run_name: test
 
 # Model
 model:
-  name: hf_t5
+  name: hf_prefix_lm
   use_pretrained: true # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
   pretrained_model_name: ${tokenizer_name}
   tokenizer_name: ${tokenizer_name}

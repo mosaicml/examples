@@ -6,6 +6,7 @@ data_remote: &data_remote ./my-copy-c4 # Follow the instructions in the README t
 data_local: &data_local ./my-copy-c4
 tokenizer_name: &tokenizer_name t5-small
 max_seq_len: &max_seq_len 128
+group_method: truncate
 mixture_of_denoisers: &mixture_of_denoisers
   decoder_only_format: false
   span_mean_lengths_and_ratios: [[3, .15], [12, .15]]
@@ -31,7 +32,7 @@ train_loader:
     split: val
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
-    group_method: concat
+    group_method: ${group_method}
     prefetch: 1000
     shuffle: true
   mixture_of_denoisers: *mixture_of_denoisers
@@ -50,7 +51,7 @@ eval_loader:
     split: val
     tokenizer_name: *tokenizer_name
     max_seq_len: *max_seq_len
-    group_method: concat
+    group_method: ${group_method}
     prefetch: 1000
     shuffle: false
   mixture_of_denoisers: *mixture_of_denoisers

@@ -28,16 +28,19 @@ class Seq2SeqFinetuningCollator:
         max_seq_length: int,
         decoder_only_format: bool,
         separator_text: Optional[Union[str, bool]] = None,
+        format_for_generation: bool = False,
         batch_metadata: Optional[Dict[str, Any]] = None,
     ):
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
         self.decoder_only_format = decoder_only_format
+        self.format_for_generation = format_for_generation
         self.batch_metadata = batch_metadata or {}
 
-        illegal_keys = ['input_ids', 'labels', 'attention_mask']
-        if not self.decoder_only_format:
-            illegal_keys += ['decoder_input_ids', 'decoder_attention_mask']
+        illegal_keys = [
+            'input_ids', 'labels', 'attention_mask', 'decoder_input_ids',
+            'decoder_attention_mask', 'generate_output'
+        ]
         found_keys = []
         for illegal_key in illegal_keys:
             if illegal_key in self.batch_metadata:
@@ -46,6 +49,8 @@ class Seq2SeqFinetuningCollator:
             raise ValueError(
                 f'The following keys are in batch_metadata but are not allowed: {", ".join(found_keys)}.'
             )
+        if self.format_for_generation:
+            self.batch_metadata['generate_output'] = True
 
         if (max_seq_length % 8) != 0:
             log.warning(
@@ -175,9 +180,6 @@ class Seq2SeqFinetuningCollator:
             if target[-1] != self.tokenizer.eos_token_id:
                 target = target + [self.tokenizer.eos_token_id]
 
-            # Now we need to concatenate the context and target to get the
-            # full input sequence, cutting off any excess tokens from the
-            # start of the context
             n_context = len(context)
             n_target = len(target)
 
@@ -186,28 +188,51 @@ class Seq2SeqFinetuningCollator:
                     f'max_seq_length={self.max_seq_length} is too small to fit ' +\
                     f'the target token sequence of length={n_target}.')
 
-            # If we need to trim, trim from the context
-            if n_context + n_target > self.max_seq_length:
-                n_context = self.max_seq_length - n_target
-                context = context[-n_context:]
-            n_total = n_context + n_target
+            if self.format_for_generation:
+                # When formatting for generation, we need to keep input_ids and
+                # labels separate. The input_ids (context) will be fed into the
+                # generator and the labels will be used by the eval metric.
+                input_ids = context[-self.max_seq_length:]
+                n_context = len(input_ids)
+                attention_mask = [1] * n_context
+                bidirectional_mask = [1] * n_context
+                # Annoyingly, we need to pad the everything but input_ids
+                # and attention_mask ourselves
+                i_pad = [self.tokenizer.pad_token_id
+                        ] * (self.max_seq_length - n_target)
+                z_pad = [0] * (self.max_seq_length - n_context)
+                if self.tokenizer.padding_side == 'left':
+                    labels = i_pad + target
+                    bidirectional_mask = z_pad + bidirectional_mask
+                else:
+                    labels = target + i_pad
+                    bidirectional_mask = bidirectional_mask + z_pad
 
-            input_ids = context + target
-            labels = ([_HF_IGNORE_INDEX] * n_context) + target
-            attention_mask = [1] * n_total
-            # bidirectional_mask is used by our prefix lm model variants
-            bidirectional_mask = ([1] * n_context) + ([0] * n_target)
-
-            # Annoyingly, we need to pad the everything but input_ids
-            # and attention_mask ourselves
-            i_pad = [_HF_IGNORE_INDEX] * (self.max_seq_length - n_total)
-            z_pad = [0] * (self.max_seq_length - n_total)
-            if self.tokenizer.padding_side == 'left':
-                labels = i_pad + labels
-                bidirectional_mask = z_pad + bidirectional_mask
             else:
-                labels = labels + i_pad
-                bidirectional_mask = bidirectional_mask + z_pad
+                # We need to concatenate the context and target to get the
+                # full input sequence, cutting off any excess tokens from the
+                # start of the context
+                if n_context + n_target > self.max_seq_length:
+                    n_context = self.max_seq_length - n_target
+                    context = context[-n_context:]
+                n_total = n_context + n_target
+
+                input_ids = context + target
+                labels = ([_HF_IGNORE_INDEX] * n_context) + target
+                attention_mask = [1] * n_total
+                # bidirectional_mask is used by our prefix lm model variants
+                bidirectional_mask = ([1] * n_context) + ([0] * n_target)
+
+                # Annoyingly, we need to pad the everything but input_ids
+                # and attention_mask ourselves
+                i_pad = [_HF_IGNORE_INDEX] * (self.max_seq_length - n_total)
+                z_pad = [0] * (self.max_seq_length - n_total)
+                if self.tokenizer.padding_side == 'left':
+                    labels = i_pad + labels
+                    bidirectional_mask = z_pad + bidirectional_mask
+                else:
+                    labels = labels + i_pad
+                    bidirectional_mask = bidirectional_mask + z_pad
 
             # Update the example
             example['input_ids'] = input_ids
@@ -229,6 +254,8 @@ class Seq2SeqFinetuningCollator:
         keep_tokens = int(multiple_of * torch.ceil(n_non_padding / multiple_of))
         for k, v in batch.items():
             if len(v.shape) < 2:
+                continue
+            if k == 'labels' and self.format_for_generation:
                 continue
             if self.tokenizer.padding_side == 'left':
                 batch[k] = v[:, -keep_tokens:].contiguous()

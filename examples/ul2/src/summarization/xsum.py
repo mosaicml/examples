@@ -4,18 +4,16 @@
 """A preliminary implementation of XSUM for fine-tuning."""
 
 import logging
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import datasets
 import transformers
 from composer.core.evaluator import Evaluator
 from composer.core.types import Dataset
 from composer.utils import dist
-# from omegaconf.listconfig import ListConfig
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-# from examples.ul2.src.summarization.metrics import RougeWithDetokenizer
 from examples.ul2.src.utils import Seq2SeqFinetuningCollator
 
 __all__ = ['build_xsum_dataloader']
@@ -39,13 +37,15 @@ def build_xsum_dataloader(cfg: Mapping[str, Any],
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         cfg.dataset.tokenizer_name,
-        model_max_length=cfg.dataset.max_seq_length)  #type: ignore (thirdparty)
+        model_max_length=cfg.dataset.max_seq_length,
+        padding_side='left' if cfg.dataset.decoder_only_format else
+        'right')  #type: ignore (thirdparty)
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     def _build_dataloader(dataset: Dataset,
-                          batch_metadata: Optional[Dict[str, Any]] = None):
+                          format_for_generation: bool = False):
         return DataLoader(
             dataset,
             collate_fn=Seq2SeqFinetuningCollator(
@@ -53,7 +53,7 @@ def build_xsum_dataloader(cfg: Mapping[str, Any],
                 max_seq_length=cfg.dataset.max_seq_length,
                 decoder_only_format=cfg.dataset.decoder_only_format,
                 separator_text=cfg.dataset.get('separator_text'),
-                batch_metadata=batch_metadata,
+                format_for_generation=format_for_generation,
             ),
             batch_size=device_batch_size,
             sampler=dist.get_sampler(dataset,
@@ -66,20 +66,20 @@ def build_xsum_dataloader(cfg: Mapping[str, Any],
             timeout=cfg.timeout,
         )
 
-    dataset = create_xum_dataset(tokenizer,
-                                 cfg.dataset.split,
-                                 extra_prefix=cfg.dataset.get('extra_prefix'))
+    dataset = create_xsum_dataset(tokenizer,
+                                  cfg.dataset.split,
+                                  extra_prefix=cfg.dataset.get('extra_prefix'))
 
     if mode == 'train':
         return _build_dataloader(dataset)
 
-    dataloader = _build_dataloader(dataset, {'generate_output': True})
+    dataloader = _build_dataloader(dataset, format_for_generation=True)
     return Evaluator(label='xsum',
                      dataloader=dataloader,
                      metric_names=['RougeWithDetokenizer'])
 
 
-def create_xum_dataset(
+def create_xsum_dataset(
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
     split: str,
     max_retries: int = 10,

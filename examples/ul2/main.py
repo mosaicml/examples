@@ -72,6 +72,7 @@ def build_model(cfg):
             model_config=cfg.get('model_config'),
             z_loss=cfg.get('z_loss', 0.0),
             task_finetuning=cfg.get('task_finetuning', False),
+            generation_eval=cfg.get('generation_eval', False),
         )
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')

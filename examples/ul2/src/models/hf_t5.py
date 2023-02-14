@@ -82,6 +82,7 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
             self.labels = batch.pop('labels')
             return self.model.generate(
                 batch['input_ids'],
+                attention_mask=batch['attention_mask'],
                 max_new_tokens=512,
                 do_sample=True,
                 top_p=0.90,
