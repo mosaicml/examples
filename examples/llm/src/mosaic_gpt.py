@@ -422,6 +422,9 @@ class MosaicGPT(nn.Module):
                                     key_padding_mask=key_padding_mask,
                                     dtype=x.dtype)
         if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
+            # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
+            # in certain settings like MosaicGPT-7B. So we always provide a tensor.
+            # See https://github.com/mosaicml/examples/pull/163 for more details.
             mod_key_padding_mask = torch.ones_like(input_ids, dtype=torch.bool)
         elif self.cfg.attn_impl == 'triton':
             mod_key_padding_mask = None
