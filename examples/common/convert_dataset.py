@@ -1,13 +1,14 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""C4 streaming dataset conversion scripts."""
+"""Streaming dataset conversion scripts for C4 and The Pile."""
 import os
 import platform
 import warnings
 from argparse import ArgumentParser, Namespace
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, List, Optional, Union
 
 import datasets as hf_datasets
 import numpy as np
@@ -16,6 +17,111 @@ from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
+
+@dataclass
+class DataSplitConstants:
+    hf_split: str
+    folder_split: str
+    raw_samples: int
+    truncated_samples: Union[int, None]
+
+
+@dataclass
+class DatasetConstants:
+    chars_per_sample: int
+    chars_per_token: int
+    splits = {}
+
+    def __iter__(self):
+        for _, v in self.splits.items():
+            yield v
+
+
+class TrainSmallConstants(DataSplitConstants):
+    def __init__(
+        self,
+        hf_split: str = 'train',
+        folder_split: str = 'train_small',
+        raw_samples: int = 1000000,
+        truncated_samples: int = 100000
+    ):
+        super().__init__(hf_split, folder_split, raw_samples, truncated_samples)
+
+
+class ValSmallConstants(DataSplitConstants):
+    def __init__(
+        self,
+        hf_split: str = 'validation',
+        folder_split: str = 'val_small',
+        raw_samples: int = 10000,
+        truncated_samples: int = 10000
+    ):
+        super().__init__(hf_split, folder_split, raw_samples, truncated_samples)
+
+
+pileconstants = DatasetConstants(
+    chars_per_sample=6212,
+    chars_per_token=4
+)
+pileconstants.splits["train"] = DataSplitConstants(
+    hf_split='train',
+    folder_split='train',
+    raw_samples=210607728,
+    truncated_samples=None
+)
+pileconstants.splits["train_small"] = DataSplitConstants(
+    hf_split='train',
+    folder_split='train_small',
+    raw_samples=1000000,
+    truncated_samples=100000
+)
+pileconstants.splits["val"] = DataSplitConstants(
+    hf_split='validation',
+    folder_split='val',
+    raw_samples=214670,
+    truncated_samples=None
+)
+pileconstants.splits["val_small"] = DataSplitConstants(
+    hf_split='validation',
+    folder_split='val_small',
+    raw_samples=10000,
+    truncated_samples=10000
+)
+
+
+c4constants = DatasetConstants(
+    chars_per_sample=2163,
+    chars_per_token=4
+)
+pileconstants.splits["train"] = DataSplitConstants(
+    hf_split='train',
+    folder_split='train',
+    raw_samples=364868892,
+    truncated_samples=None
+)
+pileconstants.splits["train_small"] = DataSplitConstants(
+    hf_split='train',
+    folder_split='train_small',
+    raw_samples=1000000,
+    truncated_samples=100000
+)
+pileconstants.splits["val"] = DataSplitConstants(
+    hf_split='validation',
+    folder_split='val',
+    raw_samples=364608,
+    truncated_samples=None
+)
+pileconstants.splits["val_small"] = DataSplitConstants(
+    hf_split='validation',
+    folder_split='val_small',
+    raw_samples=10000,
+    truncated_samples=10000
+)
+
+CONSTS = {
+    "c4": c4constants,
+    "the_pile": pileconstants
+}
 
 class ConcatMode(Enum):
     NO_CONCAT = 'NO_CONCAT'
@@ -26,10 +132,11 @@ def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(
         description=
-        'Convert C4 into MDS format, optionally concatenating and tokenizing')
+        'Convert dataset into MDS format, optionally concatenating and tokenizing')
+    parser.add_argument('--datatset', type=str, default=None)
     parser.add_argument('--splits',
                         nargs='+',
-                        default=['train', 'train_small', 'val'])
+                        default=['train', 'val'])
     parser.add_argument('--out_root', type=str, required=True)
     parser.add_argument('--compression', type=str, default=None)
 
@@ -67,7 +174,7 @@ def parse_args() -> Namespace:
     return parsed
 
 
-class NoConcatC4(IterableDataset):
+class NoConcatDataset(IterableDataset):
     """An IterableDataset that returns text samples for MDSWriter.
 
     Returns dicts of {'text': bytes}
@@ -85,7 +192,7 @@ class NoConcatC4(IterableDataset):
             yield {'text': sample['text'].encode('utf-8')}
 
 
-class ConcatTokensC4(IterableDataset):
+class ConcatTokensDataset(IterableDataset):
     """An IterableDataset that returns token samples for MDSWriter.
 
     Returns dicts of {'tokens': bytes}
@@ -176,12 +283,12 @@ class ConcatTokensC4(IterableDataset):
                 }
 
 
-def build_hf_c4_dataset(
+def build_hf_dataset(
         split: str, mode: ConcatMode, max_length: Optional[int],
         bos_text: Optional[str], eos_text: Optional[str],
         no_wrap: Optional[bool],
         tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
-    """Build an IterableDataset over the HF C4 source data.
+    """Build an IterableDataset over the HF C4 or pile source data.
 
     Args:
         split (str): Split name.
@@ -195,7 +302,7 @@ def build_hf_c4_dataset(
         An IterableDataset.
     """
     if mode == ConcatMode.NO_CONCAT:
-        dataset = NoConcatC4(split=split)
+        dataset = NoConcatDataset(split=split)
     else:
         if bos_text + eos_text == '':
             test_tokens = tokenizer('test')
@@ -208,7 +315,7 @@ def build_hf_c4_dataset(
                 tok_error_msg += 'such as facebook/opt-125m, or specify EOS/BOS text with e.g. '
                 tok_error_msg += '--bos_text=<|endoftext|>.'
                 raise ValueError(tok_error_msg)
-        dataset = ConcatTokensC4(split=split,
+        dataset = ConcatTokensDataset(split=split,
                                  tokenizer=tokenizer,
                                  max_length=max_length,
                                  bos_text=bos_text,
@@ -228,7 +335,7 @@ def _est_progress_denominator(total_samples: int, mode: ConcatMode,
         return total_samples * est_tokens_per_sample // max_length
 
 
-def build_dataloader(dataset, batch_size) -> None:
+def build_dataloader(dataset, batch_size) -> DataLoader:
     # Multiple workers is only supported on linux machines
     if 'linux' in platform.platform().lower():
         num_workers = min(64, dataset.hf_dataset.n_shards)  # type: ignore
@@ -276,15 +383,17 @@ def generate_samples(
 
 
 def main(args: Namespace) -> None:
-    """Main: create C4 streaming dataset.
+    """Main: create C4/pile streaming dataset.
 
     Args:
         args (Namespace): Commandline arguments.
     """
-    hf_splits = ('train', 'train', 'validation', 'validation')
-    folder_splits = ('train', 'train_small', 'val', 'val_small')
-    expected_counts = (210607728, 1000000, 214670, 10000)
-    truncate_counts = (None, 100000, None, 10000)
+    try:
+        dataset_constants = CONSTS[args.dataset]
+        iterate_over = dataset_constants
+    except KeyError:
+        warnings.warn(f'Constants for dataset {args.dataset} not found. Will be unable to provide execution time estimates.')
+        iterate_over = args.splits
 
     if args.concat_tokens is not None:
         mode = ConcatMode.CONCAT_TOKENS
@@ -297,15 +406,23 @@ def main(args: Namespace) -> None:
         tokenizer = None
         columns = {'text': 'str'}
 
-    for (hf_split, folder_split, expected_num_samples,
-         truncate_num_samples) in zip(hf_splits, folder_splits, expected_counts,
-                                      truncate_counts):
+    for split in iterate_over:
+        if isinstance(split, DataSplitConstants):
+            hf_split = split.hf_split
+            folder_split = split.folder_split
+            expected_num_samples = split.raw_samples
+            truncate_num_samples = split.truncated_samples
+        else:
+            hf_split = split
+            folder_split = split
+            expected_num_samples = None
+            truncate_num_samples = None
         # Only generate the splits requested
         if folder_split not in args.splits:
             continue
 
         # Get samples
-        dataset = build_hf_c4_dataset(split=hf_split,
+        dataset = build_hf_dataset(split=hf_split,
                                       mode=mode,
                                       max_length=args.concat_tokens,
                                       bos_text=args.bos_text,
@@ -316,19 +433,26 @@ def main(args: Namespace) -> None:
         samples = generate_samples(loader,
                                    truncate_num_samples=truncate_num_samples)
 
-        denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
-            expected_num_samples,
-            mode,
-            args.concat_tokens,
-        )
+        if expected_num_samples:
+            denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
+                expected_num_samples,
+                mode,
+                args.concat_tokens,
+            )
+        else:
+            denominator = None
 
         # Write samples
         print(f'Converting {folder_split} to MDS format...')
         with MDSWriter(dirname=os.path.join(args.out_root, folder_split),
                        columns=columns,
                        compression=args.compression) as out:
-            for sample in tqdm(samples, desc=folder_split, total=denominator):
-                out.write(sample)
+            if denominator is not None:
+                for sample in tqdm(samples, desc=folder_split, total=denominator):
+                    out.write(sample)
+            else:
+                for sample in tqdm(samples, desc=folder_split):
+                    out.write(sample)
 
 
 if __name__ == '__main__':
