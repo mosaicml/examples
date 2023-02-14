@@ -113,7 +113,7 @@ class ValSmallConstants(DataSplitConstants):
 
 pileconstants = DatasetConstants(
     chars_per_sample=6212, # Computed over validation set
-    chars_per_token=4
+    chars_per_token=4 # OpenAI estimate
 )
 pileconstants.splits["train"] = DataSplitConstants(
     hf_split='train',
@@ -143,7 +143,7 @@ pileconstants.splits["val_small"] = DataSplitConstants(
 
 c4constants = DatasetConstants(
     chars_per_sample=2163, # Computed over validation set
-    chars_per_token=4
+    chars_per_token=4 # OpenAI estimate
 )
 c4constants.splits["train"] = DataSplitConstants(
     hf_split='train',
