@@ -75,6 +75,7 @@ class NoConcatC4(IterableDataset):
 
     def __init__(self, split: str):
         self.hf_dataset = hf_datasets.load_dataset(path='the_pile',
+                                                   name='all',
                                                    split=split,
                                                    streaming=True)
 
@@ -122,8 +123,8 @@ class ConcatTokensC4(IterableDataset):
         self.bos_text = bos_text
         self.eos_text = eos_text
         self.should_wrap = not no_wrap
-        self.hf_dataset = hf_datasets.load_dataset(path='c4',
-                                                   name='en',
+        self.hf_dataset = hf_datasets.load_dataset(path='the_pile',
+                                                   name='all',
                                                    split=split,
                                                    streaming=True)
 
@@ -218,8 +219,9 @@ def build_hf_c4_dataset(
 
 def _est_progress_denominator(total_samples: int, mode: ConcatMode,
                               max_length: int):
-    emp_chars_per_sample = 2163  # measured for val split
-    est_tokens_per_sample = 540  # using est_char_per_token = 4
+    emp_chars_per_sample = 6212  # measured for val split
+    est_char_per_token = 4
+    est_tokens_per_sample = emp_chars_per_sample // est_char_per_token
     if mode == ConcatMode.NO_CONCAT:
         return total_samples
     elif mode == ConcatMode.CONCAT_TOKENS:
@@ -281,7 +283,7 @@ def main(args: Namespace) -> None:
     """
     hf_splits = ('train', 'train', 'validation', 'validation')
     folder_splits = ('train', 'train_small', 'val', 'val_small')
-    expected_counts = (364868892, 1000000, 364608, 10000)
+    expected_counts = (210607728, 1000000, 214670, 10000)
     truncate_counts = (None, 100000, None, 10000)
 
     if args.concat_tokens is not None:
