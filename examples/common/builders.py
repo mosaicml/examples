@@ -108,7 +108,7 @@ def build_icl_evaluators(cfg, tokenizer):
         _validate_cfg(icl_cfg)
         for num_fewshot in list(icl_cfg.num_fewshot):
             if tokenizer.pad_token_id is None:
-                # Current workaround to support GPT2 tokenizer with no `_pad_token`
+                # Current workaround to support GPT2 tokenizer with `pad_token_id = None`
                 pad_tok_id = tokenizer.eos_token_id
             else:
                 pad_tok_id = tokenizer.pad_token_id
