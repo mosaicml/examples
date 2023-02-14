@@ -421,10 +421,12 @@ class MosaicGPT(nn.Module):
                                     seq_len=S,
                                     key_padding_mask=key_padding_mask,
                                     dtype=x.dtype)
+        if cfg.attn_impl == 'flash':
+            key_padding_mask = torch.ones_like(input_ids, dtype=torch.bool)
+        if cfg.attn_impl == 'triton':
+            key_padding_mask = None
         for block in self.transformer.blocks:  # type: ignore
-            x = block(
-                x, None if self.cfg.attn_impl == 'triton' else key_padding_mask,
-                attn_mask)
+            x = block(x, key_padding_mask, attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
