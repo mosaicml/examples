@@ -18,6 +18,58 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 
+class ConcatMode(Enum):
+    NO_CONCAT = 'NO_CONCAT'
+    CONCAT_TOKENS = 'CONCAT_TOKENS'
+
+
+def parse_args() -> Namespace:
+    """Parse commandline arguments."""
+    parser = ArgumentParser(
+        description=
+        'Convert dataset into MDS format, optionally concatenating and tokenizing')
+    parser.add_argument('--dataset', type=str, required=True)
+    parser.add_argument('--data_subset', type=str, default=None, help='E.g. "all" or "en"')
+    parser.add_argument('--splits',
+                        nargs='+',
+                        default=['train', 'val'])
+    parser.add_argument('--out_root', type=str, required=True)
+    parser.add_argument('--compression', type=str, default=None)
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument(
+        '--concat_tokens',
+        type=int,
+        help='Convert text to tokens and concatenate up to this many tokens')
+
+    parser.add_argument('--tokenizer', type=str, required=False, default=None)
+    parser.add_argument('--bos_text', type=str, required=False, default=None)
+    parser.add_argument('--eos_text', type=str, required=False, default=None)
+    parser.add_argument('--no_wrap', default=False, action='store_true')
+
+    parsed = parser.parse_args()
+
+    if os.path.isdir(parsed.out_root) and len(
+            set(os.listdir(parsed.out_root)).intersection(set(
+                parsed.splits))) > 0:
+        raise ValueError(
+            f'--out_root={parsed.out_root} contains {os.listdir(parsed.out_root)} which cannot overlap with the requested splits {parsed.splits}.'
+        )
+
+    # Make sure we have needed concat options
+    if (parsed.concat_tokens is not None and
+            isinstance(parsed.concat_tokens, int) and parsed.tokenizer is None):
+        parser.error(
+            'When setting --concat_tokens, you must specify a --tokenizer')
+
+    # now that we have validated them, change BOS/EOS to strings
+    if parsed.bos_text is None:
+        parsed.bos_text = ''
+    if parsed.eos_text is None:
+        parsed.eos_text = ''
+    return parsed
+
+
 @dataclass
 class DataSplitConstants:
     hf_split: str
@@ -123,57 +175,6 @@ CONSTS = {
     "the_pile": pileconstants
 }
 
-class ConcatMode(Enum):
-    NO_CONCAT = 'NO_CONCAT'
-    CONCAT_TOKENS = 'CONCAT_TOKENS'
-
-
-def parse_args() -> Namespace:
-    """Parse commandline arguments."""
-    parser = ArgumentParser(
-        description=
-        'Convert dataset into MDS format, optionally concatenating and tokenizing')
-    parser.add_argument('--datatset', type=str, default=None)
-    parser.add_argument('--splits',
-                        nargs='+',
-                        default=['train', 'val'])
-    parser.add_argument('--out_root', type=str, required=True)
-    parser.add_argument('--compression', type=str, default=None)
-
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument(
-        '--concat_tokens',
-        type=int,
-        help='Convert text to tokens and concatenate up to this many tokens')
-
-    parser.add_argument('--tokenizer', type=str, required=False, default=None)
-    parser.add_argument('--bos_text', type=str, required=False, default=None)
-    parser.add_argument('--eos_text', type=str, required=False, default=None)
-    parser.add_argument('--no_wrap', default=False, action='store_true')
-
-    parsed = parser.parse_args()
-
-    if os.path.isdir(parsed.out_root) and len(
-            set(os.listdir(parsed.out_root)).intersection(set(
-                parsed.splits))) > 0:
-        raise ValueError(
-            f'--out_root={parsed.out_root} contains {os.listdir(parsed.out_root)} which cannot overlap with the requested splits {parsed.splits}.'
-        )
-
-    # Make sure we have needed concat options
-    if (parsed.concat_tokens is not None and
-            isinstance(parsed.concat_tokens, int) and parsed.tokenizer is None):
-        parser.error(
-            'When setting --concat_tokens, you must specify a --tokenizer')
-
-    # now that we have validated them, change BOS/EOS to strings
-    if parsed.bos_text is None:
-        parsed.bos_text = ''
-    if parsed.eos_text is None:
-        parsed.eos_text = ''
-    return parsed
-
-
 class NoConcatDataset(IterableDataset):
     """An IterableDataset that returns text samples for MDSWriter.
 
@@ -217,12 +218,14 @@ class ConcatTokensDataset(IterableDataset):
 
     def __init__(
         self,
+        dataset_name: str,
         split: str,
         tokenizer: PreTrainedTokenizerBase,
         max_length: int,
         bos_text: str,
         eos_text: str,
         no_wrap: bool,
+        data_subset: Union[str, None] = None
     ):
         self.tokenizer = tokenizer
         os.environ['TOKENIZERS_PARALLELISM'] = 'false'
@@ -230,8 +233,8 @@ class ConcatTokensDataset(IterableDataset):
         self.bos_text = bos_text
         self.eos_text = eos_text
         self.should_wrap = not no_wrap
-        self.hf_dataset = hf_datasets.load_dataset(path='the_pile',
-                                                   name='all',
+        self.hf_dataset = hf_datasets.load_dataset(path=dataset_name,
+                                                   name=data_subset,
                                                    split=split,
                                                    streaming=True)
 
@@ -284,19 +287,24 @@ class ConcatTokensDataset(IterableDataset):
 
 
 def build_hf_dataset(
+        dataset_name: str,
         split: str, mode: ConcatMode, max_length: Optional[int],
         bos_text: Optional[str], eos_text: Optional[str],
         no_wrap: Optional[bool],
-        tokenizer: Optional[PreTrainedTokenizerBase]) -> IterableDataset:
+        tokenizer: Optional[PreTrainedTokenizerBase],
+        data_subset: Union[str, None] = None) -> IterableDataset:
     """Build an IterableDataset over the HF C4 or pile source data.
 
     Args:
+        dataset_name (str): Dataset name
         split (str): Split name.
         mode (ConcatMode): NO_CONCAT, or CONCAT_TOKENS
         bos_text (str): text to insert at the beginning of each sequence
         eos_text (str): text to insert at the end of each sequence
         no_wrap (bool): if concatenating, whether to wrap text across `max_length` boundaries
         tokenizer (PreTrainedTokenizerBase): if mode is CONCAT_TOKENS, the tokenizer to use
+        data_subset (str): Referred to as "name" in HuggingFace datasets.load_dataset.
+            Typically "all" (The Pile) or "en" (c4).
 
     Returns:
         An IterableDataset.
@@ -315,7 +323,10 @@ def build_hf_dataset(
                 tok_error_msg += 'such as facebook/opt-125m, or specify EOS/BOS text with e.g. '
                 tok_error_msg += '--bos_text=<|endoftext|>.'
                 raise ValueError(tok_error_msg)
-        dataset = ConcatTokensDataset(split=split,
+        dataset = ConcatTokensDataset(
+                                 dataset_name=dataset_name,
+                                 data_subset=data_subset,
+                                 split=split,
                                  tokenizer=tokenizer,
                                  max_length=max_length,
                                  bos_text=bos_text,
@@ -324,11 +335,9 @@ def build_hf_dataset(
     return dataset
 
 
-def _est_progress_denominator(total_samples: int, mode: ConcatMode,
+def _est_progress_denominator(total_samples: int, chars_per_sample: int, chars_per_token: int, mode: ConcatMode,
                               max_length: int):
-    emp_chars_per_sample = 6212  # measured for val split
-    est_char_per_token = 4
-    est_tokens_per_sample = emp_chars_per_sample // est_char_per_token
+    est_tokens_per_sample = chars_per_sample // chars_per_token
     if mode == ConcatMode.NO_CONCAT:
         return total_samples
     elif mode == ConcatMode.CONCAT_TOKENS:
@@ -422,7 +431,9 @@ def main(args: Namespace) -> None:
             continue
 
         # Get samples
-        dataset = build_hf_dataset(split=hf_split,
+        dataset = build_hf_dataset(dataset_name=args.dataset,
+                                      data_subset=args.data_subset,
+                                      split=hf_split,
                                       mode=mode,
                                       max_length=args.concat_tokens,
                                       bos_text=args.bos_text,
@@ -435,9 +446,11 @@ def main(args: Namespace) -> None:
 
         if expected_num_samples:
             denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
-                expected_num_samples,
-                mode,
-                args.concat_tokens,
+                total_samples=expected_num_samples,
+                chars_per_sample=dataset_constants.chars_per_sample,
+                chars_per_token=dataset_constants.chars_per_token,
+                mode=mode,
+                max_length=args.concat_tokens,
             )
         else:
             denominator = None
