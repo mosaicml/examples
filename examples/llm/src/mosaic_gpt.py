@@ -423,7 +423,7 @@ class MosaicGPT(nn.Module):
                                     dtype=x.dtype)
         if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
             mod_key_padding_mask = torch.ones_like(input_ids, dtype=torch.bool)
-        if self.cfg.attn_impl == 'triton':
+        elif self.cfg.attn_impl == 'triton':
             mod_key_padding_mask = None
         else:
             mod_key_padding_mask = key_padding_mask
