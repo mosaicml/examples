@@ -1,10 +1,14 @@
-# Use this YAML to verify that fine-tuning on the SuperGLUE task mixture works. Runs on CPU or GPUs (if available).
+# Use this YAML to verify that fine-tuning on (one of) the summarization tasks works.
+# Runs on CPU or GPUs (if available).
 # From `examples/ul2`, run:
-#   `composer main.py yamls/test/superglue-t5.yaml` to run using the HuggingFace T5
+#   `composer main.py yamls/test/summarize-t5.yaml` to run using the HuggingFace T5
+# Add `task_name={xsum,totto,schema_guided_dialog}` to control the specific task:
+#   `composer main.py yamls/test/summarize-t5.yaml task_name=totto`
 
 tokenizer_name: t5-small
 max_seq_len: 128
 decoder_only_format: false
+task_name: xsum # xsum, totto, or schema_guided_dialog
 
 # Run Name
 run_name: test
@@ -20,7 +24,7 @@ model:
 
 # Dataloaders
 train_loader:
-  name: xsum
+  name: ${task_name}
   dataset:
     split: validation
     tokenizer_name: ${tokenizer_name}
@@ -35,7 +39,7 @@ train_loader:
   timeout: 0
 
 eval_loader:
-  name: xsum
+  name: ${task_name}
   dataset:
     split: validation
     tokenizer_name: ${tokenizer_name}

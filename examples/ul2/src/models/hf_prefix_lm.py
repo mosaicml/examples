@@ -33,6 +33,10 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
         self.z_loss = float(z_loss)
         assert self.z_loss >= 0.0
 
+        self.pad_token_id = self.model.config.pad_token_id
+        if self.pad_token_id is None:
+            self.pad_token_id = self.model.config.eos_token_id
+
         self.model_forward_args = inspect.getfullargspec(
             self.model.forward).args
 
@@ -86,6 +90,7 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
                 top_p=0.90,
                 top_k=0,
                 no_repeat_ngram_size=3,
+                pad_token_id=self.pad_token_id,
             )
             # Remove the input_ids from output_tokens
             inp_seq_len = batch['input_ids'].shape[1]

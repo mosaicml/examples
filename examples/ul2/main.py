@@ -13,10 +13,11 @@ from examples.common import builders
 from examples.common.config_utils import log_config, update_batch_size_info
 from examples.ul2.src import (InverseSquareRootScheduler,
                               MixtureOfDenoisersPrinterCallback,
+                              build_sgd_dataloader,
                               build_super_glue_task_dataloader,
                               build_text_denoising_dataloader,
-                              build_xsum_dataloader, create_hf_prefix_lm,
-                              create_hf_t5)
+                              build_totto_dataloader, build_xsum_dataloader,
+                              create_hf_prefix_lm, create_hf_t5)
 
 
 def build_callback(name, cfg):
@@ -79,13 +80,20 @@ def build_model(cfg):
 
 
 def build_dataloader(cfg, device_batch_size, mode):
-    """Constructs a text_denoising, super_glue, or xsum dataloader."""
+    """Constructs a pre-training or fine-tuning dataloader."""
+    # Pre-training
     if cfg.name == 'text_denoising':
         return build_text_denoising_dataloader(cfg, device_batch_size)
+    # Fine-tuning (classification)
     elif cfg.name == 'super_glue':
         return build_super_glue_task_dataloader(cfg, device_batch_size, mode)
+    # Fine-tuning (summarization)
     elif cfg.name == 'xsum':
         return build_xsum_dataloader(cfg, device_batch_size, mode)
+    elif cfg.name == 'totto':
+        return build_totto_dataloader(cfg, device_batch_size, mode)
+    elif cfg.name == 'schema_guided_dialog':
+        return build_sgd_dataloader(cfg, device_batch_size, mode)
     else:
         raise ValueError(
             f'Not sure how to build dataloader with name={cfg.name}')
