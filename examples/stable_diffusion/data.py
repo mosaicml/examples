@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 """Image captioning dataset creation tools and preprocessing."""
 
 import random
@@ -24,20 +23,21 @@ def collate_fn(examples: dict):
     return {'image_tensor': image_tensor, 'input_ids': input_ids}
 
 
-def build_hf_image_caption_datapsec(name: str,
-                                    resolution: int,
-                                    tokenizer: transformers.PreTrainedTokenizer,
-                                    mean: list = [0.5],
-                                    std: list = [0.5],
-                                    image_column: str = 'image',
-                                    caption_column: str = 'text',
-                                    center_crop: bool = True,
-                                    random_flip: bool = True,
-                                    *,
-                                    batch_size: int,
-                                    drop_last: bool = True,
-                                    shuffle: bool = True,
-                                    **dataloader_kwargs):
+def build_hf_image_caption_datapsec(
+        name: str,
+        resolution: int,
+        tokenizer: transformers.PreTrainedTokenizer,
+        mean: list = [0.5],
+        std: list = [0.5],
+        image_column: str = 'image',
+        caption_column: str = 'text',
+        center_crop: bool = True,
+        random_flip: bool = True,
+        *,
+        batch_size: int,
+        drop_last: bool = True,
+        shuffle: bool = True,
+        **dataloader_kwargs):
     """Builds a HuggingFace Image-Caption dataloader.
 
     Includes transformations and tokenization for diffusion training.
@@ -100,7 +100,9 @@ def build_hf_image_caption_datapsec(name: str,
 
     def preprocess(examples: dict):
         images = [image.convert('RGB') for image in examples[image_column]]
-        examples['image_tensor'] = [train_transforms(image) for image in images]
+        examples['image_tensor'] = [
+            train_transforms(image) for image in images
+        ]
         examples['input_ids'] = tokenize_captions(examples)
         return examples
 
@@ -112,14 +114,17 @@ def build_hf_image_caption_datapsec(name: str,
 
     # add image_tensor and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)  # type: ignore
-    sampler = dist.get_sampler(dataset, drop_last=drop_last, # type: ignore
-                               shuffle=shuffle)  # type: ignore
-    return DataSpec(dataloader=DataLoader(dataset=dataset, # type: ignore
-                                          batch_size=batch_size,
-                                          sampler=sampler,
-                                          drop_last=drop_last,
-                                          collate_fn=collate_fn, # type: ignore
-                                          **dataloader_kwargs))  # type: ignore
+    sampler = dist.get_sampler(
+        dataset,
+        drop_last=drop_last,  # type: ignore
+        shuffle=shuffle)  # type: ignore
+    return DataSpec(dataloader=DataLoader(
+        dataset=dataset,  # type: ignore
+        batch_size=batch_size,
+        sampler=sampler,
+        drop_last=drop_last,
+        collate_fn=collate_fn,  # type: ignore
+        **dataloader_kwargs))  # type: ignore
 
 
 def build_prompt_dataspec(prompts: list[str], batch_size: int,
@@ -138,7 +143,7 @@ def build_prompt_dataspec(prompts: list[str], batch_size: int,
                                         drop_last=False,
                                         **dataloader_kwargs),
                   get_num_samples_in_batch=lambda x: len(x)
-                 )  # composer will handle strings in the future.
+                  )  # composer will handle strings in the future.
     return ds
 
 

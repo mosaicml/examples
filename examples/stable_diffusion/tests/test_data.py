@@ -28,7 +28,7 @@ class SyntheticImageCaptionDataset(Dataset):
         image = torch.randn(3, self.image_size, self.image_size)
 
         # Generate caption input
-        caption = torch.randint(0, 128, (77,), dtype=torch.long)
+        caption = torch.randint(0, 128, (77, ), dtype=torch.long)
 
         sample = {'image_tensor': image, 'input_ids': caption}
         return sample

@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 """Example script to finetune a Stable Diffusion Model."""
 
 import os
@@ -135,5 +134,5 @@ if __name__ == '__main__':
     with open(yaml_path) as f:
         yaml_config = OmegaConf.load(f)
     cli_config = OmegaConf.from_cli(args_list)
-    config = OmegaConf.merge(yaml_config, cli_config) 
-    main(config) # type: ignore
+    config = OmegaConf.merge(yaml_config, cli_config)
+    main(config)  # type: ignore

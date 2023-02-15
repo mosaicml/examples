@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 """The CIFAR ResNet torch module.
 
 See the :doc:`Model Card </model_cards/resnet>` for more details.
@@ -48,7 +47,8 @@ class ResNetCIFAR(nn.Module):
             # No parameters for shortcut connections.
             if downsample or f_in != f_out:
                 self.shortcut = nn.Sequential(
-                    nn.Conv2d(f_in, f_out, kernel_size=1, stride=2, bias=False),
+                    nn.Conv2d(f_in, f_out, kernel_size=1, stride=2,
+                              bias=False),
                     nn.BatchNorm2d(f_out),
                 )
             else:
