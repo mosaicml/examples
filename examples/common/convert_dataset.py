@@ -399,7 +399,6 @@ def main(args: Namespace) -> None:
     """
     try:
         dataset_constants = CONSTS[args.dataset]
-        iterate_over = dataset_constants
     except KeyError:
         raise ValueError(f'Constants for dataset "{args.dataset}" not found. Currently only "the_pile" and "c4" are supported.')
 
@@ -414,17 +413,15 @@ def main(args: Namespace) -> None:
         tokenizer = None
         columns = {'text': 'str'}
 
-    for split in iterate_over:
-        if isinstance(split, DataSplitConstants):
-            hf_split = split.hf_split
-            folder_split = split.folder_split
-            expected_num_samples = split.raw_samples
-            truncate_num_samples = split.truncated_samples
-        else:
-            hf_split = split
-            folder_split = split
-            expected_num_samples = None
-            truncate_num_samples = None
+    for split_name in args.splits:
+        try:
+            split = dataset_constants.splits[split_name]
+        except KeyError:
+            raise KeyError(f'Constants not defined for split {split_name}.')
+        hf_split = split.hf_split
+        folder_split = split.folder_split
+        expected_num_samples = split.raw_samples
+        truncate_num_samples = split.truncated_samples
         # Only generate the splits requested
         if folder_split not in args.splits:
             continue
