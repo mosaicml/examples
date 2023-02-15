@@ -4,7 +4,6 @@
 """Stable Diffusion ComposerModel."""
 
 from typing import Optional
-
 import diffusers
 import torch
 import torch.nn.functional as F
@@ -60,23 +59,22 @@ class StableDiffusion(ComposerModel):
             Default: `input_ids`.
     """
 
-    def __init__(
-            self,
-            unet: torch.nn.Module,
-            vae: torch.nn.Module,
-            text_encoder: torch.nn.Module,
-            tokenizer: transformers.PreTrainedTokenizer,
-            noise_scheduler: diffusers.SchedulerMixin,
-            inference_scheduler: diffusers.SchedulerMixin,
-            num_images_per_prompt: int = 1,
-            loss_fn: torch.nn.Module = F.mse_loss,  # type: ignore
-            train_text_encoder: bool = False,
-            train_unet: bool = True,
-            prediction_type: Optional[str] = None,  # type: ignore
-            train_metrics: Optional[list] = None,
-            val_metrics: Optional[list] = None,
-            image_key: str = 'image_tensor',
-            caption_key: str = 'input_ids'):
+    def __init__(self,
+                 unet: torch.nn.Module,
+                 vae: torch.nn.Module,
+                 text_encoder: torch.nn.Module,
+                 tokenizer: transformers.PreTrainedTokenizer,
+                 noise_scheduler: diffusers.SchedulerMixin,
+                 inference_scheduler: diffusers.SchedulerMixin,
+                 num_images_per_prompt: int = 1,
+                 loss_fn: torch.nn.Module = F.mse_loss,  # type: ignore
+                 train_text_encoder: bool = False,
+                 train_unet: bool = True,
+                 prediction_type: Optional[str] = None,  # type: ignore
+                 train_metrics: Optional[list] = None,
+                 val_metrics: Optional[list] = None,
+                 image_key: str = 'image_tensor',
+                 caption_key: str = 'input_ids'):
         super().__init__()
         self.unet = unet
         self.vae = vae
@@ -117,8 +115,7 @@ class StableDiffusion(ComposerModel):
         inputs, conditioning = batch[self.image_key], batch[self.caption_key]
 
         # Encode the images to the latent space
-        latents = self.vae.encode(
-            inputs)['latent_dist'].sample().data  # type: ignore
+        latents = self.vae.encode(inputs)['latent_dist'].sample().data # type: ignore
         # Magical scaling number (See https://github.com/huggingface/diffusers/issues/437#issuecomment-1241827515)
         latents *= 0.18215
 
@@ -203,9 +200,9 @@ class StableDiffusion(ComposerModel):
                 )
 
         vae_scale_factor = 8
-        sample_size = self.unet.config.sample_size  # type: ignore
-        height = height or sample_size * vae_scale_factor  # type: ignore
-        width = width or sample_size * vae_scale_factor  # type: ignore
+        sample_size = self.unet.config.sample_size # type: ignore
+        height = height or sample_size * vae_scale_factor # type: ignore
+        width = width or sample_size * vae_scale_factor # type: ignore
 
         device = self.vae.device
         # tokenize and encode text prompt
@@ -249,7 +246,7 @@ class StableDiffusion(ComposerModel):
         latents = torch.randn(
             (batch_size * num_images_per_prompt, self.unet.in_channels, # type: ignore
              height // vae_scale_factor, width // vae_scale_factor),
-            device=device)  # type: ignore
+            device=device) # type: ignore
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
         # scale the initial noise by the standard deviation required by the scheduler
@@ -279,8 +276,13 @@ class StableDiffusion(ComposerModel):
 
         # We now use the vae to decode the generated latents back into the image.
         # scale and decode the image latents with vae
+<<<<<<< HEAD
         latents = 1 / 0.18215 * latents  # type: ignore
         image = self.vae.decode(latents).sample # type: ignore
+=======
+        latents = 1 / 0.18215 * latents # type: ignore
+        image = self.vae.decode(latents).sample
+>>>>>>> parent of 8e99e68 (style)
         image = (image / 2 + 0.5).clamp(0, 1)
         return image.detach()  # (batch*num_images_per_prompt, channel, h, w)
 
