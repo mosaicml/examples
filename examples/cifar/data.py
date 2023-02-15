@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """CIFAR image classification dataset.
 
 The CIFAR datasets are a collection of labeled 32x32 colour images. Please refer
@@ -128,8 +129,8 @@ def build_cifar10_dataspec(
         with dist.run_local_rank_zero_first():
             dataset = datasets.CIFAR10(root=data_path,
                                        train=is_train,
-                                       download=dist.get_local_rank() == 0
-                                       and download,
+                                       download=dist.get_local_rank() == 0 and
+                                       download,
                                        transform=transform)
         sampler = dist.get_sampler(dataset,
                                    drop_last=drop_last,
