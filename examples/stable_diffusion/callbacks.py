@@ -21,7 +21,7 @@ class LogDiffusionImages(Callback):
     def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch  # batch_size
         # Tensor of shape [len(prompts) * num_images_per_prompt, 3, 512, 512])
-        outputs = state.outputs.cpu() # type: ignore
+        outputs = state.outputs.cpu()  # type: ignore
 
         num_images_per_prompt = state.model.module.num_images_per_prompt
         for destination in ensure_tuple(logger.destinations):
@@ -30,7 +30,7 @@ class LogDiffusionImages(Callback):
                     outputs = [
                         make_grid(out, nrow=num_images_per_prompt)
                         for out in outputs.chunk(len(prompts))
-                    ] # type: ignore
+                    ]  # type: ignore
 
                 for prompt, output in zip(prompts, outputs):
                     destination.log_images(images=output,
