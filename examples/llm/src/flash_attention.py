@@ -102,12 +102,14 @@ class FlashMHA(nn.Module):
                  causal=False,
                  device=None,
                  dtype=None,
+                 ln_qk=False,
                  **kwargs) -> None:
         assert batch_first
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         self.embed_dim = embed_dim
         self.causal = causal
+        self.ln_qk = ln_qk
 
         self.num_heads = num_heads
         assert self.embed_dim % num_heads == 0, 'self.kdim must be divisible by num_heads'
@@ -118,6 +120,10 @@ class FlashMHA(nn.Module):
                               3 * embed_dim,
                               bias=bias,
                               **factory_kwargs)
+        self.ln_q, self.ln_k = None, None
+        if self.ln_qk:
+             self.ln_q = nn.LayerNorm(embed_dim, device=device)
+             self.ln_k = nn.LayerNorm(embed_dim, device=device)
         self.inner_attn = FlashAttention(num_heads=num_heads,
                                          softmax_scale=None,
                                          **factory_kwargs)
@@ -148,6 +154,14 @@ class FlashMHA(nn.Module):
                 Default: ``True``.
         """
         qkv = self.Wqkv(x)
+        if self.ln_qk:
+            dtype = qkv.dtype
+            q, k, v = qkv.chunk(3, dim=-1)
+            q = self.ln_q(q)
+            k = self.ln_k(k)
+            qkv = torch.cat([q, k, v], dim=-1)
+            qkv = qkv.to(dtype=dtype)
+            
         context, attn_weights = self.inner_attn(
             qkv,
             key_padding_mask=key_padding_mask,

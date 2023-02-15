@@ -139,6 +139,7 @@ class TritonFlashCausalAttention(nn.Module):
             batch_first=True,
             causal=True,
             device=device,
+            ln_qk=cfg.get('ln_qk', False),
         )
         self.mhsa.out_proj._is_residual = True  # type: ignore
 
