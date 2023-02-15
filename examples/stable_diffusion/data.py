@@ -3,7 +3,6 @@
 
 """Image captioning dataset creation tools and preprocessing."""
 
-# import math
 import random
 
 import numpy as np
