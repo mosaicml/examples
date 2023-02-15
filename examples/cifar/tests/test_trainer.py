@@ -25,6 +25,7 @@ def test_trainer(use_recipe):
         smoke_config = OmegaConf.load(f)
     config = OmegaConf.merge(base_config, smoke_config)
     config.use_recipe = use_recipe
+    config.seed = 1337 + 100 * use_recipe
 
     with SynthClassificationDirectory() as tmp_datadir:
         config.train_dataset.path = tmp_datadir
@@ -48,7 +49,7 @@ def test_trainer(use_recipe):
         # Check that the checkpoint was loaded by comparing model weights
         config.load_path = chkpt_path
         config.is_train = False
-        config.seed = 1337 + 100 * use_recipe  # change seed
+        config.seed += 10  # change seed
         trainer2 = main(config)
         model2 = trainer2.state.model.module
 
