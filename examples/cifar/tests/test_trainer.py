@@ -16,7 +16,6 @@ from examples.cifar.main import main
 from examples.cifar.tests.utils import SynthClassificationDirectory
 
 
-@pytest.mark.skip()
 @pytest.mark.parametrize('use_recipe', [True, False])
 def test_trainer(use_recipe):
     with open('yamls/resnet56.yaml') as f:
