@@ -401,8 +401,7 @@ def main(args: Namespace) -> None:
         dataset_constants = CONSTS[args.dataset]
         iterate_over = dataset_constants
     except KeyError:
-        warnings.warn(f'Constants for dataset {args.dataset} not found. Will be unable to provide execution time estimates.')
-        iterate_over = args.splits
+        raise ValueError(f'Constants for dataset "{args.dataset}" not found. Currently only "the_pile" and "c4" are supported.')
 
     if args.concat_tokens is not None:
         mode = ConcatMode.CONCAT_TOKENS
