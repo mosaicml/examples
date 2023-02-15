@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """Example script to finetune a Stable Diffusion Model."""
 
 import os
@@ -19,7 +20,7 @@ from omegaconf import DictConfig, OmegaConf
 from examples.common import build_logger, calculate_batch_size_info, log_config
 
 
-def main(config: DictConfig): # type: ignore
+def main(config: DictConfig):  # type: ignore
     reproducibility.seed_all(config.seed)
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
     if dist.get_world_size(
