@@ -1,19 +1,19 @@
 run_name: stable-diffusion-finetune
-cluster:  r7z2      # Name of the cluster to use for this run
-gpu_type: a100_40gb   # Type of GPU to use
-gpu_num: 8            # Number of GPUs to use
+cluster:     # Name of the cluster to use for this run
+gpu_type:    # Type of GPU to use
+gpu_num:     # Number of GPUs to use
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
 - integration_type: git_repo
-  git_repo: a-jacobson/examples
-  git_branch: stable-diffusion-finetune
+  git_repo: mosaicml/examples
   pip_install: .[stable_diffusion]
 command: |
   cd examples/examples/stable_diffusion
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
-  run_name: stable-diffusion-finetune # Name of the  training run used for checkpointing and other logging
+  # Name of the  training run used for checkpointing and other logging
+  run_name: stable-diffusion-finetune
 
   seed: 42 # Random seed
 
@@ -23,33 +23,36 @@ parameters:
   global_train_batch_size: 32 # Training total batch size (4 per 40gb A100, 8 cards)
   global_eval_batch_size: 32
 
-  grad_accum: auto # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
+  # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
+  grad_accum: auto
   precision: amp # (GPU only), set to fp32 if training on cpu
   use_ema: false
 
   dataset:
-    name: lambdalabs/pokemon-blip-captions # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
+    # other datasets can be found at https://huggingface.co/datasets?task_categories=task_categories:text-to-image
+    name: lambdalabs/pokemon-blip-captions
     resolution: 512 # training image size
     image_column: image
     caption_column: text
     mean:
-      - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
+    - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     std:
-      - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
+    - 0.5 # default chanel normalization for pokemon dataset, may need to be changed for other datasets
     prompts:
-      - A Magestic Shiba Inu Doge wearing a blue sweater
-      - A cute bunny rabbit
-      - Yoda
-      - An epic landscape photo of a mountain
-      - Girl with a pearl earring
-      - Totoro
-      - Hello Kitty
-      - Waffle
-      - IPhone
-      - Mustache
+    - A Majestic Shiba Inu Doge wearing a blue sweater
+    - A cute bunny rabbit
+    - Yoda
+    - An epic landscape photo of a mountain
+    - Girl with a pearl earring
+    - Totoro
+    - Hello Kitty
+    - Waffle
+    - IPhone
+    - Mustache
 
   model:
-    name: CompVis/stable-diffusion-v1-4 # commonly CompVis/stable-diffusion-v1-4 or stabilityai/stable-diffusion-2-1 use 2-1 for sizes > 512
+    # commonly CompVis/stable-diffusion-v1-4 or stabilityai/stable-diffusion-2-1 use 2-1 for sizes > 512
+    name: CompVis/stable-diffusion-v1-4
     train_text_encoder: false
     train_unet: true
     num_images_per_prompt: 4 # number of images to generate per prompt at evaluation time

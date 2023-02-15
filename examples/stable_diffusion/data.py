@@ -8,12 +8,12 @@ import random
 
 import numpy as np
 import torch
+import transformers
 from composer.core import DataSpec
 from composer.utils import dist
 from datasets.load import load_dataset
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-import transformers
 
 
 def collate_fn(examples: dict):
@@ -39,22 +39,23 @@ def build_hf_image_caption_datapsec(name: str,
                                     drop_last: bool = True,
                                     shuffle: bool = True,
                                     **dataloader_kwargs):
-    """Builds a HuggingFace Image-Caption dataloader with the proper 
-    transformations and tokenization for diffusion training.
+    """Builds a HuggingFace Image-Caption dataloader.
+
+    Includes transformations and tokenization for diffusion training.
 
     Args:
-        name (str): HuggingFace dataset name or path. Existing datasets can be 
-            found on the `HuggingFace dataset hub 
+        name (str): HuggingFace dataset name or path. Existing datasets can be
+            found on the `HuggingFace dataset hub
             <https://huggingface.co/datasets?task_categories=task_categories:text-to-image>`_.
         resolution (int): Final image size after processing.
-        tokenizer (transformers.PreTrainedTokenizer): Tokenizer used for the `text_encoder` 
-            of the model you are training. For a `CLIPTextModel`  this will be the 
+        tokenizer (transformers.PreTrainedTokenizer): Tokenizer used for the `text_encoder`
+            of the model you are training. For a `CLIPTextModel`  this will be the
             `CLIPTokenizer` from HuggingFace transformers.
         mean (list[float]): Dataset channel means for normalization. Default: `[0.5]`.
         std (list[float]): Dataset channel standard deviations for normalization. Default: `[0.5]`.
         image_column (str): Name of the image column in the raw dataset. Default: `image`.
         caption_column (str): Name of the caption column in the raw dataset. Default: `text`.
-        center_crop (bool): Whether to center crop the images during preprocessing. 
+        center_crop (bool): Whether to center crop the images during preprocessing.
             If `False`, `RandomCrop` will be used. Default: `True`.
         random_flip (bool): Whether to random flip images during processing. Default: `True`.
         batch_size (int): Batch size per device.
@@ -74,10 +75,11 @@ def build_hf_image_caption_datapsec(name: str,
         transforms.Normalize(mean, std)
     ])
 
-    def tokenize_captions(examples: dict,
-                          tokenizer: transformers.PreTrainedTokenizer = tokenizer,
-                          caption_column: str = caption_column,
-                          is_train: bool = True):
+    def tokenize_captions(
+            examples: dict,
+            tokenizer: transformers.PreTrainedTokenizer = tokenizer,
+            caption_column: str = caption_column,
+            is_train: bool = True):
         captions = []
         for caption in examples[caption_column]:
             if isinstance(caption, str):
@@ -120,7 +122,8 @@ def build_hf_image_caption_datapsec(name: str,
                                           **dataloader_kwargs))
 
 
-def build_prompt_dataspec(prompts: list[str], batch_size: int, **dataloader_kwargs):
+def build_prompt_dataspec(prompts: list[str], batch_size: int,
+                          **dataloader_kwargs):
     """Builds a prompt dataset from a list of strings for eval.
 
     Args:
@@ -129,19 +132,19 @@ def build_prompt_dataspec(prompts: list[str], batch_size: int, **dataloader_kwar
     """
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
-    ds = DataSpec(
-        dataloader=DataLoader(dataset=dataset,
-                              batch_size=batch_size,
-                              sampler=sampler,
-                              drop_last=False,
-                              **dataloader_kwargs),
-        get_num_samples_in_batch=lambda x: len(x)) # composer will handle strings in the future.
+    ds = DataSpec(dataloader=DataLoader(dataset=dataset,
+                                        batch_size=batch_size,
+                                        sampler=sampler,
+                                        drop_last=False,
+                                        **dataloader_kwargs),
+                  get_num_samples_in_batch=lambda x: len(x)
+                 )  # composer will handle strings in the future.
     return ds
 
 
 class PromptDataset(Dataset):
-    """A simple Dataloader that iterates through a list of strings. 
-    
+    """A simple Dataloader that iterates through a list of strings.
+
     Args:
         prompts (list[str]): A list of prompts.
     """

@@ -8,21 +8,23 @@ import sys
 
 import torch
 from callbacks import LogDiffusionImages
-from examples.common import build_logger, log_config, calculate_batch_size_info
 from composer import Trainer
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.optim import ConstantScheduler
-from composer.utils import reproducibility, dist
+from composer.utils import dist, reproducibility
 from data import build_hf_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
+
+from examples.common import build_logger, calculate_batch_size_info, log_config
 
 
 def main(config: DictConfig):
     reproducibility.seed_all(config.seed)
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    if dist.get_world_size() > 1: # initialize the pytorch distributed process group if training on multiple gpus.
+    if dist.get_world_size(
+    ) > 1:  # initialize the pytorch distributed process group if training on multiple gpus.
         dist.initialize_dist(device)
 
     if config.grad_accum == 'auto' and device == 'cpu':
@@ -30,9 +32,10 @@ def main(config: DictConfig):
             'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
         )
     # calculate batch size per device and add it to config (These calculations will be done inside the composer trainer in the future)
-    config.train_device_batch_size, _, _ = calculate_batch_size_info(config.global_train_batch_size, 'auto')
-    config.eval_device_batch_size, _, _ = calculate_batch_size_info(config.global_eval_batch_size, 'auto')
-
+    config.train_device_batch_size, _, _ = calculate_batch_size_info(
+        config.global_train_batch_size, 'auto')
+    config.eval_device_batch_size, _, _ = calculate_batch_size_info(
+        config.global_eval_batch_size, 'auto')
 
     print('Building Composer model')
     model = build_stable_diffusion_model(
@@ -56,15 +59,15 @@ def main(config: DictConfig):
         batch_size=config.train_device_batch_size)
 
     # Eval dataset
-    eval_dataspec = build_prompt_dataspec(config.dataset.prompts,
-                                          batch_size=config.eval_device_batch_size)
+    eval_dataspec = build_prompt_dataspec(
+        config.dataset.prompts, batch_size=config.eval_device_batch_size)
 
     # Optimizer
     print('Building optimizer and learning rate scheduler')
     optimizer = torch.optim.AdamW(params=model.parameters(),
                                   lr=config.optimizer.lr,
                                   weight_decay=config.optimizer.weight_decay)
-    
+
     # Constant LR for fine-tuning
     lr_scheduler = ConstantScheduler()
 
@@ -79,9 +82,10 @@ def main(config: DictConfig):
     speed_monitor = SpeedMonitor(
         window_size=50
     )  # Measures throughput as samples/sec and tracks total training time
-    lr_monitor = LRMonitor() # Logs the learning rate
-    memory_monitor = MemoryMonitor() # Logs memory utilization
-    image_logger = LogDiffusionImages() # Logs images generated from prompts in the eval set
+    lr_monitor = LRMonitor()  # Logs the learning rate
+    memory_monitor = MemoryMonitor()  # Logs memory utilization
+    image_logger = LogDiffusionImages(
+    )  # Logs images generated from prompts in the eval set
 
     print('Building algorithms')
     if config.use_ema:
@@ -114,9 +118,9 @@ def main(config: DictConfig):
 
     print('Logging config')
     log_config(config)
-    
+
     print('Eval!')
-    trainer.eval() # show outputs from model without fine-tuning.
+    trainer.eval()  # show outputs from model without fine-tuning.
 
     print('Train!')
     trainer.fit()

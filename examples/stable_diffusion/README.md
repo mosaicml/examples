@@ -1,4 +1,8 @@
-
+<p align="center">
+  <picture>
+    <img alt="model outputs of a Shiba inu one piece style in a blue sweater" src="./assets/Majestic_one_piece_doge_2000steps.png" width="75%">
+  </picture>
+</p>
 
 <h2><p align="center">Stable Diffusion Finetuning</p></h2>
 
@@ -24,15 +28,20 @@ This folder contains starter code for finetuning Stable Diffusion. You can easil
 
 # Quick Start
 
-## Clone the repo
+## Clone the repo and install requirements
+
 ```bash
-git clone mosaicml/examples
-cd examples/examples/stable_diffusion
+git clone https://github.com/mosaicml/examples.gitcd examples/
+cd examples
+pip install -e ".[stable_diffusion]"
+cd examples/stable_diffusion
 ```
-## Install requirements
+## Optionally, install xformers
+xformers contains faster, more memory effecient transformer layers. But can take a while to install.
 
 ```
-pip install -r requirements.txt 
+pip install ninja # Faster xformers install
+pip install git+https://github.com/facebookresearch/xformers.git@3df785ce54114630155621e2be1c2fa5037efa27#egg=xformers
 ```
 ## Train the model
 ```
@@ -40,12 +49,12 @@ composer main.py yamls/finetune.yaml
 ```
 
 # Results
-The default config is `yamls/finetune.yaml`. It trains only the Unet portion of `Stable Diffusion v1-4` for `2000 batches` on the lambda labs `Pokemon` dataset. A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `200 batches`. 
+The default config is `yamls/finetune.yaml`. It trains only the Unet portion of `Stable Diffusion v1-4` for `2000 batches` on the lambda labs `Pokemon` dataset. A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `200 batches`.
 
-Results from the default config and the prompt  `"a magestic shiba inu doge wearing a blue sweater"`:
+Results from the default config and the prompt  `"a majestic shiba inu doge wearing a blue sweater"`:
 <p align="center">
   <picture>
-    <img alt="model outputs of a Shiba inu pokemon in a blue sweater" src="./assets/A_Magestic_Shiba_Inu_Doge_wearing_a_blue_sweater_2000_batches.png">
+    <img alt="model outputs of a Shiba inu pokemon in a blue sweater" src="./assets/A_Majestic_Shiba_Inu_Doge_wearing_a_blue_sweater_2000_batches.png">
   </picture>
 </p>
 
@@ -55,7 +64,7 @@ Note: Low learning rates and short training times seem to work best. Training lo
 # To train on different data
 The easiest way to train with new data is to make a new dataset in the same format as the `lambdalabs/pokemon` dataset. The `lambdalabs/pokemon` dataset was made with BLIP (a salesforce image captioning model) and uploaded to HuggingFace datasets. There are many other similar text-to-image datasets available on HuggingFace [here](https://huggingface.co/datasets?task_categories=task_categories:text-to-image). Any of the text-to-image datasets with `image` and `text` columns can be used by simply changing the dataset name in `yamls/finetune.yaml`. Datasets with different formats or color palettes such as spectrograms may require different normalization or pre-processing.
 
-To add a non-HuggingFace dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_hf_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations. 
+To add a non-HuggingFace dataset, create your own dataset that yeilds `image` and `text` pairs and use the `build_hf_image_caption_datapsec` function in `data.py` for guidance regarding tokenization and transformations.
 
 # Using MCLOUD
 This example can be run with MCLOUD by configuring the `cluster` and `gpu_type` parameters in `yamls/mcloud_run.yaml` then running:
