@@ -6,11 +6,11 @@ image: mosaicml/pytorch_vision:1.12.1_cu116-python3.9-ubuntu20.04
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
+  pip_install: .[deeplab]
 command: |
-  cd examples/deeplab
-  pip install -r requirements.txt
+  cd examples/examples/deeplab
   composer main.py /mnt/config/parameters.yaml
-# Configuration copied from baseline.yaml
+# Configuration similar to baseline.yaml
 parameters:
   run_name: deeplabv3_ade20k # Name of the  training run used for checkpointing and other logging
   is_train: true             # Trains the model if true, otherwise runs evaluation
