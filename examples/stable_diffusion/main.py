@@ -135,5 +135,5 @@ if __name__ == '__main__':
     with open(yaml_path) as f:
         yaml_config = OmegaConf.load(f)
     cli_config = OmegaConf.from_cli(args_list)
-    config = OmegaConf.merge(yaml_config, cli_config)
-    main(config)
+    config = OmegaConf.merge(yaml_config, cli_config) 
+    main(config) # type: ignore

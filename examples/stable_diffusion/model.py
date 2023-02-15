@@ -247,7 +247,7 @@ class StableDiffusion(ComposerModel):
 
         # prepare for diffusion generation process
         latents = torch.randn(
-            (batch_size * num_images_per_prompt, self.unet.in_channels,
+            (batch_size * num_images_per_prompt, self.unet.in_channels, # type: ignore
              height // vae_scale_factor, width // vae_scale_factor),
             device=device)  # type: ignore
         self.inference_scheduler.set_timesteps(num_inference_steps)
@@ -280,7 +280,7 @@ class StableDiffusion(ComposerModel):
         # We now use the vae to decode the generated latents back into the image.
         # scale and decode the image latents with vae
         latents = 1 / 0.18215 * latents  # type: ignore
-        image = self.vae.decode(latents).sample
+        image = self.vae.decode(latents).sample # type: ignore
         image = (image / 2 + 0.5).clamp(0, 1)
         return image.detach()  # (batch*num_images_per_prompt, channel, h, w)
 

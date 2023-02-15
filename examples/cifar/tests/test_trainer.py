@@ -18,6 +18,7 @@ from examples.cifar.tests.utils import SynthClassificationDirectory
 
 @pytest.mark.parametrize('use_recipe', [True, False])
 def test_trainer(use_recipe):
+    
     with open('yamls/resnet56.yaml') as f:
         base_config = OmegaConf.load(f)
 
@@ -48,7 +49,7 @@ def test_trainer(use_recipe):
         # Check that the checkpoint was loaded by comparing model weights
         config.load_path = chkpt_path
         config.is_train = False
-        config.seed += 10  # change seed
+        config.seed = 1337 + 100*use_recipe # change seed
         trainer2 = main(config)
         model2 = trainer2.state.model.module
 
