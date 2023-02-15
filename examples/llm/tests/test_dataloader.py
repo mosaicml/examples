@@ -35,11 +35,11 @@ def test_correct_padding(tokenizer_name, pretokenize, batch_size=4):
     shutil.rmtree(path, ignore_errors=True)
     if pretokenize:
         os.system(
-            f'python ../common/convert_c4.py --out_root {path} --splits val_small --concat_tokens 2048 --tokenizer {tokenizer_name} {tokenizer_args}'
+            f'python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root {path} --splits val_small --concat_tokens 2048 --tokenizer {tokenizer_name} {tokenizer_args}'
         )
     else:
         os.system(
-            f'python ../common/convert_c4.py --out_root {path} --splits val_small'
+            f'python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root {path} --splits val_small'
         )
     if not os.path.isdir(path):
         raise RuntimeError(f'c4 dataset at {path} not set up as expected')
