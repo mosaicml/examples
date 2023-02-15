@@ -113,7 +113,7 @@ def build_hf_image_caption_datapsec(name: str,
     # add image_tensor and input_ids columns (processed images and text)
     dataset = dataset.with_transform(preprocess)  # type: ignore
     sampler = dist.get_sampler(
-        dataset,
+        dataset,  # type: ignore
         drop_last=drop_last,  # type: ignore
         shuffle=shuffle)  # type: ignore
     return DataSpec(dataloader=DataLoader(
