@@ -4,8 +4,7 @@ import os
 import re
 from typing import Dict, List
 
-import setuptools
-from setuptools import find_packages, setup
+from setuptools import setup
 
 _PACKAGE_NAME = 'mosaicml-examples'
 _PACKAGE_DIR = 'examples'
@@ -81,6 +80,7 @@ extra_deps = {}
 for name in _EXAMPLE_SUBDIRS:
     subdir_path = os.path.join(_PACKAGE_REAL_PATH, name, 'requirements.txt')
     with open(subdir_path, 'r') as f:
+        name = name.replace('_', '-')
         lines = f.readlines()
         extra_deps[name] = _merge_dependencies(install_requires,
                                                lines,

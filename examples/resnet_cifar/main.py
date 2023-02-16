@@ -14,8 +14,8 @@ from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf
 
-from examples.cifar.data import build_cifar10_dataspec
-from examples.cifar.model import build_composer_resnet_cifar
+from examples.resnet_cifar.data import build_cifar10_dataspec
+from examples.resnet_cifar.model import build_composer_resnet_cifar
 from examples.common.config_utils import log_config
 
 
