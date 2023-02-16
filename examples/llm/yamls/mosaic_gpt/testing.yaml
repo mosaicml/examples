@@ -22,7 +22,8 @@ model:
   attn_pdrop: 0.0
   resid_pdrop: 0.0
   emb_pdrop: 0.0
-  attn_impl: torch
+  attn_impl: triton
+  no_norm: true
 
 # Tokenizer
 tokenizer:
@@ -65,13 +66,8 @@ scheduler:
   alpha_f: 0.1
 
 optimizer:
-  name: decoupled_adamw
-  lr: 6.0e-4
-  betas:
-  - 0.9
-  - 0.95
-  eps: 1.0e-08
-  weight_decay: 0.0
+  name: nero
+  lr: 0.001
 
 algorithms:
   gradient_clipping:

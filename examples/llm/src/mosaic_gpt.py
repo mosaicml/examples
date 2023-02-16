@@ -139,7 +139,7 @@ class TritonFlashCausalAttention(nn.Module):
             batch_first=True,
             causal=True,
             device=device,
-            ln_qk=cfg.get('ln_qk', False),
+            ln_qk=cfg.get('ln_qk', False) and not cfg.get('no_norm', False),
         )
         self.mhsa.out_proj._is_residual = True  # type: ignore
 
@@ -231,6 +231,10 @@ class GPTBlock(nn.Module):
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
+        if cfg.get('no_norm', False):
+            # replace norms with no-op
+            self.ln_2 = None
+            self.ln_1 = None
         self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
@@ -241,10 +245,16 @@ class GPTBlock(nn.Module):
         key_padding_mask: Optional[torch.ByteTensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        a = self.ln_1(x)
+        if self.ln_1 is not None:
+            a = self.ln_1(x)
+        else:
+            a = x
         b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
         x = x + self.resid_attn_dropout(b)
-        m = self.ln_2(x)
+        if self.ln_2 is not None:
+            m = self.ln_2(x)
+        else:
+            m = x
         n = self.mlp(m)
         x = x + self.resid_mlp_dropout(n)
         return x

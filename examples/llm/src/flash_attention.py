@@ -124,6 +124,7 @@ class FlashMHA(nn.Module):
         if self.ln_qk:
              self.ln_q = nn.LayerNorm(embed_dim, device=device)
              self.ln_k = nn.LayerNorm(embed_dim, device=device)
+        
         self.inner_attn = FlashAttention(num_heads=num_heads,
                                          softmax_scale=None,
                                          **factory_kwargs)
@@ -161,7 +162,7 @@ class FlashMHA(nn.Module):
             k = self.ln_k(k)
             qkv = torch.cat([q, k, v], dim=-1)
             qkv = qkv.to(dtype=dtype)
-            
+
         context, attn_weights = self.inner_attn(
             qkv,
             key_padding_mask=key_padding_mask,
