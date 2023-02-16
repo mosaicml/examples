@@ -7,6 +7,7 @@ import time
 import torch
 from composer.loggers import InMemoryLogger
 from composer.trainer import Trainer
+from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
@@ -20,6 +21,8 @@ if __name__ == '__main__':
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
     cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
+
+    reproducibility.seed_all(cfg.get('seed', 1234))
 
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
