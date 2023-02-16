@@ -312,7 +312,7 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        if cfg.attn_qk_ln and cfg.attn_impl != 'flash':
+        if cfg.get('attn_qk_ln') and cfg.attn_impl != 'flash':
             raise NotImplementedError(
                 'LayerNorm over queries and keys in attention is only implemented with flash attention.'
             )
