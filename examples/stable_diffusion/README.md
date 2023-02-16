@@ -31,7 +31,7 @@ This folder contains starter code for finetuning Stable Diffusion. You can easil
 ## Clone the repo and install requirements
 
 ```bash
-git clone https://github.com/mosaicml/examples.gitcd examples/
+git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install -e ".[stable-diffusion]"
 cd examples/stable_diffusion
