@@ -119,7 +119,7 @@ class FlashCausalAttention(nn.Module):
         if self.attn_qk_ln:
             qkv = self.W_qkv(x)
 
-            # Applying layernorm to qkv    
+            # Applying layernorm to qk    
             dtype = qkv.dtype
             q, k, v = qkv.split(self.d_model, dim=-1)
             q = self.q_ln(q)
