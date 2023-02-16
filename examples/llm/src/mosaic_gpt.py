@@ -132,10 +132,9 @@ class FlashCausalAttention(nn.Module):
             # Applying layernorm to qk
             dtype = qkv.dtype
             q, k, v = qkv.split(self.d_model, dim=-1)
-            q = self.q_ln(q)
-            k = self.k_ln(k)
+            q = self.q_ln(q).to(dtype)
+            k = self.k_ln(k).to(dtype)
             qkv = torch.cat([q, k, v], dim=-1)
-            qkv = qkv.to(dtype)
 
             # attention
             qkv = rearrange(qkv,
