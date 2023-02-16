@@ -23,6 +23,7 @@ model:
   resid_pdrop: 0.0
   emb_pdrop: 0.0
   attn_impl: flash
+  attn_qk_ln: false
 
 # Tokenizer
 tokenizer:

@@ -1,5 +1,5 @@
 data_local: ./my-copy-c4
-data_remote: # If blank, files must be present in data_local
+data_remote: s3://mosaicml-internal-checkpoints-shared/datasets/the-pile/tokenized-concat/ # If blank, files must be present in data_local
 tokenizer_name: gpt2
 max_seq_len: 2048
 global_seed: 17
@@ -23,6 +23,7 @@ model:
   resid_pdrop: 0.0
   emb_pdrop: 0.0
   attn_impl: flash
+  attn_qk_ln: false
 
 # Tokenizer
 tokenizer:
