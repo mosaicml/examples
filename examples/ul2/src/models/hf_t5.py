@@ -28,71 +28,6 @@ __all__ = ['create_hf_t5']
 _HF_IGNORE_INDEX = -100
 
 
-class HuggingFaceModelWithZLoss(HuggingFaceModel):
-
-    def __init__(self, model, tokenizer, metrics, z_loss=0.0):
-        super().__init__(model=model,
-                         tokenizer=tokenizer,
-                         metrics=metrics,
-                         use_logits=True)
-        self.z_loss = float(z_loss)
-        assert self.z_loss >= 0.0
-
-        self.model_forward_args = inspect.getfullargspec(
-            self.model.forward).args
-
-    def forward(self, batch):
-        if isinstance(batch, dict) or isinstance(batch, UserDict):
-            # Further input validation is left to the huggingface forward call
-            batch = {
-                k: v for k, v in batch.items() if k in self.model_forward_args
-            }
-            output = self.model(**batch)  # type: ignore (thirdparty)
-        else:
-            raise ValueError(
-                'Unexpected batch type. Expected a dictionary with keys corresponding to the inputs to the forward function of the Huggingface model'
-            )
-        return output
-
-    def loss(self, outputs, batch):
-        if self.config.use_return_dict:
-            loss, logits = outputs['loss'], outputs['logits']
-        else:
-            # loss is at index 0 in the output tuple, logits are at index 1
-            loss, logits = outputs[:2]
-        if self.z_loss == 0.0:
-            return loss
-
-        # Add a z_loss to the standard loss
-        logits_flat = logits.view(-1, logits.size(-1))
-        labels_flat = batch['labels'].view(-1)
-        log_z = torch.logsumexp(logits_flat[labels_flat != _HF_IGNORE_INDEX],
-                                dim=1)
-        log_z2 = log_z**2
-        z_loss = log_z2.mean() * self.z_loss
-        if self.config.use_return_dict:
-            outputs['loss'] += z_loss
-            return outputs['loss']
-        else:
-            outputs[0] += z_loss
-            return outputs[0]
-
-    def eval_forward(self, batch, outputs: Optional[Any] = None):
-        if 'generate_output' in batch:
-            self.labels = batch.pop('labels')
-            return self.model.generate(
-                batch['input_ids'],
-                attention_mask=batch['attention_mask'],
-                max_new_tokens=512,
-                do_sample=True,
-                top_p=0.90,
-                top_k=0,
-                no_repeat_ngram_size=3,
-            )
-
-        return super().eval_forward(batch, outputs)
-
-
 def create_hf_t5(
     pretrained_model_name: str = 't5-base',
     use_pretrained: Optional[bool] = False,
@@ -175,3 +110,68 @@ def create_hf_t5(
                 RougeWithDetokenizer(detokenizer=tokenizer, rouge_keys='rougeL')
         }
     return model
+
+
+class HuggingFaceModelWithZLoss(HuggingFaceModel):
+
+    def __init__(self, model, tokenizer, metrics, z_loss=0.0):
+        super().__init__(model=model,
+                         tokenizer=tokenizer,
+                         metrics=metrics,
+                         use_logits=True)
+        self.z_loss = float(z_loss)
+        assert self.z_loss >= 0.0
+
+        self.model_forward_args = inspect.getfullargspec(
+            self.model.forward).args
+
+    def forward(self, batch):
+        if isinstance(batch, dict) or isinstance(batch, UserDict):
+            # Further input validation is left to the huggingface forward call
+            batch = {
+                k: v for k, v in batch.items() if k in self.model_forward_args
+            }
+            output = self.model(**batch)  # type: ignore (thirdparty)
+        else:
+            raise ValueError(
+                'Unexpected batch type. Expected a dictionary with keys corresponding to the inputs to the forward function of the Huggingface model'
+            )
+        return output
+
+    def loss(self, outputs, batch):
+        if self.config.use_return_dict:
+            loss, logits = outputs['loss'], outputs['logits']
+        else:
+            # loss is at index 0 in the output tuple, logits are at index 1
+            loss, logits = outputs[:2]
+        if self.z_loss == 0.0:
+            return loss
+
+        # Add a z_loss to the standard loss
+        logits_flat = logits.view(-1, logits.size(-1))
+        labels_flat = batch['labels'].view(-1)
+        log_z = torch.logsumexp(logits_flat[labels_flat != _HF_IGNORE_INDEX],
+                                dim=1)
+        log_z2 = log_z**2
+        z_loss = log_z2.mean() * self.z_loss
+        if self.config.use_return_dict:
+            outputs['loss'] += z_loss
+            return outputs['loss']
+        else:
+            outputs[0] += z_loss
+            return outputs[0]
+
+    def eval_forward(self, batch, outputs: Optional[Any] = None):
+        if 'generate_output' in batch:
+            self.labels = batch.pop('labels')
+            return self.model.generate(
+                batch['input_ids'],
+                attention_mask=batch['attention_mask'],
+                max_new_tokens=512,
+                do_sample=True,
+                top_p=0.90,
+                top_k=0,
+                no_repeat_ngram_size=3,
+            )
+
+        return super().eval_forward(batch, outputs)

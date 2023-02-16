@@ -74,6 +74,7 @@ def build_model(cfg):
             z_loss=cfg.get('z_loss', 0.0),
             task_finetuning=cfg.get('task_finetuning', False),
             generation_eval=cfg.get('generation_eval', False),
+            adapt_vocab_for_denoising=True,
         )
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')

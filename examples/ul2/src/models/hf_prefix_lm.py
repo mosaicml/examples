@@ -23,6 +23,117 @@ __all__ = ['create_hf_prefix_lm']
 _HF_IGNORE_INDEX = -100
 
 
+def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
+                        tokenizer_name: str = 'gpt2',
+                        use_pretrained: Optional[bool] = False,
+                        model_config: Optional[dict] = None,
+                        gradient_checkpointing: Optional[bool] = False,
+                        z_loss: Optional[float] = 0.0,
+                        task_finetuning: Optional[bool] = False,
+                        generation_eval: bool = False,
+                        adapt_vocab_for_denoising: bool = False):
+    """Prefix-LM model based on |:hugging_face:| Transformers.
+
+    For more information, see `Transformers <https://huggingface.co/transformers/>`_.
+
+    Note: HuggingFace does not natively support Prefix-LM-style models. This function uses
+    `transformers.AutoModelForCausalLM` to instantiate a Causal-LM, then uses a conversion utility
+    to turn the model into a Prefix-LM. Currently, that conversion utility only supports the
+    following HuggingFace Causal-LM types:
+        - `GPT2LMHeadModel`
+        - `GPTNeoForCausalLM`
+        - `GPTNeoXForCausalLM`
+        - `GPTJForCausalLM`
+        - `BloomForCausalLM`
+        - `OPTForCausalLM`
+
+    Args:
+        pretrained_model_name (str): Name of the Hugging Face model to instantiate. Default: ``'gpt2'``.
+        tokenizer_name (str): Tokenizer name used to preprocess the dataset and validate the models inputs. To be compatible
+            with denoising tasks, special sentinel tokens ("<extra_id_0>", "<extra_id_1>", etc.) will be added if you
+            set ``adapt_vocab_size=True``.
+            The model's vocab_size will be hardcoded to match the resulting vocab_size of the tokenizer.
+        use_pretrained (bool, optional): Whether to initialize the model with the pretrained weights. Default: ``False``.
+        model_config (dict, optional): The settings used to create a Hugging Face CausalLM. Used to specify/modify
+            the architecture of the Hugging Face model.
+        gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
+        z_loss (float, optional): Coefficient of `z-loss` term to use during training. Default: ``0.0``.
+        task_finetuning (bool, optional): Whether to add ExactMatch metric used in fine-tuning. Default: ``False``.
+        generation_eval (bool, optional): Whether evaluation requires generation, in which case RougeWithDetokenizer
+            is used for for the validation metric. Default: ``False``.
+        adapt_vocab_for_denoising (bool, optional): Whether to adapt the vocab of the model/tokenizer to include
+            sentinel tokens that are used in denoising tasks like Span Corruption. If you intend to load from an
+            existing Composer checkpoint that was trained on such a task, set this to ``True`` to ensure that the model
+            vocab size matches your checkpoint's vocab size when loading the weights. Default: ``False``.
+
+    To create a |:hugging_face:| Prefix-LM model for UL2 pretraining:
+
+    .. testcode::
+
+        from examples.ul2.src.hf_prefix_lm import create_prefix_lm
+        model = create_prefix_lm('gpt2')
+    """
+    try:
+        import transformers
+    except ImportError as e:
+        raise MissingConditionalImportError(extra_deps_group='nlp',
+                                            conda_package='transformers') from e
+
+    # Set up the tokenizer (add tokens for denoising sentinels if needed)
+    if adapt_vocab_for_denoising:
+        tokenizer = utils.AutoTokenizerForMOD.from_pretrained(tokenizer_name)
+    else:
+        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
+    vocab_size = len(tokenizer)
+
+    if not model_config:
+        model_config = {}
+
+    if not pretrained_model_name:
+        pretrained_model_name = 'gpt2'
+
+    if use_pretrained:
+        assert transformers.AutoModelForCausalLM.from_pretrained is not None, 'AutoModelForCausalLM has from_pretrained method'
+        model = transformers.AutoModelForCausalLM.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name, **model_config)
+    else:
+        config = transformers.AutoConfig.from_pretrained(
+            pretrained_model_name, **model_config)
+        assert transformers.AutoModelForCausalLM.from_config is not None, 'AutoModelForCausalLM has from_config method'
+        model = transformers.AutoModelForCausalLM.from_config(config)
+
+    # Convert the Causal LM into a Prefix LM via our custom wrapper
+    model = utils.convert_hf_causal_lm_to_prefix_lm(model)
+
+    # Expand the embeddings/vocab size to match the tokenizer
+    if model.config.vocab_size != vocab_size:
+        model.resize_token_embeddings(new_num_tokens=vocab_size)
+
+    # Super charge
+    prepare_hf_causal_lm_model_for_fsdp(model)
+
+    if gradient_checkpointing:
+        model.gradient_checkpointing_enable()  # type: ignore
+
+    metrics = [
+        LanguageCrossEntropy(ignore_index=_HF_IGNORE_INDEX,
+                             vocab_size=model.config.vocab_size),
+        MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX)
+    ]
+    if task_finetuning:
+        metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))
+    model = HuggingFaceModelWithZLoss(model=model,
+                                      tokenizer=tokenizer,
+                                      metrics=metrics,
+                                      z_loss=z_loss)
+    if generation_eval:
+        model.val_metrics = {
+            RougeWithDetokenizer.__name__:
+                RougeWithDetokenizer(detokenizer=tokenizer, rouge_keys='rougeL')
+        }
+    return model
+
+
 class HuggingFaceModelWithZLoss(HuggingFaceModel):
 
     def __init__(self, model, tokenizer, metrics, z_loss=0.0):
@@ -41,6 +152,21 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
             self.model.forward).args
 
     def forward(self, batch):
+        if 'bidirectional_mask' not in batch:
+            if batch.get('mode', None) == 'icl_task':
+                batch['bidirectional_mask'] = batch['attention_mask'].clone()
+                for i, continuation_indices in enumerate(
+                        batch['continuation_indices']):
+                    batch['bidirectional_mask'][i, continuation_indices] = 0
+            elif 'labels' in batch:
+                batch['bidirectional_mask'] = torch.logical_and(
+                    torch.equal(batch['attention_mask'], 1),
+                    torch.equal(batch['labels'], _HF_IGNORE_INDEX),
+                ).type_as(batch['attention_mask'])
+            else:
+                raise KeyError(
+                    'No bidirectional_mask in batch and not sure how to construct one.'
+                )
         if isinstance(batch, dict) or isinstance(batch, UserDict):
             # Further input validation is left to the huggingface forward call
             batch = {
@@ -98,105 +224,3 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
             return outputs
 
         return super().eval_forward(batch, outputs)
-
-
-def create_hf_prefix_lm(pretrained_model_name: str = 'gpt2',
-                        tokenizer_name: str = 'gpt2',
-                        use_pretrained: Optional[bool] = False,
-                        model_config: Optional[dict] = None,
-                        gradient_checkpointing: Optional[bool] = False,
-                        z_loss: Optional[float] = 0.0,
-                        task_finetuning: Optional[bool] = False,
-                        generation_eval: bool = False):
-    """Prefix-LM model based on |:hugging_face:| Transformers.
-
-    For more information, see `Transformers <https://huggingface.co/transformers/>`_.
-
-    Note: HuggingFace does not natively support Prefix-LM-style models. This function uses
-    `transformers.AutoModelForCausalLM` to instantiate a Causal-LM, then uses a conversion utility
-    to turn the model into a Prefix-LM. Currently, that conversion utility only supports the
-    following HuggingFace Causal-LM types:
-        - `GPT2LMHeadModel`
-        - `GPTNeoForCausalLM`
-        - `GPTNeoXForCausalLM`
-        - `GPTJForCausalLM`
-        - `BloomForCausalLM`
-        - `OPTForCausalLM`
-
-    Args:
-        pretrained_model_name (str): Name of the Hugging Face model to instantiate. Default: ``'gpt2'``.
-        tokenizer_name (str): Tokenizer name used to preprocess the dataset and validate the models inputs. To be compatible
-            with denoising tasks, special sentinel tokens ("<extra_id_0>", "<extra_id_1>", etc.) will be added. The model's vocab_size
-            will be hardcoded to match the resulting vocab_size of the tokenizer.
-        use_pretrained (bool, optional): Whether to initialize the model with the pretrained weights. Default: ``False``.
-        model_config (dict, optional): The settings used to create a Hugging Face CausalLM. Used to specify/modify
-            the architecture of the Hugging Face model.
-        gradient_checkpointing (bool, optional): Use gradient checkpointing. Default: ``False``.
-        z_loss (float, optional): Coefficient of `z-loss` term to use during training. Default: ``0.0``.
-        task_finetuning (bool, optional): Whether to add ExactMatch metric used in fine-tuning. Default: ``False``.
-        generation_eval (bool, optional): Whether evaluation requires generation, in which case RougeWithDetokenizer
-            is used for for the validation metric. Default: ``False``.
-
-    To create a |:hugging_face:| Prefix-LM model for UL2 pretraining:
-
-    .. testcode::
-
-        from examples.ul2.src.hf_prefix_lm import create_prefix_lm
-        model = create_prefix_lm('gpt2')
-    """
-    try:
-        import transformers
-    except ImportError as e:
-        raise MissingConditionalImportError(extra_deps_group='nlp',
-                                            conda_package='transformers') from e
-
-    # Set up the tokenizer (add tokens for denoising sentinels if needed)
-    tokenizer = utils.AutoTokenizerForMOD.from_pretrained(tokenizer_name)
-    vocab_size = len(tokenizer)
-
-    if not model_config:
-        model_config = {}
-
-    if not pretrained_model_name:
-        pretrained_model_name = 'gpt2'
-
-    if use_pretrained:
-        assert transformers.AutoModelForCausalLM.from_pretrained is not None, 'AutoModelForCausalLM has from_pretrained method'
-        model = transformers.AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name, **model_config)
-    else:
-        config = transformers.AutoConfig.from_pretrained(
-            pretrained_model_name, **model_config)
-        assert transformers.AutoModelForCausalLM.from_config is not None, 'AutoModelForCausalLM has from_config method'
-        model = transformers.AutoModelForCausalLM.from_config(config)
-
-    # Convert the Causal LM into a Prefix LM via our custom wrapper
-    model = utils.convert_hf_causal_lm_to_prefix_lm(model)
-
-    # Expand the embeddings/vocab size to match the tokenizer
-    if model.config.vocab_size != vocab_size:
-        model.resize_token_embeddings(new_num_tokens=vocab_size)
-
-    # Super charge
-    prepare_hf_causal_lm_model_for_fsdp(model)
-
-    if gradient_checkpointing:
-        model.gradient_checkpointing_enable()  # type: ignore
-
-    metrics = [
-        LanguageCrossEntropy(ignore_index=_HF_IGNORE_INDEX,
-                             vocab_size=model.config.vocab_size),
-        MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX)
-    ]
-    if task_finetuning:
-        metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))
-    model = HuggingFaceModelWithZLoss(model=model,
-                                      tokenizer=tokenizer,
-                                      metrics=metrics,
-                                      z_loss=z_loss)
-    if generation_eval:
-        model.val_metrics = {
-            RougeWithDetokenizer.__name__:
-                RougeWithDetokenizer(detokenizer=tokenizer, rouge_keys='rougeL')
-        }
-    return model
