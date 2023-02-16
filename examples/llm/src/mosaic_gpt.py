@@ -17,6 +17,8 @@ import torch.nn.functional as F
 from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
+from composer.utils.dist import (get_local_rank, get_local_world_size,
+                                 get_world_size)
 from omegaconf import DictConfig
 
 
@@ -218,6 +220,27 @@ class GPTMLP(nn.Module):
         return self.mlp_down(self.mlp_act(self.mlp_up(x)))
 
 
+class GPTFakeTPMLP(nn.Module):
+
+    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+        super().__init__()
+        self.tp_world_size = get_local_world_size()
+        mlp_inner = cfg.mlp_ratio * cfg.d_model // self.tp_world_size
+
+        self.mlp_up = nn.Linear(cfg.d_model, mlp_inner, device=device)
+        self.mlp_act = nn.GELU(approximate='none')
+        self.mlp_down = nn.Linear(mlp_inner, cfg.d_model, device=device)
+        self.mlp_down._is_residual = True  # type: ignore
+
+    def forward(self, x):
+        bs, ndim = x.shape[0], x.ndim
+        repeats = [self.tp_world_size] + [1] * (ndim - 1)
+        fake_all_gather_x = x.repeat(repeats)
+        out = self.mlp_down(self.mlp_act(self.mlp_up(fake_all_gather_x)))
+        fake_reduce_scatter_out = out[:bs]
+        return fake_reduce_scatter_out
+
+
 class GPTBlock(nn.Module):
 
     def __init__(self,
@@ -230,7 +253,10 @@ class GPTBlock(nn.Module):
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        self.mlp = GPTMLP(cfg, device=device)
+        if cfg.get('tensor_parallel_mlp', False):
+            self.mlp = GPTFakeTPMLP(cfg, device=device)
+        else:
+            self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 
@@ -497,7 +523,17 @@ class MosaicGPT(nn.Module):
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        return isinstance(module, GPTBlock)
+        if isinstance(module, GPTBlock):
+            return True
+        if isinstance(module, GPTFakeTPMLP):
+            local_world_size = get_local_world_size()
+            local_rank = get_local_rank()
+            world_size = get_world_size()
+            ranks = [
+                local_rank + local_world_size * n
+                for n in range(world_size // local_world_size)
+            ]
+            return {'process_group': torch.distributed.new_group(ranks=ranks)}
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
