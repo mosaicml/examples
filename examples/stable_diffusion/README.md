@@ -31,7 +31,7 @@ This folder contains starter code for finetuning Stable Diffusion. You can easil
 ## Clone the repo and install requirements
 
 ```bash
-git clone https://github.com/mosaicml/examples.gitcd examples/
+git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install -e ".[stable_diffusion]"
 cd examples/stable_diffusion
@@ -40,8 +40,7 @@ cd examples/stable_diffusion
 xformers contains faster, more memory effecient transformer layers. But can take a while to install.
 
 ```
-pip install ninja # Faster xformers install
-pip install git+https://github.com/facebookresearch/xformers.git@3df785ce54114630155621e2be1c2fa5037efa27#egg=xformers
+pip install xformers
 ```
 ## Train the model
 ```
