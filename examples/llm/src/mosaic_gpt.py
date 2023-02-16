@@ -108,7 +108,7 @@ class FlashCausalAttention(nn.Module):
                                       bias=True,
                                       device=device)
 
-            self.out_proj._is_residual = True
+            self.out_proj._is_residual = True # type: ignore
 
             self.q_ln = nn.LayerNorm(self.d_model, device=device)
             self.k_ln = nn.LayerNorm(self.d_model, device=device)
