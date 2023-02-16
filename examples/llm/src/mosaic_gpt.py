@@ -92,7 +92,7 @@ class FlashCausalAttention(nn.Module):
         except ImportError as e:
             raise e
 
-        self.attn_qk_ln = cfg.attn_qk_ln
+        self.attn_qk_ln = cfg.get('attn_qk_ln')
         self.d_model = cfg.d_model
         self.n_heads = cfg.n_heads
 
