@@ -10,7 +10,7 @@ from composer.trainer import Trainer
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
-from examples.common.builders import build_icl_evaluators
+from examples.common.builders import build_icl_evaluators, build_logger
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
@@ -28,6 +28,11 @@ if __name__ == '__main__':
         composer_model.add_eval_metrics(evaluator)
 
     in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
+    loggers = [
+        build_logger(name, logger_cfg)
+        for name, logger_cfg in (cfg.get('loggers') or {}).items()
+    ]
+    loggers.append(in_memory_logger)
 
     fsdp_config = cfg.get('fsdp_config', None)
     fsdp_config = om.to_container(
@@ -37,7 +42,7 @@ if __name__ == '__main__':
 
     trainer = Trainer(
         model=composer_model,
-        loggers=in_memory_logger,
+        loggers=loggers,
         fsdp_config=fsdp_config,  # type: ignore
         load_path=load_path,
         load_weights_only=True,
