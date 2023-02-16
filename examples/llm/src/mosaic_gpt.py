@@ -17,8 +17,8 @@ import torch.nn.functional as F
 from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
-from omegaconf import DictConfig
 from einops import rearrange
+from omegaconf import DictConfig
 
 
 class TorchCausalAttention(nn.Module):
@@ -87,7 +87,8 @@ class FlashCausalAttention(nn.Module):
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
         try:
-            from flash_attn.flash_attention import FlashMHA, FlashAttention  # type: ignore
+            from flash_attn.flash_attention import (  # type: ignore
+                FlashAttention, FlashMHA)
         except ImportError as e:
             raise e
 
@@ -96,9 +97,18 @@ class FlashCausalAttention(nn.Module):
         self.n_heads = cfg.n_heads
 
         if self.attn_qk_ln:
-            self.W_qkv = nn.Linear(self.d_model , 3 * self.d_model , bias=True, device=device)
-            self.causal_attn = FlashAttention(attention_dropout=cfg.attn_pdrop, device=device)
-            self.out_proj = nn.Linear(self.d_model, self.d_model, bias=True, device=device)
+            self.W_qkv = nn.Linear(self.d_model,
+                                   3 * self.d_model,
+                                   bias=True,
+                                   device=device)
+            self.causal_attn = FlashAttention(attention_dropout=cfg.attn_pdrop,
+                                              device=device)
+            self.out_proj = nn.Linear(self.d_model,
+                                      self.d_model,
+                                      bias=True,
+                                      device=device)
+
+            self.out_proj._is_residual = True
 
             self.q_ln = nn.LayerNorm(self.d_model, device=device)
             self.k_ln = nn.LayerNorm(self.d_model, device=device)
@@ -119,7 +129,7 @@ class FlashCausalAttention(nn.Module):
         if self.attn_qk_ln:
             qkv = self.W_qkv(x)
 
-            # Applying layernorm to qk    
+            # Applying layernorm to qk
             dtype = qkv.dtype
             q, k, v = qkv.split(self.d_model, dim=-1)
             q = self.q_ln(q)
@@ -127,17 +137,24 @@ class FlashCausalAttention(nn.Module):
             qkv = torch.cat([q, k, v], dim=-1)
             qkv = qkv.to(dtype)
 
-            # attention 
-            qkv = rearrange(qkv, 'b s (three h d) -> b s three h d', three=3, h=self.n_heads)
-            
-            context, attn_weights = self.causal_attn(qkv, key_padding_mask=key_padding_mask,
-                                          causal=True, need_weights=False)
-            return self.out_proj(rearrange(context, 'b s h d -> b s (h d)')), attn_weights
+            # attention
+            qkv = rearrange(qkv,
+                            'b s (three h d) -> b s three h d',
+                            three=3,
+                            h=self.n_heads)
+
+            context, attn_weights = self.causal_attn(
+                qkv,
+                key_padding_mask=key_padding_mask,
+                causal=True,
+                need_weights=False)
+            return self.out_proj(rearrange(
+                context, 'b s h d -> b s (h d)')), attn_weights
 
         else:
             return self.mhsa(x,
-                         key_padding_mask=key_padding_mask,
-                         need_weights=False)
+                             key_padding_mask=key_padding_mask,
+                             need_weights=False)
 
     @staticmethod
     def mask_shape(*args, **kwargs):
@@ -295,9 +312,11 @@ class MosaicGPT(nn.Module):
             self.causal_attn_cls = TritonFlashCausalAttention
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
-        
-        if cfg.attn_qk_ln and cfg.attn_impl != "flash":
-            raise NotImplementedError("LayerNorm over queries and keys in attention is only implemented with flash attention.")
+
+        if cfg.attn_qk_ln and cfg.attn_impl != 'flash':
+            raise NotImplementedError(
+                'LayerNorm over queries and keys in attention is only implemented with flash attention.'
+            )
 
         self.alibi = cfg.get('alibi', False)
         self.alibi_bias_max = cfg.get('alibi_bias_max',
