@@ -3,9 +3,10 @@
 
 import sys
 import time
+from typing import List
 
 import torch
-from composer.loggers import InMemoryLogger
+from composer.loggers import InMemoryLogger, LoggerDestination
 from composer.trainer import Trainer
 from composer.utils import reproducibility
 from omegaconf import DictConfig
@@ -31,7 +32,7 @@ if __name__ == '__main__':
         composer_model.add_eval_metrics(evaluator)
 
     in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
-    loggers = [
+    loggers: List[LoggerDestination] = [
         build_logger(name, logger_cfg)
         for name, logger_cfg in (cfg.get('loggers') or {}).items()
     ]
