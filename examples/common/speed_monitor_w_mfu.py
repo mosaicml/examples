@@ -171,7 +171,7 @@ class SpeedMonitorMFU(Callback):
         # Log the throughput
         if len(self.history_wct) == self.history_wct.maxlen:
             world_size = dist.get_world_size()
-            elapsed_batches = len(self.history_samples)
+            elapsed_batches = len(self.history_samples) - 1
             elapsed_samples = int(self.history_samples[-1]) - int(
                 self.history_samples[0])
             elapsed_wct = self.history_wct[-1] - self.history_wct[0]
