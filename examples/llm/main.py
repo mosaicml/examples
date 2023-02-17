@@ -18,6 +18,11 @@ from examples.common.config_utils import log_config, update_batch_size_info
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
+try:
+    import transformer_engine.pytorch as te
+    te_installed = True
+except ImportError:
+    te_installed = False
 
 def build_composer_model(cfg):
     warnings.filterwarnings(
@@ -61,6 +66,23 @@ def main(cfg):
     if fsdp_config is None and init_device == 'meta':
         warnings.warn(
             "Using `cfg.model.init_device='meta'` is only valid when using FSDP! "
+            "Reverting to `cfg.model.init_device='cpu'`.")
+        cfg.model.init_device = 'cpu'
+
+    te_config = cfg.get('te_config', None)
+    te_config = om.to_container(te_config, resolve=True) if te_config else None
+    if not te_installed and te_config:
+        warnings.warn(
+                "Transformer Engine is not installed but te_config is given! "
+                "Please install transformer engine with "
+                "pip install --upgrade git+https://github.com/NVIDIA/TransformerEngine.git@stable")
+    if not te_installed and not te_config['linear_only']:
+        print('use attn_impl == Triton to take care of key_padding_mask with TransformerEngine...')
+        cfg.attn_impl = 'triton'
+
+    if te_installed and te_config and init_device == 'meta':
+        warnings.warn(
+            "Using `cfg.model.init_device='meta'` doesn't work with transformer engine! "
             "Reverting to `cfg.model.init_device='cpu'`.")
         cfg.model.init_device = 'cpu'
 
