@@ -18,6 +18,8 @@ from lion_pytorch import Lion
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 from examples.llm.loss_spikes.loss_spike_detection_callback import LossSpikeDetectionCallback
+from examples.llm.loss_spikes.resumption_callbacks import RESUMPTION_STRATEGIES
+
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -35,6 +37,12 @@ def build_callback(name, kwargs):
         return LossSpikeDetectionCallback(
             **kwargs
         )
+    elif name == 'resumption_callback':
+        assert 'name' in kwargs
+        resumption_strat = kwargs['name']
+        resumption_args = kwargs.get('config', {})
+        assert resumption_strat in RESUMPTION_STRATEGIES
+        return RESUMPTION_STRATEGIES[resumption_strat](**resumption_args)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
