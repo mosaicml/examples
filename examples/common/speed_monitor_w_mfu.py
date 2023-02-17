@@ -151,16 +151,10 @@ class SpeedMonitorMFU(Callback):
 
     def state_dict(self) -> Dict[str, Any]:
         return {
-            'history_samples': self.history_samples,
-            'history_wct': self.history_wct,
             'total_eval_wct': self.total_eval_wct,
         }
 
     def load_state_dict(self, state: Dict[str, Any]) -> None:
-        for x in state['history_samples']:
-            self.history_samples.append(x)
-        for x in state['history_wct']:
-            self.history_wct.append(x)
         self.total_eval_wct = state['total_eval_wct']
 
     def init(self, state: State, logger: Logger) -> None:
