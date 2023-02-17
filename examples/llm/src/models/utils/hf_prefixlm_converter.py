@@ -158,8 +158,7 @@ def _convert_gpt_causal_lm_to_prefix_lm(
         # Handle bidirectional_mask sizing
         # Note: all attn_modules.bias have the same size
         b, s = bidirectional_mask.shape
-        tmp_bias: torch.Tensor = attn_modules[0].bias
-        max_length = tmp_bias.shape[-1]
+        max_length = attn_modules[0].bias.shape[-1]
         assert s <= max_length
         if s < max_length:
             pad = torch.zeros((int(b), int(max_length - s)),
@@ -395,8 +394,8 @@ def _convert_bloom_causal_lm_to_prefix_lm(
         seq_length_with_past = seq_length
         past_key_values_length = 0
         if past_key_values[0] is not None:  # type: ignore
-            past_key_values_length = past_key_values[0][0].shape[
-                2]  # type: ignore
+            tmp = past_key_values[0][0]  # type: ignore
+            past_key_values_length = tmp.shape[2]  # type: ignore
             seq_length_with_past = seq_length_with_past + past_key_values_length
         if attention_mask is None:
             attention_mask = torch.ones((batch_size, seq_length_with_past),
@@ -426,8 +425,8 @@ def _convert_bloom_causal_lm_to_prefix_lm(
                                              past_key_values)):  # type: ignore
 
             if output_hidden_states:
-                all_hidden_states = all_hidden_states + (hidden_states,
-                                                        )  # type: ignore
+                hst = (hidden_states,)
+                all_hidden_states = all_hidden_states + hst  # type: ignore
 
             if self.gradient_checkpointing and self.training:
 
@@ -470,15 +469,15 @@ def _convert_bloom_causal_lm_to_prefix_lm(
                 presents = presents + (outputs[1],)  # type: ignore
 
             if output_attentions:
-                all_self_attentions = all_self_attentions + (  # type: ignore
-                    outputs[2 if use_cache else 1],)
+                oa = (outputs[2 if use_cache else 1],)  # type: ignore
+                all_self_attentions = all_self_attentions + oa
 
         # Add last hidden state
         hidden_states = self.ln_f(hidden_states)
 
         if output_hidden_states:
-            all_hidden_states = all_hidden_states + (hidden_states,
-                                                    )  # type: ignore
+            hst = (hidden_states,)
+            all_hidden_states = all_hidden_states + hst  # type: ignore
 
         if not return_dict:
             return tuple(v for v in [
@@ -591,7 +590,7 @@ def _convert_bloom_causal_lm_to_prefix_lm(
                                       **kwargs) -> dict:
         # only last token for input_ids if past is not None
         if past:
-            input_ids: torch.LongTensor = input_ids[:, -1].unsqueeze(-1)
+            input_ids = input_ids[:, -1].unsqueeze(-1)  # type: ignore
             # We can turn off bidirectional masking after the prefix
             # has been encoded into `past`
             bidirectional_mask = None
