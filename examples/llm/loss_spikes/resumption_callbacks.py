@@ -1,4 +1,4 @@
-from composer.composer.algorithms.layer_freezing.layer_freezing import _remove_param_from_optimizers
+from composer.algorithms.layer_freezing.layer_freezing import _remove_param_from_optimizers
 import torch
 import collections
 from composer.core import Callback, State
