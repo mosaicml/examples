@@ -70,7 +70,7 @@ class ComposerHFT5(HuggingFaceModelWithZLoss):
                     'Setting cfg.pretrained=True is not supported when init_device="meta".'
                 )
             with init_empty_weights(include_buffers=False):
-                model = T5ForConditionalGeneration.from_config(config)
+                model = T5ForConditionalGeneration(config)
         else:
             raise ValueError(
                 f'init_device="{init_device}" must be either "cpu" or "meta".')
