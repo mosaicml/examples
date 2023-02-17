@@ -110,6 +110,7 @@ def main(cfg):
         build_callback(name, callback_cfg)
         for name, callback_cfg in (cfg.get('callbacks') or {}).items()
     ]
+    callbacks = [c for c in callbacks if c is not None]
 
     # Algorithms
     algorithms = [

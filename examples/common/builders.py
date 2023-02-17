@@ -4,7 +4,7 @@
 import os
 
 from composer import algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
+from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor, LossSpikeIntervention
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
@@ -33,12 +33,15 @@ def build_callback(name, kwargs):
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
+    elif name == 'loss_spike_intervention':
+        return LossSpikeIntervention(**kwargs)
     elif name == 'loss_spike_detector':
         return LossSpikeDetectionCallback(
             **kwargs
         )
     elif name == 'resumption_callback':
-        assert 'name' in kwargs
+        if 'name' not in kwargs:
+            return None
         resumption_strat = kwargs['name']
         resumption_args = kwargs.get('config', {})
         assert resumption_strat in RESUMPTION_STRATEGIES
