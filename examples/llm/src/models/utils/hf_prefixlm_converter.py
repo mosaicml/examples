@@ -158,7 +158,7 @@ def _convert_gpt_causal_lm_to_prefix_lm(
         # Handle bidirectional_mask sizing
         # Note: all attn_modules.bias have the same size
         b, s = bidirectional_mask.shape
-        max_length = attn_modules[0].bias.shape[-1]
+        max_length = attn_modules[0].bias.shape[-1]  # type: ignore
         assert s <= max_length
         if s < max_length:
             pad = torch.zeros((int(b), int(max_length - s)),
@@ -470,7 +470,7 @@ def _convert_bloom_causal_lm_to_prefix_lm(
 
             if output_attentions:
                 oa = (outputs[2 if use_cache else 1],)  # type: ignore
-                all_self_attentions = all_self_attentions + oa
+                all_self_attentions = all_self_attentions + oa  # type: ignore
 
         # Add last hidden state
         hidden_states = self.ln_f(hidden_states)

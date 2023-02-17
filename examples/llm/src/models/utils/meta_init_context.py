@@ -111,9 +111,9 @@ def init_on_device(device: torch.device, include_buffers: bool = False):
         return wrapper
 
     try:
-        nn.Module.register_parameter = register_empty_parameter
+        nn.Module.register_parameter = register_empty_parameter  # type: ignore
         if include_buffers:
-            nn.Module.register_buffer = register_empty_buffer
+            nn.Module.register_buffer = register_empty_buffer  # type: ignore
         for torch_function_name in tensor_constructors_to_patch.keys():
             setattr(
                 torch, torch_function_name,
