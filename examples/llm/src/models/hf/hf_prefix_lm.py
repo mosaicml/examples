@@ -6,14 +6,14 @@
 from __future__ import annotations
 
 import torch
-from accelerate import init_empty_weights
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from omegaconf import DictConfig
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.llm.src.models.hf.model_wrapper import HuggingFaceModelWithZLoss
 from examples.llm.src.models.utils import (AutoTokenizerForMOD,
-                                           convert_hf_causal_lm_to_prefix_lm)
+                                           convert_hf_causal_lm_to_prefix_lm,
+                                           init_empty_weights)
 
 __all__ = ['ComposerHFPrefixLM']
 

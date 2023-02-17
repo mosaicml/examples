@@ -8,12 +8,12 @@
 
 from __future__ import annotations
 
-from accelerate import init_empty_weights
 from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from omegaconf import DictConfig
 from transformers import AutoConfig, AutoTokenizer, T5ForConditionalGeneration
 
 from examples.llm.src.models.hf.model_wrapper import HuggingFaceModelWithZLoss
+from examples.llm.src.models.utils import init_empty_weights
 
 __all__ = ['ComposerHFT5']
 

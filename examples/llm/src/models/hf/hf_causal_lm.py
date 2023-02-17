@@ -3,12 +3,12 @@
 
 """Implements a Hugging Causal LM wrapped inside a :class:`.ComposerModel`."""
 
-from accelerate import init_empty_weights
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from omegaconf import DictConfig
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.llm.src.models.hf.model_wrapper import HuggingFaceModelWithZLoss
+from examples.llm.src.models.utils import init_empty_weights
 
 __all__ = ['ComposerHFCausalLM']
 
