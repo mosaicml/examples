@@ -6,9 +6,10 @@ import time
 from typing import List
 
 import torch
+from composer.device import get_device
 from composer.loggers import InMemoryLogger, LoggerDestination
 from composer.trainer import Trainer
-from composer.utils import reproducibility
+from composer.utils import dist, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
 
     reproducibility.seed_all(cfg.get('seed', 1234))
+    dist.initialize_dist(get_device(None), 1800)
 
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
