@@ -75,36 +75,3 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
         #     composer_model.val_metrics[RougeWithDetokenizer.__name__] = rouge_metric
 
         return composer_model
-
-    # def get_targets(self, batch: dict):
-    #     targets = torch.roll(batch['labels'], shifts=-1)
-    #     targets[:, -1] = -100
-    #     return targets
-
-    # def forward(self, batch: dict):
-    #     input_ids = batch['input_ids']
-    #     attention_mask = batch['attention_mask'].bool(
-    #     ) if 'attention_mask' in batch else None
-    #     return self.model(input_ids=input_ids,
-    #                       attention_mask=attention_mask).logits
-
-    # def eval_forward(self, batch: dict, outputs: Optional[Tensor] = None):
-    #     return outputs if outputs is not None else self.forward(batch)
-
-    # def loss(self, outputs: Tensor, batch: dict):
-    #     targets = self.get_targets(batch)
-    #     return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
-    #                            targets.view(-1),
-    #                            ignore_index=-100)
-
-    # def update_metric(self, batch, outputs, metric) -> None:
-    #     if isinstance(metric, InContextLearningMetric):
-    #         if batch.get('mode', None) == 'icl_task':
-    #             # only apply ICL metrics to specially constructed
-    #             # icl_task batches
-    #             targets = self.get_targets(batch)
-    #             metric.update(batch, outputs, targets)
-    #     else:
-    #         outputs = outputs.view(-1, outputs.size(-1))
-    #         targets = self.get_targets(batch).view(-1)
-    #         metric.update(outputs, targets)
