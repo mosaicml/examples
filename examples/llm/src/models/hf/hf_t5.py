@@ -63,7 +63,7 @@ class ComposerHFT5(HuggingFaceModelWithZLoss):
                 model = T5ForConditionalGeneration.from_pretrained(
                     cfg.pretrained_model_name_or_path, config=config)
             else:
-                model = T5ForConditionalGeneration.from_config(config)
+                model = T5ForConditionalGeneration(config)
         elif init_device == 'meta':
             if cfg.pretrained:
                 raise ValueError(
