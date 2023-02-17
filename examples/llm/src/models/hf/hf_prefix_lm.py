@@ -132,8 +132,8 @@ class ComposerHFPrefixLM(HuggingFaceModelWithZLoss):
                     batch['bidirectional_mask'][i, continuation_indices] = 0
             elif 'labels' in batch:
                 batch['bidirectional_mask'] = torch.logical_and(
-                    torch.equal(batch['attention_mask'], 1),
-                    torch.equal(batch['labels'], _HF_IGNORE_INDEX),
+                    torch.eq(batch['attention_mask'], 1),
+                    torch.eq(batch['labels'], _HF_IGNORE_INDEX),
                 ).type_as(batch['attention_mask'])
             else:
                 raise KeyError(
