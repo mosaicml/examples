@@ -266,10 +266,10 @@ class GPTBlock(nn.Module):
         key_padding_mask: Optional[torch.ByteTensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        a = self.ln_1(x)
+        a = self.ln_1(x).to(x.dtype)
         b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
         x = x + self.resid_attn_dropout(b)
-        m = self.ln_2(x)
+        m = self.ln_2(x).to(x.dtype)
         n = self.mlp(m)
         x = x + self.resid_mlp_dropout(n)
         return x
