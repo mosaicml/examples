@@ -124,8 +124,7 @@ def build_icl_evaluators(cfg, tokenizer):
                 num_fewshot=num_fewshot,
                 prompt_string=icl_cfg.prompt_string,
                 example_delimiter=icl_cfg.example_delimiter,
-                continuation_delimiter=icl_cfg.continuation_delimiter,
-                destination_path=cfg.get('destination_path', 'icl_task.jsonl'))
+                continuation_delimiter=icl_cfg.continuation_delimiter)
             logger_keys.extend([f'metrics/{label}/{m}' for m in metric_names])
             evaluators.append(
                 Evaluator(label=label,
