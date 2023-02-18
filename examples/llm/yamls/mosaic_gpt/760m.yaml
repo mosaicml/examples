@@ -1,8 +1,9 @@
 data_local: ./my-copy-c4
-data_remote: null
+data_remote: s3://mosaicml-internal-dataset-c4/mds/2/
 tokenizer_name: gpt2
 max_seq_len: 2048
 global_seed: 17
+
 
 # Run Name
 run_name: gpt-760m
@@ -60,6 +61,44 @@ eval_loader:
   drop_last: false
   num_workers: 8
 
+icl_tasks:
+-
+  label: piqa
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/piqa.jsonl # ADD YOUR OWN DATASET URI
+  num_fewshot:
+  - 5
+  batch_size: 16
+  icl_task_type: multiple_choice
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  prompt_string: '' # this goes at the beginning of each input
+  example_delimiter: '\n' # this goes between fewshot examples
+  continuation_delimiter: ' ' # this separates questions from answers
+-
+  label: hellaswag
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/hellaswag.jsonl
+  num_fewshot:
+  - 5
+  batch_size: 8
+  icl_task_type: multiple_choice
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  prompt_string: '' # this goes at the beginning of each input
+  example_delimiter: '\n' # this goes between fewshot examples
+  continuation_delimiter: ' ' # this separates questions from answers
+-
+  label: lambada
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl
+  num_fewshot:
+  - 0
+  batch_size: 8
+  icl_task_type: language_modeling
+  metric_names:
+  - InContextLearningLMAccuracy
+  prompt_string: '' # this goes at the beginning of each input
+  example_delimiter: '\n' # this goes between fewshot examples
+  continuation_delimiter: ' ' # this separates contexts from continuations
+
 # Optimization
 scheduler:
   name: cosine_with_warmup
@@ -80,8 +119,8 @@ algorithms:
     clipping_type: norm
     clipping_threshold: 1.0
 
-max_duration: 29000ba # ~ 15.2B tokens
-eval_interval: 2000ba
+max_duration: 1000ba # ~ 500M tokens
+eval_interval: 1000ba
 eval_subset_num_batches: -1
 global_train_batch_size: 256
 
@@ -112,15 +151,18 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
 
-# loggers:
-#   wandb: {}
+loggers:
+  wandb:     # Uncomment and fill below arguments to use WandB logger
+    entity: mosaic-ml # Name of WandB entity, usually username or organization name
+    project: wandb-model-registry-demo # Name of WandB project
+    log_artifacts: True
 
 # Checkpoint to local filesystem or remote object store
-# save_interval: 2000ba
-# save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-# save_folder: ./{run_name}/checkpoints
+save_interval: 1000ba
+save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+save_folder: ./{run_name}/checkpoints
 # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
 # Load from local filesystem or remote object store
-# load_path: ./gpt-760m/checkpoints/latest-rank{rank}.pt
-# load_path: s3://my-bucket/my-folder/gpt-760m/checkpoints/latest-rank{rank}.pt
+# load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
+# load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
