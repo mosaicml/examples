@@ -2,7 +2,7 @@ data_local: ./my-copy-c4
 data_remote: s3://mosaicml-internal-dataset-c4/mds/2/
 tokenizer_name: gpt2
 max_seq_len: 2048
-global_seed: 17
+global_seed: 42
 
 # Run Name
 run_name: gpt-3b
