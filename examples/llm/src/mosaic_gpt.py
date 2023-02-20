@@ -18,6 +18,7 @@ from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from composer.utils import get_device, dist
+from einops import rearrange
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
 from tutel import moe as tutel_moe
@@ -95,26 +96,73 @@ class FlashCausalAttention(nn.Module):
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
         try:
-            from flash_attn.flash_attention import FlashMHA  # type: ignore
+            from flash_attn.flash_attention import (  # type: ignore
+                FlashAttention, FlashMHA)
         except ImportError as e:
             raise e
 
-        self.mhsa = FlashMHA(
-            embed_dim=cfg.d_model,
-            num_heads=cfg.n_heads,
-            attention_dropout=cfg.attn_pdrop,
-            bias=True,
-            batch_first=True,
-            causal=True,
-            device=device,
-        )
-        self.mhsa.out_proj._is_residual = True
+        self.attn_qk_ln = cfg.get('attn_qk_ln')
+        self.d_model = cfg.d_model
+        self.n_heads = cfg.n_heads
+
+        if self.attn_qk_ln:
+            self.W_qkv = nn.Linear(self.d_model,
+                                   3 * self.d_model,
+                                   bias=True,
+                                   device=device)
+            self.causal_attn = FlashAttention(attention_dropout=cfg.attn_pdrop,
+                                              device=device)
+            self.out_proj = nn.Linear(self.d_model,
+                                      self.d_model,
+                                      bias=True,
+                                      device=device)
+
+            self.out_proj._is_residual = True  # type: ignore
+
+            self.q_ln = nn.LayerNorm(self.d_model, device=device)
+            self.k_ln = nn.LayerNorm(self.d_model, device=device)
+        else:
+            self.mhsa = FlashMHA(
+                embed_dim=cfg.d_model,
+                num_heads=cfg.n_heads,
+                attention_dropout=cfg.attn_pdrop,
+                bias=True,
+                batch_first=True,
+                causal=True,
+                device=device,
+            )
+            self.mhsa.out_proj._is_residual = True
 
     def forward(self, x, key_padding_mask, attn_mask=None):
         assert attn_mask is None
-        return self.mhsa(x,
-                         key_padding_mask=key_padding_mask,
-                         need_weights=False)
+        if self.attn_qk_ln:
+            qkv = self.W_qkv(x)
+
+            # Applying layernorm to qk
+            dtype = qkv.dtype
+            q, k, v = qkv.split(self.d_model, dim=-1)
+            q = self.q_ln(q).to(dtype)
+            k = self.k_ln(k).to(dtype)
+            qkv = torch.cat([q, k, v], dim=-1)
+
+            # attention
+            qkv = rearrange(qkv,
+                            'b s (three h d) -> b s three h d',
+                            three=3,
+                            h=self.n_heads)
+
+            context, attn_weights = self.causal_attn(
+                qkv,
+                key_padding_mask=key_padding_mask,
+                causal=True,
+                need_weights=False)
+            return self.out_proj(rearrange(
+                context, 'b s h d -> b s (h d)')), attn_weights
+
+        else:
+            return self.mhsa(x,
+                             key_padding_mask=key_padding_mask,
+                             need_weights=False)
 
     @staticmethod
     def mask_shape(*args, **kwargs):
@@ -344,6 +392,11 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
+        if cfg.get('attn_qk_ln') and cfg.attn_impl != 'flash':
+            raise NotImplementedError(
+                'LayerNorm over queries and keys in attention is only implemented with flash attention.'
+            )
+
         self.alibi = cfg.get('alibi', False)
         self.alibi_bias_max = cfg.get('alibi_bias_max',
                                       8 if self.alibi else None)
@@ -502,10 +555,17 @@ class MosaicGPT(nn.Module):
                                     seq_len=S,
                                     key_padding_mask=key_padding_mask,
                                     dtype=x.dtype)
+        if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
+            # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
+            # in certain settings like MosaicGPT-7B. So we always provide a tensor.
+            # See https://github.com/mosaicml/examples/pull/163 for more details.
+            mod_key_padding_mask = torch.ones_like(input_ids, dtype=torch.bool)
+        elif self.cfg.attn_impl == 'triton':
+            mod_key_padding_mask = None
+        else:
+            mod_key_padding_mask = key_padding_mask
         for block in self.transformer.blocks:  # type: ignore
-            x = block(
-                x, None if self.cfg.attn_impl == 'triton' else key_padding_mask,
-                attn_mask)
+            x = block(x, mod_key_padding_mask, attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
