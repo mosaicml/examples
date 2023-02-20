@@ -17,17 +17,12 @@ import torch.nn.functional as F
 from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
-from composer.utils import get_device, dist
+from composer.utils import dist
 from einops import rearrange
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
-from tutel import moe as tutel_moe
-from tutel.impls.moe_layer import MOELayer
 from tutel.experts.ffn import FusedExpertsNetwork
-from tutel.gates.cosine_top import CosineTopKGate
-from tutel.gates.top import LinearTopKGate
-
-from examples.common.seed_ctx_manager import SeedContextManager
+from examples.llm.src.moe.tutel_moe import TutelMOE
 
 
 class TorchCausalAttention(nn.Module):
@@ -275,69 +270,6 @@ class GPTMLP(nn.Module):
         return self.mlp_down(self.mlp_act(self.mlp_up(x)))
 
 
-class GPTMLPMoE(nn.Module):
-
-    def __init__(self, cfg: DictConfig, block_idx: int, device: Optional[str] = None):
-        super().__init__()
-        dist.initialize_dist(get_device(None))
-        world_size = dist.get_world_size()
-        num_experts = cfg.moe.get('num_experts')
-        if isinstance(num_experts, ListConfig):
-            # enables pyramid moe
-            num_experts = num_experts[block_idx]
-        if num_experts >= world_size:
-            assert num_experts % world_size == 0
-            num_local_experts = num_experts // world_size
-        else:
-            assert world_size % num_experts == 0
-            num_local_experts = - world_size // num_experts
-
-        gate_type = {
-            'type': cfg.moe.get('gate_type', 'top'),
-            'k': cfg.moe.get('gate_k', 1),
-            'fp32_gate': cfg.moe.get('fp32_gate', True),
-            'device': device
-        }
-        if cfg.moe.get('capacity_factor', None) is not None:
-            gate_type['capacity_factor'] = cfg.moe.get('capacity_factor')
-        if cfg.moe.get('gate_noise', None) is not None:
-            gate_type['gate_noise'] = cfg.moe.get('gate_noise')
-
-        experts = {
-            'count_per_node': num_local_experts,
-            'type': cfg.moe.get('experts_type', 'ffn'),
-            'hidden_size_per_expert': cfg.mlp_ratio * cfg.d_model,
-            'activation_fn': lambda x: F.gelu(x, approximate='none')}
-
-        rank_seed = torch.initial_seed() + dist.get_global_rank()
-        gpu_devices = [torch.cuda.current_device()]
-        # guarentee init seeds are different for all devices
-        # SeedContextManager sets the given seed, then restore local seed on ctx mgr exit
-        with SeedContextManager(gpu_devices=gpu_devices, seed=rank_seed) as s_ctx_mgr:
-            self.moe = tutel_moe.moe_layer(
-                gate_type=gate_type,
-                model_dim=cfg.d_model,
-                experts=experts,
-                scan_expert_func=lambda name, param: setattr(param, 'moe_expert', True),
-                result_func=cfg.moe.get('result_func', None),
-                group=cfg.moe.get('group', None),
-                seeds=(rank_seed, rank_seed, rank_seed),
-                a2a_ffn_overlap_degree=cfg.moe.get('a2a_ffn_overlap_degree', 1),
-                is_postscore=cfg.moe.get('is_postscore', True),
-                batch_prioritized_routing=cfg.moe.get('batch_prioritized_routing', False),
-                normalize_gate=cfg.moe.get('normalize_gate', True),
-                is_gshard_loss=cfg.moe.get('is_gshard_loss', True),
-                parallel_type=cfg.moe.get('parallel_type', 'auto'),
-                use_2dh=cfg.moe.get('use_2dh', False),
-                device=device,
-            )
-
-        self.moe.experts.batched_fc2_w._is_residual = True  # type: ignore
-
-    def forward(self, x):
-        return self.moe(x)
-
-
 class GPTBlock(nn.Module):
     def __init__(self,
                  cfg: DictConfig,
@@ -358,7 +290,13 @@ class GPTBlock(nn.Module):
                 num_experts = num_experts[block_idx]
             use_moe = True if num_experts > 1 else False
 
-        self.mlp = GPTMLPMoE(cfg, block_idx, device=device) if use_moe else GPTMLP(cfg, device=device)
+            moe_type = cfg.moe.get('moe_type')
+            if moe_type == 'tutel':
+                MOE_CLS = TutelMOE
+            else:
+                raise NotImplementedError(f'{moe_type=} not integrated')
+
+        self.mlp = MOE_CLS(cfg, block_idx, device=device) if use_moe else GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 
@@ -448,6 +386,14 @@ class MosaicGPT(nn.Module):
                 'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
         else:
             self.attn_mask = None
+
+        self.MOE_CLS = None
+        if cfg.get('moe', None):
+            moe_type = cfg.moe.get('moe_type')
+            if moe_type == 'tutel':
+                self.MOE_CLS = TutelMOE
+            else:
+                raise NotImplementedError(f'{moe_type=} not integrated')
 
     def _check_apply_key_padding_mask(self, key_padding_mask):
         if key_padding_mask.bool().logical_not().any():
@@ -629,44 +575,21 @@ class MosaicGPT(nn.Module):
             if module.out_proj.bias is not None:
                 torch.nn.init.zeros_(module.out_proj.bias)
 
-        if isinstance(module, MOELayer):
-            # set buffer
-            local_expert = -module.sharded_count if module.sharded_count > 1 else module.num_local_experts
-            module._num_global_experts = torch.tensor(module.global_expert_count(local_expert, module.group))
-
-        if isinstance(module, FusedExpertsNetwork):
-            # guarentee init seeds are different for all devices
-            # SeedContextManager sets the given seed, then restore local when finished
-            rank_seed = torch.initial_seed() + dist.get_global_rank()
-            tensors = module.batched_fc1_w, module.batched_fc2_w
-            with SeedContextManager(*tensors, seed=rank_seed) as s_ctx_mgr:
-                if self.cfg.get('init_experts', False):
-                    # init fc1
-                    init_fn(module.batched_fc1_w)
-                    torch.nn.init.zeros_(module.batched_fc1_bias)
-
-                    # init fc2
-                    module.batched_fc2_w.data.normal_(
-                        mean=0.0,
-                        std=(self.cfg.init_std / math.sqrt(2 * self.cfg.n_layers)))
-                    torch.nn.init.zeros_(module.batched_fc2_bias)
-                else:
-                    module.reset_parameters()
-
-        if isinstance(module, CosineTopKGate):
-            # Linear handeled by nn.Linear
-            raise NotImplementedError('check init of buffers')
-
-        if isinstance(module, LinearTopKGate):
-            # Linear handeled by nn.Linear
-            pass
+        # add init for tutel moe
+        if self.MOE_CLS is not None:
+            # assumes MOE class defines param_init_fn (and needs cfg to init properly)
+            self.MOE_CLS.param_init_fn(module, self.cfg)
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
         if isinstance(module, GPTBlock):
             return True
+        
+        # extends FSDP wrapping to handel tutel moe
         if isinstance(module, FusedExpertsNetwork):
-            return {'process_group': torch.distributed.new_group(ranks=[dist.get_global_rank()])}
+            if self.MOE_CLS is None:
+                raise AttributeError('Internal logic error')
+            return {'process_group': self.MOE_CLS._moe_pg}
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
