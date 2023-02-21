@@ -64,7 +64,7 @@ class TutelMOE(BaseMoE):
         rank_seed = torch.initial_seed() + dist.get_global_rank()
         gpu_devices = [torch.cuda.current_device()]
         # guarentee init seeds are different for all devices
-        # SeedContextManager sets the given seed, then restore local seed on ctx mgr exit
+        # SeedContextManager sets the given seed, then restore local rng on ctx mgr exit
         with SeedContextManager(gpu_devices=gpu_devices,
                                 seed=rank_seed) as s_ctx_mgr:
             self.moe = tutel_moe.moe_layer(
@@ -100,7 +100,7 @@ class TutelMOE(BaseMoE):
 
         if isinstance(module, FusedExpertsNetwork):
             # guarentee init seeds are different for all devices
-            # SeedContextManager sets the given seed, then restore local when finished
+            # SeedContextManager sets the given seed, then restore local rng when finished
             rank_seed = torch.initial_seed() + dist.get_global_rank()
             tensors = module.batched_fc1_w, module.batched_fc2_w
             with SeedContextManager(*tensors, seed=rank_seed) as s_ctx_mgr:
