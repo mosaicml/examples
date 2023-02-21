@@ -150,6 +150,6 @@ class LossSpikeDetectionCallback(Callback):
         is_loss_spike = self.insert_observation(loss, batch_idx)
         if is_loss_spike:
             logger.log_metrics({'loss_spike': batch_idx})
-            print(f"Found loss spike starting @ {batch_idx-self.loss_plateau_min_duration}, killing run.")
+            print(f"Found loss spike starting @ {batch_idx-self.plateau_min_duration}, killing run.")
             state.stop_training()
 
