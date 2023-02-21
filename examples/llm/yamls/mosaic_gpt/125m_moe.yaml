@@ -22,6 +22,7 @@ model:
     l_aux_wt: 0.01
     a2a_ffn_overlap_degree: 2
     use_2dh: true
+    fp32_gate: true
     capacity_factor: 1
     gate_noise: 0.01
     init_experts: true
