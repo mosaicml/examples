@@ -7,8 +7,20 @@ from torch.distributed import new_group
 
 
 class BaseMoE(nn.Module):
-    # attach moe process group to class so that all ranks have one process group
-    # instead of needing to init as many process grups as moe layers
+    """Abstract class for integrating different MoE implemtations into
+    MosaicGPT.
+
+    MoE experts are only su=ynced within their own process group but the dist
+    process group can be shared across MoE layers. _moe_pg being a class atribute
+    enables a single dist process group to be shared for all MoE layers.
+
+    param_init_fn enables MosaicGPT to be initialized using `meta` parameters
+
+    param_count allows helps MosaicGPT count parameters across experts
+
+    active_param_count enables MosaicGPT to count per token FLOPs by counting
+    paramters activated in forward pass
+    """
     _moe_pg = None
 
     def __init__(self):

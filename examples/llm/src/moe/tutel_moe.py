@@ -21,6 +21,7 @@ from examples.llm.src.moe.base_moe import BaseMoE
 
 
 class TutelMOE(BaseMoE):
+    """Wrap and configure tutel.moe."""
 
     def __init__(self,
                  cfg: DictConfig,
