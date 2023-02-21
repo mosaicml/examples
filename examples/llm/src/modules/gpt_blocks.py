@@ -1,13 +1,12 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""
-Attention blocks used in GPT model.
-"""
+"""Attention blocks used in GPT model."""
+
+from typing import Optional
 
 import torch
 import torch.nn as nn
-from typing import Optional
 from omegaconf import DictConfig
 
 
