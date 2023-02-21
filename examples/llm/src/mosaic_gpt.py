@@ -22,6 +22,7 @@ from einops import rearrange
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
 from tutel.experts.ffn import FusedExpertsNetwork
+
 from examples.llm.src.moe.tutel_moe import TutelMOE
 
 
@@ -271,6 +272,7 @@ class GPTMLP(nn.Module):
 
 
 class GPTBlock(nn.Module):
+
     def __init__(self,
                  cfg: DictConfig,
                  causal_attn_cls,
@@ -290,13 +292,17 @@ class GPTBlock(nn.Module):
                 num_experts = num_experts[block_idx]
             use_moe = True if num_experts > 1 else False
 
+        self.mlp = None
+        if use_moe:
             moe_type = cfg.moe.get('moe_type')
+            MOE_CLS = None
             if moe_type == 'tutel':
                 MOE_CLS = TutelMOE
             else:
                 raise NotImplementedError(f'{moe_type=} not integrated')
-
-        self.mlp = MOE_CLS(cfg, block_idx, device=device) if use_moe else GPTMLP(cfg, device=device)
+            self.mlp = MOE_CLS(cfg, block_idx, device=device)
+        else:
+            self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 
@@ -584,7 +590,7 @@ class MosaicGPT(nn.Module):
     def fsdp_wrap_fn(self, module):
         if isinstance(module, GPTBlock):
             return True
-        
+
         # extends FSDP wrapping to handel tutel moe
         if isinstance(module, FusedExpertsNetwork):
             if self.MOE_CLS is None:
@@ -687,7 +693,8 @@ class ComposerMosaicGPT(ComposerModel):
             return self.__num_fwd_flops
 
         if self.model.MOE_CLS is not None:
-            n_active_params = self.model.MOE_CLS.active_param_count(self, use_capacity_fac=True)
+            n_active_params = self.model.MOE_CLS.active_param_count(
+                self, use_capacity_fac=True)
         else:
             n_active_params = self.param_count
 

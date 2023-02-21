@@ -1,12 +1,18 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 from typing import List, Tuple
 
 import torch
 from torch.utils.checkpoint import set_device_states
 
 
-def get_device_states(*tensors, gpu_devices=[]) -> Tuple[List[int], List[torch.Tensor]]:
-    fwd_gpu_devices = list(tensor.get_device() for tensor in tensors
-                            if isinstance(tensor, torch.Tensor) and tensor.is_cuda)
+def get_device_states(*tensors,
+                      gpu_devices=[]) -> Tuple[List[int], List[torch.Tensor]]:
+    fwd_gpu_devices = list(
+        tensor.get_device()
+        for tensor in tensors
+        if isinstance(tensor, torch.Tensor) and tensor.is_cuda)
     fwd_gpu_devices = list(set(gpu_devices + fwd_gpu_devices))
 
     fwd_gpu_states = []
@@ -18,6 +24,7 @@ def get_device_states(*tensors, gpu_devices=[]) -> Tuple[List[int], List[torch.T
 
 
 class SeedContextManager:
+
     def __init__(self, *tensors, gpu_devices=[], seed=None):
         self.seed = seed
         self.gpu_devices = gpu_devices
@@ -33,7 +40,7 @@ class SeedContextManager:
         # cache rng state for gpu devices
         if torch.cuda.is_initialized():
             self.fwd_gpu_devices, self.gpu_rng_states = get_device_states(
-                 *self.tensors, gpu_devices=self.gpu_devices)
+                *self.tensors, gpu_devices=self.gpu_devices)
 
         # set seed
         if self.seed:

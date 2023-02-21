@@ -1,6 +1,9 @@
-import torch
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 import torch.nn as nn
-from composer.utils import get_device, dist
+from composer.utils import dist, get_device
+from torch.distributed import new_group
 
 
 class BaseMoE(nn.Module):
@@ -18,7 +21,7 @@ class BaseMoE(nn.Module):
             # MOE Class init current rank process group instead of initializing a pg
             # for every moe layer
             # can be overridden in GPT model if needed
-            BaseMoE._moe_pg = torch.distributed.new_group(ranks=[dist.get_global_rank()])
+            BaseMoE._moe_pg = new_group(ranks=[dist.get_global_rank()])
 
         self.moe = None
 
