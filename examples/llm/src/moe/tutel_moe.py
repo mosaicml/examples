@@ -1,12 +1,11 @@
 import math
-from functools import partial
+import warnings
 from typing import Optional
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
-from composer.utils import get_device, dist
+from composer.utils import dist
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
 
@@ -16,25 +15,14 @@ from tutel.experts.ffn import FusedExpertsNetwork
 from tutel.gates.top import LinearTopKGate
 from tutel.gates.cosine_top import CosineTopKGate
 
+from examples.llm.src.moe.base_moe import BaseMoE
 from examples.common.seed_ctx_manager import SeedContextManager
 
 
-class TutelMOE(nn.Module):
-    # attach moe process group to class so that all ranks have one process group
-    # instead of needing to init as many process grups as moe layers
-    _moe_pg = None
+class TutelMOE(BaseMoE):
 
     def __init__(self, cfg: DictConfig, block_idx: int, device: Optional[str] = None):
         super().__init__()
-        if not dist.is_initialized():
-            # initialize dist so we can access world size and global rank
-            dist.initialize_dist(get_device(None))
-
-        if TutelMOE._moe_pg is None:
-            # MOE Class init current rank process group instead of initializing a pg
-            # for every moe layer
-            # can be overridden in GPT model if needed
-            TutelMOE._moe_pg = torch.distributed.new_group(ranks=[dist.get_global_rank()])
 
         world_size = dist.get_world_size()
 
@@ -130,5 +118,39 @@ class TutelMOE(nn.Module):
             # Linear handeled by nn.Linear
             raise NotImplementedError('Implement init of buffers')
 
-    def forward(self, x):
-        return self.moe(x)
+    @classmethod
+    def param_count(cls, parent_module):
+        # expert aware param count
+        n_params_experts = 0
+        for n, m in parent_module.named_modules():
+            # pretty bad way to identify MoE layer, but it is what it is...
+            if n[-len('.moe'):] == '.moe':
+                _n_params_expert = sum(p.numel() for _n, p in m.named_parameters() if 'expert' in _n)
+                n_params_experts += _n_params_expert // m.num_local_experts * m.sharded_count * m.num_global_experts
+
+        n_params_other = sum(p.numel() for n, p in parent_module.named_parameters() if 'expert' not in n)
+        print(f'{n_params_other=}; {n_params_experts=}')
+        return n_params_other + n_params_experts
+
+    @classmethod
+    def active_param_count(cls, parent_module, use_capacity_fac=False):
+        # num params active in fwd pass
+        n_params_expert = 0
+        for n, m in parent_module.named_modules():
+            # pretty bad way to identify MoE layer, but it is what it is...
+            if n[-len('.moe'):] == '.moe':
+                _n_params_expert = sum(p.numel() for _n, p in m.named_parameters() if 'expert' in _n)
+                _n_params_expert = _n_params_expert // m.num_local_experts * m.sharded_count
+                if use_capacity_fac:
+                    warnings.warn(
+                        f'use_capacity_fac is enabled to mimic training worse case active param count ' +\
+                        f'set use_capacity_fac to show inference active param count.'
+                    )
+                    # FLOPs used by each MoE is multiplied by "capacity_factor"
+                    # if active param count is being used to calculate FLOPs we emulate this by
+                    # multiplying capcity factor here
+                    # assumes we use a single gate
+                    _n_params_expert *= abs(m.gates[0].capacity_factor)
+                n_params_expert += _n_params_expert
+        n_params_other = sum(p.numel() for n, p in parent_module.named_parameters() if 'expert' not in n)
+        return n_params_other + n_params_expert

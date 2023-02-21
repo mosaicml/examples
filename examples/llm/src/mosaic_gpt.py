@@ -667,20 +667,13 @@ class ComposerMosaicGPT(ComposerModel):
 
     @property
     def param_count(self):
+        # fn is based on param count on current GPU and is invalid if the model has already been sharded
+        # ie run this must be ran before FSDP sharding with result cached in self.__param_count if needed later
         if self.__param_count:
             return self.__param_count
 
-        if self.model.cfg.get('moe', None) is not None:
-            n_params_experts = 0
-            for n, m in self.named_modules():
-                # pretty bad way to identify MoE layer, but it is what it is...
-                if n[-len('.moe'):] == '.moe':
-                    _n_params_expert = sum(p.numel() for _n, p in m.named_parameters() if 'expert' in _n)
-                    n_params_experts += _n_params_expert // m.num_local_experts * m.sharded_count * m.num_global_experts
-
-            n_params_other = sum(p.numel() for n, p in self.named_parameters() if 'expert' not in n)
-            print(f'{n_params_other=}; {n_params_experts=}')
-            self.__param_count = n_params_other + n_params_experts
+        if self.model.MOE_CLS is not None:
+            self.__param_count = self.model.MOE_CLS.param_count(self)
         else:
             self.__param_count = sum(p.numel() for p in self.parameters())
 
@@ -688,18 +681,13 @@ class ComposerMosaicGPT(ComposerModel):
 
     @property
     def num_fwd_flops(self):
+        # fn is based on param count on current GPU and is invalid if the model has already been sharded
+        # ie run this must be ran before FSDP sharding with result cached in self.__num_fwd_flops if needed later
         if self.__num_fwd_flops:
             return self.__num_fwd_flops
 
-        if self.model.cfg.get('moe', None) is not None:
-            n_params_expert = 0
-            for n, m in self.named_modules():
-                # pretty bad way to identify MoE layer, but it is what it is...
-                if n[-len('.moe'):] == '.moe':
-                    _n_params_expert = sum(p.numel() for _n, p in m.named_parameters() if 'expert' in _n)
-                    n_params_expert += _n_params_expert // m.num_local_experts * m.sharded_count
-            n_params_other = sum(p.numel() for n, p in self.named_parameters() if 'expert' not in n)
-            n_active_params = n_params_other + n_params_expert
+        if self.model.MOE_CLS is not None:
+            n_active_params = self.model.MOE_CLS.active_param_count(self, use_capacity_fac=True)
         else:
             n_active_params = self.param_count
 
