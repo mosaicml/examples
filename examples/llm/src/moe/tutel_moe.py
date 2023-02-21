@@ -169,3 +169,6 @@ class TutelMOE(BaseMoE):
                              for n, p in parent_module.named_parameters()
                              if 'expert' not in n)
         return n_params_other + n_params_expert
+
+    def forward(self, x):
+        return self.moe(x)

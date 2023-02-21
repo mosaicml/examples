@@ -48,6 +48,3 @@ class BaseMoE(nn.Module):
     @classmethod
     def active_param_count(cls, parent_module, use_capacity_fac=False):
         raise NotImplementedError(f'')
-
-    def forward(self, x):
-        return self.moe(x)
