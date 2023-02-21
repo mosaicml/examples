@@ -26,7 +26,10 @@ def get_device_states(*tensors,
 
 
 class SeedContextManager:
-    """On enter SeedContextManager caches rng state and sets it on exit."""
+    """Upon entering, SeedContextManager caches rng state and re-sets it on exit.
+    
+    Useful for initializing layers that need different rngs on different devices
+    """
 
     def __init__(self, *tensors, gpu_devices=[], seed=None):
         self.seed = seed
