@@ -17,7 +17,6 @@ import torch.nn.functional as F
 from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
-from composer.utils import dist
 from einops import rearrange
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
@@ -376,6 +375,14 @@ class MosaicGPT(nn.Module):
         self.transformer.update(
             {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
+        self.MOE_CLS = None
+        if cfg.get('moe', None):
+            moe_type = cfg.moe.get('moe_type')
+            if moe_type == 'tutel':
+                self.MOE_CLS = TutelMOE
+            else:
+                raise NotImplementedError(f'{moe_type=} not integrated')
+
         if cfg.init_device != 'meta':
             print(
                 f'You are using {cfg.init_device=}, but you can also use cfg.init_device="meta" with Composer + FSDP for fast initialization.'
@@ -392,14 +399,6 @@ class MosaicGPT(nn.Module):
                 'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
         else:
             self.attn_mask = None
-
-        self.MOE_CLS = None
-        if cfg.get('moe', None):
-            moe_type = cfg.moe.get('moe_type')
-            if moe_type == 'tutel':
-                self.MOE_CLS = TutelMOE
-            else:
-                raise NotImplementedError(f'{moe_type=} not integrated')
 
     def _check_apply_key_padding_mask(self, key_padding_mask):
         if key_padding_mask.bool().logical_not().any():
