@@ -6,7 +6,6 @@
 import logging
 import random
 import sys
-from itertools import islice
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 
 import numpy as np
@@ -283,17 +282,21 @@ def noise_token_sequence(
     # (where a single span at the end of the sequence is masked)
     if mean_span_length is None:
         # This ensures that exactly 1 span will be produced and that
-        # trimming to max_seq_length won't cut off the sentinel and <EOS>
+        # trimming to max_seq_length won't cut off any <EOS> token.
+        # In the decoder-only case, this won't insert new tokens.
+        n_special_toks = 0 if decoder_only_format else 0
         min_span_length = np.maximum(
-            1, length + len(prefix_tokens) + 2 - max_seq_length)
+            1, length + len(prefix_tokens) + n_special_toks - max_seq_length)
         max_span_length = np.maximum(
             min_span_length, np.minimum(length - 1, 2 * mask_ratio * length))
         mean_span_length = np.floor(
             np.random.uniform(low=min_span_length, high=max_span_length))
         mask_ratio = mean_span_length / length
         use_sentinels = False
+        ensure_input_eos = False if decoder_only_format else True
     else:
         use_sentinels = True
+        ensure_input_eos = True
 
     # Generate the mask
     # Note: this function can be used for all the UL2 noising functions
@@ -303,10 +306,18 @@ def noise_token_sequence(
 
     # Generate the input/label sequences given the raw tokens and the mask
     sentinel_token_ids = np.array(sentinel_token_ids)
-    tokens_inputs = _apply_mask(tokens, mask, use_sentinels,
-                                tokenizer.eos_token_id, sentinel_token_ids)
-    tokens_labels = _apply_mask(tokens, 1 - mask, use_sentinels,
-                                tokenizer.eos_token_id, sentinel_token_ids)
+    tokens_inputs = _apply_mask(tokens,
+                                mask,
+                                use_sentinels,
+                                tokenizer.eos_token_id,
+                                sentinel_token_ids,
+                                ensure_eos=ensure_input_eos)
+    tokens_labels = _apply_mask(tokens,
+                                1 - mask,
+                                use_sentinels,
+                                tokenizer.eos_token_id,
+                                sentinel_token_ids,
+                                ensure_eos=True)
 
     # Tag the inputs with any prefix
     if prefix_tokens:
@@ -381,16 +392,19 @@ def _sample_mask_array(length: int, mask_ratio: float,
     return mask
 
 
-def _apply_mask(tokens: Sequence[int], mask: np.ndarray, use_sentinels: bool,
+def _apply_mask(tokens: Sequence[int],
+                mask: np.ndarray,
+                use_sentinels: bool,
                 eos_token_id: int,
-                sentinel_token_ids: np.ndarray) -> np.ndarray:
+                sentinel_token_ids: np.ndarray,
+                ensure_eos: bool = True) -> np.ndarray:
     """Remove or replace masked portions from token sequence."""
     if not use_sentinels:
         # The logic is simple if we don't use sentinel tokens
         noised_tokens = np.array(tokens)[np.logical_not(mask)]
 
         # Ensure there's an end-of-sentence token at the end
-        if noised_tokens[-1] != eos_token_id:
+        if ensure_eos and (noised_tokens[-1] != eos_token_id):
             noised_tokens = np.concatenate([noised_tokens, [eos_token_id]])
 
         return noised_tokens
@@ -413,7 +427,7 @@ def _apply_mask(tokens: Sequence[int], mask: np.ndarray, use_sentinels: bool,
     noised_tokens = tokens[np.logical_not(nonstart_noise_span_token)]
 
     # Ensure there's an end-of-sentence token at the end
-    if noised_tokens[-1] != eos_token_id:
+    if ensure_eos and (noised_tokens[-1] != eos_token_id):
         noised_tokens = np.concatenate([noised_tokens, [eos_token_id]])
     return noised_tokens
 
@@ -500,7 +514,7 @@ def _format_tokens_for_decoder_only(
 
 
 # Helpful to test if your dataloader is working locally
-# Run `python data.py [remote] [local, optional]` and verify that batches
+# Run `python data_denoising.py [remote] [local, optional]` and verify that batches
 # are printed out
 if __name__ == '__main__':
     remote = sys.argv[1]
@@ -519,27 +533,46 @@ if __name__ == '__main__':
             'shuffle': False,
             'tokenizer_name': 't5-base',
             'max_seq_len': 128,
-            'group_method': 'concat',
+            'group_method': 'truncate',
             'keep_zip': True,  # in case we need compressed files after testing
         },
+        'mixture_of_denoisers': {
+            'decoder_only_format': False,
+            'span_mean_lengths_and_ratios': [[3, .15], [8, .5]],
+            'sequence_mask_ratios': 0.25,
+        },
         'drop_last': False,
-        'num_workers': 4,
+        'num_workers': 0,
     }
     cfg = om.create(cfg)
     device_batch_size = 2
 
     loader = build_text_denoising_dataloader(cfg, device_batch_size)
     tokenizer = loader.dataset.tokenizer
-    for batch_ix, batch in enumerate(islice(loader, 5)):
+    batch_ix = 0
+    for batch in loader:
         print('\n')
         print('#' * 20, f'Batch {batch_ix}', '#' * 20)
         for k, v in batch.items():
             print(k, v.shape, v.dtype)
         for sample_ix, token_sample in enumerate(batch['input_ids']):
-            labels = batch['labels'][sample_ix]
-            attn_inputs = batch['attention_mask'][sample_ix].to(torch.bool)
-            attn_labels = batch['decoder_attention_mask'][sample_ix].to(
-                torch.bool)
-            print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
-            print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
-            print('Target: ', tokenizer.decode(labels[attn_labels]))
+            if cfg.mixture_of_denoisers.decoder_only_format:
+                labels = batch['labels'][sample_ix]
+                attn_inputs = batch['bidirectional_mask'][sample_ix].to(
+                    torch.bool)
+                attn_full = batch['attention_mask'][sample_ix].to(torch.bool)
+                attn_labels = torch.logical_xor(attn_inputs, attn_full)
+                print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
+                print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
+                print('Target: ', tokenizer.decode(labels[attn_labels]))
+            else:
+                labels = batch['labels'][sample_ix]
+                attn_inputs = batch['attention_mask'][sample_ix].to(torch.bool)
+                attn_labels = batch['decoder_attention_mask'][sample_ix].to(
+                    torch.bool)
+                print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
+                print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
+                print('Target: ', tokenizer.decode(labels[attn_labels]))
+        batch_ix += 1
+        if batch_ix >= 5:
+            break
