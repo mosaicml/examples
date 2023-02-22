@@ -82,7 +82,7 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
             if batch.get('mode', None) == 'icl_task':
                 # only apply ICL metrics to specially constructed
                 # icl_task batches
-                metric.update(batch, outputs, self.labels)
+                metric.update(batch, outputs, self.labels)  # type: ignore
         else:
             outputs = outputs.view(-1, outputs.size(-1))
-            metric.update(outputs, self.labels.view(-1))
+            metric.update(outputs, self.labels.view(-1))  # type: ignore
