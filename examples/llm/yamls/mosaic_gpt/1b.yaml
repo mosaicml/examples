@@ -149,6 +149,7 @@ callbacks:
     window_size: 10
   lr_monitor: {}
   memory_monitor: {}
+  optimizer_monitor: {}  
 
 loggers:
   wandb:     # Uncomment and fill below arguments to use WandB logger
