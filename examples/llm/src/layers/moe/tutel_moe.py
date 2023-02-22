@@ -17,7 +17,7 @@ from tutel.gates.top import LinearTopKGate
 from tutel.impls.moe_layer import MOELayer
 
 from examples.common.seed_ctx_manager import SeedContextManager
-from examples.llm.src.moe.base_moe import BaseMoE
+from examples.llm.src.layers.moe.base_moe import BaseMoE
 
 
 class TutelMOE(BaseMoE):
