@@ -98,10 +98,6 @@ class ComposerHFPrefixLM(HuggingFaceModelWithZLoss):
         # Convert the Causal LM into a Prefix LM via our custom wrapper
         model = convert_hf_causal_lm_to_prefix_lm(model)
 
-        # Expand the embeddings/vocab size to match the tokenizer
-        if model.config.vocab_size != vocab_size:
-            model.resize_token_embeddings(new_num_tokens=vocab_size)
-
         metrics = [
             LanguageCrossEntropy(vocab_size=vocab_size,
                                  ignore_index=_HF_IGNORE_INDEX),
@@ -130,7 +126,7 @@ class ComposerHFPrefixLM(HuggingFaceModelWithZLoss):
                 for i, continuation_indices in enumerate(
                         batch['continuation_indices']):
                     batch['bidirectional_mask'][i, continuation_indices] = 0
-            elif 'labels' in batch:
+            elif ('labels' in batch) and ('attention_mask' in batch):
                 batch['bidirectional_mask'] = torch.logical_and(
                     torch.eq(batch['attention_mask'], 1),
                     torch.eq(batch['labels'], _HF_IGNORE_INDEX),

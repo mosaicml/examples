@@ -3,7 +3,8 @@
 
 """Implements a Hugging Causal LM wrapped inside a :class:`.ComposerModel`."""
 
-from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
+from composer.metrics.nlp import (InContextLearningMetric, LanguageCrossEntropy,
+                                  Perplexity)
 from omegaconf import DictConfig
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -75,3 +76,13 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
         #     composer_model.val_metrics[RougeWithDetokenizer.__name__] = rouge_metric
 
         return composer_model
+
+    def update_metric(self, batch, outputs, metric) -> None:
+        if isinstance(metric, InContextLearningMetric):
+            if batch.get('mode', None) == 'icl_task':
+                # only apply ICL metrics to specially constructed
+                # icl_task batches
+                metric.update(batch, outputs, self.labels)
+        else:
+            outputs = outputs.view(-1, outputs.size(-1))
+            metric.update(outputs, self.labels.view(-1))

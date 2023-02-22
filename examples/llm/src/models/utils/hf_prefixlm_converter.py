@@ -159,6 +159,11 @@ def _convert_gpt_causal_lm_to_prefix_lm(
         # Note: all attn_modules.bias have the same size
         b, s = bidirectional_mask.shape
         max_length = attn_modules[0].bias.shape[-1]  # type: ignore
+        if s > max_length:
+            raise ValueError(
+                f'bidirectional_mask sequence length (={s}) exceeds the ' +\
+                f'max length allowed by the model ({max_length}).'
+            )
         assert s <= max_length
         if s < max_length:
             pad = torch.zeros((int(b), int(max_length - s)),
@@ -845,13 +850,6 @@ def convert_hf_causal_lm_to_prefix_lm(
     `_original_generate`, and replaced with new `forward` and `generate` methods that wrap
     them, respectively. Although implementation details vary by model class.
     """
-    if not isinstance(model, _SUPPORTED_HF_MODELS):
-        raise TypeError(
-            f'Cannot convert model to Prefix LM. ' +\
-            f'Model does not belong to set of supported HF models:' +\
-            f'\n{_SUPPORTED_HF_MODELS}'
-        )
-
     if isinstance(model, _SUPPORTED_GPT_MODELS):
         return _convert_gpt_causal_lm_to_prefix_lm(model)
 
@@ -862,4 +860,8 @@ def convert_hf_causal_lm_to_prefix_lm(
         return _convert_opt_causal_lm_to_prefix_lm(model)
 
     else:
-        raise NotImplementedError
+        raise TypeError(
+            f'Cannot convert model to Prefix LM. ' +\
+            f'Model does not belong to set of supported HF models:' +\
+            f'\n{_SUPPORTED_HF_MODELS}'
+        )

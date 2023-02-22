@@ -75,10 +75,6 @@ class ComposerHFT5(HuggingFaceModelWithZLoss):
             raise ValueError(
                 f'init_device="{init_device}" must be either "cpu" or "meta".')
 
-        # Expand the embeddings/vocab size to match the tokenizer
-        if model.config.vocab_size != vocab_size:
-            model.resize_token_embeddings(new_num_tokens=vocab_size)
-
         metrics = [
             LanguageCrossEntropy(vocab_size=vocab_size,
                                  ignore_index=_HF_IGNORE_INDEX),

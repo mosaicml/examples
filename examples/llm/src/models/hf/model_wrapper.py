@@ -29,6 +29,12 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
     This adds z-loss, which is used in some training contexts,
     and is a convenient way to patch features that are generically
     useful for HF models.
+    See use of z_loss in PaLM: https://arxiv.org/abs/2204.02311v3, Section 5.
+    Also, from https://github.com/tensorflow/mesh/blob/fa19d69eafc9a482aff0b59ddd96b025c0cb207d/mesh_tensorflow/layers.py#L666:
+        Two uses of z_loss are:
+        - To keep the logits from drifting too far from zero, which can cause
+            unacceptable roundoff errors in bfloat16.
+        - To encourage the logits to be normalized log-probabilities.
 
     Handles preparation for FSDP wrapping.
     """
@@ -42,7 +48,8 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
                  z_loss: float = 0.0):
         super().__init__(model, tokenizer, use_logits=True, metrics=metrics)
         self.z_loss = float(z_loss)
-        assert self.z_loss >= 0.0
+        if self.z_loss < 0.0:
+            raise ValueError(f'z_loss(={z_loss}) cannot be negative.')
 
         self.model_forward_args = inspect.getfullargspec(
             self.model.forward).args
