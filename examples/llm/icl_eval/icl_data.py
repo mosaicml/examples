@@ -31,7 +31,7 @@ if __name__ == "__main__":
             task_set = "val"  # Required for caching in the decontamination
             task_doc_func = task.validation_docs
 
-        with open(f"datasets/{task_name}.jsonl", "w") as f:
+        with open(f"{task_name}.jsonl", "w") as f:
             for row in task_doc_func():
                 row = PREP[task_name](row)
                 f.write(json.dumps(row) + '\n')
