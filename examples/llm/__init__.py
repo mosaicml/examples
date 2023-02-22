@@ -9,11 +9,11 @@ try:
                                                    TritonFlashCausalAttention,
                                                    alibi_bias)
     from examples.llm.src.layers.flash_attention import FlashAttention, FlashMHA
+    from examples.llm.src.layers.gpt_blocks import GPTMLP, GPTBlock
     from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
     from examples.llm.src.models.hf import (ComposerHFCausalLM,
                                             ComposerHFPrefixLM, ComposerHFT5)
-    from examples.llm.src.models.mosaic_gpt import (GPTMLP, ComposerMosaicGPT,
-                                                    GPTBlock, MosaicGPT)
+    from examples.llm.src.models.mosaic_gpt import ComposerMosaicGPT, MosaicGPT
     from examples.llm.src.tokenizer import (TOKENIZER_REGISTRY, HFTokenizer,
                                             LLMTokenizer)
 except ImportError as e:
