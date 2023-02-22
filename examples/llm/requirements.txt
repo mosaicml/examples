@@ -10,4 +10,3 @@ transformers==4.25.1
 omegaconf==2.2.3
 wandb==0.13.4
 pytest>=7.2.1,<8
-lion-pytorch==0.0.6
