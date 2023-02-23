@@ -15,12 +15,12 @@ To get started, either clone or fork this repo and install whichever example\[s\
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
-cd examples
+cd examples # cd into the repo
 pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
-cd examples/llm
+cd examples/llm # cd into the specific example's folder
 ```
 
-Available examples include `bert`, `cifar`, `llm`, `resnet`, `deeplab`, and `nemo`.
+Available examples include `llm`, `stable-diffusion`, `resnet-imagenet`, `resnet-cifar`, `bert`, `deeplab`, and `nemo`.
 
 ## Extending an example
 
@@ -54,7 +54,7 @@ If you run into any issues extending the code, or just want to discuss an idea y
 If you already have the dependencies for a given example installed, you can just run:
 ```bash
 pre-commit run --all-files  # autoformatting for whole repo
-cd examples/llm  # or bert, resnet, etc
+cd examples/llm  # or bert, resnet_imagenet, etc
 pyright .  # type checking
 pytest tests/  # run tests
 ```
@@ -91,7 +91,7 @@ This repo features the following examples, each as their own subdirectory:
 
 Train the [MosaicML ResNet](https://www.mosaicml.com/blog/mosaic-resnet), which is currently the [fastest ResNet50 implementation there is](https://www.mosaicml.com/blog/mlperf-2022) and yields a :sparkles: 7x :sparkles: faster time-to-train than a strong baseline.
 
-:rocket: Get started with the code [here](./examples/resnet/).
+:rocket: Get started with the code [here](./examples/resnet_imagenet/).
 
 
 ## DeepLabV3 + ADE20k

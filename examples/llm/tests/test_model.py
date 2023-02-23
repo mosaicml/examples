@@ -14,8 +14,8 @@ from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
-from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
-from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
+from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
+                          ComposerHFCausalLM, ComposerHFPrefixLM)
 
 
 def get_config(conf_path='yamls/mosaic_gpt/testing.yaml') -> DictConfig:
@@ -49,7 +49,7 @@ def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
     test_cfg.model.attn_impl = 'torch'
     # device = 'cuda'
     # test_cfg.precision = 'amp'
-    test_cfg.model.device = device
+    test_cfg.model.init_device = device
     test_cfg.device = device
 
     test_cfg.global_train_batch_size = 2
@@ -69,7 +69,7 @@ def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
 
 
 def gen_random_batch(batch_size, test_cfg):
-    # generate input batch of random data
+    # generate input batch of random data, suitable for a Causal or Prefix LM
     batch = {}
     batch['input_ids'] = torch.randint(
         low=0,
@@ -82,6 +82,26 @@ def gen_random_batch(batch_size, test_cfg):
     batch['attention_mask'] = torch.ones(size=(batch_size,
                                                test_cfg.max_seq_len),
                                          dtype=torch.int64).to(test_cfg.device)
+    batch['bidirectional_mask'] = batch['attention_mask'].clone()
+    batch['bidirectional_mask'][:, (test_cfg.max_seq_len // 2):] = 0
+    return batch
+
+
+def gen_random_enc_dec_batch(batch_size, vocab_size, max_seq_len, device):
+    # generate input batch of random data, suitable for a T5
+    batch = {}
+    batch['input_ids'] = torch.randint(low=0,
+                                       high=vocab_size,
+                                       size=(batch_size,
+                                             max_seq_len)).to(device)
+    batch['labels'] = torch.randint(low=0,
+                                    high=vocab_size,
+                                    size=(batch_size, max_seq_len)).to(device)
+    batch['decoder_input_ids'] = torch.zeros_like(batch['labels'])
+    batch['decoder_input_ids'][:, 1:] = batch['labels'][:, :-1]
+    batch['attention_mask'] = torch.ones(size=(batch_size, max_seq_len),
+                                         dtype=torch.int64).to(device)
+    batch['decoder_attention_mask'] = batch['attention_mask'].clone()
     return batch
 
 
@@ -155,7 +175,8 @@ def test_attention_mechanism(batch_size=2):
         x = x + block.resid_mlp_dropout(n)
 
 
-def test_full_forward_and_backward_gpt2_small(batch_size=2):
+@pytest.mark.parametrize('prefixlm', [False, True])
+def test_full_forward_and_backward_gpt2_small(prefixlm, batch_size=2):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
@@ -165,6 +186,12 @@ def test_full_forward_and_backward_gpt2_small(batch_size=2):
 
     device = 'cpu'
     neo_cfg.device = device
+    neo_cfg.max_seq_len = 1024
+
+    if prefixlm:
+        neo_cfg.model.name = 'hf_prefix_lm'
+    else:
+        neo_cfg.model.name = 'hf_causal_lm'
 
     model = COMPOSER_MODEL_REGISTRY[neo_cfg.model.name](
         neo_cfg.model).to(device)
@@ -180,7 +207,54 @@ def test_full_forward_and_backward_gpt2_small(batch_size=2):
     neo_cfg.model.vocab_size = model.model.transformer.wte.num_embeddings
     batch = gen_random_batch(batch_size, neo_cfg)
 
-    batch['input_ids'].shape == torch.Size([batch_size, neo_cfg.max_seq_len])
+    assert batch['input_ids'].shape == torch.Size(
+        [batch_size, neo_cfg.max_seq_len])
+    model.train()
+    original_params = next(model.parameters()).clone().data
+    outputs = model(batch)
+    loss = model.loss(outputs, batch)
+    loss.backward()
+    optimizer.step()
+    updated_params = next(model.parameters()).clone().data
+    assert not torch.equal(original_params, updated_params)
+
+
+def test_full_forward_and_backward_t5_small(batch_size=2):
+    warnings.filterwarnings(
+        action='ignore',
+        message='Torchmetrics v0.9 introduced a new argument class property')
+    from omegaconf import OmegaConf
+
+    cfg = OmegaConf.create({
+        'model': {
+            'pretrained_model_name_or_path': 't5-small',
+            'pretrained': False,
+            'z_loss': 0.0001,
+        },
+        'optimizer': {
+            'lr': 0.0001,
+            'betas': [0.9, 0.99],
+            'eps': 1e-6,
+            'weight_decay': 0.00001
+        }
+    })
+
+    device = 'cpu'
+    max_seq_len = 16
+
+    model = COMPOSER_MODEL_REGISTRY['hf_t5'](cfg.model).to(device)
+
+    optimizer = DecoupledAdamW(model.parameters(),
+                               lr=cfg.optimizer.lr,
+                               betas=cfg.optimizer.betas,
+                               eps=cfg.optimizer.eps,
+                               weight_decay=cfg.optimizer.weight_decay)
+
+    # set vocab size using model num_embeddings
+    batch = gen_random_enc_dec_batch(batch_size, model.model.config.vocab_size,
+                                     max_seq_len, device)
+
+    assert batch['input_ids'].shape == torch.Size([batch_size, max_seq_len])
     model.train()
     original_params = next(model.parameters()).clone().data
     outputs = model(batch)
@@ -208,11 +282,10 @@ def test_determinism(attention_type: str, precision):
         test_cfg = om.load(f)
 
     test_cfg.model.attn_impl = attention_type
-    test_cfg.model.device = 'cuda:0'
+    test_cfg.model.init_device = 'cuda:0'
     test_cfg.device = 'cuda:0'
 
-    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model).to(
-        test_cfg.model.device)
+    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
     model_2 = copy.deepcopy(model_1)
 
     optimizer_1 = DecoupledAdamW(model_1.parameters(),
@@ -241,3 +314,24 @@ def test_determinism(attention_type: str, precision):
             loss_2.backward()
             optimizer_1.step()
             optimizer_2.step()
+
+
+@pytest.mark.parametrize('prefixlm', [False, True])
+def test_opt_wrapping(prefixlm):
+    conf = {
+        'name': 'hf_prefix_lm' if prefixlm else 'hf_causal_lm',
+        'pretrained_model_name_or_path': 'facebook/opt-125m',
+        'pretrained': 'false'
+    }
+    config = DictConfig(conf)
+
+    if prefixlm:
+        model = ComposerHFPrefixLM(config)
+    else:
+        model = ComposerHFCausalLM(config)
+
+    # check that all the modules we except are blocked from FSDP wrapping
+    assert not model.model.model._fsdp_wrap
+    assert not model.model.model.decoder._fsdp_wrap
+    assert not model.model.model.decoder.embed_tokens._fsdp_wrap
+    assert not model.model.lm_head._fsdp_wrap
