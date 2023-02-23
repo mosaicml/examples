@@ -3,13 +3,13 @@
 
 import math
 import warnings
+from collections.abc import Sequence
 from typing import Optional
 
 import torch
 import torch.nn.functional as F
 from composer.utils import dist
 from omegaconf import DictConfig
-from omegaconf.listconfig import ListConfig
 from tutel import moe as tutel_moe
 from tutel.experts.ffn import FusedExpertsNetwork
 from tutel.gates.cosine_top import CosineTopKGate
@@ -32,7 +32,7 @@ class TutelMOE(BaseMoE):
         world_size = dist.get_world_size()
 
         num_experts = cfg.moe.get('num_experts')
-        if isinstance(num_experts, ListConfig):
+        if isinstance(num_experts, Sequence):
             # enables pyramid moe
             num_experts = num_experts[block_idx]
 

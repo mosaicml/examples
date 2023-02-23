@@ -3,12 +3,12 @@
 
 """GPT Blocks used for the GPT Model."""
 
+from collections.abc import Sequence
 from typing import Optional
 
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
-from omegaconf.listconfig import ListConfig
 
 from examples.llm.src.models.layers.moe.tutel_moe import TutelMOE
 
@@ -47,7 +47,7 @@ class GPTBlock(nn.Module):
         use_moe = False
         if cfg.get('moe', None):
             num_experts = cfg.moe.get('num_experts')
-            if isinstance(num_experts, ListConfig):
+            if isinstance(num_experts, Sequence):
                 num_experts = num_experts[block_idx]
             use_moe = True if num_experts > 1 else False
 
