@@ -18,7 +18,7 @@ from examples.common.config_utils import log_config
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
-def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml'):
+def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False):
     """Create gpt tiny moe cfg."""
     with open(conf_path) as f:
         test_cfg = om.load(f)
@@ -45,30 +45,38 @@ def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml'):
     test_cfg.model.max_seq_len = test_cfg.max_seq_len
     test_cfg.model.d_model = 32
     test_cfg.model.n_heads = 2
-    test_cfg.model.n_layers = 2
-    test_cfg.model.moe.num_experts = [2, 16]
+    test_cfg.model.n_layers = 5
+    if pyramid:
+        test_cfg.model.moe.num_experts = [2]
+        for _ in range(test_cfg.model.n_layers - 1):
+            experts = 2 * test_cfg.model.moe.num_experts[-1]
+            test_cfg.model.moe.num_experts += [experts]
+    else:
+        test_cfg.model.moe.num_experts = 4
 
     return test_cfg
 
 
-def check_tensor(tensor):
+def check_tensors_different_across_ranks(tensor):
+    """Parallelization methods such as FSDP or DDP might sync parameters or gradients.
+    This method allows us to verify that tensors are not sync'd across ranks
+    """
     world_size = dist.get_world_size()
     tensors = dist.all_gather(tensor)
     for i in range(world_size):
         for j in range(i + 1, world_size):
-            assert not tensors[i].equal(tensors[j])
-            if tensors[i].all_close(tensors[j]):
-                warnings.warn(f'')
+            if tensors[i].equal(tensors[j]):
+                raise RuntimeError(f'tensors are equal on ranks {i=} and {j=}')
 
 
-def test_tutel_moe_expert_notsync():
+def test_tutel_moe_expert_notsync(pyramid=False):
     if not os.path.isdir('./my-copy-c4/val') or not os.path.isdir(
             './my-copy-c4/train_small'):
         pytest.xfail('c4 dataset not set up as expected')
     if not torch.cuda.is_available() and not dist.get_world_size() > 1:
         pytest.xfail('test requires multiple GPUs')
 
-    cfg = gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml')
+    cfg = gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=pyramid)
 
     reproducibility.seed_all(cfg.seed)
 
@@ -106,7 +114,7 @@ def test_tutel_moe_expert_notsync():
         if n.endswith('.mlp.moe.experts'):
             for _n, p in m.named_parameters():
                 # verify expert parameters are initialized independently
-                check_tensor(p)
+                check_tensors_different_across_ranks(p)
                 assert p.grad is None
 
     # Build the Trainer
@@ -163,7 +171,7 @@ def test_tutel_moe_expert_notsync():
         if n.endswith('.mlp.moe.experts'):
             for _n, p in m.named_parameters():
                 # verify expert parameters are initialized independently
-                check_tensor(p)
+                check_tensors_different_across_ranks(p)
                 assert p.grad is None
 
     print('Starting training...')
@@ -173,11 +181,12 @@ def test_tutel_moe_expert_notsync():
         if n.endswith('.mlp.moe.experts'):
             for _n, p in m.named_parameters():
                 # verify expert parameters not expert parameter gradients are sync'd
-                check_tensor(p)
-                check_tensor(p.grad)
+                check_tensors_different_across_ranks(p)
+                check_tensors_different_across_ranks(p.grad)
 
     print('Done.')
 
 
 if __name__ == '__main__':
     test_tutel_moe_expert_notsync()
+    test_tutel_moe_expert_notsync(pyramid=True)

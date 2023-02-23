@@ -80,11 +80,11 @@ class MosaicGPT(nn.Module):
         self.transformer.update(
             {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
-        self.MOE_CLS = None
+        self.moe_cls = None
         if cfg.get('moe', None):
             moe_type = cfg.moe.get('moe_type')
             if moe_type == 'tutel':
-                self.MOE_CLS = TutelMOE
+                self.moe_cls = TutelMOE
             else:
                 raise NotImplementedError(f'{moe_type=} not integrated')
 
@@ -232,9 +232,9 @@ class MosaicGPT(nn.Module):
                 torch.nn.init.zeros_(module.out_proj.bias)
 
         # add init for tutel moe
-        if self.MOE_CLS is not None:
+        if self.moe_cls is not None:
             # assumes MOE class defines param_init_fn (and needs cfg to init properly)
-            self.MOE_CLS.param_init_fn(module, self.cfg)
+            self.moe_cls.param_init_fn(module, self.cfg)
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
@@ -243,9 +243,9 @@ class MosaicGPT(nn.Module):
 
         # extends FSDP wrapping to handel tutel moe
         if isinstance(module, FusedExpertsNetwork):
-            if self.MOE_CLS is None:
+            if self.moe_cls is None:
                 raise AttributeError('Internal logic error')
-            return {'process_group': self.MOE_CLS._moe_pg}
+            return {'process_group': self.moe_cls._moe_pg}
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
@@ -324,12 +324,12 @@ class ComposerMosaicGPT(ComposerModel):
     @property
     def param_count(self):
         # fn is based on param count on current GPU and is invalid if the model has already been sharded
-        # ie run this must be ran before FSDP sharding with result cached in self.__param_count if needed later
+        # ie self.__param_count should be cached before FSDP sharding
         if self.__param_count:
             return self.__param_count
 
-        if self.model.MOE_CLS is not None:
-            self.__param_count = self.model.MOE_CLS.param_count(self)
+        if self.model.moe_cls is not None:
+            self.__param_count = self.model.moe_cls.param_count(self)
         else:
             self.__param_count = sum(p.numel() for p in self.parameters())
 
@@ -338,13 +338,13 @@ class ComposerMosaicGPT(ComposerModel):
     @property
     def num_fwd_flops(self):
         # fn is based on param count on current GPU and is invalid if the model has already been sharded
-        # ie run this must be ran before FSDP sharding with result cached in self.__num_fwd_flops if needed later
+        # ie self.__num_fwd_flops should be cached before FSDP sharding
         if self.__num_fwd_flops:
             return self.__num_fwd_flops
 
-        if self.model.MOE_CLS is not None:
-            n_active_params = self.model.MOE_CLS.active_param_count(
-                self, use_capacity_fac=True)
+        if self.model.moe_cls is not None:
+            n_active_params = self.model.moe_cls.active_param_count(
+                self, use_capacity_factor=True)
         else:
             n_active_params = self.param_count
 

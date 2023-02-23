@@ -41,6 +41,7 @@ class TutelMOE(BaseMoE):
             num_local_experts = num_experts // world_size
         else:
             assert world_size % num_experts == 0
+            # in Tutel, negative num_local_experts means an expert will be sharded across -num_local_experts GPUs
             num_local_experts = -world_size // num_experts
 
         gate_type = {
@@ -144,7 +145,7 @@ class TutelMOE(BaseMoE):
         return n_params_other + n_params_experts
 
     @classmethod
-    def active_param_count(cls, parent_module, use_capacity_fac=False):
+    def active_param_count(cls, parent_module, use_capacity_factor=False):
         # num params active in fwd pass
         n_params_expert = 0
         for n, m in parent_module.named_modules():
@@ -154,10 +155,10 @@ class TutelMOE(BaseMoE):
                                        for _n, p in m.named_parameters()
                                        if 'expert' in _n)
                 _n_params_expert = _n_params_expert // m.num_local_experts * m.sharded_count
-                if use_capacity_fac:
+                if use_capacity_factor:
                     warnings.warn(
-                        f'use_capacity_fac is enabled to mimic training worse case active param count ' +\
-                        f'set use_capacity_fac to show inference active param count.'
+                        f'use_capacity_factor is enabled to mimic training worse case active param count ' +\
+                        f'set use_capacity_factor to show inference active param count.'
                     )
                     # FLOPs used by each MoE is multiplied by "capacity_factor"
                     # if active param count is being used to calculate FLOPs we emulate this by

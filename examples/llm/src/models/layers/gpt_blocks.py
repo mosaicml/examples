@@ -54,12 +54,12 @@ class GPTBlock(nn.Module):
         self.mlp = None
         if use_moe:
             moe_type = cfg.moe.get('moe_type')
-            MOE_CLS = None
+            moe_cls = None
             if moe_type == 'tutel':
-                MOE_CLS = TutelMOE
+                moe_cls = TutelMOE
             else:
                 raise NotImplementedError(f'{moe_type=} not integrated')
-            self.mlp = MOE_CLS(cfg, block_idx, device=device)
+            self.mlp = moe_cls(cfg, block_idx, device=device)
         else:
             self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)

@@ -1,12 +1,14 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+from abc import ABC
+
 import torch.nn as nn
 from composer.utils import dist, get_device
 from torch.distributed import new_group
 
 
-class BaseMoE(nn.Module):
+class BaseMoE(nn.Module, ABC):
     """Abstract class for integrating different MoE implemtations into
     MosaicGPT.
 
