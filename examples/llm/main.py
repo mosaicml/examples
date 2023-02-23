@@ -10,13 +10,37 @@ from composer.core import Evaluator
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 
-from examples.common.builders import (build_algorithm, build_callback,
-                                      build_dataloader, build_icl_evaluators,
-                                      build_logger, build_optimizer,
-                                      build_scheduler)
+from examples.common.builders import build_algorithm, build_callback
+from examples.common.builders import build_dataloader as _build_dataloader
+from examples.common.builders import (build_icl_evaluators, build_logger,
+                                      build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
-from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
-from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
+from examples.llm.src import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
+                              build_text_denoising_dataloader)
+
+
+def validate_config(cfg):
+    """Validates compatible model and dataloader selection."""
+    loaders = [cfg.train_loader.name]
+    if 'eval_loader' in cfg:
+        loaders.append(cfg.eval_loader.name)
+    for loader in loaders:
+        if loader == 'text':
+            if cfg.model.name in ['hf_prefix_lm', 'hf_t5']:
+                raise ValueError(
+                    f'Model type "{cfg.model.name}" is not supported when using the "text " ' +\
+                    f'dataloader. Please use the "text_denoising" dataloader to pre-train that model type.')
+        elif loader == 'text_denoising':
+            if cfg.model.name == 'hf_causal_lm':
+                raise ValueError(
+                    f'Model type "{cfg.model.name}" is not supported when using the "text_denoising" ' +\
+                    f'dataloader. Please use the "text" dataloader to pre-train that model type.')
+
+    if 'icl_tasks' in cfg:
+        if cfg.model.name == 'hf_t5':
+            raise ValueError(
+                'ICL evaluation does not currently support Encoder-Decoder models, such as "hf_t5".'
+            )
 
 
 def build_composer_model(cfg):
@@ -29,7 +53,16 @@ def build_composer_model(cfg):
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
+def build_dataloader(cfg, device_batch_size):
+    if cfg.name == 'text_denoising':
+        return build_text_denoising_dataloader(cfg, device_batch_size)
+    return _build_dataloader(cfg, device_batch_size)
+
+
 def main(cfg):
+    # Check for incompatibilities between the model and data loaders
+    validate_config(cfg)
+
     # Filter deprecation warning from torch internal usage
     warnings.filterwarnings(
         action='ignore',
@@ -60,7 +93,7 @@ def main(cfg):
     assert init_device in ['meta', 'cpu']
     if fsdp_config is None and init_device == 'meta':
         warnings.warn(
-            "Using `cfg.model.init_device='meta'` is only valid when using FSDP! "
+            "Using `cfg.model.init_device='meta'` is only valid when using FSDP! " +\
             "Reverting to `cfg.model.init_device='cpu'`.")
         cfg.model.init_device = 'cpu'
 
