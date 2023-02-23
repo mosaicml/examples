@@ -17,7 +17,7 @@ model:
   mlp_ratio: 4
   moe:
     moe_type: tutel
-    # list or int; if list, must be length number of MoE layers
+    # list or int; if list, length must equal `n_layers`
     num_experts: [1, 2, 4, 8, 16, 16, 16, 16, 32, 32, 32, 32]
     l_aux_wt: 0.01
     a2a_ffn_overlap_degree: 2

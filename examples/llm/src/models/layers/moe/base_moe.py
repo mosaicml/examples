@@ -46,5 +46,5 @@ class BaseMoE(nn.Module):
         raise NotImplementedError
 
     @classmethod
-    def active_param_count(cls, parent_module, use_capacity_fac=False):
-        raise NotImplementedError(f'')
+    def active_param_count(cls, parent_module, use_capacity_factor=False):
+        raise NotImplementedError

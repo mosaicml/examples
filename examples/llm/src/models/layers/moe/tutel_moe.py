@@ -63,7 +63,7 @@ class TutelMOE(BaseMoE):
 
         rank_seed = torch.initial_seed() + dist.get_global_rank()
         gpu_devices = [torch.cuda.current_device()]
-        # guarentee init seeds are different for all devices
+        # guarantee init seeds are different for all devices
         # SeedContextManager sets the given seed, then restore local rng on ctx mgr exit
         with SeedContextManager(gpu_devices=gpu_devices,
                                 seed=rank_seed) as s_ctx_mgr:
@@ -161,7 +161,7 @@ class TutelMOE(BaseMoE):
                     )
                     # FLOPs used by each MoE is multiplied by "capacity_factor"
                     # if active param count is being used to calculate FLOPs we emulate this by
-                    # multiplying capcity factor here
+                    # multiplying capacity factor here
                     # assumes we use a single gate
                     _n_params_expert *= abs(m.gates[0].capacity_factor)
                 n_params_expert += _n_params_expert

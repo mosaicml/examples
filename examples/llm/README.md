@@ -6,7 +6,7 @@
 </p>
 
 ## Experimental MoE branch
-Example MoE yamls configuration: `yaml/mosaic_gpt/125m_moe.yaml`
+Example MoE yamls configuration: `yamls/mosaic_gpt/125m_moe.yaml`
 
 # Mosaic Large Language Models
 
