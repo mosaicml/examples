@@ -63,17 +63,54 @@ class MixtureOfDenoisersCollator:
         tokenizer: Tokenizer,
         max_seq_length: int,
         decoder_only_format: bool = False,
-        span_mean_lengths_and_ratios: Optional[Union[List[List[float]],
-                                                     List[float]]] = None,
+        span_mean_lengths_and_ratios: Optional[List] = None,
         sequence_mask_ratios: Optional[Union[List[float], float]] = None,
         prefix_function: Optional[PREFIX_FUNCTION] = ul2_prefix_function,
     ):
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
         self.decoder_only_format = decoder_only_format
+        self._sentinel_token_ids = np.array(self.tokenizer.sentinel_token_ids)
 
         # Prepare the tokenizer for denoising tasks
         utils.adapt_tokenizer_for_denoising(self.tokenizer)
+
+        # Process the span_mean_lengths_and_ratios argument
+        if span_mean_lengths_and_ratios is None:
+            # In this case, there are no span corruption tasks
+            self.span_mean_lengths_and_ratios = []
+        elif isinstance(span_mean_lengths_and_ratios[0], (int, float)):
+            # In this case, there is one span corruption task
+            if not len(span_mean_lengths_and_ratios) == 2:
+                raise ValueError('`span_mean_lengths_and_ratios` must be a ' + \
+                                 'pair of [mean_length, mask_ratio], a list ' + \
+                                 f'of such pairs, or None. Got {span_mean_lengths_and_ratios}.')
+            self.span_mean_lengths_and_ratios = [span_mean_lengths_and_ratios]
+        else:
+            # In this case, there are one or more span corruption tasks
+            span_mean_lengths_and_ratios = list(span_mean_lengths_and_ratios)
+            for spec_pair in span_mean_lengths_and_ratios:
+                if len(spec_pair) != 2:
+                    raise ValueError('`span_mean_lengths_and_ratios` must be a ' + \
+                                     'pair of [mean_length, mask_ratio], a list ' + \
+                                     f'of such pairs, or None. Got {span_mean_lengths_and_ratios}.')
+            self.span_mean_lengths_and_ratios = span_mean_lengths_and_ratios
+
+        # Process the sequence_mask_ratios argument
+        if sequence_mask_ratios is None:
+            # In this case, there are no sequence corruption tasks
+            self.sequence_mask_ratios = []
+        elif isinstance(sequence_mask_ratios, float):
+            # In this case, there is one sequence corruption task
+            self.sequence_mask_ratios = [sequence_mask_ratios]
+        else:
+            # In this case, there is one or more sequence corruption tasks
+            for ratio in sequence_mask_ratios:
+                if not (0 < ratio < 0.5):
+                    raise ValueError('`sequence_mask_ratios` must be a float (or list '+\
+                                    'of floats) between 0.0 and 0.5, or None. '+\
+                                    f'Got {sequence_mask_ratios}.')
+            self.sequence_mask_ratios = sequence_mask_ratios
 
         # Populate the noisers so we can learn to denoise them!
         self._noisers = []
@@ -81,18 +118,7 @@ class MixtureOfDenoisersCollator:
         self._largest_max_raw_length = 0
         self._uses_span_corruption = False
 
-        # Add "noisers" for the span corruption denoising task
-        self.span_mean_lengths_and_ratios = span_mean_lengths_and_ratios
-        if self.span_mean_lengths_and_ratios is None:
-            self.span_mean_lengths_and_ratios = []
-        elif isinstance(self.span_mean_lengths_and_ratios[0], (int, float)):
-            if not len(self.span_mean_lengths_and_ratios) == 2:
-                raise ValueError('`span_mean_lengths_and_ratios` must be a ' + \
-                                 'pair of [mean_length, mask_ratio] or a list ' + \
-                                 'of such pairs.')
-            self.span_mean_lengths_and_ratios = [
-                self.span_mean_lengths_and_ratios
-            ]
+        # Add "noisers" for any span corruption denoising tasks
         # Each mean_length / mask_ratio combo becomes one of the span
         # corruption denoising tasks
         for span_mean_length, span_mask_ratio in self.span_mean_lengths_and_ratios:
@@ -129,17 +155,8 @@ class MixtureOfDenoisersCollator:
             }
             self._noisers.append(kwargs)
 
-        # Add "noisers" for the sequential denoising task
-        self.sequence_mask_ratios = sequence_mask_ratios
-        if self.sequence_mask_ratios is None:
-            self.sequence_mask_ratios = []
-        elif isinstance(self.sequence_mask_ratios, float):
-            self.sequence_mask_ratios = [self.sequence_mask_ratios]
+        # Add "noisers" for any sequential denoising tasks
         for sequence_mask_ratio in self.sequence_mask_ratios:
-            if not 0 < sequence_mask_ratio < 0.5:
-                raise ValueError(
-                    'All sequence masking ratios must be between 0.0 and 0.5.')
-
             if prefix_function is not None:
                 prefix_tokens = prefix_function(sequence_mask_ratio, None,
                                                 self.tokenizer)
@@ -194,7 +211,7 @@ class MixtureOfDenoisersCollator:
                     max_raw_length=noiser['max_raw_length'],
                     max_seq_length=self.max_seq_length,
                     tokenizer=self.tokenizer,
-                    sentinel_token_ids=self.tokenizer.sentinel_token_ids,
+                    sentinel_token_ids=self._sentinel_token_ids,
                     decoder_only_format=self.decoder_only_format))
         batch = self.tokenizer.pad(processed_examples)
 
@@ -321,7 +338,7 @@ def noise_token_sequence(
     max_raw_length: int,
     max_seq_length: int,
     tokenizer: Tokenizer,
-    sentinel_token_ids: Sequence[int],
+    sentinel_token_ids: np.ndarray,
     decoder_only_format: bool,
 ) -> Dict[str, torch.Tensor]:
     """Span corruption applicable to all UL2 denoising tasks."""
@@ -352,8 +369,9 @@ def noise_token_sequence(
             1, length + len(prefix_tokens) - max_seq_length)
         max_span_length = np.maximum(
             min_span_length, np.minimum(length - 1, 2 * mask_ratio * length))
-        mean_span_length = np.floor(
-            np.random.uniform(low=min_span_length, high=max_span_length))
+        mean_span_length = float(
+            np.floor(
+                np.random.uniform(low=min_span_length, high=max_span_length)))
         mask_ratio = mean_span_length / length
         use_sentinels = False
     else:
@@ -367,7 +385,6 @@ def noise_token_sequence(
     assert mask[0] == 0
 
     # Generate the input/label sequences given the raw tokens and the mask
-    sentinel_token_ids = np.array(sentinel_token_ids)
     tokens_inputs = _apply_mask(tokens,
                                 mask,
                                 use_sentinels,
@@ -495,7 +512,7 @@ def _sample_mask_array(length: int, mask_ratio: float,
     return mask
 
 
-def _apply_mask(tokens: Sequence[int],
+def _apply_mask(tokens: Union[torch.Tensor, Sequence[int], np.ndarray],
                 mask: np.ndarray,
                 use_sentinels: bool,
                 eos_token_id: int,
@@ -655,7 +672,8 @@ if __name__ == '__main__':
 
     loader = build_text_denoising_dataloader(cfg, device_batch_size)
 
-    print(f'\n\nTRUNCATING TO: {loader.dataset.max_seq_len}\n\n')
+    print(
+        f'\n\nTRUNCATING TO: {loader.dataset.max_seq_len}\n\n')  # type: ignore
 
     tokenizer = loader.collate_fn.tokenizer
     batch_ix = 0
