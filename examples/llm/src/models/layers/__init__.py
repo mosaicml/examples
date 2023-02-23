@@ -7,8 +7,7 @@ from examples.llm.src.models.layers.attention import (
 from examples.llm.src.models.layers.flash_attention import (FlashAttention,
                                                             FlashMHA)
 from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
-from examples.llm.src.models.layers.moe.base_moe import BaseMoE
-from examples.llm.src.models.layers.moe.tutel_moe import TutelMOE
+from examples.llm.src.models.layers.moe import BaseMoE, TutelMOE
 
 __all__ = [
     'FlashAttention',

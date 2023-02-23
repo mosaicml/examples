@@ -51,7 +51,6 @@ class GPTBlock(nn.Module):
                 num_experts = num_experts[block_idx]
             use_moe = True if num_experts > 1 else False
 
-        self.mlp = None
         if use_moe:
             moe_type = cfg.moe.get('moe_type')
             moe_cls = None
