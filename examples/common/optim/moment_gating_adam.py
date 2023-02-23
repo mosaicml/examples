@@ -376,6 +376,6 @@ class MVATracker:
         else:
             slow_mva = fast_mva
 
-        frac = fast_mva / slow_mva
+        frac = (fast_mva / slow_mva) if slow_mva > 0 else 1
         return max(min(1, -frac + 2), -0.5)
         
