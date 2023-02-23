@@ -58,10 +58,11 @@ def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False):
 
 
 def check_tensors_different_across_ranks(tensor):
-    """Parallelization methods such as FSDP or DDP might sync parameters or
-    gradients.
+    """Verify tenor is different across ranks.
 
-    This method allows us to verify that tensors are not sync'd across ranks
+    Parallelization methods such as FSDP or DDP might sync parameters or
+    gradients. This method allows us to verify that tensors are not sync'd
+    across ranks
     """
     world_size = dist.get_world_size()
     tensors = dist.all_gather(tensor)

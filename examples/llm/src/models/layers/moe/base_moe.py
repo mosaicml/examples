@@ -9,8 +9,7 @@ from torch.distributed import new_group
 
 
 class BaseMoE(nn.Module, ABC):
-    """Abstract class for integrating different MoE implemtations into
-    MosaicGPT.
+    """Abstract class for integrating MoE implemtations into MosaicGPT.
 
     MoE experts are only su=ynced within their own process group but the dist
     process group can be shared across MoE layers. _moe_pg being a class atribute

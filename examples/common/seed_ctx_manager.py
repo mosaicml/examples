@@ -9,8 +9,10 @@ from torch.utils.checkpoint import set_device_states
 
 def get_device_states(*tensors,
                       gpu_devices=[]) -> Tuple[List[int], List[torch.Tensor]]:
-    """Extends pytorch torch.utils.checkpoint.get_device_states and enables user
-    pass in which devices need rng state cached."""
+    """Extends pytorch torch.utils.checkpoint.get_device_states.
+
+    This variant enables user pass in which devices need rng state cached.
+    """
     fwd_gpu_devices = list(
         tensor.get_device()
         for tensor in tensors
@@ -26,8 +28,9 @@ def get_device_states(*tensors,
 
 
 class SeedContextManager:
-    """Upon entering, SeedContextManager caches rng state and re-sets it on
-    exit.
+    """SeedContextManager for managing seeds.
+
+    Upon entering, SeedContextManager caches rng state and re-sets it on exit.
 
     Useful for initializing layers that need different rngs on different devices
     """
