@@ -10,7 +10,7 @@ import torch.nn as nn
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
 
-from examples.llm.src.layers.moe.tutel_moe import TutelMOE
+from examples.llm.src.models.layers.moe.tutel_moe import TutelMOE
 
 
 class GPTMLP(nn.Module):
