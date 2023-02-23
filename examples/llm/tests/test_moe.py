@@ -58,7 +58,9 @@ def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False):
 
 
 def check_tensors_different_across_ranks(tensor):
-    """Parallelization methods such as FSDP or DDP might sync parameters or gradients.
+    """Parallelization methods such as FSDP or DDP might sync parameters or
+    gradients.
+
     This method allows us to verify that tensors are not sync'd across ranks
     """
     world_size = dist.get_world_size()
@@ -76,7 +78,8 @@ def test_tutel_moe_expert_notsync(pyramid=False):
     if not torch.cuda.is_available() and not dist.get_world_size() > 1:
         pytest.xfail('test requires multiple GPUs')
 
-    cfg = gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=pyramid)
+    cfg = gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml',
+                           pyramid=pyramid)
 
     reproducibility.seed_all(cfg.seed)
 
