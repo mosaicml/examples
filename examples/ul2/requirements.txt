@@ -1,7 +1,6 @@
-datasets==2.7.1
 torch==1.13.1
 mosaicml==0.12.1
-mosaicml-streaming==0.2.2
+mosaicml-streaming==0.2.3
 omegaconf==2.2.3
 transformers==4.25.1
 torchmetrics==0.9.3
