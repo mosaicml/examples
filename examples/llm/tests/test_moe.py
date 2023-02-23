@@ -3,18 +3,17 @@
 
 import os
 import warnings
+
 import pytest
 import torch
-
-from omegaconf import OmegaConf as om
-from composer.utils import dist, reproducibility
-from composer.core import Evaluator
 from composer import Trainer
+from composer.core import Evaluator
+from composer.utils import dist, reproducibility
+from omegaconf import OmegaConf as om
 
 from examples.common.builders import (build_algorithm, build_callback,
-                                      build_dataloader,
-                                      build_logger, build_optimizer,
-                                      build_scheduler)
+                                      build_dataloader, build_logger,
+                                      build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
@@ -63,7 +62,8 @@ def check_tensor(tensor):
 
 
 def test_tutel_moe_expert_notsync():
-    if not os.path.isdir('./my-copy-c4/val') or not os.path.isdir('./my-copy-c4/train_small'):
+    if not os.path.isdir('./my-copy-c4/val') or not os.path.isdir(
+            './my-copy-c4/train_small'):
         pytest.xfail('c4 dataset not set up as expected')
     if not torch.cuda.is_available() and not dist.get_world_size() > 1:
         pytest.xfail('test requires multiple GPUs')
@@ -103,7 +103,7 @@ def test_tutel_moe_expert_notsync():
     model = model.cuda()
 
     for n, m in model.model.named_modules():
-        if n.endswith(".mlp.moe.experts"):
+        if n.endswith('.mlp.moe.experts'):
             for _n, p in m.named_parameters():
                 # verify expert parameters are initialized independently
                 check_tensor(p)
@@ -117,11 +117,12 @@ def test_tutel_moe_expert_notsync():
         model=model,
         train_dataloader=build_dataloader(cfg.train_loader,
                                           cfg.device_train_microbatch_size),
-        eval_dataloader=[Evaluator(
-            label='eval',
-            dataloader=build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size),
-            metric_names=list(model.train_metrics.keys())
-        )],
+        eval_dataloader=[
+            Evaluator(label='eval',
+                      dataloader=build_dataloader(cfg.eval_loader,
+                                                  cfg.device_eval_batch_size),
+                      metric_names=list(model.train_metrics.keys()))
+        ],
         optimizers=build_optimizer(cfg.optimizer, model),
         schedulers=build_scheduler(cfg.scheduler),
         max_duration=cfg.max_duration,
@@ -159,7 +160,7 @@ def test_tutel_moe_expert_notsync():
     log_config(cfg)
 
     for n, m in trainer.state.model.model.named_modules():
-        if n.endswith(".mlp.moe.experts"):
+        if n.endswith('.mlp.moe.experts'):
             for _n, p in m.named_parameters():
                 # verify expert parameters are initialized independently
                 check_tensor(p)
@@ -169,7 +170,7 @@ def test_tutel_moe_expert_notsync():
     trainer.fit()
 
     for n, m in trainer.state.model.model.named_modules():
-        if n.endswith(".mlp.moe.experts"):
+        if n.endswith('.mlp.moe.experts'):
             for _n, p in m.named_parameters():
                 # verify expert parameters not expert parameter gradients are sync'd
                 check_tensor(p)
@@ -178,5 +179,5 @@ def test_tutel_moe_expert_notsync():
     print('Done.')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     test_tutel_moe_expert_notsync()

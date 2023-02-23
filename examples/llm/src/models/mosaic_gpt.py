@@ -22,8 +22,8 @@ from tutel.experts.ffn import FusedExpertsNetwork
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-
 from examples.llm.src.models.layers.moe.tutel_moe import TutelMOE
+
 
 class MosaicGPT(nn.Module):
 
