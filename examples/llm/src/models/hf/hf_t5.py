@@ -50,6 +50,10 @@ class ComposerHFT5(HuggingFaceModelWithZLoss):
         config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path,
                                             **cfg.get('config_overrides', {}))
 
+        if not config.is_encoder_decoder:
+            raise ValueError(f'Model type "hf_t5" currently only supports T5 models ' +\
+                             f'using configs where `is_encoder_decoder` is ``True``.')
+
         tokenizer = AutoTokenizer.from_pretrained(
             cfg.pretrained_model_name_or_path)
         vocab_size = len(tokenizer)

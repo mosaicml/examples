@@ -10,31 +10,42 @@ from composer.core import Evaluator
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 
-from examples.common.builders import build_algorithm, build_callback
-from examples.common.builders import build_dataloader as _build_dataloader
-from examples.common.builders import (build_icl_evaluators, build_logger,
+from examples.common.builders import (build_algorithm, build_callback,
+                                      build_icl_evaluators, build_logger,
                                       build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
+from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                               build_text_denoising_dataloader)
 
 
 def validate_config(cfg):
     """Validates compatible model and dataloader selection."""
-    loaders = [cfg.train_loader.name]
+    loaders = [cfg.train_loader]
     if 'eval_loader' in cfg:
-        loaders.append(cfg.eval_loader.name)
+        loaders.append(cfg.eval_loader)
     for loader in loaders:
-        if loader == 'text':
+        if loader.name == 'text':
             if cfg.model.name in ['hf_prefix_lm', 'hf_t5']:
                 raise ValueError(
                     f'Model type "{cfg.model.name}" is not supported when using the "text " ' +\
                     f'dataloader. Please use the "text_denoising" dataloader to pre-train that model type.')
-        elif loader == 'text_denoising':
+        elif loader.name == 'text_denoising':
             if cfg.model.name == 'hf_causal_lm':
                 raise ValueError(
                     f'Model type "{cfg.model.name}" is not supported when using the "text_denoising" ' +\
                     f'dataloader. Please use the "text" dataloader to pre-train that model type.')
+            if loader.mixture_of_denoisers.decoder_only_format and cfg.model.name == 'hf_t5':
+                warnings.warn(
+                    'Model type "hf_t5" requires `decoder_only_format` to be ``False``. ' +\
+                    'Overriding `decoder_only_format` from ``True`` to ``False``.')
+                loader.mixture_of_denoisers.decoder_only_format = False
+            if (not loader.mixture_of_denoisers.decoder_only_format
+               ) and cfg.model.name == 'hf_prefix_lm':
+                warnings.warn(
+                    'Model type "hf_prefix_lm" requires `decoder_only_format` to be ``True``. ' +\
+                    'Overriding `decoder_only_format` from ``False`` to ``True``.')
+                loader.mixture_of_denoisers.decoder_only_format = True
 
     if 'icl_tasks' in cfg:
         if cfg.model.name == 'hf_t5':
@@ -54,9 +65,12 @@ def build_composer_model(cfg):
 
 
 def build_dataloader(cfg, device_batch_size):
-    if cfg.name == 'text_denoising':
+    if cfg.name == 'text':
+        return build_text_dataloader(cfg, device_batch_size)
+    elif cfg.name == 'text_denoising':
         return build_text_denoising_dataloader(cfg, device_batch_size)
-    return _build_dataloader(cfg, device_batch_size)
+    else:
+        raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
 
 
 def main(cfg):
