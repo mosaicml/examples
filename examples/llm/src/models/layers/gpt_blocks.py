@@ -7,9 +7,10 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
-from composer.utils.dist import (get_local_rank, get_local_world_size,
+from composer.utils.dist import (get_global_rank, get_local_world_size,
                                  get_world_size)
 from omegaconf import DictConfig
+from torch.distributed import new_group
 
 
 class GPTMLP(nn.Module):
@@ -30,24 +31,26 @@ class GPTMLP(nn.Module):
 
 
 class GPTFakeTPMLP(nn.Module):
+    _fsdp_pg = None
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
-        local_rank = get_local_rank()
-        local_world_size = get_local_world_size()
-        world_size = get_world_size()
-        # self.tp_world_size = cfg.get('tp_mlp_group_size', local_world_size)
-        # if world_size % self.tp_world_size != 0:
-        #     raise RuntimeError
-        # fsdp_process_group = [
-        #     local_rank + self.tp_world_size * i
-        #     for i in range(0, world_size // self.tp_world_size)
-        # ]
+        self.tp_world_size = cfg.get('tp_mlp_world_size',
+                                     get_local_world_size())
 
-        # self._fsdp_wrap = {'process_group': fsdp_process_group}
+        if GPTFakeTPMLP._fsdp_pg is None:
+            global_rank = get_global_rank()
+            world_size = get_world_size()
+            if world_size % self.tp_world_size != 0:
+                raise RuntimeError
+            fsdp_world_size = world_size // self.tp_world_size
+            tp_rank = global_rank % self.tp_world_size
+            ranks = [
+                tp_rank + self.tp_world_size * i for i in range(fsdp_world_size)
+            ]
+            GPTFakeTPMLP._fsdp_pg = new_group(ranks=ranks)
 
-        self.tp_world_size = local_world_size
-        self._fsdp_wrap = {'process_group': 'local_rank_across_nodes'}
+        self._fsdp_wrap = {'process_group': GPTFakeTPMLP._fsdp_pg}
         if cfg.get('tp_mlp_sharding_strategy') is not None:
             self._fsdp_wrap['sharding_strategy'] = cfg.tp_mlp_sharding_strategy
 
