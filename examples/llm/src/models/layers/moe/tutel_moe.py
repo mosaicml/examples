@@ -92,7 +92,7 @@ class TutelMOE(BaseMoE):
 
     @classmethod
     def param_init_fn(cls, module, cfg):
-        # Param Initialization, needed for device='meta' fast initialization
+        # param_init_fn needed for device='meta' initialization of parameters
         if isinstance(module, MOELayer):
             # set buffer
             local_expert = -module.sharded_count if module.sharded_count > 1 else module.num_local_experts
@@ -128,7 +128,7 @@ class TutelMOE(BaseMoE):
 
     @classmethod
     def param_count(cls, parent_module):
-        # expert aware param count
+        # param_count allows parameter count across experts
         n_params_experts = 0
         for n, m in parent_module.named_modules():
             # pretty bad way to identify MoE layer, but it is what it is...
@@ -146,7 +146,7 @@ class TutelMOE(BaseMoE):
 
     @classmethod
     def active_param_count(cls, parent_module, use_capacity_factor=False):
-        # num params active in fwd pass
+        # active_param_count enables FLOPs to be counted per-token by counting number of activated parameters in the forward pass
         n_params_expert = 0
         for n, m in parent_module.named_modules():
             # pretty bad way to identify MoE layer, but it is what it is...
