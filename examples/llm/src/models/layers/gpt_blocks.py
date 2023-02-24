@@ -7,7 +7,8 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
-from composer.utils.dist import get_local_world_size
+from composer.utils.dist import (get_local_rank, get_local_world_size,
+                                 get_world_size)
 from omegaconf import DictConfig
 
 
@@ -32,9 +33,22 @@ class GPTFakeTPMLP(nn.Module):
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
-        self.tp_world_size = get_local_world_size()
-        mlp_inner = cfg.mlp_ratio * cfg.d_model // self.tp_world_size
+        local_rank = get_local_rank()
+        local_world_size = get_local_world_size()
+        world_size = get_world_size()
+        self.tp_world_size = cfg.get('tp_mlp_group_size', local_world_size)
+        if world_size % self.tp_world_size != 0:
+            raise RuntimeError
+        fsdp_process_group = [
+            local_rank + self.tp_world_size * i
+            for i in range(0, world_size // self.tp_world_size)
+        ]
 
+        self._fsdp_wrap = {'process_group': fsdp_process_group}
+        if cfg.get('tp_mlp_sharding_strategy') is not None:
+            self._fsdp_wrap['sharding_strategy'] = cfg.tp_mlp_sharding_strategy
+
+        mlp_inner = cfg.mlp_ratio * cfg.d_model // self.tp_world_size
         self.mlp_up = nn.Linear(cfg.d_model, mlp_inner, device=device)
         self.mlp_act = nn.GELU(approximate='none')
         self.mlp_down = nn.Linear(mlp_inner, cfg.d_model, device=device)
@@ -60,7 +74,7 @@ class GPTBlock(nn.Module):
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        if cfg.get('tensor_parallel_mlp', False):
+        if cfg.get('tp_mlp', False):
             self.mlp = GPTFakeTPMLP(cfg, device=device)
         else:
             self.mlp = GPTMLP(cfg, device=device)

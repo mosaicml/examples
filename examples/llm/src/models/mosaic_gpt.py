@@ -221,11 +221,7 @@ class MosaicGPT(nn.Module):
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        if isinstance(module, gpt_blocks.GPTBlock):
-            return True
-        if isinstance(module, gpt_blocks.GPTFakeTPMLP):
-            return {'process_group': 'node'}
-        return False
+        return isinstance(module, gpt_blocks.GPTBlock)
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
