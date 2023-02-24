@@ -243,9 +243,10 @@ class MosaicGPT(nn.Module):
 
         # extends FSDP wrapping to handel tutel moe
         if isinstance(module, FusedExpertsNetwork):
-            if self.moe_cls is None:
-                raise AttributeError('Internal logic error')
-            return {'process_group': self.moe_cls._moe_pg}
+            # if self.moe_cls is None:
+            #     raise AttributeError('Internal logic error')
+            # return {'process_group': self.moe_cls._moe_pg}
+            return {'process_group': 'self'}
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):

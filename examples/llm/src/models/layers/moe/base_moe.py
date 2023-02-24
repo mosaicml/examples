@@ -22,17 +22,20 @@ class BaseMoE(nn.Module, ABC):
     active_param_count enables MosaicGPT to count per-token FLOPs by counting
     parameters activated in the forward pass
     """
-    _moe_pg = None
+    # _moe_pg = None
 
     def __init__(self):
         super().__init__()
-        if BaseMoE._moe_pg is None:
-            # MOE Class init current rank process group instead of initializing a pg
-            # for every moe layer
-            # can be overridden in GPT model if needed
-            BaseMoE._moe_pg = new_group(ranks=[dist.get_global_rank()])
+        # if BaseMoE._moe_pg is None:
+        #     # MOE Class init current rank process group instead of initializing a pg
+        #     # for every moe layer
+        #     # can be overridden in GPT model if needed
+            
+        #     # BaseMoE._moe_pg = new_group(ranks=[dist.get_global_rank()])
+        #     # BaseMoE._moe_pg = [dist.get_global_rank()]
+        #     BaseMoE._moe_pg = 'self'
 
-        self.moe = None
+        # self.moe = None
 
     @classmethod
     def param_init_fn(cls, module, cfg):
