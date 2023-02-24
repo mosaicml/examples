@@ -1,10 +1,17 @@
 integrations:
+# To point to MosaicML's public repo:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: v0.0.3 # use your branch
-  # git_commit: # OR use your commit hash
+  git_branch: v0.0.3
   pip_install: -e .[llm]
   ssh_clone: false
+
+# To point to a custom repo:
+# - integration_type: git_repo
+#   git_repo: your/repo
+#   git_branch: your_branch # OR use your commit hash with git_commit
+#   pip_install: -e .[llm]
+
 
 # We are fetching, converting, and training on the 'val' split
 # as it is small and quick to get going for this demo.
