@@ -6,6 +6,7 @@ from abc import ABC
 import torch.nn as nn
 from composer.utils import dist
 from torch.distributed import new_group
+from composer.utils.dist import get_global_rank, get_local_rank, get_local_world_size, get_node_rank, get_world_size
 
 
 class BaseMoE(nn.Module, ABC):
@@ -22,7 +23,7 @@ class BaseMoE(nn.Module, ABC):
     active_param_count enables MosaicGPT to count per-token FLOPs by counting
     parameters activated in the forward pass
     """
-    # _moe_pg = None
+    _moe_pg = None
 
     def __init__(self):
         super().__init__()
@@ -30,10 +31,26 @@ class BaseMoE(nn.Module, ABC):
         #     # MOE Class init current rank process group instead of initializing a pg
         #     # for every moe layer
         #     # can be overridden in GPT model if needed
+
+        #     pg = 'local_rank_across_nodes'  # 'node'  # 'self'  # [dist.get_global_rank()]
+
+        #     if pg == 'self':
+        #         ranks = [get_global_rank()]
+        #     elif pg == 'node':
+        #         node_rank = get_node_rank()
+        #         local_world_size = get_local_world_size()
+        #         ranks = list(range(node_rank * local_world_size, (node_rank + 1) * local_world_size))
+        #     elif pg == 'local_rank_across_nodes':
+        #         local_rank = get_local_rank()
+        #         local_world_size = get_local_world_size()
+        #         num_nodes = get_world_size() // get_local_world_size()
+        #         ranks = [local_rank + local_world_size * n for n in range(num_nodes)]
+        #     elif isinstance(pg, list):
+        #         ranks = pg
             
-        #     # BaseMoE._moe_pg = new_group(ranks=[dist.get_global_rank()])
-        #     # BaseMoE._moe_pg = [dist.get_global_rank()]
-        #     BaseMoE._moe_pg = 'self'
+        #     BaseMoE._moe_pg = new_group(ranks=ranks)
+        # #     # BaseMoE._moe_pg = [dist.get_global_rank()]
+        # #     BaseMoE._moe_pg = 'self'
 
         # self.moe = None
 
