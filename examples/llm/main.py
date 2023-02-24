@@ -200,6 +200,9 @@ def main(cfg):
     print('Logging config...')
     log_config(cfg)
 
+    if cfg.get('eval_first', False):
+        trainer.eval()
+
     print('Starting training...')
     trainer.fit()
 
