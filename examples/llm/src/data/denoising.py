@@ -55,7 +55,66 @@ def ul2_prefix_function(
 class MixtureOfDenoisersCollator:
     """Data collator for mixture of span-corruption denoisers, as in UL2.
 
-    TODO(Alex): Complete docstring.
+    This collator supports a variety of tasks used to pre-train an
+    encoder-decoder model or a (prefix LM) decoder-only model. This is meant
+    to be used with a dataset that yields tokenized text sequences. It is not
+    required that the token sequences are already padded or truncate, as this
+    collator will internally truncate and pad as needed.
+
+    For the denoising mixture recommended in the original UL2 paper,
+    http://arxiv.org/abs/2205.05131, use:
+    .. python:
+        MixtureOfDenoisersCollator(
+            ...,
+            span_mean_lengths_and_ratios=[
+                [3, .15],
+                [8, .15],
+                [3, .50],
+                [8, .50],
+                [64, .15],
+                [64, .50],
+            ],
+            sequence_mask_ratios=0.25
+        )
+
+    Args:
+        tokenizer (transformers.PreTrainedTokenizer): The tokenizer used to
+            prepare the data from raw text. Any missing sentinel tokens will
+            be added by the collator.
+        max_seq_length (int): The maximum length of sequences produced by this
+            collator. Incoming sequences may be truncated to accommodate this
+            limit.
+            Note that when formatting for decoder-only models, the context
+            tokens and target tokens are concatenated, and max_seq_length
+            applies to their combined length. For encoder-decoder models, both
+            the encoder and decoder will see up to max_seq_length tokens.
+        decoder_only_format (bool, optional): Whether to format the batches
+            for a decoder-only model (i.e. a prefix LM) or, if ``False``, an
+            encoder-decoder model. Default: ``False``.
+        span_mean_lengths_and_rations (optional): A length-2 list of a
+            ``[mean_length, mask_ratio]`` pair, or a list of such pairs. Each
+            pair adds a span corruption denoising task to the task mixture. For
+            example, ``[3, 0.15]`` adds the original span corruption task used
+            for pre-training a T5 model as in http://arxiv.org/abs/1910.10683,
+            which trained with a single span corruption task that used a mean
+            span length of 3 and a mask ratio of 15%.
+            Default: ``None`` does not add any span corruption tasks.
+        sequence_mask_ratios (optional): A float or list of floats, one for each
+            sequence corruption denoising task to add to the task mixture. Each
+            sequence mask ratio must be greater than 0.0 and less than 0.5.
+            This type of task is a special instance of span corruption, with
+            exactly one masked span take from the end of the sequence. The
+            length of the span is sampled uniformly from
+            [1, 2*mask_ratio*n_tokens], where n_tokens is the length of the
+            unmasked token sequence.
+            Default: ``None` does not add any sequence corruption tasks.
+        prefix_function (callable, optional): A function that maps denoising
+            task parameters (e.g. mean_length=3, mask_ratio=0.15) to a prefix
+            that will be added to sequences when the associated "noiser" is
+            applied.
+            To disable these prefixes, use a value of ``None``.
+            Default: :func:`ul2_prefix_function` applies the prefix scheme
+            suggested in the UL2 paper: http://arxiv.org/abs/2205.05131.
     """
 
     def __init__(
@@ -262,6 +321,51 @@ class MixtureOfDenoisersCollator:
 
 def build_text_denoising_dataloader(cfg: DictConfig,
                                     device_batch_size: int) -> DataLoader:
+    """Constructor function for a Mixture of Denoisers dataloader.
+
+    This function constructs a dataloader that can be used to train an
+    encoder-decoder model or a (prefix LM) decoder-only model on a text
+    denoising task mixture (e.g. span corruption, or UL2).
+
+    The underlying dataset is a :class:`StreamingTextDataset`, allowing you to
+    stream raw text data or pre-tokenized text data.
+
+    The dataloader uses a :class:`MixtureOfDenoisersCollator` to prepare the
+    tokenized examples into training batches.
+
+    Args:
+        cfg (DictConfig): An omegaconf dictionary used to configure the loader:
+            cfg.name (str): The type of dataloader to build. Must = "text_denoising".
+            ---
+            cfg.dataset.tokenizer_name (str): The name of the tokenizer to use
+                for tokenizing raw text. Or, if using pre-tokenized data, the
+                name of the tokenizer used to prepare the data.
+            cfg.dataset.max_seq_len (int): The maximum length of sequences
+                in the batch. See :class:`MixtureOfDenoisersCollator` docstring
+                for details.
+            See :class:`StreamingTextDataset` for info on other standard config
+                options within `cfg.dataset`.
+            ---
+            cfg.mixture_of_denoisers.decoder_only_format (bool): Whether the
+                batches should use the format required for training a decoder-only
+                model (if ``True``) or an encoder-decoder model (if ``False``).
+            cfg.mixture_of_denoisers.span_mean_lengths_and_ratios (optiona): The
+                parameters for any span corruption denoising tasks to include in
+                the task mixture.
+                See :class:`MixtureOfDenoisersCollator` docstring for details.
+            cfg.mixture_of_denoisers.sequence_mask_ratios (optiona): The
+                parameters for any sequence denoising tasks to include in the
+                task mixture.
+                See :class:`MixtureOfDenoisersCollator` docstring for details.
+            cfg.mixture_of_denoisers.prefix_function (optiona): Set to ``None``
+                to disable the UL2-style prefixes that will be automatically
+                added by default.
+            ---
+            See :class:`DataLoader` for standard argument options to the pytorch
+                dataloader, such as `cfg.drop_last`, `cfg.num_workers`, etc.
+        device_batch_size (int): The size of the batches (number of examples)
+            that the dataloader will produce.
+    """
     assert cfg.name == 'text_denoising', f'Tried to build_denoising text dataloader with cfg.name={cfg.name}'
 
     collate_fn = MixtureOfDenoisersCollator(
