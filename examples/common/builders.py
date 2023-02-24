@@ -103,6 +103,7 @@ def build_icl_evaluators(cfg, tokenizer):
         assert 'example_delimiter' in icl_cfg
         assert 'continuation_delimiter' in icl_cfg
         assert 'label' in icl_cfg
+        assert 'destination_path' in icl_cfg
 
     for icl_cfg in cfg.icl_tasks:
         _validate_cfg(icl_cfg)
@@ -124,7 +125,9 @@ def build_icl_evaluators(cfg, tokenizer):
                 num_fewshot=num_fewshot,
                 prompt_string=icl_cfg.prompt_string,
                 example_delimiter=icl_cfg.example_delimiter,
-                continuation_delimiter=icl_cfg.continuation_delimiter)
+                continuation_delimiter=icl_cfg.continuation_delimiter,
+                destination_path=icl_cfg.destination_path,
+            )
             logger_keys.extend([f'metrics/{label}/{m}' for m in metric_names])
             evaluators.append(
                 Evaluator(label=label,
