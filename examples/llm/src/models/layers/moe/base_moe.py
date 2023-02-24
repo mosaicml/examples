@@ -4,7 +4,7 @@
 from abc import ABC
 
 import torch.nn as nn
-from composer.utils import dist, get_device
+from composer.utils import dist
 from torch.distributed import new_group
 
 
@@ -26,10 +26,6 @@ class BaseMoE(nn.Module, ABC):
 
     def __init__(self):
         super().__init__()
-        if not dist.is_initialized():
-            # initialize dist so we can access world size and global rank
-            dist.initialize_dist(get_device(None))
-
         if BaseMoE._moe_pg is None:
             # MOE Class init current rank process group instead of initializing a pg
             # for every moe layer
