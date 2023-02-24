@@ -36,15 +36,18 @@ class GPTFakeTPMLP(nn.Module):
         local_rank = get_local_rank()
         local_world_size = get_local_world_size()
         world_size = get_world_size()
-        self.tp_world_size = cfg.get('tp_mlp_group_size', local_world_size)
-        if world_size % self.tp_world_size != 0:
-            raise RuntimeError
-        fsdp_process_group = [
-            local_rank + self.tp_world_size * i
-            for i in range(0, world_size // self.tp_world_size)
-        ]
+        # self.tp_world_size = cfg.get('tp_mlp_group_size', local_world_size)
+        # if world_size % self.tp_world_size != 0:
+        #     raise RuntimeError
+        # fsdp_process_group = [
+        #     local_rank + self.tp_world_size * i
+        #     for i in range(0, world_size // self.tp_world_size)
+        # ]
 
-        self._fsdp_wrap = {'process_group': fsdp_process_group}
+        # self._fsdp_wrap = {'process_group': fsdp_process_group}
+
+        self.tp_world_size = local_world_size
+        self._fsdp_wrap = {'process_group': 'local_rank_across_nodes'}
         if cfg.get('tp_mlp_sharding_strategy') is not None:
             self._fsdp_wrap['sharding_strategy'] = cfg.tp_mlp_sharding_strategy
 
