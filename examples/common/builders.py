@@ -4,7 +4,7 @@
 import os
 
 from composer import algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor, LossSpikeIntervention
+from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
@@ -14,7 +14,6 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from lion_pytorch import Lion
-from examples.common.optim.moment_gating_adam import MomentGatingAdam
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 from examples.llm.loss_spikes.loss_spike_detection_callback import LossSpikeDetectionCallback
