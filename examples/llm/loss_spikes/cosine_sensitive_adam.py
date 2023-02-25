@@ -606,8 +606,7 @@ class MaskAdam2(AdamW):
             # mask out any params from the moment that point in the opposite direction of
             # the grad
             update = exp_avg.sign().mul_(grad.sign()).sign_().clamp_(0)
-            update.mul_(exp_avg)
-            update.mul_(beta1).add_(grad, alpha=1 - beta1)
+            update.mul_(exp_avg).mul_(beta1).add_(grad, alpha=1 - beta1)
 
 
             # Decay the first and second moment running average coefficient
@@ -616,14 +615,14 @@ class MaskAdam2(AdamW):
                 # Maintains the maximum of all 2nd moment running avg. till now
                 torch.maximum(max_exp_avg_sqs[i], exp_avg_sq, out=max_exp_avg_sqs[i])
                 # Use the max. for normalizing running avg. of gradient
-                update.div_(max_exp_avg_sqs[i].sqrt() / math.sqrt(bias_correction2)).add_(eps)
+                update.div_(max_exp_avg_sqs[i].sqrt() / math.sqrt(bias_correction2).add_(eps))
             else:
-                update.div_(exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(eps)
+                update.div_(exp_avg_sq.sqrt() / math.sqrt(bias_correction2).add_(eps))
 
             step_size = lr / bias_correction1
 
             param.add_(update, alpha=-step_size)
-            
+
             exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
 
 
