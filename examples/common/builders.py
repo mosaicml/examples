@@ -102,7 +102,6 @@ def build_icl_evaluators(cfg, tokenizer):
         assert 'example_delimiter' in icl_cfg
         assert 'continuation_delimiter' in icl_cfg
         assert 'label' in icl_cfg
-        assert 'destination_path' in icl_cfg
 
     for icl_cfg in cfg.icl_tasks:
         _validate_cfg(icl_cfg)
