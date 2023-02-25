@@ -16,7 +16,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 from examples.llm.loss_spikes.loss_spike_detection_callback import LossSpikeDetectionCallback
-from examples.llm.loss_spikes.cosine_sensitive_adam import MaskAdam
+from examples.llm.loss_spikes.cosine_sensitive_adam import MaskAdam, MaskAdam2
 from examples.llm.loss_spikes.loss_spike_intervention import LossSpikeIntervention
 from examples.llm.loss_spikes.resumption_callbacks import RESUMPTION_STRATEGIES
 
@@ -81,6 +81,13 @@ def build_optimizer(cfg, model):
                               weight_decay=cfg.weight_decay)
     elif cfg.name == 'mask_adam':
         return MaskAdam(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              eps=cfg.eps,
+                              weight_decay=cfg.weight_decay
+        )
+    elif cfg.name == 'mask_adam2':
+        return MaskAdam2(model.parameters(),
                               lr=cfg.lr,
                               betas=cfg.betas,
                               eps=cfg.eps,
