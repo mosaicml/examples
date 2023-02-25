@@ -112,7 +112,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         config.vocab_size += 8 - (config.vocab_size % 8)
 
     if pretrained_checkpoint is not None:
-        model = BertForMaskedLM.from_pretrained(
+        model = BertForMaskedLM.from_composer(
             pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
         model = BertForMaskedLM(config)
@@ -264,7 +264,7 @@ def create_mosaic_bert_classification(
         config.vocab_size += 8 - (config.vocab_size % 8)
 
     if pretrained_checkpoint is not None:
-        model = BertForSequenceClassification.from_pretrained(
+        model = BertForSequenceClassification.from_composer(
             pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
         model = BertForSequenceClassification(config)
