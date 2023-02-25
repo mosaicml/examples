@@ -245,6 +245,8 @@ class MixtureOfDenoisersCollator:
                 'No denoising tasks were included. Make sure to set ' + \
                 '`span_mean_lengths_and_ratios` and/or `sequence_mask_ratios`.')
 
+        self._skip_trim = True
+
     @property
     def smallest_max_raw_length(self):
         return int(self._smallest_max_raw_length)
@@ -273,6 +275,11 @@ class MixtureOfDenoisersCollator:
                     sentinel_token_ids=self._sentinel_token_ids,
                     decoder_only_format=self.decoder_only_format))
         batch = self.tokenizer.pad(processed_examples)
+
+        # Skip trimming on the first batch to help initialize GPU memory
+        if self._skip_trim:
+            self._skip_trim = False
+            return batch
 
         # Truncate portions of the inputs that are purely padding
         # (up to a multiple of 8)
