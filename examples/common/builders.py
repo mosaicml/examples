@@ -31,7 +31,7 @@ def build_callback(name, kwargs):
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
     elif name == 'health_checker':
-        return HealthChecker()
+        return HealthChecker(**kwargs)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
