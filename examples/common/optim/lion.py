@@ -166,6 +166,6 @@ class DecoupledLionW(Optimizer):
             step_tensor.add_(param, alpha=-weight_decay * decay_factor)
             for metric in self.metric_functions:
                 optimizer_metrics[f'{metric}/{name}'] = self.metric_functions[metric](param, param_optim_state,
-                                                                                      step_tensor).item()
+                                                                                      step_tensor)
 
         return optimizer_metrics
