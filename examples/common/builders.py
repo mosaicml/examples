@@ -17,6 +17,7 @@ from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 from examples.llm.loss_spikes.loss_spike_detection_callback import LossSpikeDetectionCallback
 from examples.llm.loss_spikes.cosine_sensitive_adam import MaskAdam
+from examples.llm.loss_spikes.loss_spike_intervention import LossSpikeIntervention
 from examples.llm.loss_spikes.resumption_callbacks import RESUMPTION_STRATEGIES
 
 
@@ -146,7 +147,8 @@ def build_icl_evaluators(cfg, tokenizer):
                 num_fewshot=num_fewshot,
                 prompt_string=icl_cfg.prompt_string,
                 example_delimiter=icl_cfg.example_delimiter,
-                continuation_delimiter=icl_cfg.continuation_delimiter)
+                continuation_delimiter=icl_cfg.continuation_delimiter,
+                destination_path=icl_cfg.destination_path)
             logger_keys.extend([f'metrics/{label}/{m}' for m in metric_names])
             evaluators.append(
                 Evaluator(label=label,
