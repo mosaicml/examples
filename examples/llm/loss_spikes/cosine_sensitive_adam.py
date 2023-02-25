@@ -615,9 +615,9 @@ class MaskAdam2(AdamW):
                 # Maintains the maximum of all 2nd moment running avg. till now
                 torch.maximum(max_exp_avg_sqs[i], exp_avg_sq, out=max_exp_avg_sqs[i])
                 # Use the max. for normalizing running avg. of gradient
-                update.div_(max_exp_avg_sqs[i].sqrt() / math.sqrt(bias_correction2).add_(eps))
+                update.div_((max_exp_avg_sqs[i].sqrt() / math.sqrt(bias_correction2)).add_(eps))
             else:
-                update.div_(exp_avg_sq.sqrt() / math.sqrt(bias_correction2).add_(eps))
+                update.div_((exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(eps))
 
             step_size = lr / bias_correction1
 
