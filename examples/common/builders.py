@@ -18,6 +18,7 @@ from examples.common.optim.moment_gating_adam import MomentGatingAdam
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 from examples.llm.loss_spikes.loss_spike_detection_callback import LossSpikeDetectionCallback
+from examples.llm.loss_spikes.cosine_sensitive_adam import MaskAdam
 from examples.llm.loss_spikes.resumption_callbacks import RESUMPTION_STRATEGIES
 
 
@@ -82,8 +83,8 @@ def build_optimizer(cfg, model):
     elif cfg.name == 'lion':
         return Lion(model.parameters(),
                               lr=cfg.lr)
-    elif cfg.name == 'moment_gating_adam':
-        return MomentGatingAdam(model.parameters(),
+    elif cfg.name == 'mask_adam':
+        return MaskAdam(model.parameters(),
                               lr=cfg.lr,
                               betas=cfg.betas,
                               eps=cfg.eps,
