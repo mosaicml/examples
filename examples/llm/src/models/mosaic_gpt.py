@@ -288,7 +288,8 @@ class ComposerMosaicGPT(ComposerModel):
         else:
             self.eval_metrics = evaluator_metrics
 
-    def flops_per_batch(self, batch):
+    @property
+    def num_fwd_flops(self):
         if self.__num_fwd_flops:
             return self.__num_fwd_flops
         n_params = sum(p.numel() for p in self.parameters())
@@ -301,4 +302,4 @@ class ComposerMosaicGPT(ComposerModel):
         attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (
             self.model.cfg.d_model * (self.model.cfg.max_seq_len**2))
         self.__num_fwd_flops = params_flops_per_seq + attn_flops_per_seq
-        return self.__num_fwd_flops * 3
+        return self.__num_fwd_flops
