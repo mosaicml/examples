@@ -4,7 +4,7 @@
 import os
 
 from composer import algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor, SpeedMonitor
+from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor, SpeedMonitor, RuntimeEstimator
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
@@ -26,6 +26,8 @@ def build_callback(name, kwargs):
         return SpeedMonitor(window_size=kwargs.get('window_size', 1),
                                gpu_flops_available=kwargs.get(
                                    'gpu_flops_available', None))
+    elif name == 'runtime_estimator':
+        return RuntimeEstimator()
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
