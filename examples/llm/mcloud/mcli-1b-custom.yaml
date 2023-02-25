@@ -1,11 +1,14 @@
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: v0.0.3 # use your branch
+  git_branch: hanlin/health_checker # use your branch
   # git_commit: # OR use your commit hash
   pip_install: -e .[llm]
   ssh_clone: false
-
+- integration_type: git_repo
+  git_repo: hanlint/composer
+  git_branch: hanlin/health_checker
+  pip_install: -e .
 # We are fetching, converting, and training on the 'val' split
 # as it is small and quick to get going for this demo.
 # For real training runs, follow the instructions in `examples/llm/README.md`
@@ -136,6 +139,7 @@ parameters:
       window_size: 10
     lr_monitor: {}
     memory_monitor: {}
+    health_checker: {}
 
 #   loggers:
 #     wandb: {}
