@@ -21,5 +21,6 @@ class BertConfig(TransformersBertConfig):
             attention_probs_dropout_prob (float): By default, turn off attention dropout in Mosaic BERT
                 (otherwise, Flash Attention will be off by default). Defaults to 0.0.
         """
-        super().__init__(attention_probs_dropout_prob, **kwargs)
+        super().__init__(
+            attention_probs_dropout_prob=attention_probs_dropout_prob, **kwargs)
         self.alibi_starting_size = alibi_starting_size
