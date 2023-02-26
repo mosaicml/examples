@@ -159,9 +159,6 @@ def main(cfg):
     print('Starting training...')
     trainer.fit()
 
-    print('trainer cleanup')
-    trainer.close()
-
     print('Done.')
 
 

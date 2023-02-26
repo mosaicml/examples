@@ -8,7 +8,7 @@ import pytest
 import torch
 from composer import Trainer
 from composer.core import Evaluator
-from composer.utils import dist, reproducibility
+from composer.utils import dist, get_device, reproducibility
 from omegaconf import OmegaConf as om
 
 from examples.common.builders import (build_algorithm, build_callback,
@@ -18,7 +18,7 @@ from examples.common.config_utils import log_config
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
-def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False):
+def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False, pg=None):
     """Create gpt tiny moe cfg."""
     with open(conf_path) as f:
         test_cfg = om.load(f)
@@ -54,6 +54,11 @@ def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False):
     else:
         test_cfg.model.moe.num_experts = 4
 
+    if pg is not None:
+        test_cfg.model.moe.pg = pg
+    else:
+        test_cfg.model.moe.pg = 'self'
+
     return test_cfg
 
 
@@ -72,7 +77,7 @@ def check_tensors_different_across_ranks(tensor):
                 raise RuntimeError(f'tensors are equal on ranks {i=} and {j=}')
 
 
-def test_tutel_moe_expert_notsync(pyramid=False):
+def test_tutel_moe_expert_notsync(pyramid=False, pg=None, check_tensor_diff=True):
     if not os.path.isdir('./my-copy-c4/val') or not os.path.isdir(
             './my-copy-c4/train_small'):
         pytest.xfail('c4 dataset not set up as expected')
@@ -80,9 +85,11 @@ def test_tutel_moe_expert_notsync(pyramid=False):
         pytest.xfail('test requires multiple GPUs')
 
     cfg = gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml',
-                           pyramid=pyramid)
+                           pyramid=pyramid, pg=pg)
+    print(f'{pyramid=}, {pg=}')
 
     reproducibility.seed_all(cfg.seed)
+    dist.initialize_dist(get_device(None))
 
     # Read FSDP Config as a dict
     fsdp_config = cfg.get('fsdp_config', None)
@@ -114,12 +121,13 @@ def test_tutel_moe_expert_notsync(pyramid=False):
 
     model = model.cuda()
 
-    for n, m in model.model.named_modules():
-        if n.endswith('.mlp.moe.experts'):
-            for _n, p in m.named_parameters():
-                # verify expert parameters are initialized independently
-                check_tensors_different_across_ranks(p)
-                assert p.grad is None
+    if check_tensor_diff:
+        for n, m in model.model.named_modules():
+            if n.endswith('.mlp.moe.experts'):
+                for _n, p in m.named_parameters():
+                    # verify expert parameters are initialized independently
+                    check_tensors_different_across_ranks(p)
+                    assert p.grad is None
 
     # Build the Trainer
     print('Building trainer...')
@@ -171,26 +179,50 @@ def test_tutel_moe_expert_notsync(pyramid=False):
     print('Logging config...')
     log_config(cfg)
 
-    for n, m in trainer.state.model.model.named_modules():
-        if n.endswith('.mlp.moe.experts'):
-            for _n, p in m.named_parameters():
-                # verify expert parameters are initialized independently
-                check_tensors_different_across_ranks(p)
-                assert p.grad is None
+    if check_tensor_diff:
+        for n, m in trainer.state.model.model.named_modules():
+            if n.endswith('.mlp.moe.experts'):
+                for _n, p in m.named_parameters():
+                    # verify expert parameters are initialized independently
+                    check_tensors_different_across_ranks(p)
+                    assert p.grad is None
 
     print('Starting training...')
     trainer.fit()
 
-    for n, m in trainer.state.model.model.named_modules():
-        if n.endswith('.mlp.moe.experts'):
-            for _n, p in m.named_parameters():
-                # verify expert parameters not expert parameter gradients are sync'd
-                check_tensors_different_across_ranks(p)
-                check_tensors_different_across_ranks(p.grad)
+    if check_tensor_diff:
+        for n, m in trainer.state.model.model.named_modules():
+            if n.endswith('.mlp.moe.experts'):
+                for _n, p in m.named_parameters():
+                    # verify expert parameters not expert parameter gradients are sync'd
+                    check_tensors_different_across_ranks(p)
+                    check_tensors_different_across_ranks(p.grad)
+
+    trainer.close()
 
     print('Done.')
 
 
 if __name__ == '__main__':
-    test_tutel_moe_expert_notsync()
-    test_tutel_moe_expert_notsync(pyramid=True)
+    for pyramid, pg, check_tensor_diff in (
+        (False, None, True),
+        (True, None, True),
+        # # test fsdp custom process groups
+        (False, 'self', True),
+        (True, 'self', True),
+        (False, 'node', False),
+        (True, 'node', False),
+        (False, 'local_rank_across_nodes', False),
+        (True, 'local_rank_across_nodes', False),
+        (False, 'set1', True),
+        (False, 'set2', False),
+        (True, 'set2', False),
+        (False, 'set4', False),
+        (True, 'set4', False),
+        (False, 'mod2', False),
+        (True, 'mod2', False),
+        (False, 'mod4', False),
+        (True, 'mod4', False),
+    ):
+        test_tutel_moe_expert_notsync(
+            pyramid=pyramid, pg=pg, check_tensor_diff=check_tensor_diff)
