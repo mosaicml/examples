@@ -243,32 +243,7 @@ class MosaicGPT(nn.Module):
 
         # extends FSDP wrapping to handel tutel moe
         if isinstance(module, FusedExpertsNetwork):
-            # if self.moe_cls is None:
-            #     raise AttributeError('Internal logic error')
-            # return {'process_group': self.moe_cls._moe_pg}
-            # return {'process_group': 'node'}
-
-            from composer.utils import dist
-            from torch.distributed import new_group
-            from composer.utils.dist import get_global_rank, get_local_rank, get_local_world_size, get_node_rank, get_world_size
-
-            pg = 'node'  # 'node'  # 'self'  # [dist.get_global_rank()]
-
-            if pg == 'self':
-                ranks = [get_global_rank()]
-            elif pg == 'node':
-                node_rank = get_node_rank()
-                local_world_size = get_local_world_size()
-                ranks = list(range(node_rank * local_world_size, (node_rank + 1) * local_world_size))
-            elif pg == 'local_rank_across_nodes':
-                local_rank = get_local_rank()
-                local_world_size = get_local_world_size()
-                num_nodes = get_world_size() // get_local_world_size()
-                ranks = [local_rank + local_world_size * n for n in range(num_nodes)]
-            elif isinstance(pg, list):
-                ranks = pg
-            
-            return {'process_group': new_group(ranks=ranks)}
+            return {'process_group': self.cfg.moe.get('pg', 'self')}
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):

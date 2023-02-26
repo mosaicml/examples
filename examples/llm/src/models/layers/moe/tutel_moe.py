@@ -8,6 +8,7 @@ from typing import Optional
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 from composer.utils import dist
 from omegaconf import DictConfig
 from tutel import moe as tutel_moe
@@ -17,10 +18,9 @@ from tutel.gates.top import LinearTopKGate
 from tutel.impls.moe_layer import MOELayer
 
 from examples.common.seed_ctx_manager import SeedContextManager
-from examples.llm.src.models.layers.moe.base_moe import BaseMoE
 
 
-class TutelMOE(BaseMoE):
+class TutelMOE(nn.Module):
     """Wrap and configure tutel.moe."""
 
     def __init__(self,
@@ -92,7 +92,10 @@ class TutelMOE(BaseMoE):
 
     @classmethod
     def param_init_fn(cls, module, cfg):
-        # param_init_fn needed for device='meta' initialization of parameters
+        """Initialize device='meta' parameters.
+
+        Designed to be used with MosaicGPT model.
+        """
         if isinstance(module, MOELayer):
             # set buffer
             local_expert = -module.sharded_count if module.sharded_count > 1 else module.num_local_experts
@@ -128,6 +131,10 @@ class TutelMOE(BaseMoE):
 
     @classmethod
     def param_count(cls, parent_module):
+        """Enables parameter counts across experts on different GPUs
+
+        Designed to be used with MosaicGPT model.
+        """
         # param_count allows parameter count across experts
         n_params_experts = 0
         for n, m in parent_module.named_modules():
@@ -146,6 +153,12 @@ class TutelMOE(BaseMoE):
 
     @classmethod
     def active_param_count(cls, parent_module, use_capacity_factor=False):
+        """Counts parameters activated durring fwn pass
+
+        If active parameter count is used to estimate Model FLOP usage durring training, the MoE capacity_factor artificially increases the FLOP count. To enable FLOP count to reflect this, set `use_capacity_factor=True`.
+
+        Designed to be used with MosaicGPT model.
+        """
         # active_param_count enables FLOPs to be counted per-token by counting number of activated parameters in the forward pass
         n_params_expert = 0
         for n, m in parent_module.named_modules():
