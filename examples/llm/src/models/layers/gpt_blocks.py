@@ -48,6 +48,10 @@ class GPTBlock(nn.Module):
         if cfg.get('moe', None):
             num_experts = cfg.moe.get('num_experts')
             if isinstance(num_experts, Sequence):
+                if len(num_experts) != cfg.n_layers:
+                    raise ValueError(
+                        f'If using PyramidMoEs, each layer ({cfg.n_layers=}) should have an associated expert count ({len(num_experts)=})'
+                    )
                 num_experts = num_experts[block_idx]
             use_moe = True if num_experts > 1 else False
 

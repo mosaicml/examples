@@ -8,9 +8,9 @@ from typing import Optional
 
 import torch
 import torch.nn.functional as F
-from torch import nn
 from composer.utils import dist
 from omegaconf import DictConfig
+from torch import nn
 from tutel import moe as tutel_moe
 from tutel.experts.ffn import FusedExpertsNetwork
 from tutel.gates.cosine_top import CosineTopKGate
@@ -131,7 +131,7 @@ class TutelMOE(nn.Module):
 
     @classmethod
     def param_count(cls, parent_module):
-        """Enables parameter counts across experts on different GPUs
+        """Enables parameter counts across experts on different GPUs.
 
         Designed to be used with MosaicGPT model.
         """
@@ -153,7 +153,7 @@ class TutelMOE(nn.Module):
 
     @classmethod
     def active_param_count(cls, parent_module, use_capacity_factor=False):
-        """Counts parameters activated durring fwn pass
+        """Counts parameters activated durring fwn pass.
 
         If active parameter count is used to estimate Model FLOP usage durring training, the MoE capacity_factor artificially increases the FLOP count. To enable FLOP count to reflect this, set `use_capacity_factor=True`.
 

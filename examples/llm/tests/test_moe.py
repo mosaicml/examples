@@ -18,7 +18,9 @@ from examples.common.config_utils import log_config
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
-def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml', pyramid=False, pg=None):
+def gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml',
+                     pyramid=False,
+                     pg=None):
     """Create gpt tiny moe cfg."""
     with open(conf_path) as f:
         test_cfg = om.load(f)
@@ -77,7 +79,9 @@ def check_tensors_different_across_ranks(tensor):
                 raise RuntimeError(f'tensors are equal on ranks {i=} and {j=}')
 
 
-def test_tutel_moe_expert_notsync(pyramid=False, pg=None, check_tensor_diff=True):
+def test_tutel_moe_expert_notsync(pyramid=False,
+                                  pg=None,
+                                  check_tensor_diff=True):
     if not os.path.isdir('./my-copy-c4/val') or not os.path.isdir(
             './my-copy-c4/train_small'):
         pytest.xfail('c4 dataset not set up as expected')
@@ -85,7 +89,8 @@ def test_tutel_moe_expert_notsync(pyramid=False, pg=None, check_tensor_diff=True
         pytest.xfail('test requires multiple GPUs')
 
     cfg = gpt_tiny_moe_cfg(conf_path='yamls/mosaic_gpt/125m_moe.yaml',
-                           pyramid=pyramid, pg=pg)
+                           pyramid=pyramid,
+                           pg=pg)
     print(f'{pyramid=}, {pg=}')
 
     reproducibility.seed_all(cfg.seed)
@@ -207,7 +212,7 @@ if __name__ == '__main__':
     for pyramid, pg, check_tensor_diff in (
         (False, None, True),
         (True, None, True),
-        # # test fsdp custom process groups
+            # # test fsdp custom process groups
         (False, 'self', True),
         (True, 'self', True),
         (False, 'node', False),
@@ -224,5 +229,6 @@ if __name__ == '__main__':
         (False, 'mod4', False),
         (True, 'mod4', False),
     ):
-        test_tutel_moe_expert_notsync(
-            pyramid=pyramid, pg=pg, check_tensor_diff=check_tensor_diff)
+        test_tutel_moe_expert_notsync(pyramid=pyramid,
+                                      pg=pg,
+                                      check_tensor_diff=check_tensor_diff)
