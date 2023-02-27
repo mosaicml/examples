@@ -5,22 +5,22 @@ cluster: r0z0 # Update with your cluster here!
 image: mosaicml/composer:0.12.1
 
 integrations:
-  - integration_type: pip_packages
-    # Install necessary oci-cli
-    packages:
-    - oci-cli
-  
-  - integration_type: git_repo
-    git_repo: mosaicml/examples
-    pip_install: '.[llm]'
+- integration_type: pip_packages
+  # Install necessary oci-cli
+  packages:
+  - oci-cli
 
-command: | 
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  pip_install: '.[llm]'
+
+command: |
   cd examples/examples/llm
-  
+
   # Run the dataset conversion
   python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 \
   --splits train val --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
-  
+
   # Upload the dataset to OCI
   oci os object bulk-upload -bn YOUR_BUCKET_HERE --object-prefix FOLDER_PREFIX \
   --src-dir my-copy-c4/ --region BUCKET_REGION
