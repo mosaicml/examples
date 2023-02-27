@@ -21,6 +21,7 @@ from omegaconf import DictConfig
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 
+from src.losses.cross_entropy import CrossEntropyLoss
 
 class MosaicGPT(nn.Module):
 

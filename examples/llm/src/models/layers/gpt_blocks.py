@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 
+from src.ops.layer_norm import dropout_add_layer_norm
+
 
 class GPTMLP(nn.Module):
 
@@ -36,12 +38,12 @@ class GPTBlock(nn.Module):
         super().__init__()
         if cfg.get('alibi', False):
             assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
-        self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
-        self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
+        self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
+        self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
 
     def forward(
         self,
@@ -52,7 +54,53 @@ class GPTBlock(nn.Module):
         a = self.ln_1(x)
         b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
         x = x + self.resid_attn_dropout(b)
-        m = self.ln_2(x)
+        m = self.ln_1(x)
         n = self.mlp(m)
         x = x + self.resid_mlp_dropout(n)
+
         return x
+
+
+class OptimizedGPTBlock(nn.Module):
+
+    def __init__(self,
+                 cfg: DictConfig,
+                 causal_attn_cls,
+                 device: Optional[str] = None):
+        super().__init__()
+        if cfg.get('alibi', False):
+            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
+        self.causal_attn = causal_attn_cls(cfg, device)
+        self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
+        self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
+        self.mlp = GPTMLP(cfg, device=device)
+
+    def forward(
+        self,
+        a: torch.Tensor,
+        x: torch.Tensor,
+        key_padding_mask: Optional[torch.ByteTensor] = None,
+        attn_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
+        m, x = dropout_add_layer_norm(b,
+                                      x,
+                                      self.ln_1.weight,
+                                      self.ln_1.bias,
+                                      0.0,
+                                      self.ln_2.eps,
+                                      None,
+                                      prenorm=True,
+                                      residual_in_fp32=False)
+        n = self.mlp(m)
+        a, x = dropout_add_layer_norm(n,
+                                      x,
+                                      self.ln_2.weight,
+                                      self.ln_2.bias,
+                                      0.0,
+                                      self.ln_2.eps,
+                                      None,
+                                      prenorm=True,
+                                      residual_in_fp32=False)
+        return a, x
+
