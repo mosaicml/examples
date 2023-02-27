@@ -18,7 +18,7 @@ We include the `.yaml` file required to run multi-node GPT-NeoX on MPlatform. Yo
 
 ************Multi-Node Jobs************
 
-To run a multi-node job it’s as simple as running `mcli run -f multi_node.yaml`.
+Running a multi-node job is as simple as running `mcli run -f multi_node.yaml`.
 
 There are a lot of logs emitted, but early on you should see something like
 
