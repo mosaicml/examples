@@ -41,7 +41,8 @@ class MosaicGPT(nn.Module):
             raise NotImplementedError(
                 'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'
             )
-        if cfg.get('attn_clip_qkv') and not cfg.attn_impl in ['flash', 'triton']:
+        if cfg.get(
+                'attn_clip_qkv') and not cfg.attn_impl in ['flash', 'triton']:
             raise NotImplementedError(
                 'QKV clipping only implemented with flash and triton attention.'
             )
