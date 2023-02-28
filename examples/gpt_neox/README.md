@@ -1,20 +1,20 @@
-# GPT-NeoX on MosaicML Platform (MPlatform)
+# GPT-NeoX on the Mosaic Platform
 
-[The MosaicML Platform (MPlatform)](https://www.mosaicml.com/blog/mosaicml-cloud-demo) enables easy training of distributed machine learning (ML) jobs. In this folder, we provide an example of how to run [GPT-NeoX](https://github.com/EleutherAI/gpt-neox), EleutherAI's library for training large language models, on MPlatform.
+[The Mosaic platform](https://www.mosaicml.com/blog/mosaicml-cloud-demo) enables easy training of distributed machine learning (ML) jobs. In this folder, we provide an example of how to run [GPT-NeoX](https://github.com/EleutherAI/gpt-neox), EleutherAI's library for training large language models, on the Mosaic platform.
 
 You’ll find in this folder:
 
--   `multi_node.yaml` - a yaml to run a multi-node GPT-NeoX training job on MPlatform.
+-   `multi_node.yaml` - a yaml to run a multi-node GPT-NeoX training job on the Mosaic platform.
 
 ## Prerequisites
 
-Here’s what you’ll need to get started with running GPT-NeoX on MPlatform
+Here’s what you’ll need to get started with running GPT-NeoX on the Mosaic platform
 
 -   A docker image with the correctly installed GPT-NeoX dependencies (we tested with `shivanshupurohit/gpt-neox:112`).
 -   A dataset prepared in the [expected format](https://github.com/EleutherAI/gpt-neox/blob/72c80715c366cc4ad623050d6bcb984fe6638814/README.md?plain=1#L122).
 
 ## Starting Training
-We include the `.yaml` file required to run multi-node GPT-NeoX on MPlatform. You just need to fill in the `cluster` field in the `.yaml` files, and change the `data-path` if using your own data. If you are using Weights & Biases, fill in `wandb_project` and `wandb_team`, otherwise remove the Weights & Biases related arguments (`use_wandb`, `wandb_project`, `wandb_team`, and `wandb_group`). Additionally, other GPT-NeoX configs can be modified as usual. The provided yaml file uses 16 GPUs, but all you have to do to use more is change the `gpu_num` field. You will likely want to adjust the parallelism configuration for your exact setup. See the [GPT-NeoX README](https://github.com/EleutherAI/gpt-neox/blob/main/README.md) for more information.
+We include the `.yaml` file required to run multi-node GPT-NeoX on the Mosaic platform. You just need to fill in the `cluster` field in the `.yaml` files, and change the `data-path` if using your own data. If you are using Weights & Biases, fill in `wandb_project` and `wandb_team`, otherwise remove the Weights & Biases related arguments (`use_wandb`, `wandb_project`, `wandb_team`, and `wandb_group`). The other GPT-NeoX configs can be modified as usual. The provided yaml file uses 16 GPUs, but all you have to do to use more is change the `gpu_num` field. You will likely want to adjust the parallelism configuration for your exact setup. See the [GPT-NeoX README](https://github.com/EleutherAI/gpt-neox/blob/main/README.md) for more information.
 
 ************Multi-Node Jobs************
 
