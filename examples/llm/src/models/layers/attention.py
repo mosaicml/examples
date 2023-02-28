@@ -160,7 +160,7 @@ class FlashCausalAttention(nn.Module):
         if self.attn_qk_ln or self.clip_qkv:
             qkv = self.W_qkv(x)
             if self.clip_qkv:
-                qkv = qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
+                qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
             if self.attn_qk_ln:
                 # Applying layernorm to qk
                 dtype = qkv.dtype
@@ -269,7 +269,7 @@ class TritonFlashCausalAttention(nn.Module):
         if self.attn_qk_ln or self.clip_qkv:
             qkv = self.Wqkv(x)
             if self.clip_qkv:
-                qkv = qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
+                qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
             if self.attn_qk_ln:
                 # Applying layernorm to qk
                 dtype = qkv.dtype
