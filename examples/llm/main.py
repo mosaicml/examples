@@ -195,10 +195,14 @@ def main(cfg):
         save_overwrite=cfg.get('save_overwrite', False),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
+        autoresume=cfg.get('autoresume', False),
     )
 
     print('Logging config...')
     log_config(cfg)
+
+    if cfg.get('eval_first', False):
+        trainer.eval()
 
     print('Starting training...')
     trainer.fit()
