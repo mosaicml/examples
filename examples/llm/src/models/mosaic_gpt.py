@@ -245,6 +245,9 @@ class MosaicGPT(nn.Module):
         if isinstance(module, FusedExpertsNetwork):
             return {'process_group': self.cfg.moe.get('pg', 'self')}
 
+        # default to False
+        return False
+
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
         return isinstance(module, gpt_blocks.GPTBlock)
