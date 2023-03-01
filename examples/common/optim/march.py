@@ -92,13 +92,13 @@ class DecoupledMarchW(Optimizer):
             with torch.enable_grad():
                 loss = closure()
         if self.grad_pre_normalization:
-            global_grad_norm = torch.tensor(0.0)
+            global_grad_norm = 0.0
             for group in self.param_groups:
                 for p in filter(lambda p: p.grad is not None and p.requires_grad, group['params']):
-                    global_grad_norm += torch.norm(p.grad) ** 2
-            global_grad_norm.sqrt_()
+                    global_grad_norm += torch.norm(p.grad).item() ** 2
+            global_grad_norm = math.sqrt(global_grad_norm)
         else:
-            global_grad_norm = torch.tensor(1.0)
+            global_grad_norm = 1.0
         
         for group in self.param_groups:
             for p in filter(lambda p: p.grad is not None and p.requires_grad, group['params']):
@@ -114,7 +114,7 @@ class DecoupledMarchW(Optimizer):
 
                 self.march(
                     p,
-                    grad.div(global_grad_norm),
+                    grad / global_grad_norm,
                     exp_avg,
                     lr,
                     initial_lr,
