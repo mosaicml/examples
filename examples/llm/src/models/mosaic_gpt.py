@@ -101,12 +101,13 @@ class MosaicGPT(nn.Module):
 
         if cfg.get('no_bias', False):
             for module in self.modules():
-                if isinstance(module, (nn.Linear, nn.LayerNorm)):
-                    if module.bias is not None:
-                        if isinstance(module.bias, nn.Parameter):
-                            print(f'Removing bias {module.bias}', end=' ')
-                            module.register_parameter('bias', None)
-                            print(f'from {module}.')
+                if hasattr(module, 'bias') and isinstance(module.bias, nn.Parameter):
+                    if cfg.get('verbose'):
+                        print(f'Removing bias ({module.bias}) from {module}.')
+                    module.register_parameter('bias', None)
+
+        if cfg.get('verbose') and cfg.get('verbose') > 2:
+            print(self)
 
     def _attn_mask(self,
                    batch_size=None,
