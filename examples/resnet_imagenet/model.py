@@ -5,7 +5,8 @@ import torch
 from composer.loss import binary_cross_entropy_with_logits, soft_cross_entropy
 from composer.metrics import CrossEntropy
 from composer.models import ComposerClassifier
-from torchmetrics import MetricCollection, MulticlassAccuracy
+from torchmetrics import MetricCollection
+from torchmetrics.classification import MulticlassAccuracy
 from torchvision.models import resnet
 
 
