@@ -16,10 +16,10 @@ integrations:
   pip_install: '.'
 
 command: |
-  cd examples/examples/llm
+  cd examples/examples/common
 
   # Run the dataset conversion
-  python ../common/convert_dataset.py \
+  python convert_dataset.py \
     --dataset c4 --data_subset en \
     --out_root ./my-copy-c4 \
     --splits val_small val train_small train \
