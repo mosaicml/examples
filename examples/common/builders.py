@@ -13,7 +13,7 @@ from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
-from examples.common.optim import DecoupledLionW
+from examples.common.optim import DecoupledLionW, DecoupledMarchW
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 
@@ -68,6 +68,13 @@ def build_optimizer(cfg, model):
                     lr=cfg.get('lr', 1e-4),
                     betas=cfg.get('betas', (0.9, 0.99)),
                     weight_decay=cfg.get('weight_decay', 0.0)
+            )
+    elif cfg.name == 'decoupled_march':
+        return DecoupledMarchW(model.parameters(),
+                    lr=cfg.lr,
+                    betas=cfg.betas,
+                    weight_decay=cfg.weight_decay,
+                    clamp_value=cfg.clamp_value
             )
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
