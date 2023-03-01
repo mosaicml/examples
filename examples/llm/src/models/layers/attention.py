@@ -256,6 +256,7 @@ class TritonFlashCausalAttention(nn.Module):
                 bias=True,
                 batch_first=True,
                 causal=True,
+                softmax_scale=cfg.get('softmax_scale'),
                 device=device,
             )
             self.mhsa.out_proj._is_residual = True  # type: ignore
