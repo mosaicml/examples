@@ -5,6 +5,9 @@
   </picture>
 </p>
 
+## Experimental MoE branch
+Example MoE yamls configuration: `yamls/mosaic_gpt/125m_moe.yaml`
+
 # Mosaic Large Language Models
 
 This folder contains starter code for training LLMs with Composer + FSDP (in beta, use `mosaicml>=0.12.0`).

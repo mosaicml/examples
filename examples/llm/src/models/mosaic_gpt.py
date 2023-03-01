@@ -17,9 +17,12 @@ from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
+from omegaconf.listconfig import ListConfig
+from tutel.experts.ffn import FusedExpertsNetwork
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
+from examples.llm.src.models.layers.moe.tutel_moe import TutelMOE
 
 
 class MosaicGPT(nn.Module):
@@ -69,12 +72,21 @@ class MosaicGPT(nn.Module):
                 nn.ModuleList([
                     gpt_blocks.GPTBlock(cfg,
                                         causal_attn_cls=self.causal_attn_cls,
+                                        block_idx=idx,
                                         device=cfg.init_device)
-                    for _ in range(cfg.n_layers)
+                    for idx in range(cfg.n_layers)
                 ])
         })
         self.transformer.update(
             {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
+
+        self.moe_cls = None
+        if cfg.get('moe', None):
+            moe_type = cfg.moe.get('moe_type')
+            if moe_type == 'tutel':
+                self.moe_cls = TutelMOE
+            else:
+                raise NotImplementedError(f'{moe_type=} not integrated')
 
         if cfg.init_device != 'meta':
             print(
@@ -219,9 +231,22 @@ class MosaicGPT(nn.Module):
             if module.out_proj.bias is not None:
                 torch.nn.init.zeros_(module.out_proj.bias)
 
+        # add init for tutel moe
+        if self.moe_cls is not None:
+            # assumes MOE class defines param_init_fn (and needs cfg to init properly)
+            self.moe_cls.param_init_fn(module, self.cfg)
+
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock)
+        if isinstance(module, gpt_blocks.GPTBlock):
+            return True
+
+        # extends FSDP wrapping to handel tutel moe
+        if isinstance(module, FusedExpertsNetwork):
+            return {'process_group': self.cfg.moe.get('pg', 'self')}
+
+        # default to False
+        return False
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
@@ -233,6 +258,7 @@ class ComposerMosaicGPT(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
         self.model = MosaicGPT(cfg)
+        self.__param_count = None
         self.__num_fwd_flops = None
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
@@ -260,9 +286,17 @@ class ComposerMosaicGPT(ComposerModel):
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
-        return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
+        loss = F.cross_entropy(outputs.view(-1, outputs.size(-1)),
                                targets.view(-1),
                                ignore_index=-100)
+
+        if self.model.cfg.get('moe', None) is not None:
+            for n, m in self.named_modules():
+                # pretty bad way to identify MoE layer, but it is what it is...
+                if n[-len('.moe'):] == '.moe':
+                    loss += self.model.cfg.moe.l_aux_wt * m.l_aux
+
+        return loss
 
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
@@ -289,14 +323,36 @@ class ComposerMosaicGPT(ComposerModel):
             self.eval_metrics = evaluator_metrics
 
     @property
+    def param_count(self):
+        # fn is based on param count on current GPU and is invalid if the model has already been sharded
+        # ie self.__param_count should be cached before FSDP sharding
+        if self.__param_count:
+            return self.__param_count
+
+        if self.model.moe_cls is not None:
+            self.__param_count = self.model.moe_cls.param_count(self)
+        else:
+            self.__param_count = sum(p.numel() for p in self.parameters())
+
+        return self.__param_count
+
+    @property
     def num_fwd_flops(self):
+        # fn is based on param count on current GPU and is invalid if the model has already been sharded
+        # ie self.__num_fwd_flops should be cached before FSDP sharding
         if self.__num_fwd_flops:
             return self.__num_fwd_flops
-        n_params = sum(p.numel() for p in self.parameters())
+
+        if self.model.moe_cls is not None:
+            n_active_params = self.model.moe_cls.active_param_count(
+                self, use_capacity_factor=True)
+        else:
+            n_active_params = self.param_count
+
         # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
         # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
         # this gets us FLOPs / token
-        params_flops_per_token = 2 * n_params
+        params_flops_per_token = 2 * n_active_params
         params_flops_per_seq = params_flops_per_token * self.model.cfg.max_seq_len
         # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
         attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (

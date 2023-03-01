@@ -7,6 +7,7 @@ try:
     from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
     from examples.llm.src.models.hf import (ComposerHFCausalLM,
                                             ComposerHFPrefixLM, ComposerHFT5)
+    from examples.llm.src.models.layers import TutelMOE
     from examples.llm.src.models.layers.attention import (
         FlashCausalAttention, TorchCausalAttention, TritonFlashCausalAttention,
         alibi_bias)
@@ -40,6 +41,7 @@ __all__ = [
     'alibi_bias',
     'GPTMLP',
     'GPTBlock',
+    'TutelMOE',
     'MosaicGPT',
     'ComposerMosaicGPT',
     'LLMTokenizer',

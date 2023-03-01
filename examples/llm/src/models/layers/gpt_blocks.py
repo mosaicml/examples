@@ -3,11 +3,14 @@
 
 """GPT Blocks used for the GPT Model."""
 
+from collections.abc import Sequence
 from typing import Optional
 
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
+
+from examples.llm.src.models.layers.moe.tutel_moe import TutelMOE
 
 
 class GPTMLP(nn.Module):
@@ -32,6 +35,7 @@ class GPTBlock(nn.Module):
     def __init__(self,
                  cfg: DictConfig,
                  causal_attn_cls,
+                 block_idx: int,
                  device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
@@ -39,7 +43,28 @@ class GPTBlock(nn.Module):
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        self.mlp = GPTMLP(cfg, device=device)
+
+        use_moe = False
+        if cfg.get('moe', None):
+            num_experts = cfg.moe.get('num_experts')
+            if isinstance(num_experts, Sequence):
+                if len(num_experts) != cfg.n_layers:
+                    raise ValueError(
+                        f'If using PyramidMoEs, each layer ({cfg.n_layers=}) should have an associated expert count ({len(num_experts)=})'
+                    )
+                num_experts = num_experts[block_idx]
+            use_moe = True if num_experts > 1 else False
+
+        if use_moe:
+            moe_type = cfg.moe.get('moe_type')
+            moe_cls = None
+            if moe_type == 'tutel':
+                moe_cls = TutelMOE
+            else:
+                raise NotImplementedError(f'{moe_type=} not integrated')
+            self.mlp = moe_cls(cfg, block_idx, device=device)
+        else:
+            self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
 

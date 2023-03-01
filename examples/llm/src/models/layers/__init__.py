@@ -7,6 +7,7 @@ from examples.llm.src.models.layers.attention import (
 from examples.llm.src.models.layers.flash_attention import (FlashAttention,
                                                             FlashMHA)
 from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
+from examples.llm.src.models.layers.moe import TutelMOE
 
 __all__ = [
     'FlashAttention',
@@ -17,4 +18,5 @@ __all__ = [
     'alibi_bias',
     'GPTMLP',
     'GPTBlock',
+    'TutelMOE',
 ]
