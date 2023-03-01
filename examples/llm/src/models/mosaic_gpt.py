@@ -99,6 +99,15 @@ class MosaicGPT(nn.Module):
         else:
             self.attn_mask = None
 
+        if cfg.get('no_bias', False):
+            for module in self.modules():
+                if isinstance(module, (nn.Linear, nn.LayerNorm)):
+                    if module.bias is not None:
+                        if isinstance(module.bias, nn.Parameter):
+                            print(f'Removing bias {module.bias}', end=' ')
+                            module.register_parameter('bias', None)
+                            print(f'from {module}.')
+
     def _attn_mask(self,
                    batch_size=None,
                    seq_len=None,
@@ -191,8 +200,9 @@ class MosaicGPT(nn.Module):
 
         # LayerNorm
         if isinstance(module, nn.LayerNorm):
-            torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
 
         # torch's MultiheadAttention
         if isinstance(module, nn.MultiheadAttention):
