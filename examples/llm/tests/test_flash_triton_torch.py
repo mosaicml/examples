@@ -6,14 +6,16 @@ import torch
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 
-from examples.llm.src.models.layers.attention import (
+from examples.llm.src.models.layers.attention import (  # type: ignore
     FlashCausalAttention, TorchCausalAttention, TritonFlashCausalAttention)
 
-RTOL = 1e-2
-ATOL = 1e-2
+
+def allclose_helper(t0, t1, rtol=1e-2, atol=1e-2):
+    return torch.allclose(t0, t1, rtol=rtol, atol=atol)
 
 
-def test_flash_torch():
+# @pytest.mark.gpu
+def test_flash_torch(device='cuda'):
     reproducibility.seed_all(7)
 
     cfg = om.create({
@@ -24,12 +26,12 @@ def test_flash_torch():
 
     n, s, f = 2, 16, cfg.d_model
 
-    fca = FlashCausalAttention(cfg).to('cuda')
-    tca = TorchCausalAttention(cfg).to('cuda')
+    fca = FlashCausalAttention(cfg).to(device)
+    tca = TorchCausalAttention(cfg).to(device)
 
     def gen_tca_mask():
         ms = TorchCausalAttention.mask_shape(cfg.n_heads, s, False)
-        attn_mask = torch.empty(*ms).to('cuda')
+        attn_mask = torch.empty(*ms).to(device)
         TorchCausalAttention.attn_mask_(attn_mask, cfg.n_heads, s)
         return attn_mask
 
@@ -40,8 +42,8 @@ def test_flash_torch():
     ).detach()
     tca.mhsa.out_proj.bias.data = fca.mhsa.out_proj.bias.data.clone().detach()
 
-    key_padding_mask = torch.ones(n, s).to('cuda').bool()
-    x0 = torch.randn(n, s, f).to('cuda')
+    key_padding_mask = torch.ones(n, s).to(device).bool()
+    x0 = torch.randn(n, s, f).to(device)
     x1 = x0.clone().detach()
     x0.requires_grad = True
     x1.requires_grad = True
@@ -58,31 +60,27 @@ def test_flash_torch():
     loss0.backward()
     loss1.backward()
 
-    assert y0.allclose(y1, rtol=RTOL, atol=ATOL)
+    assert allclose_helper(y0, y1)
 
-    assert tca.mhsa.out_proj.bias.grad.allclose(fca.mhsa.out_proj.bias.grad,
-                                                rtol=RTOL,
-                                                atol=ATOL)
-    assert tca.mhsa.out_proj.weight.grad.allclose(fca.mhsa.out_proj.weight.grad,
-                                                  rtol=RTOL,
-                                                  atol=ATOL)
-    assert tca.mhsa.in_proj_bias.grad.allclose(fca.mhsa.Wqkv.bias.grad,
-                                               rtol=RTOL,
-                                               atol=ATOL)
-    assert tca.mhsa.in_proj_weight.grad.allclose(fca.mhsa.Wqkv.weight.grad,
-                                                 rtol=RTOL,
-                                                 atol=ATOL)
+    assert allclose_helper(tca.mhsa.out_proj.bias.grad,
+                           fca.mhsa.out_proj.bias.grad)
+    assert allclose_helper(tca.mhsa.out_proj.weight.grad,
+                           fca.mhsa.out_proj.weight.grad)
+    assert allclose_helper(tca.mhsa.in_proj_bias.grad, fca.mhsa.Wqkv.bias.grad)
+    assert allclose_helper(tca.mhsa.in_proj_weight.grad,
+                           fca.mhsa.Wqkv.weight.grad)
 
-    assert x0.grad.allclose(x1.grad, rtol=RTOL, atol=ATOL)
+    assert allclose_helper(x0.grad, x1.grad)
 
 
+# @pytest.mark.gpu
 @pytest.mark.parametrize('attn_clip_qkv,attn_qk_ln', [
     (False, False),
     (False, True),
     (True, False),
     (True, True),
 ])
-def test_flash_triton(attn_clip_qkv, attn_qk_ln):
+def test_flash_triton(attn_clip_qkv, attn_qk_ln, device='cuda'):
     reproducibility.seed_all(7)
 
     cfg = om.create({
@@ -95,8 +93,8 @@ def test_flash_triton(attn_clip_qkv, attn_qk_ln):
 
     n, s, f = 2, 16, cfg.d_model
 
-    fca = FlashCausalAttention(cfg).to('cuda')
-    tfca = TritonFlashCausalAttention(cfg).to('cuda')
+    fca = FlashCausalAttention(cfg).to(device)
+    tfca = TritonFlashCausalAttention(cfg).to(device)
     # clone weights
     if cfg.attn_qk_ln or cfg.attn_clip_qkv:
         tfca.Wqkv.weight.data = fca.W_qkv.weight.data.clone().detach()
@@ -116,8 +114,8 @@ def test_flash_triton(attn_clip_qkv, attn_qk_ln):
         tfca.mhsa.out_proj.bias.data = fca.mhsa.out_proj.bias.data.clone(
         ).detach()
 
-    key_padding_mask = torch.ones(n, s).to('cuda')
-    x0 = torch.randn(n, s, f).to('cuda')
+    key_padding_mask = torch.ones(n, s).to(device)
+    x0 = torch.randn(n, s, f).to(device)
     x1 = x0.clone().detach()
     x0.requires_grad = True
     x1.requires_grad = True
@@ -134,44 +132,27 @@ def test_flash_triton(attn_clip_qkv, attn_qk_ln):
     loss0.backward()
     loss1.backward()
 
-    assert y0.allclose(y1, rtol=RTOL, atol=ATOL)
+    assert allclose_helper(y0, y1)
 
     if cfg.attn_qk_ln or cfg.attn_clip_qkv:
-        assert tfca.out_proj.bias.grad.allclose(fca.out_proj.bias.grad,
-                                                rtol=RTOL,
-                                                atol=ATOL)
-        assert tfca.out_proj.weight.grad.allclose(fca.out_proj.weight.grad,
-                                                  rtol=RTOL,
-                                                  atol=ATOL)
+        assert allclose_helper(tfca.out_proj.bias.grad, fca.out_proj.bias.grad)
+        assert allclose_helper(tfca.out_proj.weight.grad,
+                               fca.out_proj.weight.grad)
         if cfg.attn_qk_ln:
-            assert tfca.q_ln.bias.grad.allclose(fca.q_ln.bias.grad,
-                                                rtol=RTOL,
-                                                atol=ATOL)
-            assert tfca.q_ln.weight.grad.allclose(fca.q_ln.weight.grad,
-                                                  rtol=RTOL,
-                                                  atol=ATOL)
-            assert tfca.k_ln.bias.grad.allclose(fca.k_ln.bias.grad,
-                                                rtol=RTOL,
-                                                atol=ATOL)
-            assert tfca.k_ln.weight.grad.allclose(fca.k_ln.weight.grad,
-                                                  rtol=RTOL,
-                                                  atol=ATOL)
-        assert tfca.Wqkv.bias.grad.allclose(fca.W_qkv.bias.grad,
-                                            rtol=RTOL,
-                                            atol=ATOL)
-        assert tfca.Wqkv.weight.grad.allclose(fca.W_qkv.weight.grad,
-                                              rtol=RTOL,
-                                              atol=ATOL)
+            assert allclose_helper(tfca.q_ln.bias.grad, fca.q_ln.bias.grad)
+            assert allclose_helper(tfca.q_ln.weight.grad, fca.q_ln.weight.grad)
+            assert allclose_helper(tfca.k_ln.bias.grad, fca.k_ln.bias.grad)
+            assert allclose_helper(tfca.k_ln.weight.grad, fca.k_ln.weight.grad)
+        assert allclose_helper(tfca.Wqkv.bias.grad, fca.W_qkv.bias.grad)
+        assert allclose_helper(tfca.Wqkv.weight.grad, fca.W_qkv.weight.grad)
     else:
-        assert tfca.mhsa.out_proj.bias.grad.allclose(
-            fca.mhsa.out_proj.bias.grad, rtol=RTOL, atol=ATOL)
-        assert tfca.mhsa.out_proj.weight.grad.allclose(
-            fca.mhsa.out_proj.weight.grad, rtol=RTOL, atol=ATOL)
-        assert tfca.mhsa.Wqkv.bias.grad.allclose(fca.mhsa.Wqkv.bias.grad,
-                                                 rtol=RTOL,
-                                                 atol=ATOL)
-        assert tfca.mhsa.Wqkv.weight.grad.allclose(fca.mhsa.Wqkv.weight.grad,
-                                                   rtol=RTOL,
-                                                   atol=ATOL)
+        assert allclose_helper(tfca.mhsa.out_proj.bias.grad,
+                               fca.mhsa.out_proj.bias.grad)
+        assert allclose_helper(tfca.mhsa.out_proj.weight.grad,
+                               fca.mhsa.out_proj.weight.grad)
+        assert allclose_helper(tfca.mhsa.Wqkv.bias.grad,
+                               fca.mhsa.Wqkv.bias.grad)
+        assert allclose_helper(tfca.mhsa.Wqkv.weight.grad,
+                               fca.mhsa.Wqkv.weight.grad)
 
-    assert x0.grad.allclose(x1.grad, rtol=RTOL, atol=ATOL)
+    assert allclose_helper(x0.grad, x1.grad)

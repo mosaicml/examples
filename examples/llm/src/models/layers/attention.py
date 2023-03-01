@@ -130,8 +130,8 @@ class FlashCausalAttention(nn.Module):
                                    3 * self.d_model,
                                    bias=True,
                                    device=device)
-            self.causal_attn = FlashAttention(attention_dropout=cfg.attn_pdrop,
-                                              device=device)
+            self.inner_attn = FlashAttention(attention_dropout=cfg.attn_pdrop,
+                                             device=device)
             self.out_proj = nn.Linear(self.d_model,
                                       self.d_model,
                                       bias=True,
@@ -175,7 +175,7 @@ class FlashCausalAttention(nn.Module):
                             three=3,
                             h=self.n_heads)
 
-            context, attn_weights = self.causal_attn(
+            context, attn_weights = self.inner_attn(
                 qkv,
                 key_padding_mask=key_padding_mask,
                 causal=True,
@@ -235,9 +235,10 @@ class TritonFlashCausalAttention(nn.Module):
                                   3 * self.d_model,
                                   bias=True,
                                   device=device)
-            self.inner_attn = FlashAttention(num_heads=cfg.n_heads,
-                                             softmax_scale=None,
-                                             device=device)
+            self.inner_attn = FlashAttention(
+                num_heads=cfg.n_heads,
+                softmax_scale=cfg.get('softmax_scale'),
+                device=device)
             self.out_proj = nn.Linear(self.d_model,
                                       self.d_model,
                                       bias=True,
