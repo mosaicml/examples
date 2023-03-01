@@ -73,10 +73,11 @@ def build_optimizer(cfg, model):
             )
     elif cfg.name == 'decoupled_march':
         return DecoupledMarchW(model.parameters(),
-                    lr=cfg.lr,
-                    betas=cfg.betas,
-                    weight_decay=cfg.weight_decay,
-                    clamp_value=cfg.clamp_value
+                    lr=cfg.get('lr', 1e-4),
+                    betas=cfg.get('betas', (0.9, 0.99)),
+                    weight_decay=cfg.get('weight_decay', 0.0),
+                    clamp_value=cfg.clamp_value,
+                    grad_pre_normalization=cfg.grad_pre_normalization
             )
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')

@@ -33,7 +33,8 @@ class DecoupledMarchW(Optimizer):
         lr: float = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay: float = 0.0,
-        clamp_value: float = 10.0
+        clamp_value: float = 10.0,
+        grad_pre_normalization: bool = False
     ):
         assert lr > 0.
         assert all([0. <= beta <= 1. for beta in betas])
@@ -53,6 +54,7 @@ class DecoupledMarchW(Optimizer):
         for group in self.param_groups:
             group['initial_lr'] = group['lr']
         self.clamp_value = clamp_value
+        self.grad_pre_normalization = grad_pre_normalization
 
     @staticmethod
     def march(p, grad, exp_avg, lr, initial_lr, wd, beta1, beta2, clamp_value) -> None:
@@ -66,7 +68,7 @@ class DecoupledMarchW(Optimizer):
 
         if wd != 0:
             decay_factor = (lr / initial_lr) if initial_lr else 1.0
-            update.add_(p, alpha=(decay_factor * wd)/lr)
+            update.add_(p, alpha=(decay_factor * wd)/ (initial_lr if initial_lr else 1.0))
 
         weight_norm = torch.norm(p.data).clamp(0, clamp_value)
         update_norm = torch.norm(update)
@@ -89,6 +91,14 @@ class DecoupledMarchW(Optimizer):
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
+        if self.grad_pre_normalization:
+            global_grad_norm = torch.tensor(0.0)
+            for group in self.param_groups:
+                for p in filter(lambda p: p.grad is not None and p.requires_grad, group['params']):
+                    global_grad_norm += torch.norm(p.grad) ** 2
+            global_grad_norm.sqrt_()
+        else:
+            global_grad_norm = torch.tensor(1.0)
         
         for group in self.param_groups:
             for p in filter(lambda p: p.grad is not None and p.requires_grad, group['params']):
@@ -104,7 +114,7 @@ class DecoupledMarchW(Optimizer):
 
                 self.march(
                     p,
-                    grad,
+                    grad.div(global_grad_norm),
                     exp_avg,
                     lr,
                     initial_lr,
@@ -174,11 +184,24 @@ class DecoupledMarchW(Optimizer):
         beta1, _ = self.param_groups[0]['betas']
         if param in self.state:
             param_optim_state = self.state[param]
-            step_tensor =  param_optim_state['exp_avg'].clone().lerp_(param.grad, 1 - beta1).sign_().mul_(lr)
+            update_tensor =  param_optim_state['exp_avg'].clone().lerp_(param.grad, 1 - beta1).sign_().mul_(lr)
+
+
+
+           
+            weight_norm = torch.norm(param.data).clamp(0, self.clamp_value)
+            update_norm = torch.norm(update_tensor)
+            update_tensor.add_(param, alpha=-weight_decay * decay_factor)
+
+            if weight_norm == 0 or update_norm == 0:
+                trust_ratio = 1
+            else:
+                trust_ratio = weight_norm / update_norm
+            
+            update_tensor.mul_(trust_ratio)
             decay_factor = (lr / initial_lr) if initial_lr else 1.0
-            step_tensor.add_(param, alpha=-weight_decay * decay_factor)
             for metric in self.metric_functions:
                 optimizer_metrics[f'{metric}/{name}'] = self.metric_functions[metric](param, param_optim_state,
-                                                                                      step_tensor)
+                                                                                      update_tensor)
 
         return optimizer_metrics
