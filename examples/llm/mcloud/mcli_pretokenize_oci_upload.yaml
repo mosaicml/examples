@@ -29,4 +29,4 @@ command: |
   oci os object bulk-upload \
     -bn YOUR_BUCKET_HERE --region BUCKET_REGION \
     --object-prefix c4/base/pretok-gpt2-2k/ \
-    --src-dir my-copy-c4/ 
+    --src-dir my-copy-c4/
