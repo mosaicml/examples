@@ -68,7 +68,7 @@ class DecoupledMarchW(Optimizer):
 
         if wd != 0:
             decay_factor = (lr / initial_lr) if initial_lr else 1.0
-            update.add_(p, alpha=(decay_factor * wd)/ (initial_lr if initial_lr else 1.0))
+            update.add_(p, alpha=decay_factor * wd)
 
         weight_norm = torch.norm(p.data).clamp(0, clamp_value)
         update_norm = torch.norm(update)
@@ -190,8 +190,10 @@ class DecoupledMarchW(Optimizer):
 
            
             weight_norm = torch.norm(param.data).clamp(0, self.clamp_value)
-            update_norm = torch.norm(update_tensor)
+            decay_factor = (lr / initial_lr) if initial_lr else 1.0
             update_tensor.add_(param, alpha=-weight_decay * decay_factor)
+            update_norm = torch.norm(update_tensor)
+            
 
             if weight_norm == 0 or update_norm == 0:
                 trust_ratio = 1
@@ -199,7 +201,6 @@ class DecoupledMarchW(Optimizer):
                 trust_ratio = weight_norm / update_norm
             
             update_tensor.mul_(trust_ratio)
-            decay_factor = (lr / initial_lr) if initial_lr else 1.0
             for metric in self.metric_functions:
                 optimizer_metrics[f'{metric}/{name}'] = self.metric_functions[metric](param, param_optim_state,
                                                                                       update_tensor)
