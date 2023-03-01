@@ -67,10 +67,9 @@ def build_optimizer(cfg, model):
                               weight_decay=cfg.weight_decay)
     elif cfg.name == 'decoupled_lionw':
         return DecoupledLionW(model.parameters(),
-                    lr=cfg.get('lr', 1e-4),
-                    betas=cfg.get('betas', (0.9, 0.99)),
-                    weight_decay=cfg.get('weight_decay', 0.0)
-            )
+                    lr=cfg.lr,
+                    betas=cfg.betas,
+                    weight_decay=cfg.weight_decay)
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
