@@ -6,16 +6,16 @@ import torch
 from composer.utils import reproducibility
 from omegaconf import OmegaConf as om
 
-from examples.llm.src.models.layers.attention import (  # type: ignore
-    FlashCausalAttention, TorchCausalAttention, TritonFlashCausalAttention)
-
 
 def allclose_helper(t0, t1, rtol=1e-2, atol=1e-2):
     return torch.allclose(t0, t1, rtol=rtol, atol=atol)
 
 
-# @pytest.mark.gpu
+@pytest.mark.gpu
 def test_flash_torch(device='cuda'):
+    from examples.llm.src.models.layers.attention import (  # type: ignore
+        FlashCausalAttention, TorchCausalAttention)
+
     reproducibility.seed_all(7)
 
     cfg = om.create({
@@ -73,7 +73,7 @@ def test_flash_torch(device='cuda'):
     assert allclose_helper(x0.grad, x1.grad)
 
 
-# @pytest.mark.gpu
+@pytest.mark.gpu
 @pytest.mark.parametrize('attn_clip_qkv,attn_qk_ln', [
     (False, False),
     (False, True),
@@ -81,6 +81,9 @@ def test_flash_torch(device='cuda'):
     (True, True),
 ])
 def test_flash_triton(attn_clip_qkv, attn_qk_ln, device='cuda'):
+    from examples.llm.src.models.layers.attention import (  # type: ignore
+        FlashCausalAttention, TritonFlashCausalAttention)
+
     reproducibility.seed_all(7)
 
     cfg = om.create({
