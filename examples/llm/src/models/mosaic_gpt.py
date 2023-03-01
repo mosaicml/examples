@@ -101,7 +101,8 @@ class MosaicGPT(nn.Module):
 
         if cfg.get('no_bias', False):
             for module in self.modules():
-                if hasattr(module, 'bias') and isinstance(module.bias, nn.Parameter):
+                if hasattr(module, 'bias') and isinstance(
+                        module.bias, nn.Parameter):
                     if cfg.get('verbose'):
                         print(f'Removing bias ({module.bias}) from {module}.')
                     module.register_parameter('bias', None)
