@@ -8,9 +8,9 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
-
-from src.ops.layer_norm import dropout_add_layer_norm
 from src.ops.fused_dense import DenseResGeluDense
+from src.ops.layer_norm import dropout_add_layer_norm
+
 
 class GPTMLP(nn.Module):
 
@@ -37,7 +37,7 @@ class FusedGPTMLP(nn.Module):
                                                   cfg.mlp_ratio * cfg.d_model,
                                                   cfg.d_model,
                                                   device=device)
-        self.dense_gelu_dense.fc2._is_residual = True # type: ignore
+        self.dense_gelu_dense.fc2._is_residual = True  # type: ignore
 
     def forward(self, x):
         out, _ = self.dense_gelu_dense(x)

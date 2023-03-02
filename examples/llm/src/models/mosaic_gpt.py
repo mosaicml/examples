@@ -17,11 +17,11 @@ from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
+from src.losses.cross_entropy import CrossEntropyLoss
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 
-from src.losses.cross_entropy import CrossEntropyLoss
 
 class MosaicGPT(nn.Module):
 
@@ -73,12 +73,22 @@ class MosaicGPT(nn.Module):
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
         self.transformer.update(
             {'ln_i': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
+
+        block_cls = gpt_blocks.GPTBlock
+        if cfg.get('gpt_block'):
+            if cfg.get('gpt_block') not in ['standard', 'optimized']:
+                raise NotImplementedError(
+                    'MosaicGPT only implemented with standard and optimized GPT blocks.'
+                )
+            elif cfg.get('gpt_block') == 'optimized':
+                block_cls = gpt_blocks.OptimizedGPTBlock
+
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    gpt_blocks.GPTBlock(cfg,
-                                        causal_attn_cls=self.causal_attn_cls,
-                                        device=cfg.init_device)
+                    block_cls(cfg,
+                              causal_attn_cls=self.causal_attn_cls,
+                              device=cfg.init_device)
                     for _ in range(cfg.n_layers)
                 ])
         })
@@ -281,7 +291,7 @@ class ComposerMosaicGPT(ComposerModel):
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
         return self.loss_fn(outputs.view(-1, outputs.size(-1)),
-                               targets.view(-1))
+                            targets.view(-1))
 
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics

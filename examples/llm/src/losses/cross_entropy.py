@@ -28,7 +28,8 @@ class SoftmaxCrossEntropyLossFn(torch.autograd.Function):
                 ignored_index=-100,
                 inplace_backward=False,
                 process_group=None):
-        """
+        """Forward method for cross entropy loss.
+
         logits: (batch, vocab_size)
         labels: (batch,)
         If process_group is not None, we're doing Tensor Parallel: each process is responsible for

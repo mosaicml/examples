@@ -45,7 +45,8 @@ def _dropout_add_layer_norm_backward(dz,
                                      dropout_p,
                                      has_residual,
                                      is_rms_norm=False):
-    """ Assume that arguments are contiguous
+    """Assume that arguments are contiguous.
+
     dx == None means that it was a post-norm architecture
     (x = drop(x0) + x1 was not returned in the fwd).
     x0 must not be None if we have colscale.
@@ -113,7 +114,8 @@ def _dropout_add_layer_norm_subset_backward(dz,
                                             x0_numrows,
                                             has_residual,
                                             is_rms_norm=False):
-    """ Assume that arguments are contiguous
+    """Assume that arguments are contiguous.
+
     dx == None means that it was a post-norm architecture
     (x = drop(x0) + x1 was not returned in the fwd).
     x0 must not be None if we have colscale.
