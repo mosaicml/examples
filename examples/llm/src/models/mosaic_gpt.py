@@ -231,7 +231,9 @@ class MosaicGPT(nn.Module):
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock)
+        return isinstance(module, gpt_blocks.GPTBlock) or isinstance(
+            module, gpt_blocks.GPTMLP) or isinstance(module,
+                                                     self.causal_attn_cls)
 
 
 class ComposerMosaicGPT(ComposerModel):
