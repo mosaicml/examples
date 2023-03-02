@@ -227,13 +227,15 @@ class MosaicGPT(nn.Module):
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock)
+        return isinstance(
+            module,
+            (gpt_blocks.GPTBlock, gpt_blocks.GPTMLP, self.causal_attn_cls))
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock) or isinstance(
-            module, gpt_blocks.GPTMLP) or isinstance(module,
-                                                     self.causal_attn_cls)
+        return isinstance(
+            module,
+            (gpt_blocks.GPTBlock, gpt_blocks.GPTMLP, self.causal_attn_cls))
 
 
 class ComposerMosaicGPT(ComposerModel):
