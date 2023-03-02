@@ -39,12 +39,12 @@ class GPTBlock(nn.Module):
         if cfg.get('alibi', False):
             assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
 
-        self.layernorm_class = nn.LayerNorm if not cfg.get(
+        layernorm_class = nn.LayerNorm if not cfg.get(
             'low_precision_layernorm', False) else LPLayerNorm
 
-        self.ln_1 = self.layernorm_class(cfg.d_model, device=device)
+        self.ln_1 = layernorm_class(cfg.d_model, device=device)
         self.causal_attn = causal_attn_cls(cfg, device)
-        self.ln_2 = self.layernorm_class(cfg.d_model, device=device)
+        self.ln_2 = layernorm_class(cfg.d_model, device=device)
         self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)

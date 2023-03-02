@@ -142,10 +142,10 @@ class FlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                self.layernorm_class = nn.LayerNorm if not cfg.get(
+                layernorm_class = nn.LayerNorm if not cfg.get(
                     'low_precision_layernorm', False) else LPLayerNorm
-                self.q_ln = self.layernorm_class(self.d_model, device=device)
-                self.k_ln = self.layernorm_class(self.d_model, device=device)
+                self.q_ln = layernorm_class(self.d_model, device=device)
+                self.k_ln = layernorm_class(self.d_model, device=device)
         else:
             self.mhsa = FlashMHA(
                 embed_dim=cfg.d_model,
@@ -251,10 +251,10 @@ class TritonFlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                self.layernorm_class = nn.LayerNorm if not cfg.get(
+                layernorm_class = nn.LayerNorm if not cfg.get(
                     'low_precision_layernorm', False) else LPLayerNorm
-                self.q_ln = self.layernorm_class(self.d_model, device=device)
-                self.k_ln = self.layernorm_class(self.d_model, device=device)
+                self.q_ln = layernorm_class(self.d_model, device=device)
+                self.k_ln = layernorm_class(self.d_model, device=device)
         else:
             self.mhsa = FlashMHA(
                 embed_dim=cfg.d_model,

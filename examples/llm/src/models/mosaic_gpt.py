@@ -39,7 +39,7 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        self.layernorm_class = nn.LayerNorm if not cfg.get(
+        layernorm_class = nn.LayerNorm if not cfg.get(
             'low_precision_layernorm', False) else LPLayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
@@ -85,7 +85,7 @@ class MosaicGPT(nn.Module):
                 ])
         })
         self.transformer.update(
-            {'ln_f': self.layernorm_class(cfg.d_model, device=cfg.init_device)})
+            {'ln_f': layernorm_class(cfg.d_model, device=cfg.init_device)})
 
         if cfg.init_device != 'meta':
             print(
