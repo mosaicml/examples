@@ -39,7 +39,7 @@ class GPTBlock(nn.Module):
         if cfg.get('alibi', False):
             assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
 
-        self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
+        self.layernorm_class = nn.LayerNorm if not cfg.get(
             'low_precision_layernorm', False) else LPLayerNorm
 
         self.ln_1 = self.layernorm_class(cfg.d_model, device=device)
