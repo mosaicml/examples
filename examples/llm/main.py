@@ -115,6 +115,7 @@ def main(cfg):
     # Build Model
     print('Initializing model...')
     model = build_composer_model(cfg.model)
+    print(model)
     cfg.n_params = sum(p.numel() for p in model.parameters())
     print(f'{cfg.n_params=:.2e}')
     if hasattr(model, 'num_fwd_flops'):

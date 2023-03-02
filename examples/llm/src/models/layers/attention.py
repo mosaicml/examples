@@ -8,6 +8,8 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
+from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
+    LPLayerNorm
 from einops import rearrange
 from omegaconf import DictConfig
 
@@ -120,6 +122,9 @@ class FlashCausalAttention(nn.Module):
         except ImportError as e:
             raise e
 
+        self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
+            'low_precision_layernorm', False) else LPLayerNorm
+
         self.clip_qkv = cfg.get('attn_clip_qkv')
         self.attn_qk_ln = cfg.get('attn_qk_ln')
         self.d_model = cfg.d_model
@@ -140,8 +145,10 @@ class FlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                self.q_ln = nn.LayerNorm(self.d_model, device=device)
-                self.k_ln = nn.LayerNorm(self.d_model, device=device)
+                self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
+                    'low_precision_layernorm', False) else LPLayerNorm
+                self.q_ln = self.layernorm_class(self.d_model, device=device)
+                self.k_ln = self.layernorm_class(self.d_model, device=device)
         else:
             self.mhsa = FlashMHA(
                 embed_dim=cfg.d_model,
@@ -247,8 +254,10 @@ class TritonFlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                self.q_ln = nn.LayerNorm(self.d_model, device=device)
-                self.k_ln = nn.LayerNorm(self.d_model, device=device)
+                self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
+                    'low_precision_layernorm', False) else LPLayerNorm
+                self.q_ln = self.layernorm_class(self.d_model, device=device)
+                self.k_ln = self.layernorm_class(self.d_model, device=device)
         else:
             self.mhsa = FlashMHA(
                 embed_dim=cfg.d_model,
