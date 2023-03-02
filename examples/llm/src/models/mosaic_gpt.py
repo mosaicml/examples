@@ -304,9 +304,7 @@ class ComposerMosaicGPT(ComposerModel):
         # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
         attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (
             self.model.cfg.d_model * (self.model.cfg.max_seq_len**2))
-        num_fwd_flops = params_flops_per_seq + attn_flops_per_seq
-
-        return num_fwd_flops
+        return params_flops_per_seq + attn_flops_per_seq
 
     def flops_per_batch(self, batch):
         # Note: this computation does not take into account padding, and assumes
