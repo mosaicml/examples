@@ -142,7 +142,7 @@ class FlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
+                self.layernorm_class = nn.LayerNorm if not cfg.get(
                     'low_precision_layernorm', False) else LPLayerNorm
                 self.q_ln = self.layernorm_class(self.d_model, device=device)
                 self.k_ln = self.layernorm_class(self.d_model, device=device)
