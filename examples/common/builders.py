@@ -5,7 +5,8 @@ import os
 
 from composer import algorithms
 from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
-                                OptimizerMonitor, RuntimeEstimator)
+                                OptimizerMonitor, RuntimeEstimator,
+                                SpeedMonitor)
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
@@ -16,7 +17,6 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.optim import DecoupledLionW
-from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 
 
@@ -26,9 +26,9 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
-                               gpu_flops_available=kwargs.get(
-                                   'gpu_flops_available', None))
+        return SpeedMonitor(window_size=kwargs.get('window_size', 1),
+                            gpu_flops_available=kwargs.get(
+                                'gpu_flops_available', None))
     elif name == 'runtime_estimator':
         return RuntimeEstimator()
     elif name == 'optimizer_monitor':
