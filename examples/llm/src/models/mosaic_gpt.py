@@ -53,6 +53,13 @@ class MosaicGPT(nn.Module):
                 'QKV clipping only implemented with flash and triton attention.'
             )
 
+        if cfg.get('softmax_scale') and cfg.attn_impl not in [
+                'flash', 'triton'
+        ]:
+            raise NotImplementedError(
+                'softmax_scale only implemented with flash and triton attention.'
+            )
+
         self.alibi = cfg.get('alibi', False)
         self.alibi_bias_max = cfg.get('alibi_bias_max',
                                       8 if self.alibi else None)
@@ -103,6 +110,17 @@ class MosaicGPT(nn.Module):
                 'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
         else:
             self.attn_mask = None
+
+        if cfg.get('no_bias', False):
+            for module in self.modules():
+                if hasattr(module, 'bias') and isinstance(
+                        module.bias, nn.Parameter):
+                    if cfg.get('verbose'):
+                        print(f'Removing bias ({module.bias}) from {module}.')
+                    module.register_parameter('bias', None)
+
+        if cfg.get('verbose') and cfg.get('verbose') > 2:
+            print(self)
 
     def _attn_mask(self,
                    batch_size=None,
@@ -196,8 +214,9 @@ class MosaicGPT(nn.Module):
 
         # LayerNorm
         if isinstance(module, nn.LayerNorm):
-            torch.nn.init.zeros_(module.bias)
             torch.nn.init.ones_(module.weight)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
 
         # torch's MultiheadAttention
         if isinstance(module, nn.MultiheadAttention):
