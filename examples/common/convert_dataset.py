@@ -98,7 +98,7 @@ class TrainSmallConstants(DataSplitConstants):
     def __init__(self,
                  hf_split: str = 'train',
                  folder_split: str = 'train_small',
-                 raw_samples: int = 1000000,
+                 raw_samples: int = 10000,
                  truncated_samples: int = 10000):
         super().__init__(hf_split, folder_split, raw_samples, truncated_samples)
 
@@ -124,8 +124,8 @@ pileconstants.splits['train'] = DataSplitConstants(hf_split='train',
 pileconstants.splits['train_small'] = DataSplitConstants(
     hf_split='train',
     folder_split='train_small',
-    raw_samples=1000000,
-    truncated_samples=100000)
+    raw_samples=10000,
+    truncated_samples=10000)
 pileconstants.splits['val'] = DataSplitConstants(hf_split='validation',
                                                  folder_split='val',
                                                  raw_samples=214670,
@@ -146,8 +146,8 @@ c4constants.splits['train'] = DataSplitConstants(hf_split='train',
 c4constants.splits['train_small'] = DataSplitConstants(
     hf_split='train',
     folder_split='train_small',
-    raw_samples=1000000,
-    truncated_samples=100000)
+    raw_samples=10000,
+    truncated_samples=10000)
 c4constants.splits['val'] = DataSplitConstants(hf_split='validation',
                                                folder_split='val',
                                                raw_samples=364608,
