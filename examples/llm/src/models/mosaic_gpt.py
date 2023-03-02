@@ -75,8 +75,9 @@ class MosaicGPT(nn.Module):
                 nn.ModuleList([
                     gpt_blocks.GPTBlock(cfg,
                                         causal_attn_cls=self.causal_attn_cls,
-                                        device=cfg.init_device)
-                    for _ in range(cfg.n_layers)
+                                        device=cfg.init_device,
+                                        index=n)
+                    for n in range(cfg.n_layers)
                 ])
         })
         self.transformer.update(
@@ -231,7 +232,7 @@ class MosaicGPT(nn.Module):
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock)
+        return isinstance(module, gpt_blocks.GPTBlock) and module.index % 2 == 1
 
 
 class ComposerMosaicGPT(ComposerModel):
