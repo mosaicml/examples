@@ -122,9 +122,6 @@ class FlashCausalAttention(nn.Module):
         except ImportError as e:
             raise e
 
-        self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
-            'low_precision_layernorm', False) else LPLayerNorm
-
         self.clip_qkv = cfg.get('attn_clip_qkv')
         self.attn_qk_ln = cfg.get('attn_qk_ln')
         self.d_model = cfg.d_model
