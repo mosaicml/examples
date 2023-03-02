@@ -99,6 +99,9 @@ class DecoupledMarchW(Optimizer):
             global_grad_norm = math.sqrt(global_grad_norm)
         else:
             global_grad_norm = 1.0
+
+        if global_grad_norm == 0:
+            global_grad_norm = 1
         
         for group in self.param_groups:
             for p in filter(lambda p: p.grad is not None and p.requires_grad, group['params']):
