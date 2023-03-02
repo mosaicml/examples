@@ -13,6 +13,8 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
+    LPLayerNorm
 from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
@@ -36,6 +38,9 @@ class MosaicGPT(nn.Module):
             self.causal_attn_cls = attention.TritonFlashCausalAttention
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
+
+        layernorm_class = nn.LayerNorm if not cfg.get(
+            'low_precision_layernorm', False) else LPLayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(
@@ -80,7 +85,7 @@ class MosaicGPT(nn.Module):
                 ])
         })
         self.transformer.update(
-            {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
+            {'ln_f': layernorm_class(cfg.d_model, device=cfg.init_device)})
 
         if cfg.init_device != 'meta':
             print(
