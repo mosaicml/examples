@@ -39,7 +39,7 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        self.layernorm_class = torch.nn.LayerNorm if not cfg.get(
+        self.layernorm_class = nn.LayerNorm if not cfg.get(
             'low_precision_layernorm', False) else LPLayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
