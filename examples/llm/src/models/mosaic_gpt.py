@@ -239,7 +239,7 @@ class ComposerMosaicGPT(ComposerModel):
     def __init__(self, cfg):
         super().__init__()
         self.model = MosaicGPT(cfg)
-        self.num_fwd_flops = self.compute_num_fwd_flops()
+        self.num_fwd_flops = self._compute_num_fwd_flops()
         self.train_metrics = {
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
