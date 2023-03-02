@@ -73,7 +73,7 @@ def generic_param_init_fn(module, cfg, init_fn):
             _d = cfg.d_model
             splits = (0, _d, 2 * _d, 3 * _d)
             for s, e in zip(splits[:-1], splits[1:]):
-                init_fn(module.weight[s:e])
+                init_fn(module.in_proj_weight[s:e])
         else:
             assert module.q_proj_weight is not None and module.k_proj_weight is not None and module.v_proj_weight is not None
             assert module.in_proj_weight is None
