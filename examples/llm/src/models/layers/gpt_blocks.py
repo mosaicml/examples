@@ -36,6 +36,7 @@ class GPTBlock(nn.Module):
                  index: int = 0):
         super().__init__()
         self.index = index
+        print(index)
         if cfg.get('alibi', False):
             assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
