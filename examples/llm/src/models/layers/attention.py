@@ -137,7 +137,7 @@ class FlashCausalAttention(nn.Module):
                                       bias=True,
                                       device=device)
 
-            self.W_qkv._fused = (0, (cfg.d_model, 2 * cfg.d_model))
+            self.W_qkv._fused = [0, [cfg.d_model, 2 * cfg.d_model]]
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
@@ -153,7 +153,7 @@ class FlashCausalAttention(nn.Module):
                 causal=True,
                 device=device,
             )
-            self.mhsa.Wqkv._fused = (0, (cfg.d_model, 2 * cfg.d_model))
+            self.mhsa.Wqkv._fused = [0, [cfg.d_model, 2 * cfg.d_model]]
             self.mhsa.out_proj._is_residual = True
 
     def forward(self, x, key_padding_mask, attn_mask=None):
@@ -246,7 +246,7 @@ class TritonFlashCausalAttention(nn.Module):
                                       bias=True,
                                       device=device)
 
-            self.Wqkv._fused = (0, (cfg.d_model, 2 * cfg.d_model))
+            self.Wqkv._fused = [0, [cfg.d_model, 2 * cfg.d_model]]
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
@@ -262,7 +262,7 @@ class TritonFlashCausalAttention(nn.Module):
                 softmax_scale=cfg.get('softmax_scale'),
                 device=device,
             )
-            self.mhsa.Wqkv._fused = (0, (cfg.d_model, 2 * cfg.d_model))
+            self.mhsa.Wqkv._fused = [0, [cfg.d_model, 2 * cfg.d_model]]
             self.mhsa.out_proj._is_residual = True  # type: ignore
 
         warnings.warn(

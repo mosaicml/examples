@@ -34,7 +34,7 @@ def generic_param_init_fn(module, cfg, init_fn):
                 raise NotImplementedError(
                     f'init for fused layers only implemented on dim 0, 1, and 2.'
                 )
-            splits = (0, *splits, module.weight.size(dim))
+            splits = [0, *splits, module.weight.size(dim)]
             for s, e in zip(splits[:-1], splits[1:]):
                 if dim == 0:
                     init_fn(module.weight[s:e])
@@ -71,7 +71,7 @@ def generic_param_init_fn(module, cfg, init_fn):
             assert module.q_proj_weight is None and module.k_proj_weight is None and module.v_proj_weight is None
             # in_proj_weight is actually 3 layers and should be split up for width based init
             _d = cfg.d_model
-            splits = (0, _d, 2 * _d, 3 * _d)
+            splits = [0, _d, 2 * _d, 3 * _d]
             for s, e in zip(splits[:-1], splits[1:]):
                 init_fn(module.in_proj_weight[s:e])
         else:
