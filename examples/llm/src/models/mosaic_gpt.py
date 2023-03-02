@@ -71,6 +71,8 @@ class MosaicGPT(nn.Module):
                                  device=cfg.init_device)
             })
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
+        self.transformer.update(
+            {'ln_i': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
@@ -80,8 +82,6 @@ class MosaicGPT(nn.Module):
                     for _ in range(cfg.n_layers)
                 ])
         })
-        self.transformer.update(
-            {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
         if cfg.init_device != 'meta':
             print(
@@ -172,13 +172,13 @@ class MosaicGPT(nn.Module):
             mod_key_padding_mask = None
         else:
             mod_key_padding_mask = key_padding_mask
+        a = self.transformer.ln_i(x)  # type: ignore
         for block in self.transformer.blocks:  # type: ignore
-            x = block(x, mod_key_padding_mask, attn_mask)
-        x = self.transformer.ln_f(x)  # type: ignore
+            a, x = block(a, x, mod_key_padding_mask, attn_mask)
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
         assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
-        logits = F.linear(x, self.transformer.wte.weight, None)
+        logits = F.linear(a, self.transformer.wte.weight, None)
         return logits
 
     # Param Initialization, needed for device='meta' fast initialization
@@ -261,6 +261,7 @@ class ComposerMosaicGPT(ComposerModel):
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
         }
+        self.loss_fn = CrossEntropyLoss(inplace_backward=True)
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
@@ -279,9 +280,8 @@ class ComposerMosaicGPT(ComposerModel):
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
-        return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
-                               targets.view(-1),
-                               ignore_index=-100)
+        return self.loss_fn(outputs.view(-1, outputs.size(-1)),
+                               targets.view(-1))
 
     def get_metrics(self, is_train=False):
         return self.train_metrics if is_train else self.eval_metrics
