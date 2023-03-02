@@ -294,7 +294,7 @@ class ComposerMosaicGPT(ComposerModel):
         else:
             self.eval_metrics = evaluator_metrics
 
-    def compute_num_fwd_flops(self):
+    def _compute_num_fwd_flops(self):
         n_params = sum(p.numel() for p in self.parameters())
         # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
         # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
