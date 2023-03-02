@@ -27,9 +27,9 @@ def generic_param_init_fn(module, cfg, init_fn):
 
     # Linear
     if isinstance(module, nn.Linear):
-        if hasattr(module, '_fused'):
+        if hasattr(module, 'fused'):
             # if a layer is fused, its parameter init, if based on shapes, should be of the param sizes when not fused
-            dim, splits = module._fused
+            dim, splits = module.fused
             if dim not in [0, 1, 2]:
                 raise NotImplementedError(
                     f'init for fused layers only implemented on dim 0, 1, and 2.'
