@@ -289,7 +289,7 @@ mcli run -f yamls/finetuning/glue/mcloud_run.yaml
 
 ### Multi-node training
 
-To train with high performance on *multi-node* clusters, the easiest way is with MosaicML platform ;)
+To train with high performance on *multi-node* clusters, the easiest way is with the MosaicML platform ;)
 
 But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node.
 

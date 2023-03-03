@@ -127,7 +127,7 @@ If training on a single node, the `composer` launcher will autodetect the number
 composer main.py yamls/mosaic_gpt/125m.yaml
 ```
 
-To train with high performance on multi-node clusters, the easiest way is with MosaicML platform ;) Check out the `mcloud/` folder for examples!
+To train with high performance on multi-node clusters, the easiest way is with the MosaicML platform ;) Check out the `mcloud/` folder for examples!
 
 But if you really must try this manually on your own cluster, then just provide a few variables to `composer`
 either directly via CLI, or via environment variables that can be read. Then launch the appropriate command on each node:
