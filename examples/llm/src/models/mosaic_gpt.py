@@ -190,7 +190,7 @@ class MosaicGPT(nn.Module):
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
         init_fn_name = self.cfg.get('param_init_fn', 'baseline_')
-        if self.cfg.get('verbose') and self.cfg.get('verbose') > 1:
+        if self.cfg.get('verbose', 0) > 1:
             warnings.warn(f'Using {init_fn_name} initialization.')
         MODEL_INIT_REGISTRY[init_fn_name](module, self.cfg)
 

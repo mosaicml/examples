@@ -26,7 +26,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
     # enable user to divide _is_residual weights by math.sqrt(2 * cfg.n_layers)
     div_is_residual = cfg.get('init_div_is_residual', True)
     if div_is_residual:
-        if cfg.get('verbose') and cfg.get('verbose') > 1:
+        if cfg.get('verbose', 0) > 1:
             warnings.warn(
                 f'Initializing _is_residual layers then dividing them by math.sqrt(2 * n_layers).' +\
                 f'set `init_div_is_residual: false` in model config to disable this.'
@@ -64,7 +64,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
 
     # LayerNorm
     if isinstance(module, nn.LayerNorm):
-        if cfg.get('verbose') and cfg.get('verbose') > 1:
+        if cfg.get('verbose', 0) > 1:
             warnings.warn(
                 f'LayerNorm gamma weights are set to 1. If the layer has a bias it is initialized to 0.'
             )
@@ -109,7 +109,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
 def baseline_param_init_fn_(module, cfg):
     init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=cfg.init_std)
 
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.get('verbose', 0) > 1:
         warnings.warn(
             f'Using torch.nn.init.normal_ init fn mean=0.0, std={cfg.init_std}')
 
@@ -123,7 +123,7 @@ def kaiming_uniform_param_init_fn_(module, cfg):
     fan_mode = cfg.get('fan_mode', 'fan_in')
     init_nonlinearity = cfg.get('init_nonlinearity', 'leaky_relu')
 
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.get('verbose', 0) > 1:
         warnings.warn(
             f'Using nn.init.kaiming_uniform_ init fn with parameters: ' +\
             f'a={init_gain}, mode={fan_mode}, nonlinearity={init_nonlinearity}'
@@ -144,7 +144,7 @@ def kaiming_normal_param_init_fn_(module, cfg):
     fan_mode = cfg.get('fan_mode', 'fan_in')
     init_nonlinearity = cfg.get('init_nonlinearity', 'leaky_relu')
 
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.get('verbose', 0) > 1:
         warnings.warn(
             f'Using nn.init.kaiming_normal_ init fn with parameters: ' +\
             f'a={init_gain}, mode={fan_mode}, nonlinearity={init_nonlinearity}'
@@ -164,7 +164,7 @@ def xavier_uniform_param_init_fn_(module, cfg):
     init_gain = cfg.get('init_gain', 1.0)
     xavier_uniform_ = partial(torch.nn.init.xavier_uniform_, gain=init_gain)
 
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.get('verbose', 0) > 1:
         warnings.warn(
             f'Using torch.nn.init.xavier_uniform_ init fn with parameters: ' +\
             f'gain={init_gain}'
@@ -179,7 +179,7 @@ def xavier_normal_param_init_fn_(module, cfg):
     init_gain = cfg.get('init_gain', 1.0)
     xavier_normal_ = partial(torch.nn.init.xavier_normal_, gain=init_gain)
 
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.get('verbose', 0) > 1:
         warnings.warn(
             f'Using torch.nn.init.xavier_normal_ init fn with parameters: ' +\
             f'gain={init_gain}'
