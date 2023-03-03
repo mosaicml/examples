@@ -1,6 +1,6 @@
 torch==1.13.1
 einops==0.5.0
-mosaicml @ git+https://github.com/abhi-mosaic/composer.git@f8b638069c7d472a88b649b2c56616a57b2fa922
+mosaicml @ git+https://github.com/mosaicml/composer.git@release/v0.13.0
 mosaicml-streaming==0.2.3
 flash-attn==0.2.8
 mosaicml-cli>=0.2.32,<1
