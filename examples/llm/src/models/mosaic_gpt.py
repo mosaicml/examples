@@ -20,14 +20,7 @@ from omegaconf import DictConfig
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-
-try:
-    from examples.llm.src.models.ops import (CrossEntropyLoss,
-                                             check_if_xentropy_cuda_installed)
-    check_if_xentropy_cuda_installed()
-    optimized_xentropy_installed = True
-except:
-    optimized_xentropy_installed = False
+from examples.llm.src.models.ops import check_if_xentropy_cuda_installed
 
 
 class MosaicGPT(nn.Module):
@@ -287,12 +280,13 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
 
-        # if optimized_xentropy_installed:
-        #     print("Using optimized cross entropy!")
-        #     self.loss_fn = CrossEntropyLoss(inplace_backward=True,
-        #                                     ignore_index=-100, process_group=None)
-        # else:
-        self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        try:
+            check_if_xentropy_cuda_installed()
+            self.loss_fn = CrossEntropyLoss(inplace_backward=True,
+                                            ignore_index=-100,
+                                            process_group=None)
+        except:
+            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
