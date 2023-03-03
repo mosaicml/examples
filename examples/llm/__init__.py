@@ -44,7 +44,7 @@ __all__ = [
     'GPTMLP',
     'FusedGPTMLP',
     'GPTBlock',
-    'OptimizedGPTBlock'
+    'OptimizedGPTBlock',
     'MosaicGPT',
     'ComposerMosaicGPT',
     'LLMTokenizer',
