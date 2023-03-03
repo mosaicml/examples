@@ -16,9 +16,14 @@ To disable the optimizations, set
 ```
 model.gpt_block: standard
 ```
+# Details
+These CUDA optimizations incuded here are kernel fusions designed improve the performance of memory-bound operations. They include:
+* Fusing the linear, GELU, and linear layers of the GPTMLP
+* Fusing the CrossEntropy loss function at the end of the model
+* Fusing the dropout, addition, and LayerNorm pattern that occur inside of each GPT block.
 
 # Expected Performance
 We have seen improvements of 5 - 15% for on 1B - 13B parameter models on A100-40GB and A100-80GB nodes. Performance gains may be smaller if your batch size is very small or your model is extremely large. These CUDA extensions do not currently support 30B+ models.
 
 # Credit
-Most of these optimizations are adapted or copied from [HazyResearch](https://github.com/HazyResearch/).
+These optimizations are adapted or copied from [HazyResearch](https://github.com/HazyResearch/).

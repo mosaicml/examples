@@ -218,10 +218,10 @@ because more memory will enable you to use larger microbatch sizes.
 # Optimizing Performance
 The YAMLs in this repo are relatively well tuned for medium-to-large NVIDIA A100-40GB clusters.
 
-If you have an NVIDIA GPU, you may want to enable our suite of CUDA optimizations. You can do so by first installing the installing the optimization library in the `src/csrc/` folder, and then setting `model.gpt_block=optimized`. These optimizations are well-tested on models up to 13B parameters on NVIDIA A100 GPUs, and should produce 5-15\% speedup over the standard GPT block (`model.gpt_block=standard`).
+If you have an NVIDIA GPU, you may want to enable our suite of CUDA optimizations. You can do so by first installing the installing the optimization library in the `src/csrc/` folder, and then setting `model.gpt_block=optimized`. These optimizations consist mostly of kernel fusions designed to improve compute utilization of memory-bound operations, and are well-tested on models up to 13B parameters on NVIDIA A100 GPUs. On A100-40GB and A100-80GB GPUs, they should produce a 5-15\% speedup over the standard GPT block (`model.gpt_block=standard`).
 
-On different devices with more / less GPU memory,
-you may wish to edit the `device_train_microbatch_size` or `fsdp_config` values.
+On different devices with more / less GPU memory than an NVIDIA A100-40GB,
+you may wish to edit the default `device_train_microbatch_size` or `fsdp_config` values.
 In general, larger microbatch sizes and disabling `activation_checkpointing` lead to higher throughput.
 
 Note that each YAML specifies a `global_train_batch_size`, which is an optimization choice, i.e. the **math** being performed,
