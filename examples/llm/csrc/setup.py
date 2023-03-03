@@ -11,7 +11,8 @@ from setuptools import setup
 
 try:
     import torch
-    from torch.utils.cpp_extension import (CUDA_HOME, BuildExtension, CUDAExtension)
+    from torch.utils.cpp_extension import (CUDA_HOME, BuildExtension,
+                                           CUDAExtension)
 
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
@@ -64,7 +65,7 @@ ext_modules = []
 # Check, if ATen/CUDAGeneratorImpl.h is found, otherwise use ATen/cuda/CUDAGeneratorImpl.h
 # See https://github.com/pytorch/pytorch/pull/70650
 generator_flag = []
-torch_dir = torch.__path__[0] # type: ignore
+torch_dir = torch.__path__[0]  # type: ignore
 if os.path.exists(
         os.path.join(torch_dir, 'include', 'ATen', 'CUDAGeneratorImpl.h')):
     generator_flag = ['-DOLD_GENERATOR_PATH']
