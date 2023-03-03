@@ -1,6 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+# Install all CUDA sub-folders.
 # Adapted from https://github.com/mlcommons/training_results_v2.0/blob/main/HazyResearch/benchmarks/bert/implementations/pytorch/csrc/layer_norm/setup.py
 # and https://github.com/NVIDIA/apex/blob/master/setup.py
 

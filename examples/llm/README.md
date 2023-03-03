@@ -59,12 +59,12 @@ cd examples/llm
 ```
 
 If you have an NVIDIA GPU, you can install our library of CUDA optimizations to speed up your models.
+```bash
+cd csrc
+pip install .  # may take a long time (up to 20 minutes)
+cd ..
 ```
-cd examples/llm/csrc
-pip install . # May take a long time (~20 minutes)
-cd examples/llm
-```
-These optimizations can be enabled by setting `model.gpt_block: optimized` in your YAMLs.
+See the section [Optimizing Performance](#optimizing-performance) below for instructions on how to use these speedups.
 
 # Dataset preparation
 To run training, you'll need to make yourself a copy of the pre-training dataset.
