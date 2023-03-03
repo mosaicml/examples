@@ -15,3 +15,4 @@ omegaconf>=2.2.3,<3
 datasets>=2.9.0
 transformers>=4.11,<5
 mosaicml-streaming<0.2.4
+pynvml<12
