@@ -15,6 +15,14 @@ try:
 except ImportError as e:
     XENTROPY_CUDA_LIB = False
 
+
+def check_if_xentropy_cuda_installed():
+    if not XENTROPY_CUDA_LIB:
+        raise ImportError(
+            'The Xentropy CUDA extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/csrc.'
+        )
+
+
 # `all_gather_into_tensor` and `reduce_scatter_tensor` are new placeholders for
 # `_all_gather_base` and `_reduce_scatter_base`. They require the most recent
 # version of PyTorch. The following 2 lines are for backward compatibility with

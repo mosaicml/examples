@@ -22,7 +22,8 @@ import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 
 try:
-    from examples.llm.src.models.ops import CrossEntropyLoss
+    from examples.llm.src.models.ops import CrossEntropyLoss, check_if_xentropy_cuda_installed
+    check_if_xentropy_cuda_installed()
     optimized_xentropy_installed = True
 except:
     optimized_xentropy_installed = False
