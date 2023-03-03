@@ -7,8 +7,6 @@ from examples.llm.src.models.ops.fused_dense import DenseResGeluDense
 from examples.llm.src.models.ops.layer_norm import DropoutAddLayerNorm
 
 __all__ = [
-    'CrossEntropyLoss',
-    'check_if_xentropy_cuda_installed'
-    'DenseResGeluDense',
-    'DropoutAddLayerNorm',
+    'CrossEntropyLoss', 'check_if_xentropy_cuda_installed', 'DenseResGeluDense',
+    'DropoutAddLayerNorm'
 ]

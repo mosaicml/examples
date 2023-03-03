@@ -8,7 +8,7 @@ import torch
 from torch.nn import init
 
 try:
-    import dropout_layer_norm
+    import dropout_layer_norm  # type: ignore
     DROPOUT_LAYER_NORM = True
 except ImportError as e:
     DROPOUT_LAYER_NORM = False
@@ -171,8 +171,7 @@ class DropoutAddLayerNormFn(torch.autograd.Function):
         zmat, xmat, dmask, mu, rsigma = _dropout_add_layer_norm_forward(
             x0, x1, gamma, beta, rowscale, colscale, dropout_p, epsilon,
             residual_in_fp32, is_rms_norm)
-        # Only need to save x0 if we need to compute gradient wrt colscale
-        x0_saved = x0 if colscale is not None else None
+
         ctx.save_for_backward(xmat.view(x0.shape), x0, dmask, gamma, mu, rsigma,
                               rowscale, colscale)
         ctx.prenorm = prenorm
@@ -236,8 +235,7 @@ class DropoutAddLayerNormSubsetFn(torch.autograd.Function):
         zmat, xmat, dmask, mu, rsigma = _dropout_add_layer_norm_subset_forward(
             x0, x1, gamma, beta, colscale, x0_subset, out_subset, dropout_p,
             epsilon, rowscale_const, out_numrows, residual_in_fp32, is_rms_norm)
-        # Only need to save x0 if we need to compute gradient wrt colscale
-        x0_saved = x0 if colscale is not None else None
+
         x_shape = (-1, *x0.shape[1:])
         ctx.save_for_backward(xmat.view(x_shape), x0, dmask, gamma, mu, rsigma,
                               colscale, x0_subset, out_subset)

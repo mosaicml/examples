@@ -3,7 +3,7 @@
 
 """GPT Blocks used for the GPT Model."""
 
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -66,7 +66,7 @@ class GPTBlock(nn.Module):
         x: torch.Tensor,
         key_padding_mask: Optional[torch.ByteTensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
         x = x + self.resid_attn_dropout(b)
         m = self.ln_1(x)
@@ -102,9 +102,9 @@ class OptimizedGPTBlock(nn.Module):
         x: torch.Tensor,
         key_padding_mask: Optional[torch.ByteTensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
-        m, x = dropout_add_ln_1(b, x)
+        m, x = self.dropout_add_ln_1(b, x)
         n = self.mlp(m)
-        a, x = dropout_add_layer_norm(n, x)
+        a, x = self.dropout_add_ln_2(n, x)
         return a, x

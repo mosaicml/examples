@@ -12,7 +12,7 @@ import torch.nn as nn
 from torch.cuda.amp import custom_bwd, custom_fwd
 
 try:
-    import fused_dense_lib as fused_dense_cuda
+    import fused_dense_lib as fused_dense_cuda  # type: ignore
     DENSE_GELU_DENSE_INSTALLED = True
 except ImportError as e:
     DENSE_GELU_DENSE_INSTALLED = False

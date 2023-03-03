@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 try:
-    import xentropy_cuda_lib
+    import xentropy_cuda_lib  # type: ignore
     XENTROPY_CUDA_LIB = True
 except ImportError as e:
     XENTROPY_CUDA_LIB = False
@@ -27,8 +27,8 @@ def check_if_xentropy_cuda_installed():
 # `_all_gather_base` and `_reduce_scatter_base`. They require the most recent
 # version of PyTorch. The following 2 lines are for backward compatibility with
 # older PyTorch.
-if 'all_gather_into_tensor' not in dir(torch.distributed):
-    torch.distributed.all_gather_into_tensor = torch.distributed._all_gather_base
+if 'all_gather_into_tensor' not in dir(torch.distributed):  # type: ignore
+    torch.distributed.all_gather_into_tensor = torch.distributed._all_gather_base  # type: ignore
 
 
 class SoftmaxCrossEntropyLossFn(torch.autograd.Function):
@@ -50,7 +50,7 @@ class SoftmaxCrossEntropyLossFn(torch.autograd.Function):
         """
         batch, vocab_size = logits.shape
         assert labels.shape == (batch,)
-        world_size = 1 if process_group is None else torch.distributed.get_world_size(
+        world_size = 1 if process_group is None else torch.distributed.get_world_size(  # type: ignore
             process_group)
         ctx.total_classes = world_size * vocab_size
 
@@ -59,13 +59,10 @@ class SoftmaxCrossEntropyLossFn(torch.autograd.Function):
             losses.masked_fill_(labels == ignored_index, 0)
             labels_local = labels
         else:
-            rank = torch.distributed.get_rank(process_group)
-            vocab_start_index, vocab_end_index = rank * vocab_size, (
-                rank + 1) * vocab_size
+            rank = torch.distributed.get_rank(process_group)  # type: ignore
+            vocab_start_index, _ = rank * vocab_size, (rank + 1) * vocab_size
 
             # Create a mask of valid vocab ids (1 means it needs to be masked).
-            labels_mask = (labels < vocab_start_index) | (labels >=
-                                                          vocab_end_index)
             ignored_mask = labels == ignored_index
             labels_local = torch.where(ignored_mask, labels,
                                        labels - vocab_start_index)
@@ -90,12 +87,13 @@ class SoftmaxCrossEntropyLossFn(torch.autograd.Function):
                                         batch,
                                         dtype=lse_local.dtype,
                                         device=lse_local.device)
-            torch.distributed.all_gather_into_tensor(lse_allgather,
-                                                     lse_local.contiguous(),
-                                                     group=process_group)
-            handle_losses = torch.distributed.all_reduce(
+            torch.distributed.all_gather_into_tensor(  # type: ignore
+                lse_allgather,
+                lse_local.contiguous(),
+                group=process_group)
+            handle_losses = torch.distributed.all_reduce(  # type: ignore
                 losses,
-                op=torch.distributed.ReduceOp.SUM,
+                op=torch.distributed.ReduceOp.SUM,  # type: ignore
                 group=process_group,
                 async_op=True)
             lse = torch.logsumexp(lse_allgather, dim=0)
