@@ -4,16 +4,10 @@ This repo contains reference examples for training ML models quickly and to high
 
 It currently features the following examples:
 
-- [MosaicML Examples](#mosaicml-examples)
-  - [Installation](#installation)
-  - [Extending an example](#extending-an-example)
-  - [Tests and Linting](#tests-and-linting)
-  - [Overriding Arguments](#overriding-arguments)
-- [Examples](#examples)
-  - [ResNet-50 + ImageNet](#resnet-50--imagenet)
-  - [DeepLabV3 + ADE20k](#deeplabv3--ade20k)
-  - [Large Language Models (LLMs)](#large-language-models-llms)
-  - [BERT](#bert)
+* [ResNet-50 + ImageNet](#resnet-50--imagenet)
+* [DeeplabV3 + ADE20k](#deeplabv3--ade20k)
+* [GPT / Large Language Models](#large-language-models-llms)
+* [BERT](#bert)
 
 ## Installation
 
