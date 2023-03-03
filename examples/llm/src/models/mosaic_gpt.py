@@ -6,6 +6,7 @@
 Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 """
 
+import warnings
 from typing import Optional
 
 import torch
@@ -181,8 +182,10 @@ class MosaicGPT(nn.Module):
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
-        init_fn = MODEL_INIT_REGISTRY[self.cfg.get('param_init_fn', 'baseline')]
-        init_fn(module, self.cfg)
+        init_fn_name = self.cfg.get('param_init_fn', 'baseline_')
+        if self.cfg.get('verbose') and self.cfg.get('verbose') > 1:
+            warnings.warn(f'Using {init_fn_name} initialization.')
+        MODEL_INIT_REGISTRY[init_fn_name](module, self.cfg)
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
