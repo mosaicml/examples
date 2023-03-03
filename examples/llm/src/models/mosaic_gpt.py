@@ -94,14 +94,16 @@ class MosaicGPT(nn.Module):
         elif config_block == 'standard':
             self.block_cls = gpt_blocks.GPTBlock
         else:
-            raise NotImplementedError('MosaicGPT `gpt_block` must be one of [`standard`, `optimized`].')
+            raise NotImplementedError(
+                'MosaicGPT `gpt_block` must be one of [`standard`, `optimized`].'
+            )
 
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
                     self.block_cls(cfg,
-                              causal_attn_cls=self.causal_attn_cls,
-                              device=cfg.init_device)
+                                   causal_attn_cls=self.causal_attn_cls,
+                                   device=cfg.init_device)
                     for _ in range(cfg.n_layers)
                 ])
         })

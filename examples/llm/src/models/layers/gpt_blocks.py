@@ -9,7 +9,9 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 
-from examples.llm.src.models.ops import DenseResGeluDense, DropoutAddLayerNorm, check_if_dropout_layer_norm_installed, check_if_dense_gelu_dense_installed
+from examples.llm.src.models.ops import (DenseResGeluDense, DropoutAddLayerNorm,
+                                         check_if_dense_gelu_dense_installed,
+                                         check_if_dropout_layer_norm_installed)
 
 
 class GPTMLP(nn.Module):
@@ -91,16 +93,15 @@ class OptimizedGPTBlock(nn.Module):
         check_if_dropout_layer_norm_installed()
         self.causal_attn = causal_attn_cls(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
-                                                   prenorm=True,
-                                                   p=cfg.resid_pdrop,
-                                                   device=device)
+                                                    prenorm=True,
+                                                    p=cfg.resid_pdrop,
+                                                    device=device)
         self.mlp = FusedGPTMLP(cfg, device=device)
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
-                                                   prenorm=True,
-                                                   p=cfg.resid_pdrop,
-                                                   device=device)
+                                                    prenorm=True,
+                                                    p=cfg.resid_pdrop,
+                                                    device=device)
 
-        
     def forward(
         self,
         a: torch.Tensor,

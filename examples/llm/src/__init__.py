@@ -11,7 +11,9 @@ from examples.llm.src.models.layers.attention import (
     alibi_bias)
 from examples.llm.src.models.layers.flash_attention import (FlashAttention,
                                                             FlashMHA)
-from examples.llm.src.models.layers.gpt_blocks import GPTMLP, FusedGPTMLP, GPTBlock, OptimizedGPTBlock
+from examples.llm.src.models.layers.gpt_blocks import (GPTMLP, FusedGPTMLP,
+                                                       GPTBlock,
+                                                       OptimizedGPTBlock)
 from examples.llm.src.models.mosaic_gpt import ComposerMosaicGPT, MosaicGPT
 from examples.llm.src.tokenizer import (TOKENIZER_REGISTRY, HFTokenizer,
                                         LLMTokenizer)
