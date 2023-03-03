@@ -8,7 +8,12 @@
 # The original xentropy interface is here: https://github.com/NVIDIA/apex/blob/master/apex/contrib/xentropy/softmax_xentropy.py
 import torch
 import torch.nn as nn
-import xentropy_cuda_lib
+
+try:
+    import xentropy_cuda_lib
+    XENTROPY_CUDA_LIB = True
+except ImportError as e:
+    XENTROPY_CUDA_LIB = False
 
 # `all_gather_into_tensor` and `reduce_scatter_tensor` are new placeholders for
 # `_all_gather_base` and `_reduce_scatter_base`. They require the most recent

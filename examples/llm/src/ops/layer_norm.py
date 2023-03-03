@@ -4,9 +4,14 @@
 # Copyright (c) 2022, Tri Dao.
 # Adapted from https://github.com/NVIDIA/apex/blob/master/apex/contrib/layer_norm/layer_norm.py
 
-import dropout_layer_norm
 import torch
 from torch.nn import init
+
+try:
+    import dropout_layer_norm
+    DROPOUT_LAYER_NORM = True
+except ImportError as e:
+    DROPOUT_LAYER_NORM = False
 
 
 def _dropout_add_layer_norm_forward(x0,

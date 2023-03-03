@@ -6,11 +6,16 @@
 
 # Adapted from https://github.com/mlcommons/training_results_v2.0/blob/main/HazyResearch/benchmarks/bert/implementations/pytorch/model/ops/fused_dense.py
 
-import fused_dense_lib as fused_dense_cuda
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.cuda.amp import custom_bwd, custom_fwd
+
+try:
+    import fused_dense_lib as fused_dense_cuda
+    DENSE_GELU_DENSE_INSTALLED = True
+except ImportError as e:
+    DENSE_GELU_DENSE_INSTALLED = False
 
 
 class FusedDenseResGeluDenseFunc(torch.autograd.Function):
