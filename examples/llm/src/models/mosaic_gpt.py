@@ -88,19 +88,18 @@ class MosaicGPT(nn.Module):
         self.transformer.update(
             {'ln_i': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
-        block_cls = gpt_blocks.GPTBlock
-        if cfg.get('gpt_block'):
-            if cfg.get('gpt_block') not in ['standard', 'optimized']:
-                raise NotImplementedError(
-                    'MosaicGPT only implemented with standard and optimized GPT blocks.'
-                )
-            elif cfg.get('gpt_block') == 'optimized':
-                block_cls = gpt_blocks.OptimizedGPTBlock
+        config_block = cfg.get('gpt_block', 'standard')
+        if config_block == 'optimized':
+            self.block_cls = gpt_blocks.OptimizedGPTBlock
+        elif config_block == 'standard':
+            self.block_cls = gpt_blocks.GPTBlock
+        else:
+            raise NotImplementedError('MosaicGPT `gpt_block` must be one of [`standard`, `optimized`].')
 
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    block_cls(cfg,
+                    self.block_cls(cfg,
                               causal_attn_cls=self.causal_attn_cls,
                               device=cfg.init_device)
                     for _ in range(cfg.n_layers)
@@ -264,11 +263,11 @@ class MosaicGPT(nn.Module):
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock)
+        return isinstance(module, self.block_cls)
 
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
-        return isinstance(module, gpt_blocks.GPTBlock)
+        return isinstance(module, self.block_cls)
 
 
 class ComposerMosaicGPT(ComposerModel):
@@ -286,11 +285,12 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
 
-        if optimized_xentropy_installed:
-            self.loss_fn = CrossEntropyLoss(inplace_backward=True,
-                                            ignore_index=-100)
-        else:
-            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        # if optimized_xentropy_installed:
+        #     print("Using optimized cross entropy!")
+        #     self.loss_fn = CrossEntropyLoss(inplace_backward=True,
+        #                                     ignore_index=-100, process_group=None)
+        # else:
+        self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)

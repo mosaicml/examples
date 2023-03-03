@@ -1,4 +1,5 @@
-// Inspired by https://github.com/NVIDIA/DALI/blob/main/include/dali/core/static_switch.h
+// Copied from https://github.com/HazyResearch/flash-attention/tree/eb33e587e95ec29a13c58f76dadca04b64122784/csrc/layer_norm
+// which was inspired by https://github.com/NVIDIA/DALI/blob/main/include/dali/core/static_switch.h
 // and https://github.com/pytorch/pytorch/blob/master/aten/src/ATen/Dispatch.h
 
 #pragma once

@@ -56,12 +56,15 @@ git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
 cd examples/llm
+```
 
-# Install CUDA optimizations for faster models (optional)
+If you have an NVIDIA GPU, you can install our library of CUDA optimizations to speed up your models.
+```
 cd examples/llm/csrc
-pip install .
+pip install . # May take a long time (~20 minutes)
 cd examples/llm
 ```
+These optimizations can be enabled by setting `model.gpt_block: optimized` in your YAMLs.
 
 # Dataset preparation
 To run training, you'll need to make yourself a copy of the pre-training dataset.
@@ -214,6 +217,9 @@ because more memory will enable you to use larger microbatch sizes.
 
 # Optimizing Performance
 The YAMLs in this repo are relatively well tuned for medium-to-large NVIDIA A100-40GB clusters.
+
+If you have an NVIDIA GPU, you may want to enable our suite of CUDA optimizations. You can do so by first installing the installing the optimization library in the `src/csrc/` folder, and then setting `model.gpt_block=optimized`. These optimizations are well-tested on models up to 13B parameters on NVIDIA A100 GPUs, and should produce 5-15\% speedup over the standard GPT block (`model.gpt_block=standard`).
+
 On different devices with more / less GPU memory,
 you may wish to edit the `device_train_microbatch_size` or `fsdp_config` values.
 In general, larger microbatch sizes and disabling `activation_checkpointing` lead to higher throughput.

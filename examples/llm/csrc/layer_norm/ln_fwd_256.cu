@@ -1,3 +1,4 @@
+// Copied from https://github.com/HazyResearch/flash-attention/tree/eb33e587e95ec29a13c58f76dadca04b64122784/csrc/layer_norm
 #include "ln_fwd_kernels.cuh"
 
 // Create forward launch function and register. Macro signature:

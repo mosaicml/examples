@@ -18,6 +18,13 @@ except ImportError as e:
     DENSE_GELU_DENSE_INSTALLED = False
 
 
+def check_if_dense_gelu_dense_installed():
+    if not DENSE_GELU_DENSE_INSTALLED:
+        raise ImportError(
+            'The Dense Gelu Dense fusion extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/csrc.'
+        )
+
+
 class FusedDenseResGeluDenseFunc(torch.autograd.Function):
     """Fused Residual version of DenseGeluGense.
 

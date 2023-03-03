@@ -9,9 +9,16 @@ from torch.nn import init
 
 try:
     import dropout_layer_norm  # type: ignore
-    DROPOUT_LAYER_NORM = True
+    DROPOUT_LAYER_NORM_INSTALLED = True
 except ImportError as e:
-    DROPOUT_LAYER_NORM = False
+    DROPOUT_LAYER_NORM_INSTALLED = False
+
+
+def check_if_dropout_layer_norm_installed():
+    if not DROPOUT_LAYER_NORM_INSTALLED:
+        raise ImportError(
+            'The Dropout Add LayerNorm fusion extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/csrc.'
+        )
 
 
 def _dropout_add_layer_norm_forward(x0,

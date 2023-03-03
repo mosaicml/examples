@@ -1,5 +1,5 @@
-// Adapted from https://github.com/mlcommons/training_results_v2.0/blob/main/HazyResearch/benchmarks/bert/implementations/pytorch/csrc/fused_dense_lib/fused_dense.cpp
-// Adapted from https://github.com/NVIDIA/apex/blob/master/csrc/fused_dense.cpp
+// Copied from https://github.com/mlcommons/training_results_v2.0/blob/a6ae3e16d97bca208ee5510f3614fcd4fa923650/HazyResearch/benchmarks/bert/implementations/pytorch/csrc/fused_dense_lib/fused_dense.cpp
+// which was adapted from https://github.com/NVIDIA/apex/blob/master/csrc/fused_dense.cpp
 #include <torch/extension.h>
 #include <torch/torch.h>
 #include <vector>

@@ -1,1 +1,1 @@
-This CUDA extension is adapted from [HazyResearch](https://github.com/mlcommons/training_results_v2.0/tree/main/HazyResearch/benchmarks/bert/implementations/pytorch/csrc/fused_dense_lib).
+This CUDA extension is copied from [HazyResearch](https://github.com/mlcommons/training_results_v2.0/tree/a6ae3e16d97bca208ee5510f3614fcd4fa923650/HazyResearch/benchmarks/bert/implementations/pytorch/csrc/fused_dense_lib).

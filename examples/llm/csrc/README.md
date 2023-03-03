@@ -5,6 +5,7 @@ cfg.gpt_block = optimized
 These extensions must be installed.
 To install, run
 ```
+cd examples/examples/llm/csrc/
 pip install .
 ```
 after installing the main llm folder (`pip install -e ".[llm]"`).

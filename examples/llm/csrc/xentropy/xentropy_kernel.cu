@@ -1,4 +1,5 @@
-// Adapted from https://github.com/NVIDIA/apex/blob/master/apex/contrib/csrc/xentropy/xentropy_kernel.cu
+// Copied from https://github.com/HazyResearch/flash-attention/tree/dff68c2b228234e34714a6cb1b966cb3a09496b9/csrc/xentropy
+// which was adapted from https://github.com/NVIDIA/apex/blob/master/apex/contrib/csrc/xentropy/xentropy_kernel.cu
 // TD [2022-09-17]: We make it work for bfloat16, and add an option to do the backward inplace (to save memory).
 /**
  * From PyTorch:

@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 
-from examples.llm.src.models.ops import DenseResGeluDense, DropoutAddLayerNorm
+from examples.llm.src.models.ops import DenseResGeluDense, DropoutAddLayerNorm, check_if_dropout_layer_norm_installed, check_if_dense_gelu_dense_installed
 
 
 class GPTMLP(nn.Module):
@@ -33,6 +33,7 @@ class FusedGPTMLP(nn.Module):
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
+        check_if_dense_gelu_dense_installed()
         self.dense_gelu_dense = DenseResGeluDense(cfg.d_model,
                                                   cfg.mlp_ratio * cfg.d_model,
                                                   cfg.d_model,
@@ -52,7 +53,8 @@ class GPTBlock(nn.Module):
                  device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
-            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
+            if not (cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch'):
+                ValueError(f'Only triton kernel or torch supports alibi')
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
@@ -84,18 +86,21 @@ class OptimizedGPTBlock(nn.Module):
                  device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
-            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
+            if not (cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch'):
+                ValueError(f'Only triton kernel or torch supports alibi')
+        check_if_dropout_layer_norm_installed()
         self.causal_attn = causal_attn_cls(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
-                                                    prenorm=True,
-                                                    p=cfg.resid_pdrop,
-                                                    device=device)
+                                                   prenorm=True,
+                                                   p=cfg.resid_pdrop,
+                                                   device=device)
         self.mlp = FusedGPTMLP(cfg, device=device)
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
-                                                    prenorm=True,
-                                                    p=cfg.resid_pdrop,
-                                                    device=device)
+                                                   prenorm=True,
+                                                   p=cfg.resid_pdrop,
+                                                   device=device)
 
+        
     def forward(
         self,
         a: torch.Tensor,
