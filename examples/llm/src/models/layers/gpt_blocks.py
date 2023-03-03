@@ -8,8 +8,8 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from omegaconf import DictConfig
-from src.ops.fused_dense import DenseResGeluDense
-from src.ops.layer_norm import dropout_add_layer_norm
+
+from examples.llm.src.models.ops import DenseResGeluDense, DropoutAddLayerNorm
 
 
 class GPTMLP(nn.Module):
@@ -86,9 +86,15 @@ class OptimizedGPTBlock(nn.Module):
         if cfg.get('alibi', False):
             assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
         self.causal_attn = causal_attn_cls(cfg, device)
-        self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
-        self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
+        self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
+                                                    prenorm=True,
+                                                    p=cfg.resid_pdrop,
+                                                    device=device)
         self.mlp = FusedGPTMLP(cfg, device=device)
+        self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
+                                                    prenorm=True,
+                                                    p=cfg.resid_pdrop,
+                                                    device=device)
 
     def forward(
         self,
@@ -98,23 +104,7 @@ class OptimizedGPTBlock(nn.Module):
         attn_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
-        m, x = dropout_add_layer_norm(b,
-                                      x,
-                                      self.ln_1.weight,
-                                      self.ln_1.bias,
-                                      0.0,
-                                      self.ln_2.eps,
-                                      None,
-                                      prenorm=True,
-                                      residual_in_fp32=False)
+        m, x = dropout_add_ln_1(b, x)
         n = self.mlp(m)
-        a, x = dropout_add_layer_norm(n,
-                                      x,
-                                      self.ln_2.weight,
-                                      self.ln_2.bias,
-                                      0.0,
-                                      self.ln_2.eps,
-                                      None,
-                                      prenorm=True,
-                                      residual_in_fp32=False)
+        a, x = dropout_add_layer_norm(n, x)
         return a, x

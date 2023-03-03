@@ -22,7 +22,7 @@ import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 
 try:
-    from src.losses.cross_entropy import CrossEntropyLoss
+    from examples.llm.src.models.ops import CrossEntropyLoss
     optimized_xentropy_installed = True
 except:
     optimized_xentropy_installed = False
