@@ -56,6 +56,11 @@ git clone https://github.com/mosaicml/examples.git
 cd examples
 pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
 cd examples/llm
+
+# Install CUDA optimizations for faster models (optional)
+cd examples/llm/csrc
+pip install .
+cd examples/llm
 ```
 
 # Dataset preparation
