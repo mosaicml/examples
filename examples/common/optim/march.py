@@ -91,6 +91,7 @@ class DecoupledMarchW(Optimizer):
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
+        
         if self.grad_pre_normalization:
             global_grad_norm = 0.0
             for group in self.param_groups:
@@ -117,7 +118,7 @@ class DecoupledMarchW(Optimizer):
 
                 self.march(
                     p,
-                    grad / global_grad_norm,
+                    grad.div(global_grad_norm),
                     exp_avg,
                     lr,
                     initial_lr,
@@ -188,16 +189,11 @@ class DecoupledMarchW(Optimizer):
         if param in self.state:
             param_optim_state = self.state[param]
             update_tensor =  param_optim_state['exp_avg'].clone().lerp_(param.grad, 1 - beta1).sign_().mul_(lr)
-
-
-
-           
-            weight_norm = torch.norm(param.data).clamp(0, self.clamp_value)
             decay_factor = (lr / initial_lr) if initial_lr else 1.0
             update_tensor.add_(param, alpha=-weight_decay * decay_factor)
             update_norm = torch.norm(update_tensor)
-            
 
+            weight_norm = torch.norm(param.data).clamp(0, self.clamp_value)
             if weight_norm == 0 or update_norm == 0:
                 trust_ratio = 1
             else:
