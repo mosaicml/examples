@@ -20,6 +20,7 @@ from omegaconf import DictConfig
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
+from examples.llm.src.models.ops import CrossEntropyLoss as XentropyLoss
 from examples.llm.src.models.ops import check_if_xentropy_cuda_installed
 
 
@@ -282,9 +283,10 @@ class ComposerMosaicGPT(ComposerModel):
 
         try:
             check_if_xentropy_cuda_installed()
-            self.loss_fn = CrossEntropyLoss(inplace_backward=True,
-                                            ignore_index=-100,
-                                            process_group=None)
+            print('Using Fused Cross Entropy.')
+            self.loss_fn = XentropyLoss(inplace_backward=True,
+                                        ignore_index=-100,
+                                        process_group=None)
         except:
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
