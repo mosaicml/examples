@@ -284,7 +284,7 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
 
-        if optimixed_xentropy_installed:
+        if optimized_xentropy_installed:
             self.loss_fn = CrossEntropyLoss(inplace_backward=True,
                                             ignore_index=-100)
         else:
