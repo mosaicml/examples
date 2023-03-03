@@ -110,6 +110,7 @@ callbacks:
   memory_monitor: {}
 
 # loggers:
+#   wandb: {}
 
 # Checkpoint to local filesystem or remote object store
 # save_interval: 2000ba
