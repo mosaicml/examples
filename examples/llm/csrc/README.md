@@ -3,12 +3,8 @@ This folder contains CUDA extensions for Mosaic's optimized transformer. If you 
 cfg.gpt_block = optimized
 ```
 These extensions must be installed.
-To install, run 
+To install, run
 ```
 pip install .
 ```
 after installing the main llm folder (`pip install -e ".[llm]"`).
-
-
-
-

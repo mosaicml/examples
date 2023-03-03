@@ -6,19 +6,22 @@
 
 import os
 import subprocess
+
 from setuptools import find_packages, setup
 
 try:
     import torch
-    from torch.utils.cpp_extension import (CUDA_HOME, BuildExtension, CppExtension,
-                                        CUDAExtension)  
-      
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError("No module named 'torch'. PyTorch is required to install mosaic_cuda_lib. Please ensure you have installed the main llm folder first with `pip install -e .[llm]`.")
+    from torch.utils.cpp_extension import (CUDA_HOME, BuildExtension,
+                                           CppExtension, CUDAExtension)
 
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "No module named 'torch'. PyTorch is required to install mosaic_cuda_lib. Please ensure you have installed the main llm folder first with `pip install -e .[llm]`."
+    )
 
 if not 'cu' in torch.__version__:
-    raise RuntimeError("CUDA version of PyTorch required to install optimizations.")
+    raise RuntimeError(
+        'CUDA version of PyTorch required to install optimizations.')
 
 # ninja build does not work unless include_dirs are abs path
 this_dir = os.path.dirname(os.path.abspath(__file__))
@@ -89,7 +92,10 @@ ext_modules.append(
 ext_modules.append(
     CUDAExtension(
         name='fused_dense_lib',
-        sources=['fused_dense_lib/fused_dense.cpp', 'fused_dense_lib/fused_dense_cuda.cu'],
+        sources=[
+            'fused_dense_lib/fused_dense.cpp',
+            'fused_dense_lib/fused_dense_cuda.cu'
+        ],
         extra_compile_args={
             'cxx': ['-O3',],
             'nvcc': append_nvcc_threads(['-O3'])

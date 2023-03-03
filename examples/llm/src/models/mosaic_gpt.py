@@ -17,10 +17,15 @@ from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
-from src.losses.cross_entropy import CrossEntropyLoss
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
+
+try:
+    from src.losses.cross_entropy import CrossEntropyLoss
+    optimized_xentropy_installed = True
+except:
+    optimized_xentropy_installed = False
 
 
 class MosaicGPT(nn.Module):
@@ -278,7 +283,12 @@ class ComposerMosaicGPT(ComposerModel):
             'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
             'Perplexity': Perplexity(),
         }
-        self.loss_fn = CrossEntropyLoss(inplace_backward=True)
+
+        if optimixed_xentropy_installed:
+            self.loss_fn = CrossEntropyLoss(inplace_backward=True,
+                                            ignore_index=-100)
+        else:
+            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
