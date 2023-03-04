@@ -17,7 +17,7 @@ To disable the optimizations, set
 model.gpt_block: standard
 ```
 # Details
-These CUDA optimizations incuded here are kernel fusions designed improve the performance of memory-bound operations. They include:
+The CUDA optimizations incuded here are kernel fusions designed to improve the performance of memory-bound operations. They include:
 * Fusing the linear, GELU, and linear layers of the GPTMLP
 * Fusing the CrossEntropy loss function at the end of the model
 * Fusing the dropout, addition, and LayerNorm pattern that occurs inside of each GPT block.
