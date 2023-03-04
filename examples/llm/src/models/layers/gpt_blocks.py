@@ -89,7 +89,7 @@ class OptimizedGPTBlock(nn.Module):
         super().__init__()
         if cfg.get('alibi', False):
             if not (cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch'):
-                ValueError(f'Only triton kernel or torch supports alibi')
+                raise ValueError(f'Only triton kernel or torch supports alibi')
         check_if_dropout_layer_norm_installed()
         self.causal_attn = causal_attn_cls(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
