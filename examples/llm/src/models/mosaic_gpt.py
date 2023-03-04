@@ -20,7 +20,8 @@ from omegaconf import DictConfig
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-from examples.llm.src.models.ops import CrossEntropyLoss as FusedCrossEntropyLoss
+from examples.llm.src.models.ops import \
+    CrossEntropyLoss as FusedCrossEntropyLoss
 from examples.llm.src.models.ops import check_if_xentropy_cuda_installed
 
 
