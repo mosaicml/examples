@@ -16,6 +16,8 @@ To disable the optimizations, set
 ```
 model.gpt_block: standard
 ```
+or, equivalently, omit `model.gpt_block` from your config entirely.
+
 # Details
 The CUDA optimizations incuded here are kernel fusions designed to improve the performance of memory-bound operations. They include:
 * Fusing the linear, GELU, and linear layers of the GPTMLP
