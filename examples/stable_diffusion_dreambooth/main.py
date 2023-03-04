@@ -85,7 +85,8 @@ def main(config: DictConfig):  # type: ignore
         class_prompt=config.dataset.get("class_prompt"),
         resolution=config.dataset.resolution,
         center_crop=config.dataset.center_crop,
-        tokenizer=model.tokenizer)
+        tokenizer=model.tokenizer,
+        batch_size=config.train_device_batch_size)
 
     # Eval dataset
     eval_dataloader = build_prompt_dataloader(
