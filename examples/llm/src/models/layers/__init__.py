@@ -11,7 +11,14 @@ from examples.llm.src.models.layers.gpt_blocks import (GPTMLP, FusedGPTMLP,
                                                        OptimizedGPTBlock)
 
 __all__ = [
-    'FlashAttention', 'FlashMHA', 'TorchCausalAttention',
-    'FlashCausalAttention', 'TritonFlashCausalAttention', 'alibi_bias',
-    'GPTMLP', 'FusedGPTMLP', 'GPTBlock', 'OptimizedGPTBlock'
+    'FlashAttention',
+    'FlashMHA',
+    'TorchCausalAttention',
+    'FlashCausalAttention',
+    'TritonFlashCausalAttention',
+    'alibi_bias',
+    'GPTMLP',
+    'FusedGPTMLP',
+    'GPTBlock',
+    'OptimizedGPTBlock',
 ]
