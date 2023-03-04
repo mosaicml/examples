@@ -15,6 +15,27 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 
+def dreambooth_collate_fn(examples:dict, use_prior_preservation:bool=False):
+    input_ids = [example["instance_prompt_ids"] for example in examples]
+    image_tensor = [example["instance_images"] for example in examples]
+
+    # Concat class and instance examples for prior preservation.
+    # We do this to avoid doing two forward passes.
+    if use_prior_preservation:
+        input_ids += [example["class_prompt_ids"] for example in examples]
+        image_tensor += [example["class_images"] for example in examples]
+
+    image_tensor = torch.stack(image_tensor)
+    image_tensor = image_tensor.to(memory_format=torch.contiguous_format).float()
+
+    input_ids = torch.cat(input_ids, dim=0)
+
+    batch = {
+        "input_ids": input_ids,
+        "image_tensor": image_tensor,
+    }
+    return batch
+
 
 def build_dreambooth_dataloader(instance_data_root: str,
                               instance_prompt: str,
@@ -60,9 +81,6 @@ def build_dreambooth_dataloader(instance_data_root: str,
             ]
         )
     
-    if class_prompt and class_data_root:
-        dreambooth_collate_fn = partial(dreambooth_collate_fn, use_prior_preservation=True)
-
     dataset = DreamBoothDataset(instance_data_root=instance_data_root,
                                 instance_prompt=instance_prompt,
                                 class_data_root=class_data_root,
@@ -70,14 +88,14 @@ def build_dreambooth_dataloader(instance_data_root: str,
                                 tokenizer=tokenizer,
                                 image_transforms=image_transforms)
     sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle)
-
-
-    
+    use_prior_preservation = True if class_prompt and class_data_root else False
+    collate_fn = partial(dreambooth_collate_fn,
+                         use_prior_preservation=use_prior_preservation)
     return DataLoader(dataset=dataset, 
                       batch_size=batch_size, 
                       sampler=sampler, 
                       drop_last=drop_last, 
-                      collate_fn=dreambooth_collate_fn, 
+                      collate_fn=collate_fn, 
                       **dataloader_kwargs)
 
 
@@ -185,24 +203,3 @@ class DreamBoothDataset(Dataset):
             ).input_ids
         return example
     
-
-def dreambooth_collate_fn(examples:dict, use_prior_preservation:bool=False):
-    input_ids = [example["instance_prompt_ids"] for example in examples]
-    image_tensor = [example["instance_images"] for example in examples]
-
-    # Concat class and instance examples for prior preservation.
-    # We do this to avoid doing two forward passes.
-    if use_prior_preservation:
-        input_ids += [example["class_prompt_ids"] for example in examples]
-        image_tensor += [example["class_images"] for example in examples]
-
-    image_tensor = torch.stack(image_tensor)
-    image_tensor = image_tensor.to(memory_format=torch.contiguous_format).float()
-
-    input_ids = torch.cat(input_ids, dim=0)
-
-    batch = {
-        "input_ids": input_ids,
-        "image_tensor": image_tensor,
-    }
-    return batch
