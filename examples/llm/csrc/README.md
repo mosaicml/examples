@@ -23,7 +23,7 @@ These CUDA optimizations incuded here are kernel fusions designed improve the pe
 * Fusing the dropout, addition, and LayerNorm pattern that occur inside of each GPT block.
 
 # Expected Performance
-We have seen improvements of 5 - 15% for on 1B - 13B parameter models on A100-40GB and A100-80GB nodes. Performance gains may be smaller if your batch size is very small or your model is extremely large. These CUDA extensions do not currently support 30B+ models.
+We have seen improvements of 5 - 15% for 1B - 13B parameter models on A100-40GB and A100-80GB nodes. Performance gains may be smaller if your batch size is very small or your model is extremely large. These CUDA extensions do not currently support 30B+ models.
 
 # Credit
 These optimizations are adapted or copied from [HazyResearch](https://github.com/HazyResearch/).
