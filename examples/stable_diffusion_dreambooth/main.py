@@ -81,8 +81,8 @@ def main(config: DictConfig):  # type: ignore
     train_dataloader = build_dreambooth_dataloader(
         instance_data_root=config.dataset.instance_data_root,
         instance_prompt= config.dataset.instance_prompt,
-        class_data_root=config.dataset.class_data_root,
-        class_prompt=config.dataset.class_prompt,
+        class_data_root=config.dataset.get("class_data_root"),
+        class_prompt=config.dataset.get("class_prompt"),
         resolution=config.dataset.resolution,
         center_crop=config.dataset.center_crop,
         tokenizer=model.tokenizer)

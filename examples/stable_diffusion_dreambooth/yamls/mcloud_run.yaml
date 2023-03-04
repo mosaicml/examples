@@ -28,15 +28,15 @@ parameters:
   grad_accum: auto
   precision: amp # (GPU only), set to fp32 if training on cpu
   use_ema: false
-  use_prior_preservation: true
+  use_prior_preservation: false
   prior_loss_weight: 1.0
   num_class_images: 200
 
   dataset:
     instance_prompt: a photo of sks dog
     instance_data_root: ./data/instance_data
-    class_prompt: a photo of dog
-    class_data_root: ./data/class_data
+    # class_prompt: a photo of dog
+    # class_data_root: ./data/class_data
     resolution: 512 # training image size
     center_crop: false
 
