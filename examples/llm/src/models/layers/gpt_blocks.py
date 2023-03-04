@@ -56,7 +56,7 @@ class GPTBlock(nn.Module):
         super().__init__()
         if cfg.get('alibi', False):
             if not (cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch'):
-                ValueError(f'Only triton kernel or torch supports alibi')
+                raise ValueError(f'Only triton kernel or torch supports alibi')
         self.causal_attn = causal_attn_cls(cfg, device)
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
