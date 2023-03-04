@@ -285,9 +285,9 @@ class ComposerMosaicGPT(ComposerModel):
         try:
             check_if_xentropy_cuda_installed()
             print('Using Fused Cross Entropy.')
-            self.loss_fn = XentropyLoss(inplace_backward=True,
-                                        ignore_index=-100,
-                                        process_group=None)
+            self.loss_fn = FusedCrossEntropyLoss(inplace_backward=True,
+                                                 ignore_index=-100,
+                                                 process_group=None)
         except:
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
