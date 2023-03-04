@@ -1,12 +1,13 @@
 run_name: stable-diffusion-dreambooth
-cluster:     # Name of the cluster to use for this run
-gpu_type:    # Type of GPU to use
-gpu_num:     # Number of GPUs to use
+cluster: r1z1    # Name of the cluster to use for this run
+gpu_type: a100_80gb   # Type of GPU to use
+gpu_num: 8    # Number of GPUs to use
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 integrations:
 - integration_type: git_repo
-  git_repo: mosaicml/examples
-  pip_install: .[stable-diffusion]
+  git_repo: A-Jacobson/examples
+  pip_install: .[stable-diffusion-dreamboth]
+  git_branch: dreambooth
 command: |
   cd examples/examples/stable_diffusion
   composer main.py /mnt/config/parameters.yaml
@@ -49,7 +50,7 @@ parameters:
   model:
     # commonly CompVis/stable-diffusion-v1-4 or stabilityai/stable-diffusion-2-1 use 2-1 for sizes > 512
     name: CompVis/stable-diffusion-v1-4
-    train_text_encoder: false
+    train_text_encoder: true
     train_unet: true
     num_images_per_prompt: 4 # number of images to generate per prompt at evaluation time
     image_key: image_tensor
@@ -62,7 +63,7 @@ parameters:
   loggers:
     wandb:     # Uncomment and fill below arguments to use WandB logger
       entity:  # Name of WandB entity, usually username or organization name
-      project: stable-diffusion-finetune # Name of WandB project
+      project: stable-diffusion-dreambooth # Name of WandB project
       group:   # Name of WandB group
       rank_zero_only: false
 
