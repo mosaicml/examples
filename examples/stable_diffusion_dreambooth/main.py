@@ -51,11 +51,11 @@ def main(config: DictConfig):  # type: ignore
         caption_key=config.model.caption_key)
     
 
-    # this has to run before training, preferably distributed
+    # TODO: this has to run before training, preferably distributed perhaps using a callback?
     if config.use_prior_preservation:
         class_images_dir = Path(config.dataset.class_data_root)
         if not class_images_dir.exists():
-            class_images_dir.mkdir(parents=True)
+            class_images_dir.mkdir(parents=True, exist_ok=True)
         cur_class_images = len(list(class_images_dir.iterdir()))
 
         images_to_generate = config.num_class_images - cur_class_images

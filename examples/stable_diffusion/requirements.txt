@@ -9,6 +9,7 @@ omegaconf
 # -------- diffusion -------- #
 diffusers[torch]==0.11.1
 transformers[torch]==4.25.1
+scipy
 
 # -------- xformers -------- #
 xformers

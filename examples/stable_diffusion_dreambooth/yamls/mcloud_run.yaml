@@ -6,10 +6,10 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 integrations:
 - integration_type: git_repo
   git_repo: A-Jacobson/examples
-  pip_install: .[stable-diffusion-dreamboth]
+  pip_install: scipy .[stable-diffusion-dreambooth]
   git_branch: dreambooth
 command: |
-  cd examples/examples/stable_diffusion
+  cd examples/examples/stable_diffusion_dreambooth
   composer main.py /mnt/config/parameters.yaml
 
 parameters:
@@ -57,8 +57,8 @@ parameters:
     caption_key: input_ids
 
   optimizer:
-    lr: 2.0e-05
-    weight_decay: 1.0e-3
+    lr: 5.0e-6
+    weight_decay: 1.0e-2
 
   loggers:
     wandb:     # Uncomment and fill below arguments to use WandB logger
