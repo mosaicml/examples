@@ -148,13 +148,14 @@ class DreamBoothDataset(Dataset):
             self.class_data_root.mkdir(parents=True, exist_ok=True)
             self.class_images_path = list(self.class_data_root.iterdir())
             self.num_class_images = len(self.class_images_path)
+            self._length = max(self.num_class_images, self.num_instance_images)
             self.class_prompt = class_prompt
         else:
             self.class_data_root = None
 
 
     def __len__(self):
-        return max(self.num_class_images, self.num_instance_images)
+        return self._length
 
     def __getitem__(self, index:int):
         example = {}
