@@ -1,7 +1,7 @@
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  # git_branch: # use your branch
+  git_branch: v0.0.3 # use your branch
   # git_commit: # OR use your commit hash
   pip_install: -e .[llm]
   ssh_clone: false
@@ -18,7 +18,6 @@ command: |
     train_loader.dataset.split=train_small \
     max_duration=100ba \
     eval_interval=0
-
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 

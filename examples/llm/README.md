@@ -19,7 +19,7 @@ You'll find in this folder:
 * `main.py` - a script that builds a [Composer](https://github.com/mosaicml/composer) Trainer and calls `trainer.fit()`.
 * `yamls/` - configs for training compute-optimal LLMs from 125M up to 70B parameters.
 * `throughput/` - data on the throughput of our models on different cluster configurations.
-* `mcloud/` - examples of how to use [MosaicML Cloud](https://www.mosaicml.com/cloud) to seamlessly launch training :)
+* `mcloud/` - examples of how to use [MosaicML platform](https://www.mosaicml.com/platform) to seamlessly launch training :)
 
 
 In the [common](../common) folder, you will also find:
@@ -73,22 +73,22 @@ and stream the data to any compute cluster, with any number of devices, and any 
 You can read more about [the benefits of using mosaicml-streaming here](https://streaming.docs.mosaicml.com/en/stable/):
 
 ### Converting C4 to streaming dataset `.mds` format
-To make yourself a copy of C4, use `convert_c4.py` like so:
+To make yourself a copy of C4, use `convert_dataset.py` like so:
 ```bash
 # Download the 'train_small' and 'val' splits and convert to StreamingDataset format
 # This will take 20-60 seconds depending on your Internet bandwidth
 # You should see two folders: `./my-copy-c4/train_small` and `./my-copy-c4/val` that are each ~0.5GB
 # Note: We are using the `--concat_tokens` option to pre tokenize our samples to be of the max sequence length without padding
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
+python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
+# python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
-# python ../common/convert_c4.py ... --compression zstd
+# python ../common/convert_dataset.py ... --compression zstd
 ```
 
 ### Test the Dataloader
@@ -127,7 +127,7 @@ If training on a single node, the `composer` launcher will autodetect the number
 composer main.py yamls/mosaic_gpt/125m.yaml
 ```
 
-To train with high performance on multi-node clusters, the easiest way is with MosaicML Cloud ;) Check out the `mcloud/` folder for examples!
+To train with high performance on multi-node clusters, the easiest way is with the MosaicML platform ;) Check out the `mcloud/` folder for examples!
 
 But if you really must try this manually on your own cluster, then just provide a few variables to `composer`
 either directly via CLI, or via environment variables that can be read. Then launch the appropriate command on each node:
@@ -230,4 +230,4 @@ and may not always work with Auto Grad Accum (but we are working on it!).
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.
 
-you want train LLMs on MosaicML Cloud, reach out to us at [llm-early-access@mosaicml.com](mailto:llm-early-access@mosaicml.com)!
+you want train LLMs on the MosaicML platform, reach out to us at [llm-early-access@mosaicml.com](mailto:llm-early-access@mosaicml.com)!

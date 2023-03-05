@@ -76,7 +76,7 @@ You can read more about the benefits of using mosaicml-streaming [here](https://
 
 ### Converting C4 to streaming dataset `.mds` format
 
-To make yourself a copy of C4, use `convert_c4.py` like so:
+To make yourself a copy of C4, use `convert_dataset.py` like so:
 
 ```bash
 # Download the 'train_small' and 'val' splits and convert to StreamingDataset format
@@ -85,16 +85,16 @@ To make yourself a copy of C4, use `convert_c4.py` like so:
 # Note: for BERT we are not doing any concatenation of samples, so we do not use the `--concat_tokens`
 # option here. Instead, samples will simply get padded or truncated to the max sequence length
 # in the dataloader
-python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train_small val
+python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-# python ../common/convert_c4.py --out_root ./my-copy-c4 --splits train
+# python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
-# python ../common/convert_c4.py ... --compression zstd
+# python ../common/convert_dataset.py ... --compression zstd
 ```
 
 If you're planning on doing multiple training runs, you can upload the **local** copy of C4 you just created to a central location. This will allow you to skip the dataset preparation step in the future. Once you have done so, modify the YAMLs in `yamls/main/` so that the `data_remote` field points to the new location. Then you can simply stream the dataset instead of creating a local copy!
@@ -259,9 +259,9 @@ Before using the configs in `yamls/finetuning/glue/` when running `glue.py`, you
 * `base_run_name` (optional) - Make sure to avoid re-using the same name across multiple runs.
 * `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
 
-## Running on the MosaicML Cloud
+## Running on the MosaicML platform
 
-If you have configured a compute cluster to work with the MosaicML Cloud, you can use the `yaml/*/mcloud_run*.yaml` reference YAMLs for examples of how to run pre-training and fine-tuning remotely!
+If you have configured a compute cluster to work with the MosaicML platform, you can use the `yaml/*/mcloud_run*.yaml` reference YAMLs for examples of how to run pre-training and fine-tuning remotely!
 
 Once you have filled in the missing YAML fields (and made any other modifications you want), you can launch pre-training by simply running:
 
@@ -289,7 +289,7 @@ mcli run -f yamls/finetuning/glue/mcloud_run.yaml
 
 ### Multi-node training
 
-To train with high performance on *multi-node* clusters, the easiest way is with MosaicML Cloud ;)
+To train with high performance on *multi-node* clusters, the easiest way is with the MosaicML platform ;)
 
 But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node.
 
@@ -357,4 +357,4 @@ If you're reading this, we're still profiling the exact speedup and performance 
 
 If you run into any problems with the code, please file Github issues directly to this repo.
 
-If you want to train BERT-style models on MosaicML Cloud, reach out to us at [demo@mosaicml.com](mailto:demo@mosaicml.com)!
+If you want to train BERT-style models on MosaicML platform, reach out to us at [demo@mosaicml.com](mailto:demo@mosaicml.com)!

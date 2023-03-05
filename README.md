@@ -20,7 +20,7 @@ pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
 cd examples/llm # cd into the specific example's folder
 ```
 
-Available examples include `bert`, `cifar`, `llm`, `resnet`, `deeplab`, and `nemo`.
+Available examples include `llm`, `stable-diffusion`, `resnet-imagenet`, `resnet-cifar`, `bert`, `deeplab`, `nemo`, and `gpt-neox`.
 
 ## Extending an example
 
@@ -54,7 +54,7 @@ If you run into any issues extending the code, or just want to discuss an idea y
 If you already have the dependencies for a given example installed, you can just run:
 ```bash
 pre-commit run --all-files  # autoformatting for whole repo
-cd examples/llm  # or bert, resnet, etc
+cd examples/llm  # or bert, resnet_imagenet, etc
 pyright .  # type checking
 pytest tests/  # run tests
 ```
@@ -87,11 +87,11 @@ This repo features the following examples, each as their own subdirectory:
 ## ResNet-50 + ImageNet
 <img src="https://assets-global.website-files.com/61fd4eb76a8d78bc0676b47d/62a12d1e4eb9b83915be37a6_r50_overall_pareto.png" alt="drawing" width="500"/>
 
-*Figure 1: Comparison of MosaicML recipes against other results, all measured on 8x A100s on MosaicML Cloud.*
+*Figure 1: Comparison of MosaicML recipes against other results, all measured on 8x A100s on the MosaicML platform.*
 
 Train the [MosaicML ResNet](https://www.mosaicml.com/blog/mosaic-resnet), which is currently the [fastest ResNet50 implementation there is](https://www.mosaicml.com/blog/mlperf-2022) and yields a :sparkles: 7x :sparkles: faster time-to-train than a strong baseline.
 
-:rocket: Get started with the code [here](./examples/resnet/).
+:rocket: Get started with the code [here](./examples/resnet_imagenet/).
 
 
 ## DeepLabV3 + ADE20k
