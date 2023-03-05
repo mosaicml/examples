@@ -83,10 +83,10 @@ class MosaicGPT(nn.Module):
         self.transformer.update(
             {'ln_i': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
-        config_block = cfg.get('gpt_block', 'standard')
-        if config_block == 'optimized':
+        self.config_block = cfg.get('gpt_block', 'standard')
+        if self.config_block == 'optimized':
             self.block_cls = gpt_blocks.OptimizedGPTBlock
-        elif config_block == 'standard':
+        elif self.config_block == 'standard':
             self.block_cls = gpt_blocks.GPTBlock
         else:
             raise NotImplementedError(
@@ -232,13 +232,16 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
 
-        try:
-            check_if_xentropy_cuda_installed()
-            print('Using Fused Cross Entropy.')
-            self.loss_fn = FusedCrossEntropyLoss(inplace_backward=True,
-                                                 ignore_index=-100,
-                                                 process_group=None)
-        except:
+        if self.model.config_block == 'optimized':
+            try:
+                check_if_xentropy_cuda_installed()
+                print('Using Fused Cross Entropy.')
+                self.loss_fn = FusedCrossEntropyLoss(inplace_backward=True,
+                                                     ignore_index=-100,
+                                                     process_group=None)
+            except:
+                self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        else:
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def get_targets(self, batch):
