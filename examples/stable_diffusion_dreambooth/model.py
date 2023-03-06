@@ -156,7 +156,7 @@ class StableDiffusion(ComposerModel):
 
     def eval_forward(self, batch, outputs=None):
         # outputs exist during training, during evaluation we pass the batch to `generate`
-        return outputs if outputs else self.generate(batch)
+        return outputs if outputs else self.generate(batch, disable_progress_bar=True)
 
     @torch.no_grad()
     def generate(self,

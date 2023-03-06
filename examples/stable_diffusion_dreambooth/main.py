@@ -4,12 +4,11 @@
 """Example script to finetune a Stable Diffusion Model."""
 
 from pathlib import Path
-import hashlib
 import os
 import sys
 
 import torch
-from callbacks import LogDiffusionImages
+from callbacks import LogDiffusionImages, SaveClassImages
 from composer import Trainer
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
@@ -18,7 +17,6 @@ from composer.utils import dist, reproducibility
 from data import build_prompt_dataloader, build_dreambooth_dataloader
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
-from tqdm.auto import tqdm
 import torchvision.transforms.functional as F
 
 from examples.common import build_logger, calculate_batch_size_info, log_config
@@ -50,37 +48,31 @@ def main(config: DictConfig):  # type: ignore
         image_key=config.model.image_key,
         caption_key=config.model.caption_key)
     
-
-    # TODO: this has to run before training, preferably distributed perhaps using a callback?
     if config.use_prior_preservation:
         class_images_dir = Path(config.dataset.class_data_root)
         if not class_images_dir.exists():
             class_images_dir.mkdir(parents=True, exist_ok=True)
         cur_class_images = len(list(class_images_dir.iterdir()))
 
-        images_to_generate = config.num_class_images - cur_class_images
-
         if cur_class_images < config.num_class_images:
-        # duplicate the class prompt * num class samples to generate class images
-            prompt_dataloader = build_prompt_dataloader([config.dataset.class_prompt]*images_to_generate,
+            # duplicate the class prompt * num class samples to generate class images
+            images_to_generate = config.num_class_images - cur_class_images
+            class_prompts = [config.dataset.class_prompt] * images_to_generate
+            prompt_dataloader = build_prompt_dataloader(class_prompts,
                                                         batch_size=config.eval_device_batch_size)
+            save_class_images = SaveClassImages(class_data_root=config.dataset.class_data_root)
 
-            # generate prior preservation images
-            for example in tqdm(prompt_dataloader):
-                # tensor (batch*num_images_per_prompt, channel, h, w)
-                images = model.generate(example['prompt'], num_images_per_prompt=1, disable_progress_bar=True)
-                for i, image in enumerate(images):
-                    image = F.to_pil_image(image)
-                    hash_image = hashlib.sha1(image.tobytes()).hexdigest()
-                    image_filename = class_images_dir / f"{example['index'][i] + cur_class_images}-{hash_image}.jpg"
-                    image.save(image_filename)
-
+            model.num_images_per_prompt = 1 # set for prior preservation image generation
+            trainer = Trainer(model=model, eval_dataloader=prompt_dataloader, callbacks=save_class_images)
+            trainer.eval() # eval run will save images via the SaveClassImages callback
+            model.num_images_per_prompt = config.model.num_images_per_prompt
 
     # Train dataset
     print('Building dataloaders')
     train_dataloader = build_dreambooth_dataloader(
         instance_data_root=config.dataset.instance_data_root,
-        instance_prompt= config.dataset.instance_prompt,
+        instance_prompt=config.dataset.instance_prompt,
+        use_prior_preservation=config.use_prior_preservation, 
         class_data_root=config.dataset.get("class_data_root"),
         class_prompt=config.dataset.get("class_prompt"),
         resolution=config.dataset.resolution,
