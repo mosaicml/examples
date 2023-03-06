@@ -20,7 +20,7 @@ class EgMLP(nn.Module):
         self.fc1 = nn.Linear(cfg.in_features, cfg.out_features, bias=True)
         self.ln_1 = nn.LayerNorm(cfg.out_features)
         self.fc2 = nn.Linear(cfg.out_features, cfg.out_features, bias=True)
-        self.fc2._is_residual = True
+        self.fc2._is_residual = True  # type: ignore
 
     def forward(self, x):
         y = self.ln_1(self.fc1(x))
@@ -74,7 +74,7 @@ def test_fused_init_helper(fused):
     fc = nn.Linear(cfg.in_features, cfg.out_features, bias=True)
     fc.train()
     if fused:
-        fc._fused = (0, (cfg.out_features // 2,))
+        fc._fused = (0, (cfg.out_features // 2,))  # type: ignore
 
     def init_fn_(weight):
         # dummy init based on layer width
