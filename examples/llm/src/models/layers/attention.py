@@ -34,11 +34,13 @@ class TorchCausalAttention(nn.Module):
             ))
 
     def forward(self, x, key_padding_mask, attn_mask=None):
+        if key_padding_mask is not None:
+            key_padding_mask = ~key_padding_mask
         return self.mhsa(x,
                          x,
                          x,
                          attn_mask=attn_mask,
-                         key_padding_mask=~key_padding_mask,
+                         key_padding_mask=key_padding_mask,
                          need_weights=True)
 
     @staticmethod
@@ -140,7 +142,9 @@ class FlashCausalAttention(nn.Module):
                                       self.d_model,
                                       bias=True,
                                       device=device)
-
+            # for param init fn
+            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            self.W_qkv._fused = (0, fuse_splits)  # type: ignore
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
@@ -158,6 +162,9 @@ class FlashCausalAttention(nn.Module):
                 causal=True,
                 device=device,
             )
+            # for param init fn
+            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            self.mhsa.Wqkv._fused = (0, fuse_splits)  # type: ignore
             self.mhsa.out_proj._is_residual = True
 
     def forward(self, x, key_padding_mask, attn_mask=None):
@@ -249,7 +256,9 @@ class TritonFlashCausalAttention(nn.Module):
                                       self.d_model,
                                       bias=True,
                                       device=device)
-
+            # for param init fn
+            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            self.Wqkv._fused = (0, fuse_splits)  # type: ignore
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
@@ -267,6 +276,9 @@ class TritonFlashCausalAttention(nn.Module):
                 softmax_scale=cfg.get('softmax_scale'),
                 device=device,
             )
+            # for param init fn
+            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            self.mhsa.Wqkv._fused = (0, fuse_splits)  # type: ignore
             self.mhsa.out_proj._is_residual = True  # type: ignore
 
         warnings.warn(

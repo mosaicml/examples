@@ -17,6 +17,8 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.optim import DecoupledLionW
+
+from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 
 
@@ -74,6 +76,7 @@ def build_optimizer(cfg, model):
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
+
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
