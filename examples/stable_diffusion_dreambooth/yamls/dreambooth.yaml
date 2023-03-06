@@ -1,12 +1,12 @@
-run_name: stable-diffusion-dreambooth
+run_name: stable-diffusion-dreambooth-corgi-low-lr-new-prompts
 
 seed: 42 # Random seed
 
 max_duration: 800ba # Duration to train specified as a Time string 800 default
-eval_interval: 100ba # 100 default
+eval_interval: 50ba # 100 default
 
-global_train_batch_size: 4 # Training total batch size (4 per 40gb A100, 8 cards)
-global_eval_batch_size: 4
+global_train_batch_size: 2 # Training total batch size (4 per 40gb A100, 8 cards)
+global_eval_batch_size: 2
 
 # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
 grad_accum: auto
@@ -18,9 +18,9 @@ prior_loss_weight: 1.0
 num_class_images: 200
 
 dataset:
-  instance_prompt: a photo of sks dog
+  instance_prompt: a photo of smol-corgi
   instance_data_root: ./data/instance_data
-  class_prompt: a photo of dog
+  class_prompt: a photo of corgi
   class_data_root: ./data/class_data
   resolution: 512 # training image size
   center_crop: false
@@ -28,22 +28,23 @@ dataset:
   eval_prompts: # a list of prompts to use for evaluation
   - A photo of sks dog in a bucket
   - A photo of sks dog with a blue sweater
-  - A photo of sks dog as a professor
-  - A photo of sks dog as a doctor
-  - A photo of sks dog as a professor and doctor
+  - A photo of sks dog swimming
+  - A photo of sks dog sleeping
+  - A photo of sks dog in a doghouse
+  - A photo of sks dog teaching a university class
 
 model:
   # commonly CompVis/stable-diffusion-v1-4 or stabilityai/stable-diffusion-2-1 use 2-1 for sizes > 512
   name: CompVis/stable-diffusion-v1-4
-  train_text_encoder: false
+  train_text_encoder: true
   train_unet: true
   num_images_per_prompt: 4 # number of images to generate per prompt at evaluation time
   image_key: image_tensor
   caption_key: input_ids
 
 optimizer:
-  lr: 2.0e-05
-  weight_decay: 1.0e-3
+  lr: 1.0e-06
+  weight_decay: 1.0e-2
 
 loggers:
   wandb:     # Uncomment and fill below arguments to use WandB logger
@@ -54,7 +55,7 @@ loggers:
 
 # Save checkpoint parameters
 save_folder: ./{run_name}/ckpt # e.g. ./{run_name}/ckpt (local) or s3://mybucket/mydir/{run_name}/ckpt (remote)
-save_interval: 100ba # Interval to checkpoint based on time string
+save_interval: 10ba # Interval to checkpoint based on time string
 save_num_checkpoints_to_keep: 5 # Cleans up checkpoints saved locally only!
 
 # Load checkpoint parameters

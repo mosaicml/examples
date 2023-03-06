@@ -17,7 +17,6 @@ from composer.utils import dist, reproducibility
 from data import build_prompt_dataloader, build_dreambooth_dataloader
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
-import torchvision.transforms.functional as F
 
 from examples.common import build_logger, calculate_batch_size_info, log_config
 
@@ -61,7 +60,7 @@ def main(config: DictConfig):  # type: ignore
             prompt_dataloader = build_prompt_dataloader(class_prompts,
                                                         batch_size=config.eval_device_batch_size)
             save_class_images = SaveClassImages(class_data_root=config.dataset.class_data_root)
-
+            
             model.num_images_per_prompt = 1 # set for prior preservation image generation
             trainer = Trainer(model=model, eval_dataloader=prompt_dataloader, callbacks=save_class_images)
             trainer.eval() # eval run will save images via the SaveClassImages callback
