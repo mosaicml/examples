@@ -114,10 +114,15 @@ def generic_param_init_fn_(module, cfg, init_fn_):
             torch.nn.init.zeros_(module.out_proj.bias)
 
     else:
+        error_str = []
         for n, p in module.named_parameters(recurse=False):
-            # raise error if uninitialized module has any parameters which should be initialized
+            error_str += [f'{n} (shape={tuple(p.shape)})']
+
+        if error_str:
+            # raise error if uninitialized module has any parameters
             raise NotImplementedError(
-                f'{module.__class__.__name__} module not initialized by param_init_fn.'
+                f'{module.__class__.__name__} module not initialized by param_init_fn. ' +\
+                f'Parameters: {error_str} were not initialized.'
             )
 
 
