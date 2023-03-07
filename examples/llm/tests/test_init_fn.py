@@ -13,7 +13,7 @@ from torch import nn
 from examples.llm.src.models.param_init_fns import generic_param_init_fn_
 
 
-class EgMLP(nn.Module):
+class MLP(nn.Module):
 
     def __init__(self, cfg):
         super().__init__()
@@ -41,7 +41,7 @@ def test_div_is_residual(is_residual: bool):
         'n_layers': 2,
     })
     cfg.init_div_is_residual = is_residual
-    model = EgMLP(cfg)
+    model = MLP(cfg)
 
     model.apply(partial(generic_param_init_fn_, cfg=cfg,
                         init_fn_=nn.init.ones_))
