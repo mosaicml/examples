@@ -195,6 +195,7 @@ def main(cfg):
         save_overwrite=cfg.get('save_overwrite', False),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
+        load_ignore_keys=cfg.get('load_ignore_keys', None),
         autoresume=cfg.get('autoresume', False),
     )
 
