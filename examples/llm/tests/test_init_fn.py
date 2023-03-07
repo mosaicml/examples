@@ -53,7 +53,6 @@ def test_div_is_residual(is_residual: bool):
 
     # verify _is_residual works
     expected_value = 1 / math.sqrt(2 * cfg.n_layers) if is_residual else 1
-    print(expected_value)
     for n, p in model.named_parameters():
         if n == 'bias':
             assert (p == 0).all()
