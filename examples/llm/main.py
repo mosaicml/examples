@@ -10,13 +10,15 @@ from composer.core import Evaluator
 from composer.utils import dist, get_device, reproducibility
 from omegaconf import OmegaConf as om
 
-from examples.common.builders import (build_algorithm, build_callback,
-                                      build_icl_evaluators, build_logger,
+from examples.common.builders import build_algorithm
+from examples.common.builders import build_callback as _build_callback
+from examples.common.builders import (build_icl_evaluators, build_logger,
                                       build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
 from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                               build_text_denoising_dataloader)
+from examples.llm.src.data.mod_printer import MixtureOfDenoisersPrinterCallback
 
 
 def validate_config(cfg):
@@ -71,6 +73,13 @@ def build_dataloader(cfg, device_batch_size):
         return build_text_denoising_dataloader(cfg, device_batch_size)
     else:
         raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
+
+
+def build_callback(name, cfg):
+    if name == 'mod_printer':
+        return MixtureOfDenoisersPrinterCallback(**cfg)
+    else:
+        return _build_callback(name, cfg)
 
 
 def main(cfg):

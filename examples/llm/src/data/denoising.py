@@ -278,7 +278,7 @@ class MixtureOfDenoisersCollator:
 
         # Skip trimming on the first batch to help initialize GPU memory
         if self._skip_trim:
-            self._skip_trim = False
+            # self._skip_trim = False
             return batch
 
         # Truncate portions of the inputs that are purely padding

@@ -46,7 +46,11 @@ class HuggingFaceModelWithZLoss(HuggingFaceModel):
                            transformers.PreTrainedTokenizerFast]] = None,
                  metrics: Optional[List[Metric]] = None,
                  z_loss: float = 0.0):
-        super().__init__(model, tokenizer, use_logits=True, metrics=metrics)
+        super().__init__(model,
+                         tokenizer,
+                         use_logits=True,
+                         metrics=metrics,
+                         allow_embedding_resizing=True)
         self.z_loss = float(z_loss)
         if self.z_loss < 0.0:
             raise ValueError(f'z_loss(={z_loss}) cannot be negative.')
