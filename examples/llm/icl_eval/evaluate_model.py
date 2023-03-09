@@ -21,6 +21,10 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
 
+    # Run Name
+    if cfg.get('run_name') is None:
+        cfg.run_name = os.environ.get('COMPOSER_RUN_NAME', 'icl_eval')
+
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
     evaluators, logger_keys = build_icl_evaluators(cfg, tokenizer)
@@ -36,6 +40,7 @@ if __name__ == '__main__':
     load_path = cfg.get('load_path', None)
 
     trainer = Trainer(
+        run_name=cfg.run_name,
         model=composer_model,
         loggers=in_memory_logger,
         fsdp_config=fsdp_config,  # type: ignore
