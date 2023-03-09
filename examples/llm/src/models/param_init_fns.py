@@ -1,10 +1,13 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+# Copyright 2021 EleutherAI
+# SPDX-License-Identifier: Apache-2.0
+
 import math
 import warnings
 from functools import partial
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from omegaconf import DictConfig
@@ -16,7 +19,7 @@ InitFunction = Callable[[torch.Tensor], torch.Tensor]
 def torch_default_param_init_fn_(module: nn.Module, cfg: DictConfig):
     if cfg.get('verbose') and cfg.get('verbose') > 1:
         warnings.warn(
-            f"Initializaing network using module's reset_parameters attribute")
+            f"Initializing network using module's reset_parameters attribute")
 
     if hasattr(module, 'reset_parameters'):
         module.reset_parameters()
@@ -26,7 +29,7 @@ def fused_init_helper_(module: nn.Module, init_fn_: InitFunction):
     # parameter initialization is often based on the parameters shape.
     # If a layer is fused, initialization should be based on the shapes
     # of the original tensor instead of the shape of the fused tensor.
-    # Layers which are fused should have the _fused attibute defined.
+    # Layers which are fused should have the _fused attribute defined.
     # The first element of _fused is the dimension along which the tensor is fused.
     # This is followed by an iterable of split indices."
 
@@ -43,8 +46,12 @@ def fused_init_helper_(module: nn.Module, init_fn_: InitFunction):
         init_fn_(module.weight[slice_indices])
 
 
-def generic_param_init_fn_(module: nn.Module, cfg: DictConfig,
-                           init_fn_: InitFunction):
+def generic_param_init_fn_(module: nn.Module,
+                           cfg: DictConfig,
+                           init_fn_: InitFunction,
+                           mlp_down_init_fn_: Optional[InitFunction] = None):
+    if mlp_down_init_fn_ is None:
+        mlp_down_init_fn_ = init_fn_
     if cfg.get('verbose') and cfg.get('verbose') > 1:
         warnings.warn(
             f'If model has bias parameters they are initialized to 0.')
@@ -60,16 +67,25 @@ def generic_param_init_fn_(module: nn.Module, cfg: DictConfig,
 
     if isinstance(module, nn.Linear):
         # Linear
-        if hasattr(module, '_fused'):
-            fused_init_helper_(module, init_fn_)
-        else:
-            init_fn_(module.weight)
-        if module.bias is not None:
-            torch.nn.init.zeros_(module.bias)
+        if getattr(module, '_is_residual', False):
+            # allow separate init function for the down projection,
+            # as is done in GPT-NeoX
+            if hasattr(module, '_fused'):
+                fused_init_helper_(module, mlp_down_init_fn_)
+            else:
+                mlp_down_init_fn_(module.weight)
 
-        if div_is_residual and getattr(module, '_is_residual', False):
-            with torch.no_grad():
-                module.weight.div_(math.sqrt(2 * cfg.n_layers))
+            if div_is_residual:
+                with torch.no_grad():
+                    module.weight.div_(math.sqrt(2 * cfg.n_layers))
+        else:
+            if hasattr(module, '_fused'):
+                fused_init_helper_(module, init_fn_)
+            else:
+                init_fn_(module.weight)
+
+        if module.bias is not None:  # type: ignore
+            torch.nn.init.zeros_(module.bias)
 
     elif isinstance(module, nn.Embedding):
         # Embedding
@@ -82,7 +98,7 @@ def generic_param_init_fn_(module: nn.Module, cfg: DictConfig,
                 f'LayerNorm gamma weights are set to 1. If the layer has a bias it is initialized to 0.'
             )
         torch.nn.init.ones_(module.weight)
-        if module.bias is not None:
+        if module.bias is not None:  # type: ignore
             torch.nn.init.zeros_(module.bias)
 
     elif isinstance(module, nn.MultiheadAttention):
@@ -103,7 +119,7 @@ def generic_param_init_fn_(module: nn.Module, cfg: DictConfig,
             init_fn_(module.v_proj_weight)
 
         # bias
-        if module.in_proj_bias is not None:
+        if module.in_proj_bias is not None:  # type: ignore
             torch.nn.init.zeros_(module.in_proj_bias)
         if module.bias_k is not None:
             torch.nn.init.zeros_(module.bias_k)
@@ -111,11 +127,15 @@ def generic_param_init_fn_(module: nn.Module, cfg: DictConfig,
             torch.nn.init.zeros_(module.bias_v)
 
         # out proj
-        init_fn_(module.out_proj.weight)
-        if div_is_residual and getattr(module.out_proj, '_is_residual', False):
-            with torch.no_grad():
-                module.out_proj.weight.div_(math.sqrt(2 * cfg.n_layers))
-        if module.out_proj.bias is not None:
+        if getattr(module.out_proj, '_is_residual', False):
+            mlp_down_init_fn_(module.out_proj.weight)
+            if div_is_residual:
+                with torch.no_grad():
+                    module.out_proj.weight.div_(math.sqrt(2 * cfg.n_layers))
+        else:
+            init_fn_(module.out_proj.weight)
+
+        if module.out_proj.bias is not None:  # type: ignore
             torch.nn.init.zeros_(module.out_proj.bias)
 
     else:
@@ -208,6 +228,57 @@ def xavier_normal_param_init_fn_(module: nn.Module, cfg: DictConfig):
     generic_param_init_fn_(module, cfg, xavier_normal_)
 
 
+def small_param_init_fn_(module: nn.Module, cfg: DictConfig):
+    """Introduced as `SmallInit` in.
+
+    Transformers without Tears: Improving the Normalization of Self-Attention Nguyen, T.
+
+    & Salazar, J. (2020)
+    see https://github.com/EleutherAI/gpt-neox/blob/9610391ab319403cef079b438edd016a2443af54/megatron/model/init_functions.py#L134
+    """
+    std = math.sqrt(2 / (5 * cfg.d_model))
+    init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
+
+    if cfg.get('verbose', 0) > 1:
+        warnings.warn(
+            f'Using torch.nn.init.normal_ init fn mean=0.0, std={std}')
+
+    generic_param_init_fn_(module, cfg, init_fn_)
+
+
+def neox_param_init_fn_(module: nn.Module, cfg: DictConfig):
+    """From section 2.3.1 of GPT-NeoX-20B:
+
+    An Open-Source AutoregressiveLanguage Model — Black et. al. (2022)
+    see https://github.com/EleutherAI/gpt-neox/blob/9610391ab319403cef079b438edd016a2443af54/megatron/model/init_functions.py#L151
+    and https://github.com/EleutherAI/gpt-neox/blob/main/megatron/model/transformer.py
+    """
+    small_std = math.sqrt(2 / (5 * cfg.d_model))
+    small_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=small_std)
+    wang_std = 2 / cfg.n_layers / math.sqrt(cfg.d_model)
+    wang_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=wang_std)
+
+    # we normally want this to default to True, but Wang initialization does something similar
+    if cfg.get('init_div_is_residual', None) is None:
+        cfg['init_div_is_residual'] = False
+    elif cfg.get('init_div_is_residual', None) is True:
+        warnings.warn(
+            'You are using both Wang initialization with ' +
+            'init_div_is_residual, both of which have similar functions. ' +
+            'If this is an error, set init_div_is_residual to False or ' +
+            'use a different param_init_fn in your model config')
+
+    if cfg.get('verbose', 0) > 1:
+        warnings.warn(
+            f'Using torch.nn.init.normal_ init fn mean=0.0, std={small_std} for '
+            + f'most layers and std={wang_std} for MLP down projections')
+
+    generic_param_init_fn_(module,
+                           cfg,
+                           init_fn_=small_init_fn_,
+                           mlp_down_init_fn_=wang_init_fn_)
+
+
 MODEL_INIT_REGISTRY = {
     'default_': torch_default_param_init_fn_,
     'baseline_': baseline_param_init_fn_,
@@ -215,4 +286,6 @@ MODEL_INIT_REGISTRY = {
     'kaiming_normal_': kaiming_normal_param_init_fn_,
     'xavier_uniform_': xavier_uniform_param_init_fn_,
     'xavier_normal_': xavier_normal_param_init_fn_,
+    'small_init_': small_param_init_fn_,
+    'neox_init_': neox_param_init_fn_,
 }
