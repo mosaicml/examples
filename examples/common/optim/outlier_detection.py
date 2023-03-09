@@ -4,8 +4,8 @@ import collections
 class OutlierDetector:
     
     def __init__(self,
-                 increase_lookback=500,
-                 threshold=7.5):
+                 threshold=7.5,
+                 increase_lookback=500):
           
         self.intermediate_data_queue = collections.deque(maxlen=increase_lookback)
         self.slow_moving_average = collections.deque(maxlen=increase_lookback)
@@ -24,3 +24,9 @@ class OutlierDetector:
             return obs > self.outlier_threshold * slow_mva
         else:
             return False
+    
+    def get_slow_mva(self):
+        if len(self.slow_moving_average) > 0:
+            return sum(self.slow_moving_average) / len(self.slow_moving_average)
+        else:
+            return 0

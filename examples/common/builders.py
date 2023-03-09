@@ -4,7 +4,7 @@
 import os
 
 from composer import algorithms
-from composer.callbacks import LRMonitor, MemoryMonitor, OptimizerMonitor, RuntimeEstimator
+from composer.callbacks import HealthChecker, LRMonitor, MemoryMonitor, OptimizerMonitor, RuntimeEstimator
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
@@ -14,11 +14,10 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
-from examples.common.optim import DecoupledLionW, SkipLion
+from examples.common.optim import DecoupledLionW, SkipLion, WeightNormLion, AdaptiveWDLionW, ClipLion, AdaLRLion, AdaBetaLion, FullyAdaptiveLion
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 from examples.llm.loss_spikes.resumption_callbacks import RESUMPTION_STRATEGIES
-from examples.common.optim import DecoupledLionW
 
 
 
@@ -36,6 +35,8 @@ def build_callback(name, kwargs):
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
+    elif name == 'health_checker':
+        return HealthChecker(**kwargs)
     elif name in RESUMPTION_STRATEGIES:
         resumption_args = kwargs.get('config', {})
         return RESUMPTION_STRATEGIES[name](**resumption_args)
@@ -77,12 +78,57 @@ def build_optimizer(cfg, model):
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
+    elif cfg.name == 'weight_norm_lion':
+        return WeightNormLion(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              weight_decay=cfg.weight_decay)
     elif cfg.name == 'skip_lion':
         return SkipLion(model.parameters(),
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay,
                               outlier_threshold=cfg.outlier_threshold)
+    elif cfg.name == 'clip_lion':
+        return ClipLion(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              weight_decay=cfg.weight_decay,
+                              outlier_threshold=cfg.outlier_threshold)
+    elif cfg.name == 'adaptive_beta_lion':
+        return AdaBetaLion(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              weight_decay=cfg.weight_decay,
+                              outlier_threshold=cfg.outlier_threshold,
+                              increase=cfg.increase,
+                              timeout=cfg.timeout)
+    elif cfg.name == 'adalr_lion':
+        return AdaLRLion(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              weight_decay=cfg.weight_decay,
+                              outlier_threshold=cfg.outlier_threshold,
+                              timeout=cfg.timeout,
+                              lr_penalty=cfg.lr_penalty,
+                              min_scale=cfg.min_scale)
+    elif cfg.name == 'adaptive_wd_lion':
+        return AdaptiveWDLionW(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              wd_min_fraction = cfg.wd_min_fraction,
+                              wd_max_fraction = cfg.wd_max_fraction,
+                              wd_scaling_slope = cfg.wd_scaling_slope)
+    elif cfg.name == 'fully_adaptive_lion':
+        print(cfg)
+        return FullyAdaptiveLion(
+            model.parameters(),
+            lr=cfg.lr,
+            betas=cfg.betas,
+            outlier_threshold=cfg.outlier_threshold,
+            timeout=cfg.timeout,
+            param_adjustment=cfg.param_adjustment
+        )
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
