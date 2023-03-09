@@ -4,12 +4,16 @@
 import math
 import warnings
 from functools import partial
+from typing import Callable
 
 import torch
+from omegaconf import DictConfig
 from torch import nn
 
+InitFunction = Callable[[torch.Tensor], torch.Tensor]
 
-def torch_defualt_param_init_fn_(module, cfg):
+
+def torch_default_param_init_fn_(module: nn.Module, cfg: DictConfig):
     if cfg.get('verbose') and cfg.get('verbose') > 1:
         warnings.warn(
             f"Initializaing network using module's reset_parameters attribute")
@@ -18,7 +22,7 @@ def torch_defualt_param_init_fn_(module, cfg):
         module.reset_parameters()
 
 
-def fused_init_helper_(module, init_fn_):
+def fused_init_helper_(module: nn.Module, init_fn_: InitFunction):
     # parameter initialization is often based on the parameters shape.
     # If a layer is fused, initialization should be based on the shapes
     # of the original tensor instead of the shape of the fused tensor.
@@ -39,7 +43,8 @@ def fused_init_helper_(module, init_fn_):
         init_fn_(module.weight[slice_indices])
 
 
-def generic_param_init_fn_(module, cfg, init_fn_):
+def generic_param_init_fn_(module: nn.Module, cfg: DictConfig,
+                           init_fn_: InitFunction):
     if cfg.get('verbose') and cfg.get('verbose') > 1:
         warnings.warn(
             f'If model has bias parameters they are initialized to 0.')
@@ -121,7 +126,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
             )
 
 
-def baseline_param_init_fn_(module, cfg):
+def baseline_param_init_fn_(module: nn.Module, cfg: DictConfig):
     init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=cfg.init_std)
 
     if cfg.get('verbose', 0) > 1:
@@ -131,7 +136,7 @@ def baseline_param_init_fn_(module, cfg):
     generic_param_init_fn_(module, cfg, init_fn_)
 
 
-def kaiming_uniform_param_init_fn_(module, cfg):
+def kaiming_uniform_param_init_fn_(module: nn.Module, cfg: DictConfig):
     # set nn.init.kaiming_uniform_ defaults
     # note: not many ppl modify the defaults but maybe we should...
     init_gain = cfg.get('init_gain', 0)
@@ -152,7 +157,7 @@ def kaiming_uniform_param_init_fn_(module, cfg):
     generic_param_init_fn_(module, cfg, kaiming_uniform_)
 
 
-def kaiming_normal_param_init_fn_(module, cfg):
+def kaiming_normal_param_init_fn_(module: nn.Module, cfg: DictConfig):
     # set torch.nn.init.kaiming_normal_ defaults
     # note: not many ppl modify the defaults but maybe we should...
     init_gain = cfg.get('init_gain', 0)
@@ -173,7 +178,7 @@ def kaiming_normal_param_init_fn_(module, cfg):
     generic_param_init_fn_(module, cfg, kaiming_normal_)
 
 
-def xavier_uniform_param_init_fn_(module, cfg):
+def xavier_uniform_param_init_fn_(module: nn.Module, cfg: DictConfig):
     # set nn.init.xavier_uniform_ defaults
     # note: not many ppl modify the defaults but maybe we should...
     init_gain = cfg.get('init_gain', 1.0)
@@ -188,7 +193,7 @@ def xavier_uniform_param_init_fn_(module, cfg):
     generic_param_init_fn_(module, cfg, xavier_uniform_)
 
 
-def xavier_normal_param_init_fn_(module, cfg):
+def xavier_normal_param_init_fn_(module: nn.Module, cfg: DictConfig):
     # set nn.init.xavier_normal_ defaults
     # note: not many ppl modify the defaults but maybe we should...
     init_gain = cfg.get('init_gain', 1.0)
@@ -204,7 +209,7 @@ def xavier_normal_param_init_fn_(module, cfg):
 
 
 MODEL_INIT_REGISTRY = {
-    'default_': torch_defualt_param_init_fn_,
+    'default_': torch_default_param_init_fn_,
     'baseline_': baseline_param_init_fn_,
     'kaiming_uniform_': kaiming_uniform_param_init_fn_,
     'kaiming_normal_': kaiming_normal_param_init_fn_,
