@@ -229,7 +229,7 @@ def xavier_normal_param_init_fn_(module: nn.Module, cfg: DictConfig):
 
 
 def small_param_init_fn_(module: nn.Module, cfg: DictConfig):
-    """Introduced as `SmallInit` in.
+    """Introduced as `SmallInit` in Tw/oT.
 
     Transformers without Tears: Improving the Normalization of Self-Attention Nguyen, T.
 
