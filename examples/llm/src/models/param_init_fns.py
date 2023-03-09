@@ -113,6 +113,11 @@ def generic_param_init_fn_(module, cfg, init_fn_):
         if module.out_proj.bias is not None:
             torch.nn.init.zeros_(module.out_proj.bias)
 
+    elif hasattr(module, 'logit_scale'):
+        # base model buffer
+        if module.logit_scale is not None:
+            module.logit_scale.fill_(module.cfg.logit_scale)
+
     else:
         for _ in module.parameters(recurse=False):
             # raise error if uninitialized module has any parameters

@@ -92,6 +92,13 @@ class MosaicGPT(nn.Module):
         self.transformer.update(
             {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
 
+        # enables scaling output logits; similar to a softmax "temperature"
+        # PaLM paper uses scale 1/sqrt(cfg.d_model)
+        if cfg.get('logit_scale'):
+            self.register_buffer('logit_scale', torch.Tensor([cfg.logit_scale]))
+        else:
+            self.register_buffer('logit_scale', None)
+
         if cfg.init_device != 'meta':
             print(
                 f'You are using {cfg.init_device=}, but you can also use cfg.init_device="meta" with Composer + FSDP for fast initialization.'
@@ -188,6 +195,8 @@ class MosaicGPT(nn.Module):
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
         assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
         logits = F.linear(x, self.transformer.wte.weight, None)
+        if self.logit_scale is not None:
+            logits *= self.logit_scale
         return logits
 
     # Param Initialization, needed for device='meta' fast initialization
