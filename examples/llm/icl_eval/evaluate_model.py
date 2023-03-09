@@ -23,7 +23,12 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
 
+    # Seed
     reproducibility.seed_all(cfg.get('seed', 1234))
+
+    # Run Name
+    if cfg.get('run_name') is None:
+        cfg.run_name = os.environ.get('COMPOSER_RUN_NAME', 'icl_eval')
 
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
@@ -45,6 +50,7 @@ if __name__ == '__main__':
     load_path = cfg.get('load_path', None)
 
     trainer = Trainer(
+        run_name=cfg.run_name,
         model=composer_model,
         loggers=loggers,
         fsdp_config=fsdp_config,  # type: ignore
