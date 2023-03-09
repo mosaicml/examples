@@ -4,7 +4,7 @@
   </picture>
 </p>
 
-<h2><p align="center">Stable Diffusion Finetuning</p></h2>
+<h2><p align="center">Stable Diffusion Dreambooth Finetuning</p></h2>
 
 <h3><p align='center'>
 <a href="https://www.mosaicml.com">[Website]</a>
@@ -23,7 +23,7 @@
 </p>
 <br />
 
-This folder contains starter code for finetuning Stable Diffusion. You can easily finetune Stable Diffusion v1 or v2 on any available image-caption HuggingFace dataset, save the model, and generate your own images. Optionally, you can create your own dataset to adapt Stable Diffusion to your desired domain.
+This folder contains starter code for Stable Diffusion Dreambooth Finetuning. Dreambooth Finetuning works with a  You can easily finetune Stable Diffusion v1 or v2 on any available image-caption HuggingFace dataset, save the model, and generate your own images. Optionally, you can create your own dataset to adapt Stable Diffusion to your desired domain.
 
 
 # Quick Start
@@ -43,7 +43,7 @@ composer main.py yamls/dreambooth.yaml
 ```
 
 # Results
-The default config is `yamls/dreambooth.yaml`. It trains only the Unet portion of `Stable Diffusion v1-4` for `800 batches`. A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `200 batches`.
+The default config is `yamls/dreambooth.yaml`. It trains only the Unet portion of `Stable Diffusion v1-4` for `800 batches`. A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `50 batches`.
 
 Results from the default config and the prompt  `"a majestic shiba inu doge wearing a blue sweater"`:
 <p align="center">

@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 import transformers
 from composer.models import ComposerModel
-from diffusers import (AutoencoderKL, DDPMScheduler, LMSDiscreteScheduler,
+from diffusers import (AutoencoderKL, DDPMScheduler, LMSDiscreteScheduler, DDIMScheduler,
                        UNet2DConditionModel)
 from diffusers.utils.import_utils import is_xformers_available
 from torchmetrics import Metric, MetricCollection
@@ -156,7 +156,7 @@ class StableDiffusion(ComposerModel):
 
     def eval_forward(self, batch, outputs=None):
         # outputs exist during training, during evaluation we pass the batch to `generate`
-        return outputs if outputs else self.generate(batch, disable_progress_bar=True)
+        return outputs if outputs else self.generate(batch['prompt'], disable_progress_bar=True)
 
     @torch.no_grad()
     def generate(self,
@@ -167,7 +167,8 @@ class StableDiffusion(ComposerModel):
                  guidance_scale: float = 7.5,
                  negative_prompt: Optional[list] = None,
                  num_images_per_prompt: Optional[int] = None,
-                 disable_progress_bar:bool = False):
+                 disable_progress_bar:bool = False,
+                 seed:int = None):
         """Generate images from noise using the backward diffusion process.
 
         Args:
@@ -191,10 +192,16 @@ class StableDiffusion(ComposerModel):
                 Must be the same length as list of prompts. Default: `None`.
             num_images_per_prompt (int): The number of images to generate per prompt.
                  Default: `1`.
+            disable_progress_bar (bool): Wether to disable the tqdm progress bar during generation.
+                Default: `False`.
+            seed (int): Random seed to use for generation. Set a seed for reproducible generation.
+                Default: `None`.
         """
+        if seed:
+            torch.manual_seed(seed)
         num_images_per_prompt = num_images_per_prompt if num_images_per_prompt else self.num_images_per_prompt
         batch_size = 1 if isinstance(prompt, str) else len(prompt)
-
+        
         if negative_prompt:
             negative_prompt_bs = 1 if isinstance(negative_prompt,
                                                  str) else len(negative_prompt)
@@ -217,34 +224,36 @@ class StableDiffusion(ComposerModel):
                                     return_tensors='pt')
         text_embeddings = self.text_encoder(text_input.input_ids.to(device))[0]
 
-        # classifier free guidance + negative prompts
-        # negative prompt is given in place of the unconditional input in classifier free guidance
-        unconditional_input = negative_prompt or ([''] * batch_size)
-
-        # tokenize + encode negative or uncoditional prompt
-        unconditional_input = self.tokenizer(
-            unconditional_input,
-            padding='max_length',
-            max_length=self.tokenizer.model_max_length,
-            return_tensors='pt')
-        unconditional_embeddings = self.text_encoder(
-            unconditional_input.input_ids.to(device))[0]
-
         # duplicate text embeddings for each generation per prompt
         bs_embed, seq_len, _ = text_embeddings.shape
         text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
         text_embeddings = text_embeddings.view(bs_embed * num_images_per_prompt,
-                                               seq_len, -1)
+                                            seq_len, -1)
 
-        # duplicate unconditional embeddings if we want to generate multiple images per prompt
-        bs_embed, seq_len, _ = unconditional_embeddings.shape
-        unconditional_embeddings = unconditional_embeddings.repeat(
-            1, num_images_per_prompt, 1)
-        unconditional_embeddings = unconditional_embeddings.view(
-            bs_embed * num_images_per_prompt, seq_len, -1)
+        # classifier free guidance + negative prompts
+        # negative prompt is given in place of the unconditional input in classifier free guidance
+        do_classifier_free_guidance = guidance_scale > 1.0
+        if do_classifier_free_guidance:
+            unconditional_input = negative_prompt or ([''] * batch_size)
 
-        # concat uncond + prompt
-        text_embeddings = torch.cat([unconditional_embeddings, text_embeddings])
+            # tokenize + encode negative or uncoditional prompt
+            unconditional_input = self.tokenizer(
+                unconditional_input,
+                padding='max_length',
+                max_length=self.tokenizer.model_max_length,
+                return_tensors='pt')
+            unconditional_embeddings = self.text_encoder(
+                unconditional_input.input_ids.to(device))[0]
+
+            # duplicate unconditional embeddings if we want to generate multiple images per prompt
+            bs_embed, seq_len, _ = unconditional_embeddings.shape
+            unconditional_embeddings = unconditional_embeddings.repeat(
+                1, num_images_per_prompt, 1)
+            unconditional_embeddings = unconditional_embeddings.view(
+                bs_embed * num_images_per_prompt, seq_len, -1)
+
+            # concat uncond + prompt
+            text_embeddings = torch.cat([unconditional_embeddings, text_embeddings])
 
         # prepare for diffusion generation process
         latents = torch.randn(
@@ -262,7 +271,10 @@ class StableDiffusion(ComposerModel):
         # backward diffusion process
         for t in tqdm(self.inference_scheduler.timesteps, disable=disable_progress_bar):
             # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-            latent_model_input = torch.cat([latents] * 2)
+            if do_classifier_free_guidance:
+                latent_model_input = torch.cat([latents] * 2)
+            else:
+                latent_model_input = latents
 
             latent_model_input = self.inference_scheduler.scale_model_input(
                 latent_model_input, t)
@@ -272,10 +284,11 @@ class StableDiffusion(ComposerModel):
                                    t,
                                    encoder_hidden_states=text_embeddings).sample
 
+            if do_classifier_free_guidance:
             # perform guidance
-            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-            noise_pred = noise_pred_uncond + guidance_scale * (
-                noise_pred_text - noise_pred_uncond)
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (
+                    noise_pred_text - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
             latents = self.inference_scheduler.step(noise_pred, t,
@@ -339,10 +352,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                                  subfolder='text_encoder')
     noise_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
                                                     subfolder='scheduler')
-
-    # less parameters than DDIM and good results.
-    # see https://arxiv.org/abs/2206.00364 for information on choosing inference schedulers.
-    inference_scheduler = LMSDiscreteScheduler.from_pretrained(
+    inference_scheduler = DDIMScheduler.from_pretrained(
         model_name_or_path, subfolder='scheduler')
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder='tokenizer')
