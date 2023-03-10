@@ -198,7 +198,7 @@ def small_param_init_fn_(module, cfg):
     return _normal_param_init_fn_(module, cfg, std=std)
 
 
-def neox_param_init_fn(module, cfg):
+def neox_param_init_fn_(module, cfg):
     """From section 2.3.1 of GPT-NeoX-20B:
 
     An Open-Source AutoregressiveLanguage Model — Black et. al. (2022)
@@ -290,6 +290,8 @@ MODEL_INIT_REGISTRY = {
     'baseline_': baseline_param_init_fn_,
     'kaiming_uniform_': kaiming_uniform_param_init_fn_,
     'kaiming_normal_': kaiming_normal_param_init_fn_,
+    'neox_param_init_fn_': neox_param_init_fn_,
+    'small_param_init_fn_': small_param_init_fn_,
     'xavier_uniform_': xavier_uniform_param_init_fn_,
     'xavier_normal_': xavier_normal_param_init_fn_,
 }
