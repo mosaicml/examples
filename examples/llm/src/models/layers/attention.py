@@ -228,6 +228,7 @@ class TritonFlashAttention(nn.Module):
     or `TritonFlashPrefixAttention`.
     """
     causal = None
+
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
         try:
@@ -314,7 +315,7 @@ class TritonFlashAttention(nn.Module):
                              key_padding_mask=None,
                              attn_mask=attn_mask,
                              need_weights=False)
-        
+
     @classmethod
     def mask_shape(cls, n_heads, seq_len, alibi):
         if cls.causal:
@@ -322,7 +323,12 @@ class TritonFlashAttention(nn.Module):
         return (1, n_heads, seq_len, seq_len) if alibi else None
 
     @classmethod
-    def attn_mask_(cls, attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
+    def attn_mask_(cls,
+                   attn_mask,
+                   n_heads,
+                   seq_len,
+                   alibi=False,
+                   alibi_bias_max=8):
         if attn_mask is not None:
             # in-place fill causal attn mask
             attn_mask.zero_()
@@ -338,11 +344,12 @@ class TritonFlashAttention(nn.Module):
                                dtype=dtype))
 
         return attn_mask
-    
+
     @staticmethod
     def generate_attn_mask(*args, **kwargs):
         # To be implemented by child classes
         raise NotImplementedError
+
 
 class TritonFlashCausalAttention(TritonFlashAttention):
     """Triton FlashAttn kernel for a Causal LM.
@@ -350,7 +357,7 @@ class TritonFlashCausalAttention(TritonFlashAttention):
     See parent class :class:`TritonFlashAttention` for details.
     """
     causal = True
-    
+
     @staticmethod
     def generate_attn_mask(
         attn_mask,
@@ -381,13 +388,14 @@ class TritonFlashCausalAttention(TritonFlashAttention):
 
         return attn_mask
 
+
 class TritonFlashPrefixAttention(TritonFlashAttention):
     """Triton FlashAttn kernel for a Prefix LM.
 
     See parent class :class:`TritonFlashAttention` for details.
     """
     causal = False
-        
+
     @staticmethod
     def generate_attn_mask(
         attn_mask,
@@ -406,26 +414,29 @@ class TritonFlashPrefixAttention(TritonFlashAttention):
         # Mix the causal max and the bidirectional mask to get the full
         # allowable attention (i.e. full = not accounting for padding yet)
         causal = torch.tril(
-            torch.ones((seq_len, seq_len), dtype=torch.uint8, device=prefix_mask.device)
-        ).view(1, 1, seq_len, seq_len)
+            torch.ones((seq_len, seq_len),
+                       dtype=torch.uint8,
+                       device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
         prefix = prefix_mask.view(batch_size, 1, 1, seq_len)
         can_attend = torch.logical_or(causal, prefix)
+
+        kpm_fill_value = -1e4  # numerically stable -inf
 
         # Account for padding
         if key_padding_mask is not None:
             not_padding = key_padding_mask.view(batch_size, 1, 1, seq_len)
             can_attend = torch.logical_and(can_attend, not_padding)
-        
-        if attn_mask is None:
-            return can_attend # [batch_size, 1, seq_len, seq_len]
 
-        kpm_fill_value = -1e4  # numerically stable -inf
-        attn_mask = torch.where(can_attend, attn_mask, kpm_fill_value)
-        
+        # attn_mask is added to the attention logits. Convert accordingly.
+        if attn_mask is None:
+            attn_mask = torch.where(can_attend, 0, kpm_fill_value)
+        else:
+            attn_mask = torch.where(can_attend, attn_mask, kpm_fill_value)
+
         if dtype is not None:
             attn_mask = attn_mask.to(dtype)
 
-        return attn_mask # [batch_size, 1, seq_len, seq_len]
+        return attn_mask  # [batch_size, 1, seq_len, seq_len]
 
 
 def _check_apply_key_padding_mask(key_padding_mask):
