@@ -33,8 +33,6 @@ if __name__ == '__main__':
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
     tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
     evaluators, logger_keys = build_icl_evaluators(cfg, tokenizer)
-    for evaluator in evaluators:
-        composer_model.add_eval_metrics(evaluator)
 
     in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
     loggers: List[LoggerDestination] = [
