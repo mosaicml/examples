@@ -6,7 +6,10 @@
 from __future__ import annotations
 
 import torch
-from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
+from composer.metrics.nlp import (InContextLearningLMAccuracy,
+                                  InContextLearningMetric,
+                                  InContextLearningMultipleChoiceAccuracy,
+                                  LanguageCrossEntropy, MaskedAccuracy)
 from omegaconf import DictConfig
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -103,6 +106,13 @@ class ComposerHFPrefixLM(HuggingFaceModelWithZLoss):
                                  ignore_index=_HF_IGNORE_INDEX),
             MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX)
         ]
+        eval_metrics = [
+            LanguageCrossEntropy(vocab_size=vocab_size,
+                                 ignore_index=_HF_IGNORE_INDEX),
+            MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX),
+            InContextLearningLMAccuracy(),
+            InContextLearningMultipleChoiceAccuracy()
+        ]
 
         # if cfg.add_exact_match:
         #     metrics.append(ExactMatch(ignore_index=_HF_IGNORE_INDEX))
@@ -110,6 +120,7 @@ class ComposerHFPrefixLM(HuggingFaceModelWithZLoss):
         composer_model = super().__init__(model=model,
                                           tokenizer=tokenizer,
                                           metrics=metrics,
+                                          eval_metrics=eval_metrics,
                                           z_loss=cfg.get('z_loss', 0.0))
 
         # if cfg.add_rouge:
