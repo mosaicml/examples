@@ -188,14 +188,14 @@ def _normal_param_init_fn_(module, cfg, std):
 
 
 def baseline_param_init_fn_(module, cfg):
-    return _normal_param_init_fn_(module, cfg, std=cfg.init_std)
+    _normal_param_init_fn_(module, cfg, std=cfg.init_std)
 
 
 def small_param_init_fn_(module, cfg):
     # very close to kaiming normal
     # from Transformers without Tears (2019) - Nguyen & Salazar
     std = math.sqrt(2 / (5 * cfg.d_model))
-    return _normal_param_init_fn_(module, cfg, std=std)
+    _normal_param_init_fn_(module, cfg, std=std)
 
 
 def neox_param_init_fn_(module, cfg):
@@ -290,8 +290,8 @@ MODEL_INIT_REGISTRY = {
     'baseline_': baseline_param_init_fn_,
     'kaiming_uniform_': kaiming_uniform_param_init_fn_,
     'kaiming_normal_': kaiming_normal_param_init_fn_,
-    'neox_param_init_fn_': neox_param_init_fn_,
-    'small_param_init_fn_': small_param_init_fn_,
+    'neox_init_': neox_param_init_fn_,
+    'small_init_': small_param_init_fn_,
     'xavier_uniform_': xavier_uniform_param_init_fn_,
     'xavier_normal_': xavier_normal_param_init_fn_,
 }
