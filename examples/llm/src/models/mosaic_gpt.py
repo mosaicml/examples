@@ -195,7 +195,7 @@ class MosaicGPT(nn.Module):
             logit_scale = self.cfg.get('logit_scale')
             if logit_scale == 0:
                 warnings.warn(
-                    f'Multiplying logic scale by {logit_scale=}. This will produce degenerate probabilities.'
+                    f'Multiplying logic scale by {logit_scale=}. This will produce uniform (uninformative) outputs.'
                 )
             logits *= logit_scale
 
