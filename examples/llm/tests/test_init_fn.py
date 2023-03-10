@@ -117,7 +117,9 @@ def test_all_params_init(module):
 
     module.apply(
         partial(generic_param_init_fn_,
-                cfg=om.create({}),
+                cfg=om.create({
+                    'n_layers': 2,
+                }),
                 init_fn_=max_fill_init_))
     for n, p in module.named_parameters():
         if n == 'bias':
