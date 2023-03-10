@@ -22,7 +22,7 @@ def torch_default_param_init_fn_(module: nn.Module, cfg: DictConfig):
             f"Initializing network using module's reset_parameters attribute")
 
     if hasattr(module, 'reset_parameters'):
-        module.reset_parameters()
+        module.reset_parameters()  # type: ignore
 
 
 def fused_init_helper_(module: nn.Module, init_fn_: InitFunction):
@@ -39,11 +39,11 @@ def fused_init_helper_(module: nn.Module, init_fn_: InitFunction):
         raise RuntimeError(f'Internal logic error')
 
     dim, splits = _fused
-    splits = (0, *splits, module.weight.size(dim))
+    splits = (0, *splits, module.weight.size(dim))  # type: ignore
     for s, e in zip(splits[:-1], splits[1:]):
-        slice_indices = [slice(None)] * module.weight.ndim
+        slice_indices = [slice(None)] * module.weight.ndim  # type: ignore
         slice_indices[dim] = slice(s, e)
-        init_fn_(module.weight[slice_indices])
+        init_fn_(module.weight[slice_indices])  # type: ignore
 
 
 def generic_param_init_fn_(module: nn.Module,
