@@ -7,13 +7,13 @@
 import math
 import warnings
 from functools import partial
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import torch
 from omegaconf import DictConfig
 from torch import nn
 
-InitFunction = Callable[[torch.Tensor], torch.Tensor]
+InitFunction = Callable[[Any], Any]  # Tensor -> Tensor, but raises errors
 
 
 def torch_default_param_init_fn_(module: nn.Module, cfg: DictConfig):
