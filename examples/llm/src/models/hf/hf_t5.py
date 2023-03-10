@@ -5,10 +5,7 @@
 
 from __future__ import annotations
 
-from composer.metrics.nlp import (InContextLearningLMAccuracy,
-                                  InContextLearningMetric,
-                                  InContextLearningMultipleChoiceAccuracy,
-                                  LanguageCrossEntropy, MaskedAccuracy)
+from composer.metrics.nlp import LanguageCrossEntropy, MaskedAccuracy
 from omegaconf import DictConfig
 from transformers import AutoConfig, AutoTokenizer, T5ForConditionalGeneration
 
@@ -87,9 +84,7 @@ class ComposerHFT5(HuggingFaceModelWithZLoss):
         eval_metrics = [
             LanguageCrossEntropy(vocab_size=vocab_size,
                                  ignore_index=_HF_IGNORE_INDEX),
-            MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX),
-            InContextLearningLMAccuracy(),
-            InContextLearningMultipleChoiceAccuracy()
+            MaskedAccuracy(ignore_index=_HF_IGNORE_INDEX)
         ]
 
         # if cfg.add_exact_match:
