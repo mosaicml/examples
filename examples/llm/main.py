@@ -137,8 +137,6 @@ def main(cfg):
     if 'icl_tasks' in cfg:
         tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
         icl_evaluators, _ = build_icl_evaluators(cfg, tokenizer)
-        for icl_evaluator in icl_evaluators:
-            model.add_eval_metrics(icl_evaluator)
         evaluators.extend(icl_evaluators)
 
     # Optimizer

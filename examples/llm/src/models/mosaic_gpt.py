@@ -14,7 +14,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
-from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
+from composer.metrics import (InContextLearningLMAccuracy,
+                              InContextLearningMetric,
+                              InContextLearningMultipleChoiceAccuracy)
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
@@ -39,8 +41,8 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        layernorm_class = nn.LayerNorm if not cfg.get(
-            'low_precision_layernorm', False) else LPLayerNorm
+        layernorm_class = nn.LayerNorm if not cfg.get('low_precision_layernorm',
+                                                      False) else LPLayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(
@@ -219,8 +221,14 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
         self.eval_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
-            'Perplexity': Perplexity(),
+            'LanguageCrossEntropy':
+                LanguageCrossEntropy(cfg.vocab_size),
+            'Perplexity':
+                Perplexity(),
+            'InContextLearningMultipleChoiceAccuracy':
+                InContextLearningMultipleChoiceAccuracy(),
+            'InContextLearningLMAccuracy':
+                InContextLearningLMAccuracy()
         }
 
     def get_targets(self, batch):
@@ -259,15 +267,6 @@ class ComposerMosaicGPT(ComposerModel):
             targets = self.get_targets(batch).view(-1)
             metric.update(outputs, targets)
 
-    def add_eval_metrics(self, evaluator):
-        evaluator_metrics = {
-            m: METRIC_DEFAULT_CTORS[m]() for m in evaluator.metric_names
-        }
-        if self.eval_metrics is not None:
-            self.eval_metrics.update(evaluator_metrics)
-        else:
-            self.eval_metrics = evaluator_metrics
-
     def _compute_num_fwd_flops(self):
         n_params = sum(p.numel() for p in self.parameters())
         # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
@@ -282,6 +281,6 @@ class ComposerMosaicGPT(ComposerModel):
 
     def flops_per_batch(self, batch):
         # Note: this computation does not take into account padding, and assumes
-        # that the dataset has been constructed without padding. Additionally, we 
+        # that the dataset has been constructed without padding. Additionally, we
         # assume the backward pass is approximately 2x the forward pass
         return self.num_fwd_flops * 3 * batch['input_ids'].shape[0]
