@@ -192,7 +192,12 @@ class MosaicGPT(nn.Module):
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(cfg.d_model)
         if self.cfg.get('logit_scale') is not None:
-            logits *= self.cfg.get('logit_scale')
+            logit_scale = self.cfg.get('logit_scale')
+            if logit_scale == 0:
+                warnings.warn(
+                    f'Multiplying logic scale by {logit_scale=}. This will produce degenerate probabilities.'
+                )
+            logits *= logit_scale
 
         return logits
 
