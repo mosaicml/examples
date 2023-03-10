@@ -46,7 +46,7 @@ def gpt_tiny_cfg(conf_path='yamls/mosaic_gpt/125m.yaml'):
                      not torch.cuda.is_available(),
                      reason='testing with cuda requires GPU')),
 ])
-@pytest.mark.parametrize('logit_scale', [None, 0.036])
+@pytest.mark.parametrize('logit_scale', [None, 0.036, 'inv_sqrt_d_model'])
 def test_train(device, logit_scale):
     if not os.path.isdir('./my-copy-c4/val'):
         pytest.xfail('c4 dataset not set up as expected')
