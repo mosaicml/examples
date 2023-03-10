@@ -191,7 +191,12 @@ def _normal_param_init_fn_(module, cfg, std):
 
 
 def baseline_param_init_fn_(module, cfg):
-    _normal_param_init_fn_(module, cfg, std=cfg.init_std)
+    std = cfg.get('init_std')
+    if std is None:
+        raise ValueError(
+            'You must set model.init_std to a float value to use the default initialization scheme.'
+        )
+    _normal_param_init_fn_(module, cfg, std=std)
 
 
 def small_param_init_fn_(module, cfg):
