@@ -50,14 +50,15 @@ def generic_param_init_fn_(module, cfg, init_fn_):
     init_div_is_residual = cfg.get('init_div_is_residual', True)
 
     if init_div_is_residual is False:
-        div_is_residual = 1
-    if init_div_is_residual is True:
+        pass
+    elif init_div_is_residual is True:
         div_is_residual = math.sqrt(2 * cfg.n_layers)
     elif isinstance(init_div_is_residual, float) or isinstance(
             init_div_is_residual, int):
         div_is_residual = init_div_is_residual
     elif isinstance(init_div_is_residual,
                     str) and init_div_is_residual.isnumeric():
+        # do not trust YAML parsing to always convert numbers to numbers
         div_is_residual = float(init_div_is_residual)
     else:
         raise ValueError(
@@ -172,14 +173,44 @@ def generic_param_init_fn_(module, cfg, init_fn_):
             )
 
 
-def baseline_param_init_fn_(module, cfg):
-    init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=cfg.init_std)
+def _normal_init_(std, mean=0.0):
+    return partial(torch.nn.init.normal_, mean=mean, std=std)
+
+
+def _normal_param_init_fn_(module, cfg, std):
+    init_fn_ = _normal_init_(std=std)
 
     if cfg.get('verbose', 0) > 1:
         warnings.warn(
-            f'Using torch.nn.init.normal_ init fn mean=0.0, std={cfg.init_std}')
+            f'Using torch.nn.init.normal_ init fn mean=0.0, std={std}')
 
     generic_param_init_fn_(module, cfg, init_fn_)
+
+
+def baseline_param_init_fn_(module, cfg):
+    return _normal_param_init_fn_(module, cfg, std=cfg.init_std)
+
+
+def small_param_init_fn_(module, cfg):
+    # very close to kaiming normal
+    # from Transformers without Tears (2019) - Nguyen & Salazar
+    std = math.sqrt(2 / (5 * cfg.d_model))
+    return _normal_param_init_fn_(module, cfg, std=std)
+
+
+def neox_param_init_fn(module, cfg):
+    """From section 2.3.1 of GPT-NeoX-20B:
+
+    An Open-Source AutoregressiveLanguage Model — Black et. al. (2022)
+    see https://github.com/EleutherAI/gpt-neox/blob/9610391ab319403cef079b438edd016a2443af54/megatron/model/init_functions.py#L151
+    and https://github.com/EleutherAI/gpt-neox/blob/main/megatron/model/transformer.py
+    """
+    residual_div = cfg.n_layers / math.sqrt(10)  # small std / wang std
+
+    if cfg.get('verbose', 0) > 1:
+        warnings.warn(f'setting init_div_is_residual to {residual_div}')
+    cfg['init_div_is_residual'] = residual_div
+    small_param_init_fn_(module, cfg)
 
 
 def kaiming_uniform_param_init_fn_(module, cfg):
