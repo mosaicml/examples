@@ -32,7 +32,9 @@ class MosaicGPT(nn.Module):
         self.is_prefix_lm = False
         if cfg.get('prefix_lm', False):
             if cfg.attn_impl != 'triton':
-                raise NotImplementedError(f"prefix_lm attention for mosaic_gpt is only implemented for triton, but got cfg.attn_impl='{cfg.attn_impl}'.")
+                raise NotImplementedError(
+                    f"prefix_lm attention for mosaic_gpt is only implemented for triton, but got cfg.attn_impl='{cfg.attn_impl}'."
+                )
             self.causal_attn_cls = attention.TritonFlashPrefixAttention
             self.is_prefix_lm = True
         elif cfg.attn_impl == 'torch':
@@ -143,7 +145,8 @@ class MosaicGPT(nn.Module):
 
         if self.is_prefix_lm:
             if prefix_mask is None:
-                raise ValueError('prefix_mask cannot be None when using prefix_lm')
+                raise ValueError(
+                    'prefix_mask cannot be None when using prefix_lm')
             return self.causal_attn_cls.generate_attn_mask(
                 self.attn_mask,
                 batch_size,
@@ -228,93 +231,6 @@ class MosaicGPT(nn.Module):
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
         return isinstance(module, gpt_blocks.GPTBlock)
-    
-
-class MosaicGPTPrefixLM(MosaicGPT):
-    def __init__(self, cfg: DictConfig):
-        # First ensure that the attention implementation is triton
-        if cfg.attn_impl != 'triton':
-            raise NotImplementedError(f'The attention used by the Mosaic GPT Prefix LM requires triton, but cfg.attn_impl="{cfg.attn_impl}".')
-        
-        # Next, construct the model using the parent code
-        super().__init__(cfg)
-        self.causal_attn_cls = attention.TritonFlashPrefixAttention
-        
-        # Finally, re-initialize the attention mask
-        self._attn_mask_initialized = False
-        mask_shape = self.causal_attn_cls.mask_shape(cfg.n_heads,
-                                                     cfg.max_seq_len,
-                                                     self.alibi)
-        if mask_shape is not None:
-            self.register_buffer(
-                'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
-        else:
-            self.attn_mask = None
-
-    def _attn_mask(self,
-                   batch_size,
-                   seq_len,
-                   prefix_mask,
-                   key_padding_mask=None,
-                   dtype=None):
-        if not self._attn_mask_initialized:
-            self.causal_attn_cls.attn_mask_(self.attn_mask,
-                                            self.cfg.n_heads,
-                                            self.cfg.max_seq_len,
-                                            alibi=self.alibi,
-                                            alibi_bias_max=self.alibi_bias_max)
-            self._attn_mask_initialized = True
-
-        return self.causal_attn_cls.generate_attn_mask(
-            self.attn_mask,
-            batch_size=batch_size,
-            seq_len=seq_len,
-            prefix_mask=prefix_mask,
-            key_padding_mask=key_padding_mask,
-            dtype=dtype)
-    
-    def forward(self,
-                input_ids: torch.LongTensor,
-                prefix_mask: torch.ByteTensor,
-                key_padding_mask: Optional[torch.ByteTensor] = None):
-        # NOTE: This is basically a copy of the parent class forward method 
-        # but handles the extra argument prefix_mask
-        B, S = input_ids.size()
-        assert (
-            S <= self.cfg.max_seq_len
-        ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
-
-        tok_emb = self.transformer.wte(input_ids)  # type: ignore
-        if self.alibi:
-            x = tok_emb
-        else:
-            pos = torch.arange(0, S, dtype=torch.long,
-                               device=input_ids.device).unsqueeze(0)
-            pos_emb = self.transformer.wpe(pos)  # type: ignore
-            x = tok_emb + pos_emb
-
-        if self.embedding_fraction == 1:
-            x = self.transformer.emb_drop(x)  # type: ignore
-        else:
-            # this implementation is proposed on page 7 of the GLM-130B paper https://arxiv.org/abs/2210.02414
-            x_shrunk = (x * self.embedding_fraction) + (
-                x.detach() * (1 - self.embedding_fraction))
-            assert isinstance(self.transformer.emb_drop, nn.Module)  # pyright
-            x = self.transformer.emb_drop(x_shrunk)
-
-        attn_mask = self._attn_mask(batch_size=B,
-                                    seq_len=S,
-                                    prefix_mask=prefix_mask,
-                                    key_padding_mask=key_padding_mask,
-                                    dtype=x.dtype)
-        for block in self.transformer.blocks:  # type: ignore
-            x = block(x, attn_mask=attn_mask)
-        x = self.transformer.ln_f(x)  # type: ignore
-        # output embedding weight tied to input embedding
-        assert isinstance(self.transformer.wte, nn.Module)  # pyright
-        assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
-        logits = F.linear(x, self.transformer.wte.weight, None)
-        return logits
 
 
 class ComposerMosaicGPT(ComposerModel):
