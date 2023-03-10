@@ -71,6 +71,7 @@ def test_fused_init_helper(fused):
     cfg = om.create({
         'in_features': in_features,
         'out_features': out_features,
+        'n_layers': 2,
     })
 
     fc = nn.Linear(cfg.in_features, cfg.out_features, bias=True)
