@@ -50,7 +50,8 @@ def generic_param_init_fn_(module, cfg, init_fn_):
     init_div_is_residual = cfg.get('init_div_is_residual', True)
 
     if init_div_is_residual is False:
-        pass
+        # not used, for pyright
+        div_is_residual = 1.0
     elif init_div_is_residual is True:
         div_is_residual = math.sqrt(2 * cfg.n_layers)
     elif isinstance(init_div_is_residual, float) or isinstance(
@@ -61,6 +62,8 @@ def generic_param_init_fn_(module, cfg, init_fn_):
         # do not trust YAML parsing to always convert numbers to numbers
         div_is_residual = float(init_div_is_residual)
     else:
+        # not used, for pyright
+        div_is_residual = 1.0
         raise ValueError(
             f'Expected init_div_is_residual to be boolean or numeric, got {init_div_is_residual}'
         )
