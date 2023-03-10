@@ -1,0 +1,1530 @@
+Cloning into 'examples'...
+Warning: Permanently added 'github.com,140.82.114.3' (ECDSA) to the list of known hosts.
+Switched to a new branch 'experimental/resumption_callbacks'
+branch 'experimental/resumption_callbacks' set up to track 'origin/experimental/resumption_callbacks'.
+/
+Processing /examples
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Installing backend dependencies: started
+  Installing backend dependencies: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting mosaicml@ git+https://github.com/bmosaicml/composer.git@non_reentrant_ckpt
+  Cloning https://github.com/bmosaicml/composer.git (to revision non_reentrant_ckpt) to /tmp/pip-install-vld9gj0l/mosaicml_d1a4ca1be09d4b21b1461a1a40c8a406
+  Running command git clone --filter=blob:none --quiet https://github.com/bmosaicml/composer.git /tmp/pip-install-vld9gj0l/mosaicml_d1a4ca1be09d4b21b1461a1a40c8a406
+  Running command git checkout -b non_reentrant_ckpt --track origin/non_reentrant_ckpt
+  Switched to a new branch 'non_reentrant_ckpt'
+  branch 'non_reentrant_ckpt' set up to track 'origin/non_reentrant_ckpt'.
+  Resolved https://github.com/bmosaicml/composer.git to commit d6fd2e8f439b8b6ccf629686fa16a36665d98312
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Installing backend dependencies: started
+  Installing backend dependencies: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting pre-commit<3,>=2.18.1
+  Downloading pre_commit-2.21.0-py2.py3-none-any.whl (201 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 201.9/201.9 kB 13.6 MB/s eta 0:00:00
+Collecting datasets>=2.9.0
+  Downloading datasets-2.10.1-py3-none-any.whl (469 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 469.0/469.0 kB 55.7 MB/s eta 0:00:00
+Collecting mosaicml-streaming<0.2.4
+  Downloading mosaicml_streaming-0.2.3-py3-none-any.whl (115 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 115.5/115.5 kB 47.1 MB/s eta 0:00:00
+Collecting toml<0.11,>=0.10.2
+  Downloading toml-0.10.2-py2.py3-none-any.whl (16 kB)
+Collecting pyright<1.2,>=1.1.290
+  Downloading pyright-1.1.296-py3-none-any.whl (17 kB)
+Collecting pytest-codeblocks<0.17,>=0.16.1
+  Downloading pytest_codeblocks-0.16.1-py3-none-any.whl (7.5 kB)
+Requirement already satisfied: pytest<8,>=7.2.1 in /usr/lib/python3/dist-packages (from mosaicml-examples==0.0.3) (7.2.1)
+Collecting pytest-cov<5,>=4
+  Downloading pytest_cov-4.0.0-py3-none-any.whl (21 kB)
+Collecting omegaconf<3,>=2.2.3
+  Downloading omegaconf-2.3.0-py3-none-any.whl (79 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.5/79.5 kB 36.5 MB/s eta 0:00:00
+Collecting transformers<5,>=4.11
+  Downloading transformers-4.26.1-py3-none-any.whl (6.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.3/6.3 MB 147.7 MB/s eta 0:00:00
+Collecting packaging<23,>=21
+  Downloading packaging-22.0-py3-none-any.whl (42 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.6/42.6 kB 24.6 MB/s eta 0:00:00
+Collecting transformers<5,>=4.11
+  Downloading transformers-4.25.1-py3-none-any.whl (5.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.8/5.8 MB 152.8 MB/s eta 0:00:00
+Collecting triton==2.0.0.dev20221202
+  Downloading triton-2.0.0.dev20221202-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (18.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18.7/18.7 MB 123.5 MB/s eta 0:00:00
+Requirement already satisfied: torch==1.13.1 in /usr/lib/python3/dist-packages (from mosaicml-examples==0.0.3) (1.13.1+cu117)
+Collecting omegaconf<3,>=2.2.3
+  Downloading omegaconf-2.2.3-py3-none-any.whl (79 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.3/79.3 kB 28.9 MB/s eta 0:00:00
+Requirement already satisfied: flash-attn==0.2.8 in /usr/lib/python3/dist-packages (from mosaicml-examples==0.0.3) (0.2.8)
+Collecting wandb==0.13.4
+  Downloading wandb-0.13.4-py2.py3-none-any.whl (1.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.9/1.9 MB 136.1 MB/s eta 0:00:00
+Collecting mosaicml-cli<1,>=0.2.32
+  Downloading mosaicml_cli-0.2.38-py3-none-any.whl (263 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 263.2/263.2 kB 74.1 MB/s eta 0:00:00
+Collecting einops==0.5.0
+  Downloading einops-0.5.0-py3-none-any.whl (36 kB)
+Collecting xxhash<4,>=3.0.0
+  Downloading xxhash-3.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (212 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 212.5/212.5 kB 90.8 MB/s eta 0:00:00
+Collecting boto3<2,>=1.21.45
+  Downloading boto3-1.26.86-py3-none-any.whl (134 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.7/134.7 kB 46.8 MB/s eta 0:00:00
+Collecting Brotli>=1.0.9
+  Downloading Brotli-1.0.9-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl (2.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.7/2.7 MB 133.9 MB/s eta 0:00:00
+Requirement already satisfied: tqdm<5,>=4.64.0 in /usr/lib/python3/dist-packages (from mosaicml-streaming<0.2.4->mosaicml-examples==0.0.3) (4.64.1)
+Collecting matplotlib<4,>=3.5.2
+  Downloading matplotlib-3.7.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (11.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.6/11.6 MB 149.8 MB/s eta 0:00:00
+Collecting paramiko<4,>=2.11.0
+  Downloading paramiko-3.0.0-py3-none-any.whl (210 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 210.8/210.8 kB 98.1 MB/s eta 0:00:00
+Requirement already satisfied: torchvision>=0.10 in /usr/lib/python3/dist-packages (from mosaicml-streaming<0.2.4->mosaicml-examples==0.0.3) (0.14.1+cu117)
+Collecting oci<3,>=2.88
+  Downloading oci-2.94.0-py3-none-any.whl (19.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.2/19.2 MB 152.4 MB/s eta 0:00:00
+Collecting python-snappy<1,>=0.6.1
+  Downloading python_snappy-0.6.1-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl (55 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 55.9/55.9 kB 36.7 MB/s eta 0:00:00
+Requirement already satisfied: torchtext>=0.10 in /usr/lib/python3/dist-packages (from mosaicml-streaming<0.2.4->mosaicml-examples==0.0.3) (0.14.1)
+Collecting zstd<2,>=1.5.2.5
+  Downloading zstd-1.5.4.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 179.3 MB/s eta 0:00:00
+Collecting antlr4-python3-runtime==4.9.*
+  Downloading antlr4-python3-runtime-4.9.3.tar.gz (117 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 117.0/117.0 kB 73.9 MB/s eta 0:00:00
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Requirement already satisfied: PyYAML>=5.1.0 in /usr/lib/python3/dist-packages (from omegaconf<3,>=2.2.3->mosaicml-examples==0.0.3) (6.0)
+Requirement already satisfied: typing-extensions in /usr/lib/python3/dist-packages (from torch==1.13.1->mosaicml-examples==0.0.3) (4.5.0)
+Collecting tokenizers!=0.11.3,<0.14,>=0.11.1
+  Downloading tokenizers-0.13.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (7.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.6/7.6 MB 197.8 MB/s eta 0:00:00
+Collecting huggingface-hub<1.0,>=0.10.0
+  Downloading huggingface_hub-0.12.1-py3-none-any.whl (190 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 190.3/190.3 kB 53.8 MB/s eta 0:00:00
+Collecting filelock
+  Downloading filelock-3.9.0-py3-none-any.whl (9.7 kB)
+Collecting regex!=2019.12.17
+  Downloading regex-2022.10.31-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (770 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 770.5/770.5 kB 112.2 MB/s eta 0:00:00
+Requirement already satisfied: requests in /usr/lib/python3/dist-packages (from transformers<5,>=4.11->mosaicml-examples==0.0.3) (2.22.0)
+Requirement already satisfied: numpy>=1.17 in /usr/lib/python3/dist-packages (from transformers<5,>=4.11->mosaicml-examples==0.0.3) (1.24.2)
+Collecting cmake
+  Downloading cmake-3.25.2-py2.py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (23.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 23.7/23.7 MB 120.4 MB/s eta 0:00:00
+Collecting sentry-sdk>=1.0.0
+  Downloading sentry_sdk-1.16.0-py2.py3-none-any.whl (184 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 184.3/184.3 kB 91.9 MB/s eta 0:00:00
+Collecting Click!=8.0.0,>=7.0
+  Downloading click-8.1.3-py3-none-any.whl (96 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 96.6/96.6 kB 59.2 MB/s eta 0:00:00
+Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from wandb==0.13.4->mosaicml-examples==0.0.3) (67.4.0)
+Collecting shortuuid>=0.5.0
+  Downloading shortuuid-1.0.11-py3-none-any.whl (10 kB)
+Collecting setproctitle
+  Downloading setproctitle-1.3.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (30 kB)
+Requirement already satisfied: six>=1.13.0 in /usr/lib/python3/dist-packages (from wandb==0.13.4->mosaicml-examples==0.0.3) (1.14.0)
+Collecting protobuf!=4.0.*,!=4.21.0,<5,>=3.12.0
+  Downloading protobuf-4.22.1-cp37-abi3-manylinux2014_x86_64.whl (302 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 302.4/302.4 kB 77.3 MB/s eta 0:00:00
+Collecting GitPython>=1.0.0
+  Downloading GitPython-3.1.31-py3-none-any.whl (184 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 184.3/184.3 kB 89.4 MB/s eta 0:00:00
+Collecting docker-pycreds>=0.4.0
+  Downloading docker_pycreds-0.4.0-py2.py3-none-any.whl (9.0 kB)
+Collecting promise<3,>=2.0
+  Downloading promise-2.3.tar.gz (19 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting psutil>=5.0.0
+  Downloading psutil-5.9.4-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (280 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 280.2/280.2 kB 85.6 MB/s eta 0:00:00
+Collecting pathtools
+  Downloading pathtools-0.1.2.tar.gz (11 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting dill<0.3.7,>=0.3.0
+  Downloading dill-0.3.6-py3-none-any.whl (110 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 110.5/110.5 kB 63.0 MB/s eta 0:00:00
+Collecting aiohttp
+  Downloading aiohttp-3.8.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 119.2 MB/s eta 0:00:00
+Collecting multiprocess
+  Downloading multiprocess-0.70.14-py310-none-any.whl (134 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.3/134.3 kB 77.6 MB/s eta 0:00:00
+Collecting pandas
+  Downloading pandas-1.5.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (12.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.1/12.1 MB 129.2 MB/s eta 0:00:00
+Collecting pyarrow>=6.0.0
+  Downloading pyarrow-11.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (34.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 34.9/34.9 MB 94.3 MB/s eta 0:00:00
+Collecting fsspec[http]>=2021.11.1
+  Downloading fsspec-2023.3.0-py3-none-any.whl (145 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 145.4/145.4 kB 90.8 MB/s eta 0:00:00
+Collecting responses<0.19
+  Downloading responses-0.18.0-py3-none-any.whl (38 kB)
+Collecting arrow>=1.2.2
+  Downloading arrow-1.2.3-py3-none-any.whl (66 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 66.4/66.4 kB 37.8 MB/s eta 0:00:00
+Requirement already satisfied: prompt-toolkit>=3.0.29 in /usr/lib/python3/dist-packages (from mosaicml-cli<1,>=0.2.32->mosaicml-examples==0.0.3) (3.0.38)
+Collecting rich>=10.16.2
+  Downloading rich-13.3.2-py3-none-any.whl (238 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 238.7/238.7 kB 92.2 MB/s eta 0:00:00
+Collecting coolname>=1.1.0
+  Downloading coolname-2.2.0-py2.py3-none-any.whl (37 kB)
+Collecting fire>=0.4.0
+  Downloading fire-0.5.0.tar.gz (88 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 88.3/88.3 kB 54.6 MB/s eta 0:00:00
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting backoff>=2.2.1
+  Downloading backoff-2.2.1-py3-none-any.whl (15 kB)
+Collecting yaspin>=2.1.0
+  Downloading yaspin-2.3.0-py3-none-any.whl (18 kB)
+Collecting jinja2
+  Downloading Jinja2-3.1.2-py3-none-any.whl (133 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.1/133.1 kB 63.9 MB/s eta 0:00:00
+Collecting parse>=1.19.0
+  Downloading parse-1.19.0.tar.gz (30 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting kubernetes>=21.7.0
+  Downloading kubernetes-26.1.0-py2.py3-none-any.whl (1.4 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 137.0 MB/s eta 0:00:00
+Collecting slack-sdk>=3.17.1
+  Downloading slack_sdk-3.20.1-py2.py3-none-any.whl (274 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 274.9/274.9 kB 78.4 MB/s eta 0:00:00
+Collecting ruamel.yaml>=0.17.21
+  Downloading ruamel.yaml-0.17.21-py3-none-any.whl (109 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 109.5/109.5 kB 44.5 MB/s eta 0:00:00
+Collecting gql[websockets]>=3.4.0
+  Downloading gql-3.4.0-py2.py3-none-any.whl (65 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 65.2/65.2 kB 43.0 MB/s eta 0:00:00
+Collecting argcomplete>=2.0.0
+  Downloading argcomplete-2.1.1-py3-none-any.whl (37 kB)
+Collecting questionary>=1.10.0
+  Downloading questionary-1.10.0-py3-none-any.whl (31 kB)
+Collecting docker>=5.0.3
+  Downloading docker-6.0.1-py3-none-any.whl (147 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 147.5/147.5 kB 47.9 MB/s eta 0:00:00
+Collecting identify>=1.0.0
+  Downloading identify-2.5.18-py2.py3-none-any.whl (98 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 98.8/98.8 kB 70.7 MB/s eta 0:00:00
+Collecting cfgv>=2.0.0
+  Downloading cfgv-3.3.1-py2.py3-none-any.whl (7.3 kB)
+Collecting nodeenv>=0.11.1
+  Downloading nodeenv-1.7.0-py2.py3-none-any.whl (21 kB)
+Collecting virtualenv>=20.10.0
+  Downloading virtualenv-20.20.0-py3-none-any.whl (8.7 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.7/8.7 MB 191.7 MB/s eta 0:00:00
+Requirement already satisfied: exceptiongroup>=1.0.0rc8 in /usr/lib/python3/dist-packages (from pytest<8,>=7.2.1->mosaicml-examples==0.0.3) (1.1.0)
+Requirement already satisfied: iniconfig in /usr/lib/python3/dist-packages (from pytest<8,>=7.2.1->mosaicml-examples==0.0.3) (2.0.0)
+Requirement already satisfied: attrs>=19.2.0 in /usr/lib/python3/dist-packages (from pytest<8,>=7.2.1->mosaicml-examples==0.0.3) (22.2.0)
+Requirement already satisfied: pluggy<2.0,>=0.12 in /usr/lib/python3/dist-packages (from pytest<8,>=7.2.1->mosaicml-examples==0.0.3) (1.0.0)
+Requirement already satisfied: tomli>=1.0.0 in /usr/lib/python3/dist-packages (from pytest<8,>=7.2.1->mosaicml-examples==0.0.3) (2.0.1)
+Collecting coverage[toml]>=5.2.1
+  Downloading coverage-7.2.1-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (227 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 227.3/227.3 kB 89.9 MB/s eta 0:00:00
+Collecting torch-optimizer<0.4,>=0.3.0
+  Downloading torch_optimizer-0.3.0-py3-none-any.whl (61 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.9/61.9 kB 43.8 MB/s eta 0:00:00
+Collecting requests
+  Downloading requests-2.28.2-py3-none-any.whl (62 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.8/62.8 kB 45.6 MB/s eta 0:00:00
+Collecting torchmetrics<0.12.0,>=0.10.0
+  Downloading torchmetrics-0.11.3-py3-none-any.whl (518 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 518.6/518.6 kB 130.6 MB/s eta 0:00:00
+Collecting py-cpuinfo<10,>=8.0.0
+  Downloading py_cpuinfo-9.0.0-py3-none-any.whl (22 kB)
+Collecting importlib-metadata<7,>=5.0.0
+  Downloading importlib_metadata-6.0.0-py3-none-any.whl (21 kB)
+Collecting numpy>=1.17
+  Downloading numpy-1.22.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.8/16.8 MB 160.7 MB/s eta 0:00:00
+Collecting tabulate==0.9.0
+  Downloading tabulate-0.9.0-py3-none-any.whl (35 kB)
+Collecting python-dateutil>=2.7.0
+  Downloading python_dateutil-2.8.2-py2.py3-none-any.whl (247 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 247.7/247.7 kB 74.3 MB/s eta 0:00:00
+Collecting botocore<1.30.0,>=1.29.86
+  Downloading botocore-1.29.86-py3-none-any.whl (10.5 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.5/10.5 MB 186.0 MB/s eta 0:00:00
+Collecting jmespath<2.0.0,>=0.7.1
+  Downloading jmespath-1.0.1-py3-none-any.whl (20 kB)
+Collecting s3transfer<0.7.0,>=0.6.0
+  Downloading s3transfer-0.6.0-py3-none-any.whl (79 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 79.6/79.6 kB 58.4 MB/s eta 0:00:00
+Collecting websocket-client>=0.32.0
+  Downloading websocket_client-1.5.1-py3-none-any.whl (55 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 55.9/55.9 kB 39.3 MB/s eta 0:00:00
+Requirement already satisfied: urllib3>=1.26.0 in /usr/lib/python3/dist-packages (from docker>=5.0.3->mosaicml-cli<1,>=0.2.32->mosaicml-examples==0.0.3) (1.26.14)
+Collecting termcolor
+  Downloading termcolor-2.2.0-py3-none-any.whl (6.6 kB)
+Collecting multidict<7.0,>=4.5
+  Downloading multidict-6.0.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (114 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 114.5/114.5 kB 53.4 MB/s eta 0:00:00
+Collecting charset-normalizer<4.0,>=2.0
+  Downloading charset_normalizer-3.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (199 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 199.3/199.3 kB 77.8 MB/s eta 0:00:00
+Collecting frozenlist>=1.1.1
+  Downloading frozenlist-1.3.3-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (149 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 149.6/149.6 kB 77.8 MB/s eta 0:00:00
+Collecting yarl<2.0,>=1.0
+  Downloading yarl-1.8.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (264 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 264.0/264.0 kB 105.4 MB/s eta 0:00:00
+Collecting async-timeout<5.0,>=4.0.0a3
+  Downloading async_timeout-4.0.2-py3-none-any.whl (5.8 kB)
+Collecting aiosignal>=1.1.2
+  Downloading aiosignal-1.3.1-py3-none-any.whl (7.6 kB)
+Collecting gitdb<5,>=4.0.1
+  Downloading gitdb-4.0.10-py3-none-any.whl (62 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.7/62.7 kB 28.5 MB/s eta 0:00:00
+Collecting graphql-core<3.3,>=3.2
+  Downloading graphql_core-3.2.3-py3-none-any.whl (202 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 202.9/202.9 kB 104.2 MB/s eta 0:00:00
+Collecting websockets<11,>=10
+  Downloading websockets-10.4-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (106 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 106.8/106.8 kB 64.8 MB/s eta 0:00:00
+Collecting zipp>=0.5
+  Downloading zipp-3.15.0-py3-none-any.whl (6.8 kB)
+Collecting requests-oauthlib
+  Downloading requests_oauthlib-1.3.1-py2.py3-none-any.whl (23 kB)
+Collecting google-auth>=1.0.1
+  Downloading google_auth-2.16.2-py2.py3-none-any.whl (177 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 177.2/177.2 kB 98.6 MB/s eta 0:00:00
+Requirement already satisfied: certifi>=14.05.14 in /usr/lib/python3/dist-packages (from kubernetes>=21.7.0->mosaicml-cli<1,>=0.2.32->mosaicml-examples==0.0.3) (2022.12.7)
+Requirement already satisfied: pillow>=6.2.0 in /usr/lib/python3/dist-packages (from matplotlib<4,>=3.5.2->mosaicml-streaming<0.2.4->mosaicml-examples==0.0.3) (9.3.0)
+Collecting cycler>=0.10
+  Downloading cycler-0.11.0-py3-none-any.whl (6.4 kB)
+Collecting fonttools>=4.22.0
+  Downloading fonttools-4.39.0-py3-none-any.whl (1.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 110.0 MB/s eta 0:00:00
+Collecting kiwisolver>=1.0.1
+  Downloading kiwisolver-1.4.4-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.whl (1.6 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 168.3 MB/s eta 0:00:00
+Collecting pyparsing>=2.3.1
+  Downloading pyparsing-3.0.9-py3-none-any.whl (98 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 98.3/98.3 kB 68.7 MB/s eta 0:00:00
+Collecting contourpy>=1.0.1
+  Downloading contourpy-1.0.7-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (300 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 300.3/300.3 kB 88.6 MB/s eta 0:00:00
+Collecting pytz>=2016.10
+  Downloading pytz-2022.7.1-py2.py3-none-any.whl (499 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 499.4/499.4 kB 103.2 MB/s eta 0:00:00
+Collecting cryptography<39.0.0,>=3.2.1
+  Downloading cryptography-38.0.4-cp36-abi3-manylinux_2_28_x86_64.whl (4.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 170.2 MB/s eta 0:00:00
+Collecting circuitbreaker<2.0.0,>=1.3.1
+  Downloading circuitbreaker-1.4.0.tar.gz (9.7 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting pyOpenSSL<=22.1.0,>=17.5.0
+  Downloading pyOpenSSL-22.1.0-py3-none-any.whl (57 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.0/57.0 kB 40.2 MB/s eta 0:00:00
+Collecting pynacl>=1.5
+  Downloading PyNaCl-1.5.0-cp36-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl (856 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 856.7/856.7 kB 160.7 MB/s eta 0:00:00
+Collecting bcrypt>=3.2
+  Downloading bcrypt-4.0.1-cp36-abi3-manylinux_2_28_x86_64.whl (593 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 593.7/593.7 kB 76.2 MB/s eta 0:00:00
+Requirement already satisfied: wcwidth in /usr/lib/python3/dist-packages (from prompt-toolkit>=3.0.29->mosaicml-cli<1,>=0.2.32->mosaicml-examples==0.0.3) (0.2.6)
+Requirement already satisfied: idna<4,>=2.5 in /usr/lib/python3/dist-packages (from requests->transformers<5,>=4.11->mosaicml-examples==0.0.3) (2.8)
+Collecting markdown-it-py<3.0.0,>=2.2.0
+  Downloading markdown_it_py-2.2.0-py3-none-any.whl (84 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 84.5/84.5 kB 57.3 MB/s eta 0:00:00
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in /usr/lib/python3/dist-packages (from rich>=10.16.2->mosaicml-cli<1,>=0.2.32->mosaicml-examples==0.0.3) (2.14.0)
+Collecting ruamel.yaml.clib>=0.2.6
+  Downloading ruamel.yaml.clib-0.2.7-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl (485 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 485.6/485.6 kB 147.6 MB/s eta 0:00:00
+Collecting pytorch-ranger>=0.1.1
+  Downloading pytorch_ranger-0.1.1-py3-none-any.whl (14 kB)
+Collecting platformdirs<4,>=2.4
+  Downloading platformdirs-3.1.0-py3-none-any.whl (14 kB)
+Collecting distlib<1,>=0.3.6
+  Downloading distlib-0.3.6-py2.py3-none-any.whl (468 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 468.5/468.5 kB 99.9 MB/s eta 0:00:00
+Collecting MarkupSafe>=2.0
+  Downloading MarkupSafe-2.1.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (25 kB)
+Collecting cffi>=1.12
+  Downloading cffi-1.15.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (441 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 441.8/441.8 kB 146.9 MB/s eta 0:00:00
+Collecting smmap<6,>=3.0.1
+  Downloading smmap-5.0.0-py3-none-any.whl (24 kB)
+Collecting rsa<5,>=3.1.4
+  Downloading rsa-4.9-py3-none-any.whl (34 kB)
+Collecting cachetools<6.0,>=2.0.0
+  Downloading cachetools-5.3.0-py3-none-any.whl (9.3 kB)
+Collecting pyasn1-modules>=0.2.1
+  Downloading pyasn1_modules-0.2.8-py2.py3-none-any.whl (155 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 155.3/155.3 kB 90.3 MB/s eta 0:00:00
+Collecting mdurl~=0.1
+  Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Collecting oauthlib>=3.0.0
+  Downloading oauthlib-3.2.2-py3-none-any.whl (151 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 151.7/151.7 kB 80.4 MB/s eta 0:00:00
+Collecting pycparser
+  Downloading pycparser-2.21-py2.py3-none-any.whl (118 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 118.7/118.7 kB 67.1 MB/s eta 0:00:00
+Collecting pyasn1<0.5.0,>=0.4.6
+  Downloading pyasn1-0.4.8-py2.py3-none-any.whl (77 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 77.1/77.1 kB 47.1 MB/s eta 0:00:00
+Building wheels for collected packages: antlr4-python3-runtime, mosaicml, mosaicml-examples, fire, parse, promise, pathtools, circuitbreaker
+  Building wheel for antlr4-python3-runtime (setup.py): started
+  Building wheel for antlr4-python3-runtime (setup.py): finished with status 'done'
+  Created wheel for antlr4-python3-runtime: filename=antlr4_python3_runtime-4.9.3-py3-none-any.whl size=144554 sha256=309e92ee3ee707aeebeaefa1398a0122aed1603001f27e00dc6317bb3cc6d184
+  Stored in directory: /root/.cache/pip/wheels/48/6a/c2/acb58c7afdf57e4cddf5e1513f5a2d62aa8e98f82a00c76d7c
+  Building wheel for mosaicml (pyproject.toml): started
+  Building wheel for mosaicml (pyproject.toml): finished with status 'done'
+  Created wheel for mosaicml: filename=mosaicml-0.13.1-py3-none-any.whl size=544863 sha256=32a8ea481d1881ef6ad71f13cde1c2b4ea1a839b6b52d833ee481db7c8f0a35e
+  Stored in directory: /tmp/pip-ephem-wheel-cache-3jeiljyn/wheels/3f/cc/65/ec8336eb4f78f7c753e091a7a9f47c6b2b87227343ec70c5ab
+  Building wheel for mosaicml-examples (pyproject.toml): started
+  Building wheel for mosaicml-examples (pyproject.toml): finished with status 'done'
+  Created wheel for mosaicml-examples: filename=mosaicml_examples-0.0.3-py3-none-any.whl size=192257 sha256=0837fe67dc452bece754e85778e1742f35412df98a616eb3cd6fb6ff025f20b5
+  Stored in directory: /tmp/pip-ephem-wheel-cache-3jeiljyn/wheels/65/e5/5f/219892a3be5d1657d830c687e1a752fc86844dafa2f00696b2
+  Building wheel for fire (setup.py): started
+  Building wheel for fire (setup.py): finished with status 'done'
+  Created wheel for fire: filename=fire-0.5.0-py2.py3-none-any.whl size=116931 sha256=3adba1f03fb29a0e7f54590a5b4214171ffa31fdd8fff92afbbf3ce091637d6e
+  Stored in directory: /root/.cache/pip/wheels/c4/eb/6a/1c6d2ad660043768e998bdf9c6a28db2f1b7db3a5825d51e87
+  Building wheel for parse (setup.py): started
+  Building wheel for parse (setup.py): finished with status 'done'
+  Created wheel for parse: filename=parse-1.19.0-py3-none-any.whl size=24570 sha256=3805024ed16c5c493efbab009bb58426e855863a2fca900e15a6350a9d44b921
+  Stored in directory: /root/.cache/pip/wheels/03/d9/92/db136347b5bcba7d271a3c042ce8c9c279e0ecd79173bb0a6e
+  Building wheel for promise (setup.py): started
+  Building wheel for promise (setup.py): finished with status 'done'
+  Created wheel for promise: filename=promise-2.3-py3-none-any.whl size=21486 sha256=cab2da4b9d4d09ee484787a5b47f68594f7cc0c313337f6b619b2f42a9c4404f
+  Stored in directory: /root/.cache/pip/wheels/76/40/54/417a4d64a01b61b247658d83597e1dc83c3de01fc0cef44972
+  Building wheel for pathtools (setup.py): started
+  Building wheel for pathtools (setup.py): finished with status 'done'
+  Created wheel for pathtools: filename=pathtools-0.1.2-py3-none-any.whl size=8791 sha256=b9c71981d83bf953f959c465219aa24bd6310c8cf8d2b7308921c20402112096
+  Stored in directory: /root/.cache/pip/wheels/44/1b/54/249c94316d4e1030e2d0683fba1d8ea06197de866f5a4de738
+  Building wheel for circuitbreaker (setup.py): started
+  Building wheel for circuitbreaker (setup.py): finished with status 'done'
+  Created wheel for circuitbreaker: filename=circuitbreaker-1.4.0-py3-none-any.whl size=7519 sha256=5704e564d6747e1d3c288b6d3e306b7671d3bb7cd21c1642b78ee71bd15a71ea
+  Stored in directory: /root/.cache/pip/wheels/21/8c/34/be8b08101a63ca22d5a9ba0b4a39b7ed9464c27566076aa7d4
+Successfully built antlr4-python3-runtime mosaicml mosaicml-examples fire parse promise pathtools circuitbreaker
+Installing collected packages: zstd, tokenizers, pytz, python-snappy, pyasn1, py-cpuinfo, pathtools, parse, distlib, coolname, cmake, circuitbreaker, Brotli, antlr4-python3-runtime, zipp, xxhash, websockets, websocket-client, toml, termcolor, tabulate, smmap, slack-sdk, shortuuid, setproctitle, sentry-sdk, ruamel.yaml.clib, rsa, regex, python-dateutil, pyparsing, pycparser, pyasn1-modules, psutil, protobuf, promise, platformdirs, packaging, omegaconf, oauthlib, numpy, nodeenv, multidict, mdurl, MarkupSafe, kiwisolver, jmespath, identify, graphql-core, fsspec, frozenlist, fonttools, filelock, einops, docker-pycreds, dill, cycler, coverage, Click, charset-normalizer, cfgv, cachetools, bcrypt, backoff, async-timeout, argcomplete, yaspin, yarl, virtualenv, triton, torchmetrics, ruamel.yaml, requests, questionary, pytorch-ranger, pyright, pyarrow, pandas, multiprocess, markdown-it-py, jinja2, importlib-metadata, google-auth, gitdb, fire, contourpy, cffi, botocore, arrow, aiosignal, torch-optimizer, s3transfer, rich, responses, requests-oauthlib, pytest-cov, pytest-codeblocks, pynacl, pre-commit, matplotlib, huggingface-hub, gql, GitPython, docker, cryptography, aiohttp, wandb, transformers, pyOpenSSL, paramiko, mosaicml, kubernetes, boto3, oci, mosaicml-cli, datasets, mosaicml-streaming, mosaicml-examples
+  Attempting uninstall: packaging
+    Found existing installation: packaging 23.0
+    Uninstalling packaging-23.0:
+      Successfully uninstalled packaging-23.0
+  Attempting uninstall: numpy
+    Found existing installation: numpy 1.24.2
+    Uninstalling numpy-1.24.2:
+      Successfully uninstalled numpy-1.24.2
+  Attempting uninstall: einops
+    Found existing installation: einops 0.6.0
+    Uninstalling einops-0.6.0:
+      Successfully uninstalled einops-0.6.0
+  Attempting uninstall: requests
+    Found existing installation: requests 2.22.0
+    Uninstalling requests-2.22.0:
+      Successfully uninstalled requests-2.22.0
+Successfully installed Brotli-1.0.9 Click-8.1.3 GitPython-3.1.31 MarkupSafe-2.1.2 aiohttp-3.8.4 aiosignal-1.3.1 antlr4-python3-runtime-4.9.3 argcomplete-2.1.1 arrow-1.2.3 async-timeout-4.0.2 backoff-2.2.1 bcrypt-4.0.1 boto3-1.26.86 botocore-1.29.86 cachetools-5.3.0 cffi-1.15.1 cfgv-3.3.1 charset-normalizer-3.1.0 circuitbreaker-1.4.0 cmake-3.25.2 contourpy-1.0.7 coolname-2.2.0 coverage-7.2.1 cryptography-38.0.4 cycler-0.11.0 datasets-2.10.1 dill-0.3.6 distlib-0.3.6 docker-6.0.1 docker-pycreds-0.4.0 einops-0.5.0 filelock-3.9.0 fire-0.5.0 fonttools-4.39.0 frozenlist-1.3.3 fsspec-2023.3.0 gitdb-4.0.10 google-auth-2.16.2 gql-3.4.0 graphql-core-3.2.3 huggingface-hub-0.12.1 identify-2.5.18 importlib-metadata-6.0.0 jinja2-3.1.2 jmespath-1.0.1 kiwisolver-1.4.4 kubernetes-26.1.0 markdown-it-py-2.2.0 matplotlib-3.7.1 mdurl-0.1.2 mosaicml-0.13.1 mosaicml-cli-0.2.38 mosaicml-examples-0.0.3 mosaicml-streaming-0.2.3 multidict-6.0.4 multiprocess-0.70.14 nodeenv-1.7.0 numpy-1.22.4 oauthlib-3.2.2 oci-2.94.0 omegaconf-2.2.3 packaging-23.0 pandas-1.5.3 paramiko-3.0.0 parse-1.19.0 pathtools-0.1.2 platformdirs-3.1.0 pre-commit-2.21.0 promise-2.3 protobuf-4.22.1 psutil-5.9.4 py-cpuinfo-9.0.0 pyOpenSSL-22.1.0 pyarrow-11.0.0 pyasn1-0.4.8 pyasn1-modules-0.2.8 pycparser-2.21 pynacl-1.5.0 pyparsing-3.0.9 pyright-1.1.296 pytest-codeblocks-0.16.1 pytest-cov-4.0.0 python-dateutil-2.8.2 python-snappy-0.6.1 pytorch-ranger-0.1.1 pytz-2022.7.1 questionary-1.10.0 regex-2022.10.31 requests-2.28.2 requests-oauthlib-1.3.1 responses-0.18.0 rich-13.3.2 rsa-4.9 ruamel.yaml-0.17.21 ruamel.yaml.clib-0.2.7 s3transfer-0.6.0 sentry-sdk-1.16.0 setproctitle-1.3.2 shortuuid-1.0.11 slack-sdk-3.20.1 smmap-5.0.0 tabulate-0.9.0 termcolor-2.2.0 tokenizers-0.13.2 toml-0.10.2 torch-optimizer-0.3.0 torchmetrics-0.11.3 transformers-4.25.1 triton-2.0.0.dev20221202 virtualenv-20.20.0 wandb-0.13.4 websocket-client-1.5.1 websockets-10.4 xxhash-3.2.0 yarl-1.8.2 yaspin-2.3.0 zipp-3.15.0 zstd-1.5.4.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+
+[notice] A new release of pip available: 22.3.1 -> 23.0.1
+[notice] To update, run: pip3.10 install --upgrade pip
+/
+Initializing model...
+Has distributed_available_fn
+Has distributed_available_fn
+cfg.n_params=1.32e+09
+model.num_fwd_flops=6.21e+12
+Building train loader...
+Building eval loader...
+Downloading lambada/lambada_openai.jsonl:   0%|          | 0.00/1.93M [00:00<?, ?iB/s]Downloading lambada/lambada_openai.jsonl:   5%|▌         | 98.1k/1.93M [00:00<00:00, 3.67MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-fdb92d7e4955c94d/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 9425.40it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1119.97it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-fdb92d7e4955c94d/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/5153 [00:00<?, ? examples/s]Map:  83%|████████▎ | 4289/5153 [00:00<00:00, 42683.96 examples/s]                                                                    0%|          | 0/5153 [00:00<?, ?it/s]  8%|▊         | 396/5153 [00:00<00:01, 3956.68it/s] 16%|█▋        | 847/5153 [00:00<00:01, 4281.88it/s] 25%|██▌       | 1301/5153 [00:00<00:00, 4397.92it/s] 34%|███▍      | 1760/5153 [00:00<00:00, 4469.82it/s] 43%|████▎     | 2211/5153 [00:00<00:00, 4483.58it/s] 52%|█████▏    | 2669/5153 [00:00<00:00, 4514.30it/s] 61%|██████    | 3121/5153 [00:00<00:00, 2647.14it/s] 69%|██████▉   | 3566/5153 [00:01<00:00, 3033.92it/s] 78%|███████▊  | 4016/5153 [00:01<00:00, 3377.62it/s] 87%|████████▋ | 4462/5153 [00:01<00:00, 3648.65it/s] 95%|█████████▌| 4907/5153 [00:01<00:00, 3859.12it/s]100%|██████████| 5153/5153 [00:01<00:00, 3752.66it/s]
+Downloading lambada/lambada_standard.jsonl:   0%|          | 0.00/1.93M [00:00<?, ?iB/s]Downloading lambada/lambada_standard.jsonl:   5%|▍         | 95.5k/1.93M [00:00<00:00, 2.02MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-449146dc9e3e5023/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 5801.25it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1187.18it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-449146dc9e3e5023/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/5153 [00:00<?, ? examples/s]Map:  90%|█████████ | 4655/5153 [00:00<00:00, 46366.54 examples/s]                                                                    0%|          | 0/5153 [00:00<?, ?it/s]  9%|▉         | 466/5153 [00:00<00:01, 4650.15it/s] 18%|█▊        | 940/5153 [00:00<00:00, 4701.42it/s] 27%|██▋       | 1411/5153 [00:00<00:00, 4633.51it/s] 36%|███▋      | 1875/5153 [00:00<00:00, 4554.23it/s] 45%|████▌     | 2331/5153 [00:00<00:00, 4513.30it/s] 54%|█████▍    | 2783/5153 [00:00<00:00, 4496.13it/s] 63%|██████▎   | 3233/5153 [00:00<00:00, 4461.76it/s] 71%|███████▏  | 3680/5153 [00:00<00:00, 4459.60it/s] 80%|████████  | 4126/5153 [00:00<00:00, 4458.85it/s] 89%|████████▊ | 4572/5153 [00:01<00:00, 2655.89it/s] 97%|█████████▋| 4994/5153 [00:01<00:00, 2978.03it/s]100%|██████████| 5153/5153 [00:01<00:00, 3753.95it/s]
+Downloading lambada/piqa.jsonl:   0%|          | 0.00/512k [00:00<?, ?iB/s]Downloading lambada/piqa.jsonl:  49%|████▉     | 250k/512k [00:00<00:00, 21.5MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-e0a42f36d9b4c76f/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 10979.85it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1920.47it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-e0a42f36d9b4c76f/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/1838 [00:00<?, ? examples/s]                                                      0%|          | 0/1838 [00:00<?, ?it/s] 24%|██▎       | 436/1838 [00:00<00:00, 4353.28it/s] 49%|████▉     | 902/1838 [00:00<00:00, 4530.04it/s] 74%|███████▍  | 1357/1838 [00:00<00:00, 4534.63it/s] 99%|█████████▊| 1811/1838 [00:00<00:00, 4522.19it/s]100%|██████████| 1838/1838 [00:00<00:00, 4507.68it/s]
+Downloading lambada/piqa.jsonl:   0%|          | 0.00/512k [00:00<?, ?iB/s]Downloading lambada/piqa.jsonl:  49%|████▉     | 250k/512k [00:00<00:00, 27.3MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-586e6b72166abc05/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 5017.11it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 841.72it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-586e6b72166abc05/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/1838 [00:00<?, ? examples/s]                                                      0%|          | 0/1838 [00:00<?, ?it/s] 10%|█         | 192/1838 [00:00<00:00, 1914.20it/s] 21%|██        | 384/1838 [00:00<00:00, 1916.06it/s] 31%|███▏      | 576/1838 [00:00<00:00, 1913.30it/s] 42%|████▏     | 772/1838 [00:00<00:00, 1929.42it/s] 53%|█████▎    | 965/1838 [00:00<00:00, 1892.69it/s] 63%|██████▎   | 1163/1838 [00:00<00:00, 1920.05it/s] 74%|███████▍  | 1356/1838 [00:00<00:00, 1896.93it/s] 84%|████████▍ | 1546/1838 [00:00<00:00, 1879.82it/s] 94%|█████████▍| 1735/1838 [00:00<00:00, 1877.80it/s]100%|██████████| 1838/1838 [00:00<00:00, 1896.58it/s]
+Downloading lambada/hellaswag.jsonl:   0%|          | 0.00/8.26M [00:00<?, ?iB/s]Downloading lambada/hellaswag.jsonl:   2%|▏         | 134k/8.26M [00:00<00:04, 1.77MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-214c6a418721c7ed/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 9822.73it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1752.74it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-214c6a418721c7ed/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/10042 [00:00<?, ? examples/s]Map:  29%|██▉       | 2907/10042 [00:00<00:00, 28943.19 examples/s]Map:  71%|███████   | 7150/10042 [00:00<00:00, 28493.06 examples/s]Map: 100%|█████████▉| 10023/10042 [00:00<00:00, 28582.44 examples/s]                                                                      0%|          | 0/10042 [00:00<?, ?it/s]  3%|▎         | 301/10042 [00:00<00:03, 3001.22it/s]  6%|▌         | 611/10042 [00:00<00:03, 3057.51it/s]  9%|▉         | 917/10042 [00:00<00:03, 3026.80it/s] 12%|█▏        | 1222/10042 [00:00<00:02, 3034.16it/s] 15%|█▌        | 1526/10042 [00:00<00:02, 3027.75it/s] 18%|█▊        | 1829/10042 [00:00<00:02, 3010.34it/s] 21%|██        | 2131/10042 [00:00<00:02, 2989.67it/s] 24%|██▍       | 2431/10042 [00:00<00:02, 2992.70it/s] 27%|██▋       | 2731/10042 [00:00<00:02, 2952.27it/s] 30%|███       | 3028/10042 [00:01<00:02, 2956.67it/s] 33%|███▎      | 3324/10042 [00:01<00:02, 2786.44it/s] 36%|███▌      | 3605/10042 [00:01<00:02, 2353.65it/s] 38%|███▊      | 3853/10042 [00:01<00:02, 2133.52it/s] 41%|████      | 4077/10042 [00:01<00:02, 2004.63it/s] 43%|████▎     | 4285/10042 [00:01<00:03, 1898.91it/s] 45%|████▍     | 4480/10042 [00:01<00:03, 1849.78it/s] 46%|████▋     | 4668/10042 [00:01<00:02, 1793.01it/s] 48%|████▊     | 4849/10042 [00:02<00:02, 1767.93it/s] 50%|█████     | 5027/10042 [00:02<00:05, 910.96it/s]  52%|█████▏    | 5195/10042 [00:02<00:04, 1037.40it/s] 53%|█████▎    | 5363/10042 [00:02<00:04, 1159.42it/s] 55%|█████▌    | 5532/10042 [00:02<00:03, 1270.57it/s] 57%|█████▋    | 5706/10042 [00:02<00:03, 1378.96it/s] 58%|█████▊    | 5868/10042 [00:02<00:02, 1422.55it/s] 60%|██████    | 6028/10042 [00:03<00:02, 1466.54it/s] 62%|██████▏   | 6192/10042 [00:03<00:02, 1512.03it/s] 63%|██████▎   | 6359/10042 [00:03<00:02, 1555.45it/s] 65%|██████▌   | 6530/10042 [00:03<00:02, 1599.10it/s] 67%|██████▋   | 6698/10042 [00:03<00:02, 1622.24it/s] 68%|██████▊   | 6866/10042 [00:03<00:01, 1636.57it/s] 70%|███████   | 7036/10042 [00:03<00:01, 1652.84it/s] 72%|███████▏  | 7205/10042 [00:03<00:01, 1662.08it/s] 73%|███████▎  | 7374/10042 [00:03<00:01, 1666.65it/s] 75%|███████▌  | 7543/10042 [00:03<00:01, 1671.99it/s] 77%|███████▋  | 7713/10042 [00:04<00:01, 1680.31it/s] 79%|███████▊  | 7887/10042 [00:04<00:01, 1696.27it/s] 80%|████████  | 8057/10042 [00:04<00:01, 1691.44it/s] 82%|████████▏ | 8229/10042 [00:04<00:01, 1699.17it/s] 84%|████████▎ | 8400/10042 [00:04<00:00, 1693.67it/s] 85%|████████▌ | 8570/10042 [00:04<00:00, 1693.68it/s] 87%|████████▋ | 8740/10042 [00:04<00:00, 1692.11it/s] 89%|████████▊ | 8910/10042 [00:04<00:00, 1693.06it/s] 90%|█████████ | 9080/10042 [00:04<00:00, 1693.34it/s] 92%|█████████▏| 9251/10042 [00:05<00:00, 1695.45it/s] 94%|█████████▍| 9423/10042 [00:05<00:00, 1702.60it/s] 96%|█████████▌| 9596/10042 [00:05<00:00, 1710.47it/s] 97%|█████████▋| 9769/10042 [00:05<00:00, 1714.50it/s] 99%|█████████▉| 9942/10042 [00:05<00:00, 1715.54it/s]100%|██████████| 10042/10042 [00:05<00:00, 1838.46it/s]
+Downloading lambada/hellaswag.jsonl:   0%|          | 0.00/8.26M [00:00<?, ?iB/s]Downloading lambada/hellaswag.jsonl:   3%|▎         | 262k/8.26M [00:00<00:03, 2.17MiB/s]Downloading lambada/hellaswag.jsonl:   2%|▏         | 134k/8.26M [00:00<00:30, 270kiB/s] 
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-1682a826ba1fb9fd/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 10591.68it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1954.48it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-1682a826ba1fb9fd/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/10042 [00:00<?, ? examples/s]Map:  29%|██▉       | 2897/10042 [00:00<00:00, 28836.65 examples/s]Map:  70%|███████   | 7059/10042 [00:00<00:00, 28090.18 examples/s]Map: 100%|█████████▉| 9994/10042 [00:00<00:00, 28580.66 examples/s]                                                                     0%|          | 0/10042 [00:00<?, ?it/s]  1%|          | 93/10042 [00:00<00:10, 923.01it/s]  2%|▏         | 188/10042 [00:00<00:10, 935.66it/s]  3%|▎         | 282/10042 [00:00<00:10, 928.33it/s]  4%|▎         | 375/10042 [00:00<00:10, 920.19it/s]  5%|▍         | 468/10042 [00:00<00:10, 912.19it/s]  6%|▌         | 560/10042 [00:00<00:10, 911.72it/s]  6%|▋         | 652/10042 [00:01<00:28, 324.99it/s]  7%|▋         | 742/10042 [00:01<00:22, 405.68it/s]  8%|▊         | 826/10042 [00:01<00:19, 477.95it/s]  9%|▉         | 916/10042 [00:01<00:16, 558.34it/s] 10%|█         | 1008/10042 [00:01<00:14, 636.11it/s] 11%|█         | 1098/10042 [00:01<00:12, 697.59it/s] 12%|█▏        | 1189/10042 [00:01<00:11, 749.85it/s] 13%|█▎        | 1282/10042 [00:01<00:11, 795.30it/s] 14%|█▎        | 1372/10042 [00:02<00:10, 823.82it/s] 15%|█▍        | 1463/10042 [00:02<00:10, 846.70it/s] 15%|█▌        | 1555/10042 [00:02<00:09, 865.48it/s] 16%|█▋        | 1647/10042 [00:02<00:09, 881.25it/s] 17%|█▋        | 1739/10042 [00:02<00:09, 890.68it/s] 18%|█▊        | 1830/10042 [00:02<00:09, 886.87it/s] 19%|█▉        | 1920/10042 [00:02<00:09, 890.54it/s] 20%|██        | 2013/10042 [00:02<00:08, 899.76it/s] 21%|██        | 2104/10042 [00:02<00:08, 898.87it/s] 22%|██▏       | 2195/10042 [00:02<00:08, 892.01it/s] 23%|██▎       | 2287/10042 [00:03<00:08, 898.41it/s] 24%|██▎       | 2378/10042 [00:03<00:08, 899.66it/s] 25%|██▍       | 2472/10042 [00:03<00:08, 909.15it/s] 26%|██▌       | 2564/10042 [00:03<00:08, 909.67it/s] 26%|██▋       | 2656/10042 [00:03<00:08, 903.46it/s] 27%|██▋       | 2747/10042 [00:03<00:08, 896.18it/s] 28%|██▊       | 2840/10042 [00:03<00:07, 905.11it/s] 29%|██▉       | 2932/10042 [00:03<00:07, 908.34it/s] 30%|███       | 3024/10042 [00:03<00:07, 909.89it/s] 31%|███       | 3116/10042 [00:04<00:07, 902.38it/s] 32%|███▏      | 3208/10042 [00:04<00:07, 904.72it/s] 33%|███▎      | 3299/10042 [00:04<00:07, 880.63it/s] 34%|███▎      | 3388/10042 [00:04<00:07, 838.64it/s] 35%|███▍      | 3473/10042 [00:04<00:08, 809.25it/s] 35%|███▌      | 3555/10042 [00:04<00:08, 791.15it/s] 36%|███▌      | 3635/10042 [00:04<00:08, 775.37it/s] 37%|███▋      | 3713/10042 [00:04<00:08, 770.36it/s] 38%|███▊      | 3791/10042 [00:04<00:08, 766.56it/s] 39%|███▊      | 3868/10042 [00:04<00:08, 760.98it/s] 39%|███▉      | 3945/10042 [00:05<00:08, 752.41it/s] 40%|████      | 4021/10042 [00:05<00:07, 754.06it/s] 41%|████      | 4097/10042 [00:05<00:07, 748.71it/s] 42%|████▏     | 4173/10042 [00:05<00:07, 750.25it/s] 42%|████▏     | 4249/10042 [00:05<00:07, 753.04it/s] 43%|████▎     | 4325/10042 [00:05<00:07, 754.53it/s] 44%|████▍     | 4401/10042 [00:05<00:07, 751.97it/s] 45%|████▍     | 4477/10042 [00:05<00:07, 753.24it/s] 45%|████▌     | 4553/10042 [00:05<00:07, 753.31it/s] 46%|████▌     | 4629/10042 [00:05<00:07, 754.83it/s] 47%|████▋     | 4705/10042 [00:06<00:07, 747.25it/s] 48%|████▊     | 4780/10042 [00:06<00:07, 745.44it/s] 48%|████▊     | 4858/10042 [00:06<00:06, 752.97it/s] 49%|████▉     | 4934/10042 [00:06<00:06, 754.01it/s] 50%|████▉     | 5012/10042 [00:06<00:06, 758.70it/s] 51%|█████     | 5088/10042 [00:06<00:06, 756.52it/s] 51%|█████▏    | 5164/10042 [00:06<00:06, 747.22it/s] 52%|█████▏    | 5239/10042 [00:06<00:06, 747.64it/s] 53%|█████▎    | 5318/10042 [00:06<00:06, 757.61it/s] 54%|█████▎    | 5394/10042 [00:07<00:06, 750.89it/s] 54%|█████▍    | 5470/10042 [00:07<00:06, 747.95it/s] 55%|█████▌    | 5545/10042 [00:07<00:06, 747.15it/s] 56%|█████▌    | 5620/10042 [00:07<00:05, 746.64it/s] 57%|█████▋    | 5697/10042 [00:07<00:05, 753.19it/s] 57%|█████▋    | 5773/10042 [00:07<00:05, 744.95it/s] 58%|█████▊    | 5850/10042 [00:07<00:05, 749.44it/s] 59%|█████▉    | 5926/10042 [00:07<00:05, 752.12it/s] 60%|█████▉    | 6002/10042 [00:07<00:05, 747.56it/s] 61%|██████    | 6078/10042 [00:07<00:05, 749.00it/s] 61%|██████▏   | 6153/10042 [00:08<00:05, 747.46it/s] 62%|██████▏   | 6228/10042 [00:08<00:05, 745.39it/s] 63%|██████▎   | 6305/10042 [00:08<00:04, 751.83it/s] 64%|██████▎   | 6382/10042 [00:08<00:04, 754.52it/s] 64%|██████▍   | 6458/10042 [00:08<00:04, 751.23it/s] 65%|██████▌   | 6534/10042 [00:08<00:04, 748.81it/s] 66%|██████▌   | 6610/10042 [00:08<00:04, 748.66it/s] 67%|██████▋   | 6685/10042 [00:08<00:04, 743.35it/s] 67%|██████▋   | 6761/10042 [00:08<00:04, 747.11it/s] 68%|██████▊   | 6838/10042 [00:08<00:04, 751.12it/s] 69%|██████▉   | 6914/10042 [00:09<00:04, 751.04it/s] 70%|██████▉   | 6990/10042 [00:09<00:04, 753.57it/s] 70%|███████   | 7066/10042 [00:09<00:03, 745.22it/s] 71%|███████   | 7141/10042 [00:09<00:03, 746.32it/s] 72%|███████▏  | 7217/10042 [00:09<00:03, 749.22it/s] 73%|███████▎  | 7292/10042 [00:09<00:03, 747.98it/s] 73%|███████▎  | 7367/10042 [00:09<00:03, 748.05it/s] 74%|███████▍  | 7442/10042 [00:09<00:03, 746.64it/s] 75%|███████▍  | 7517/10042 [00:09<00:03, 744.37it/s] 76%|███████▌  | 7595/10042 [00:09<00:03, 752.52it/s] 76%|███████▋  | 7671/10042 [00:10<00:03, 754.58it/s] 77%|███████▋  | 7747/10042 [00:10<00:03, 748.07it/s] 78%|███████▊  | 7823/10042 [00:10<00:02, 749.93it/s] 79%|███████▊  | 7899/10042 [00:10<00:02, 749.86it/s] 79%|███████▉  | 7975/10042 [00:10<00:02, 752.82it/s] 80%|████████  | 8053/10042 [00:10<00:02, 758.33it/s] 81%|████████  | 8129/10042 [00:10<00:02, 747.69it/s] 82%|████████▏ | 8204/10042 [00:10<00:02, 743.49it/s] 82%|████████▏ | 8280/10042 [00:10<00:02, 745.75it/s] 83%|████████▎ | 8355/10042 [00:10<00:02, 746.73it/s] 84%|████████▍ | 8430/10042 [00:11<00:02, 744.32it/s] 85%|████████▍ | 8506/10042 [00:11<00:02, 746.23it/s] 85%|████████▌ | 8581/10042 [00:11<00:01, 741.05it/s] 86%|████████▌ | 8656/10042 [00:11<00:01, 739.88it/s] 87%|████████▋ | 8732/10042 [00:11<00:01, 744.10it/s] 88%|████████▊ | 8807/10042 [00:11<00:01, 742.45it/s] 88%|████████▊ | 8882/10042 [00:11<00:01, 743.77it/s] 89%|████████▉ | 8958/10042 [00:11<00:01, 748.10it/s] 90%|████████▉ | 9033/10042 [00:11<00:01, 735.82it/s] 91%|█████████ | 9107/10042 [00:11<00:01, 732.28it/s] 91%|█████████▏| 9181/10042 [00:12<00:01, 733.29it/s] 92%|█████████▏| 9255/10042 [00:12<00:03, 241.87it/s] 93%|█████████▎| 9329/10042 [00:12<00:02, 302.71it/s] 94%|█████████▎| 9404/10042 [00:13<00:01, 369.17it/s] 94%|█████████▍| 9477/10042 [00:13<00:01, 432.15it/s] 95%|█████████▌| 9554/10042 [00:13<00:00, 499.70it/s] 96%|█████████▌| 9629/10042 [00:13<00:00, 554.36it/s] 97%|█████████▋| 9701/10042 [00:13<00:00, 590.12it/s] 97%|█████████▋| 9776/10042 [00:13<00:00, 629.95it/s] 98%|█████████▊| 9852/10042 [00:13<00:00, 663.14it/s] 99%|█████████▉| 9927/10042 [00:13<00:00, 686.33it/s]100%|█████████▉| 10003/10042 [00:13<00:00, 705.01it/s]100%|██████████| 10042/10042 [00:13<00:00, 721.02it/s]
+Downloading lambada/arc_easy.jsonl:   0%|          | 0.00/658k [00:00<?, ?iB/s]Downloading lambada/arc_easy.jsonl:  20%|██        | 134k/658k [00:00<00:00, 19.7MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-7d9f251cf5a56c59/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 8490.49it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1757.88it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-7d9f251cf5a56c59/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/2376 [00:00<?, ? examples/s]                                                      0%|          | 0/2376 [00:00<?, ?it/s] 15%|█▌        | 357/2376 [00:00<00:00, 3565.18it/s] 30%|███       | 718/2376 [00:00<00:00, 3588.32it/s] 45%|████▌     | 1077/2376 [00:00<00:00, 3578.78it/s] 60%|██████    | 1437/2376 [00:00<00:00, 3587.07it/s] 76%|███████▌  | 1796/2376 [00:00<00:00, 3517.42it/s] 91%|█████████▏| 2169/2376 [00:00<00:00, 3588.61it/s]100%|██████████| 2376/2376 [00:00<00:00, 3585.89it/s]
+Downloading lambada/arc_easy.jsonl:   0%|          | 0.00/658k [00:00<?, ?iB/s]Downloading lambada/arc_easy.jsonl:  20%|██        | 134k/658k [00:00<00:00, 11.1MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-6ec182c58c4edbdf/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 5584.96it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1064.54it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-6ec182c58c4edbdf/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/2376 [00:00<?, ? examples/s]                                                      0%|          | 0/2376 [00:00<?, ?it/s]  7%|▋         | 162/2376 [00:00<00:01, 1612.63it/s] 14%|█▍        | 327/2376 [00:00<00:01, 1630.15it/s] 21%|██        | 491/2376 [00:00<00:01, 1625.92it/s] 28%|██▊       | 654/2376 [00:00<00:01, 1624.16it/s] 34%|███▍      | 817/2376 [00:00<00:00, 1612.95it/s] 41%|████      | 979/2376 [00:00<00:00, 1609.75it/s] 48%|████▊     | 1140/2376 [00:00<00:00, 1606.44it/s] 55%|█████▍    | 1302/2376 [00:00<00:00, 1609.88it/s] 62%|██████▏   | 1463/2376 [00:00<00:00, 1600.49it/s] 68%|██████▊   | 1624/2376 [00:01<00:00, 1601.42it/s] 75%|███████▌  | 1785/2376 [00:01<00:00, 1599.91it/s] 82%|████████▏ | 1946/2376 [00:01<00:00, 1602.51it/s] 89%|████████▉ | 2109/2376 [00:01<00:00, 1607.38it/s] 96%|█████████▌| 2270/2376 [00:01<00:00, 1605.72it/s]100%|██████████| 2376/2376 [00:01<00:00, 1608.33it/s]
+Downloading lambada/copa.jsonl:   0%|          | 0.00/66.1k [00:00<?, ?iB/s]Downloading lambada/copa.jsonl: 100%|██████████| 66.1k/66.1k [00:00<00:00, 1.43GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-53aba3508ff0502a/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 10330.80it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1173.89it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-53aba3508ff0502a/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/500 [00:00<?, ? examples/s]                                                     0%|          | 0/500 [00:00<?, ?it/s]100%|██████████| 500/500 [00:00<00:00, 6041.14it/s]
+Downloading lambada/copa.jsonl:   0%|          | 0.00/66.1k [00:00<?, ?iB/s]Downloading lambada/copa.jsonl: 100%|██████████| 66.1k/66.1k [00:00<00:00, 2.45GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-864093c9c6c0896c/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 10305.42it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1718.98it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-864093c9c6c0896c/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/500 [00:00<?, ? examples/s]                                                     0%|          | 0/500 [00:00<?, ?it/s] 57%|█████▋    | 286/500 [00:00<00:00, 2854.59it/s]100%|██████████| 500/500 [00:00<00:00, 2929.55it/s]
+Downloading lambada/boolq.jsonl:   0%|          | 0.00/2.14M [00:00<?, ?iB/s]Downloading lambada/boolq.jsonl:   2%|▏         | 46.9k/2.14M [00:00<00:01, 1.42MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-f84ee7ff247dcf8d/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 8456.26it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1558.64it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-f84ee7ff247dcf8d/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/3270 [00:00<?, ? examples/s]                                                      0%|          | 0/3270 [00:00<?, ?it/s]  8%|▊         | 266/3270 [00:00<00:01, 2656.70it/s] 16%|█▋        | 535/3270 [00:00<00:01, 2673.89it/s] 25%|██▍       | 806/3270 [00:00<00:00, 2687.45it/s] 33%|███▎      | 1075/3270 [00:00<00:00, 2655.94it/s] 41%|████      | 1345/3270 [00:00<00:00, 2671.33it/s] 50%|████▉     | 1621/3270 [00:00<00:00, 2695.87it/s] 58%|█████▊    | 1900/3270 [00:00<00:00, 2723.05it/s] 66%|██████▋   | 2173/3270 [00:01<00:01, 708.15it/s]  75%|███████▍  | 2444/3270 [00:01<00:00, 918.86it/s] 83%|████████▎ | 2714/3270 [00:01<00:00, 1151.18it/s] 91%|█████████ | 2982/3270 [00:02<00:00, 1391.54it/s]100%|█████████▉| 3258/3270 [00:02<00:00, 1642.48it/s]100%|██████████| 3270/3270 [00:02<00:00, 1548.95it/s]
+Downloading lambada/boolq.jsonl:   0%|          | 0.00/2.14M [00:00<?, ?iB/s]Downloading lambada/boolq.jsonl:   2%|▏         | 46.9k/2.14M [00:00<00:02, 826kiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-dc84ba3de26bfa8a/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 5184.55it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 977.24it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-dc84ba3de26bfa8a/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/3270 [00:00<?, ? examples/s]                                                      0%|          | 0/3270 [00:00<?, ?it/s]  2%|▏         | 59/3270 [00:00<00:05, 578.30it/s]  4%|▎         | 119/3270 [00:00<00:05, 587.99it/s]  5%|▌         | 179/3270 [00:00<00:05, 590.63it/s]  7%|▋         | 242/3270 [00:00<00:05, 604.34it/s]  9%|▉         | 303/3270 [00:00<00:04, 606.12it/s] 11%|█         | 364/3270 [00:00<00:04, 584.11it/s] 13%|█▎        | 426/3270 [00:00<00:04, 595.15it/s] 15%|█▍        | 488/3270 [00:00<00:04, 600.90it/s] 17%|█▋        | 551/3270 [00:00<00:04, 607.45it/s] 19%|█▊        | 612/3270 [00:01<00:04, 589.82it/s] 21%|██        | 674/3270 [00:01<00:04, 597.17it/s] 22%|██▏       | 734/3270 [00:01<00:04, 594.08it/s] 24%|██▍       | 795/3270 [00:01<00:04, 598.61it/s] 26%|██▌       | 857/3270 [00:01<00:03, 603.68it/s] 28%|██▊       | 918/3270 [00:01<00:03, 602.37it/s] 30%|██▉       | 979/3270 [00:01<00:03, 604.07it/s] 32%|███▏      | 1040/3270 [00:01<00:03, 600.06it/s] 34%|███▎      | 1101/3270 [00:01<00:03, 599.17it/s] 36%|███▌      | 1161/3270 [00:01<00:03, 597.11it/s] 37%|███▋      | 1221/3270 [00:02<00:03, 596.65it/s] 39%|███▉      | 1281/3270 [00:02<00:03, 594.02it/s] 41%|████      | 1341/3270 [00:02<00:03, 594.68it/s] 43%|████▎     | 1401/3270 [00:02<00:03, 591.46it/s] 45%|████▍     | 1461/3270 [00:02<00:03, 581.80it/s] 47%|████▋     | 1522/3270 [00:02<00:02, 589.81it/s] 48%|████▊     | 1582/3270 [00:02<00:02, 586.98it/s] 50%|█████     | 1642/3270 [00:02<00:02, 589.45it/s] 52%|█████▏    | 1701/3270 [00:02<00:02, 580.96it/s] 54%|█████▍    | 1764/3270 [00:02<00:02, 593.58it/s] 56%|█████▌    | 1824/3270 [00:03<00:02, 590.07it/s] 58%|█████▊    | 1884/3270 [00:03<00:02, 588.75it/s] 59%|█████▉    | 1945/3270 [00:03<00:02, 593.25it/s] 61%|██████▏   | 2007/3270 [00:03<00:02, 598.71it/s] 63%|██████▎   | 2067/3270 [00:03<00:02, 598.72it/s] 65%|██████▌   | 2127/3270 [00:03<00:01, 597.79it/s] 67%|██████▋   | 2187/3270 [00:03<00:01, 593.93it/s] 69%|██████▊   | 2247/3270 [00:03<00:01, 591.81it/s] 71%|███████   | 2307/3270 [00:03<00:01, 585.10it/s] 72%|███████▏  | 2366/3270 [00:03<00:01, 584.89it/s] 74%|███████▍  | 2425/3270 [00:04<00:01, 584.29it/s] 76%|███████▌  | 2484/3270 [00:04<00:01, 577.90it/s] 78%|███████▊  | 2542/3270 [00:04<00:01, 573.80it/s] 80%|███████▉  | 2601/3270 [00:04<00:01, 577.86it/s] 81%|████████▏ | 2660/3270 [00:04<00:01, 579.99it/s] 83%|████████▎ | 2721/3270 [00:04<00:00, 587.16it/s] 85%|████████▌ | 2780/3270 [00:04<00:00, 572.85it/s] 87%|████████▋ | 2842/3270 [00:04<00:00, 583.89it/s] 89%|████████▊ | 2901/3270 [00:04<00:00, 583.06it/s] 91%|█████████ | 2960/3270 [00:05<00:00, 583.00it/s] 92%|█████████▏| 3020/3270 [00:05<00:00, 587.54it/s] 94%|█████████▍| 3081/3270 [00:05<00:00, 594.06it/s] 96%|█████████▌| 3141/3270 [00:05<00:00, 591.08it/s] 98%|█████████▊| 3201/3270 [00:05<00:00, 580.43it/s]100%|█████████▉| 3260/3270 [00:05<00:00, 582.77it/s]100%|██████████| 3270/3270 [00:05<00:00, 590.61it/s]
+Downloading factuality/jeopardy/jeopardy_a...n_history.jsonl:   0%|          | 0.00/64.7k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_a...n_history.jsonl: 100%|██████████| 64.7k/64.7k [00:00<00:00, 2.28GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-77ee449924940a13/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 9489.38it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1911.72it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-77ee449924940a13/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/413 [00:00<?, ? examples/s]                                                     0%|          | 0/413 [00:00<?, ?it/s]100%|██████████| 413/413 [00:00<00:00, 6445.86it/s]
+Downloading factuality/jeopardy/jeopardy_a...n_history.jsonl:   0%|          | 0.00/64.7k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_a...n_history.jsonl: 100%|██████████| 64.7k/64.7k [00:00<00:00, 1.38GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-fe1b73004853c900/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 6204.59it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1233.98it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-fe1b73004853c900/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/413 [00:00<?, ? examples/s]                                                     0%|          | 0/413 [00:00<?, ?it/s] 50%|████▉     | 205/413 [00:00<00:00, 2042.54it/s]100%|██████████| 413/413 [00:00<00:00, 2066.76it/s]
+Downloading factuality/jeopardy/jeopardy_literature.jsonl:   0%|          | 0.00/70.7k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_literature.jsonl: 100%|██████████| 70.7k/70.7k [00:00<00:00, 2.72GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-c13546169a52d75d/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 7489.83it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1326.89it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-c13546169a52d75d/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/490 [00:00<?, ? examples/s]                                                     0%|          | 0/490 [00:00<?, ?it/s]100%|██████████| 490/490 [00:00<00:00, 6500.47it/s]
+Downloading factuality/jeopardy/jeopardy_literature.jsonl:   0%|          | 0.00/70.7k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_literature.jsonl: 100%|██████████| 70.7k/70.7k [00:00<00:00, 1.27GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-fedb469d2202e5f2/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 4888.47it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 955.64it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-fedb469d2202e5f2/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/490 [00:00<?, ? examples/s]                                                     0%|          | 0/490 [00:00<?, ?it/s] 46%|████▌     | 226/490 [00:00<00:00, 2256.09it/s] 92%|█████████▏| 452/490 [00:00<00:00, 2194.12it/s]100%|██████████| 490/490 [00:00<00:00, 2209.04it/s]
+Downloading factuality/jeopardy/jeopardy_science.jsonl:   0%|          | 0.00/63.3k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_science.jsonl: 100%|██████████| 63.3k/63.3k [00:00<00:00, 1.18GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-1641140545d3ce37/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 7073.03it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1599.66it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-1641140545d3ce37/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/476 [00:00<?, ? examples/s]                                                     0%|          | 0/476 [00:00<?, ?it/s]100%|██████████| 476/476 [00:00<00:00, 6819.05it/s]
+Downloading factuality/jeopardy/jeopardy_science.jsonl:   0%|          | 0.00/63.3k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_science.jsonl: 100%|██████████| 63.3k/63.3k [00:00<00:00, 1.31GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-4642bdc73d244776/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 8388.61it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1322.71it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-4642bdc73d244776/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/476 [00:00<?, ? examples/s]                                                     0%|          | 0/476 [00:00<?, ?it/s] 49%|████▊     | 232/476 [00:00<00:00, 2310.99it/s]100%|██████████| 476/476 [00:00<00:00, 2375.24it/s]
+Downloading factuality/jeopardy/jeopardy_word_origins.jsonl:   0%|          | 0.00/52.1k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_word_origins.jsonl: 100%|██████████| 52.1k/52.1k [00:00<00:00, 967MiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-b5b16acd1109a9e2/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 6657.63it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1520.78it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-b5b16acd1109a9e2/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/365 [00:00<?, ? examples/s]                                                     0%|          | 0/365 [00:00<?, ?it/s]100%|██████████| 365/365 [00:00<00:00, 5525.17it/s]
+Downloading factuality/jeopardy/jeopardy_word_origins.jsonl:   0%|          | 0.00/52.1k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_word_origins.jsonl: 100%|██████████| 52.1k/52.1k [00:00<00:00, 1.58GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-a86fb9193abf85ce/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 8905.10it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1580.97it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-a86fb9193abf85ce/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/365 [00:00<?, ? examples/s]                                                     0%|          | 0/365 [00:00<?, ?it/s] 64%|██████▍   | 234/365 [00:00<00:00, 2332.07it/s]100%|██████████| 365/365 [00:00<00:00, 2351.74it/s]
+Downloading factuality/jeopardy/jeopardy_world_history.jsonl:   0%|          | 0.00/55.8k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_world_history.jsonl: 100%|██████████| 55.8k/55.8k [00:00<00:00, 1.87GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-41c2b56b5d4f8e0b/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 10305.42it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1970.08it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-41c2b56b5d4f8e0b/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/373 [00:00<?, ? examples/s]                                                     0%|          | 0/373 [00:00<?, ?it/s]100%|██████████| 373/373 [00:00<00:00, 6478.70it/s]
+Downloading factuality/jeopardy/jeopardy_world_history.jsonl:   0%|          | 0.00/55.8k [00:00<?, ?iB/s]Downloading factuality/jeopardy/jeopardy_world_history.jsonl: 100%|██████████| 55.8k/55.8k [00:00<00:00, 1.47GiB/s]
+Downloading and preparing dataset json/default to /root/.cache/huggingface/datasets/json/default-54f4f3b94b022caf/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51...
+Downloading data files:   0%|          | 0/1 [00:00<?, ?it/s]Downloading data files: 100%|██████████| 1/1 [00:00<00:00, 6732.43it/s]
+Extracting data files:   0%|          | 0/1 [00:00<?, ?it/s]Extracting data files: 100%|██████████| 1/1 [00:00<00:00, 1419.39it/s]
+Generating train split: 0 examples [00:00, ? examples/s]                                                        Dataset json downloaded and prepared to /root/.cache/huggingface/datasets/json/default-54f4f3b94b022caf/0.0.0/0f7e3662623656454fcd2b650f34e886a7db4b9104504885bd462096cc7a9f51. Subsequent calls will reuse this data.
+Map:   0%|          | 0/373 [00:00<?, ? examples/s]                                                     0%|          | 0/373 [00:00<?, ?it/s] 58%|█████▊    | 218/373 [00:00<00:00, 2172.59it/s]100%|██████████| 373/373 [00:00<00:00, 2179.04it/s]
+Building trainer...
+FSDP: Wrapped Model:
+ComposerMosaicGPT(
+  (model): MosaicFullyShardedDataParallel(
+    (_fsdp_wrapped_module): FlattenParamsWrapper(
+      (_fpw_module): MosaicGPT(
+        (transformer): ModuleDict(
+          (wte): Embedding(50272, 2048)
+          (wpe): Embedding(2048, 2048)
+          (emb_drop): Dropout(p=0, inplace=False)
+          (blocks): ModuleList(
+            (0): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (1): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (2): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (3): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (4): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (5): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (6): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (7): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (8): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (9): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (10): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (11): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (12): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (13): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (14): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (15): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (16): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (17): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (18): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (19): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (20): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (21): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (22): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+            (23): FullyShardedDataParallel(
+              (_fsdp_wrapped_module): FlattenParamsWrapper(
+                (_fpw_module): CheckpointWrapper(
+                  (_checkpoint_wrapped_module): GPTBlock(
+                    (ln_1): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (causal_attn): FlashCausalAttention(
+                      (W_qkv): Linear(in_features=2048, out_features=6144, bias=True)
+                      (causal_attn): FlashAttention()
+                      (out_proj): Linear(in_features=2048, out_features=2048, bias=True)
+                      (q_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                      (k_ln): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    )
+                    (ln_2): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                    (mlp): GPTMLP(
+                      (mlp_up): Linear(in_features=2048, out_features=8192, bias=True)
+                      (mlp_act): GELU(approximate='none')
+                      (mlp_down): Linear(in_features=8192, out_features=2048, bias=True)
+                    )
+                    (resid_attn_dropout): Dropout(p=0, inplace=False)
+                    (resid_mlp_dropout): Dropout(p=0, inplace=False)
+                  )
+                )
+              )
+            )
+          )
+          (ln_f): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+  )
+)
+FSDP: Using sharding_strategy=ShardingStrategy.FULL_SHARD
+FSDP: Using cpu_offload=None
+FSDP: Using mixed_precision=MixedPrecision(param_dtype=None, reduce_dtype=torch.bfloat16, buffer_dtype=torch.float32, keep_low_precision_grads=False)
+FSDP: Using backward_prefetch=BackwardPrefetch.BACKWARD_POST
+FSDP: Using min_params=1000000000
+FSDP: Using activation_checkpointing=True
+FSDP: Using activation_cpu_offload=False
+FSDP: Using sync_module_states=False
+FSDP: Using forward_prefetch=False
+FSDP: Using limit_all_gathers=False
+FSDP: Using state_dict_type=full
+wandb: Currently logged in as: jemdohmann (mosaic-ml). Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.13.11 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.13.4
+wandb: Run data is saved locally in /examples/examples/llm/wandb/run-20230308_021851-rt3iuqdk
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run 1b-resume-test-freezing-khWdJy
+wandb: ⭐️ View project at https://wandb.ai/mosaic-ml/nlp-hero-jeremy-fork
+wandb: 🚀 View run at https://wandb.ai/mosaic-ml/nlp-hero-jeremy-fork/runs/rt3iuqdk
+Downloading nlp-hero/v003-02-24-23-1b/chec...a20000-rank0.pt:   0%|          | 0.00/15.8G [00:00<?, ?iB/s]Downloading nlp-hero/v003-02-24-23-1b/chec...a20000-rank0.pt:   0%|          | 262k/15.8G [00:00<1:44:41, 2.51MiB/s]Downloading nlp-hero/v003-02-24-23-1b/chec...a20000-rank0.pt:   0%|          | 262k/15.8G [00:18<1:44:41, 2.51MiB/s]Downloading nlp-hero/v003-02-24-23-1b/chec...a20000-rank0.pt:   0%|          | 262k/15.8G [01:19<871:50:15, 5.03kiB/s]Downloading nlp-hero/v003-02-24-23-1b/chec...a20000-rank0.pt:   0%|          | 262k/15.8G [01:19<1330:31:57, 3.30kiB/s]
+/usr/lib/python3/dist-packages/composer/core/state.py:1071: UserWarning: GlobalLRScaling is not in the state_dict. Its state will not be restored.
+  warnings.warn(
+/usr/lib/python3/dist-packages/composer/core/state.py:1071: UserWarning: LayerFreezing is not in the state_dict. Its state will not be restored.
+  warnings.warn(
+Logging config...
+algorithms:
+  gradient_clipping:
+    clipping_threshold: 1
+    clipping_type: norm
+autoresume: false
+callbacks:
+  global_lr_scaling:
+    config:
+      lr_scale: 0.5
+      wd_pct: 0.05
+  layer_freezing:
+    config:
+      delete_param: false
+      layer_names:
+      - model._fsdp_wrapped_module.flat_param
+      - model._fsdp_wrapped_module._fpw_module.transformer.blocks.1._fsdp_wrapped_module.flat_param
+      - model._fsdp_wrapped_module._fpw_module.transformer.blocks.3._fsdp_wrapped_module.flat_param
+  lr_monitor: {}
+  memory_monitor: {}
+  optimizer_monitor:
+    log_optimizer_metrics: true
+  runtime_estimator: {}
+  speed_monitor:
+    window_size: 10
+console_log_interval: 50ba
+data_local: /tmp/c4
+data_remote: s3://mosaicml-internal-checkpoints-shared/c4/gpt2-tokenized-2k/
+device_eval_batch_size: 8
+device_train_microbatch_size: 4
+eval_first: false
+eval_interval: 2000ba
+eval_loader:
+  dataset:
+    local: /tmp/c4
+    max_seq_len: 2048
+    remote: s3://mosaicml-internal-checkpoints-shared/c4/gpt2-tokenized-2k/
+    shuffle: false
+    shuffle_seed: 17
+    split: val
+    tokenizer_name: gpt2
+  drop_last: false
+  name: text
+  num_workers: 8
+eval_subset_num_batches: -1
+fsdp_config:
+  activation_checkpointing: true
+  activation_cpu_offload: false
+  mixed_precision: DEFAULT
+  sharding_strategy: FULL_SHARD
+  verbose: true
+global_seed: 17
+global_train_batch_size: 1024
+icl_tasks:
+- batch_size: 8
+  continuation_delimiter: ' '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_openai.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: lambada_openai
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/lambada_standard.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: lambada_standard
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/piqa.jsonl
+  example_delimiter: \n
+  icl_task_type: multiple_choice
+  label: piqa
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/hellaswag.jsonl
+  example_delimiter: \n
+  icl_task_type: multiple_choice
+  label: hellaswag
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/arc_easy.jsonl
+  example_delimiter: \n
+  icl_task_type: multiple_choice
+  label: arc_easy
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/copa.jsonl
+  example_delimiter: \n
+  icl_task_type: multiple_choice
+  label: copa
+  metric_names:
+  - InContextLearningMultipleChoiceAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/lambada/boolq.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: boolq
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/factuality/jeopardy/jeopardy_american_history.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: jeopardy_american_history
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/factuality/jeopardy/jeopardy_literature.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: jeopardy_literature
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/factuality/jeopardy/jeopardy_science.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: jeopardy_science
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/factuality/jeopardy/jeopardy_word_origins.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: jeopardy_word_origins
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+- batch_size: 8
+  continuation_delimiter: ' Answer: '
+  dataset_uri: s3://mosaicml-internal-dataset-lambda/factuality/jeopardy/jeopardy_world_history.jsonl
+  example_delimiter: \n
+  icl_task_type: language_modeling
+  label: jeopardy_world_history
+  metric_names:
+  - InContextLearningLMAccuracy
+  num_fewshot:
+  - 0
+  - 5
+  prompt_string: ''
+load_path: s3://mosaicml-internal-checkpoints-shared/nlp-hero/v003-02-24-23-1b/checkpoints/ep0-ba20000-rank{rank}.pt
+log_to_console: true
+loggers:
+  wandb: {}
+max_duration: 63900ba
+max_seq_len: 2048
+model:
+  attn_impl: flash
+  attn_pdrop: 0
+  attn_qk_ln: true
+  d_model: 2048
+  emb_pdrop: 0
+  init_device: meta
+  init_std: 0.02
+  max_seq_len: ${max_seq_len}
+  mlp_ratio: 4
+  n_heads: 16
+  n_layers: 24
+  name: mosaic_gpt
+  resid_pdrop: 0
+  tokenizer_name: ${tokenizer_name}
+  vocab_size: 50272
+optimizer:
+  betas:
+  - 0.9
+  - 0.95
+  eps: 1.0e-08
+  lr: 0.00192
+  name: decoupled_adamw
+  weight_decay: 0
+precision: amp_bf16
+progress_bar: false
+scheduler:
+  alpha_f: 0.1
+  name: cosine_with_warmup
+  t_warmup: 0.1dur
+seed: 17
+tokenizer:
+  args:
+    max_seq_len: 2048
+    tokenizer_name: gpt2
+  type: hftokenizer
+tokenizer_name: gpt2
+train_loader:
+  dataset:
+    local: /tmp/c4
+    max_seq_len: 2048
+    remote: s3://mosaicml-internal-checkpoints-shared/c4/gpt2-tokenized-2k/
+    shuffle: true
+    shuffle_seed: 17
+    split: train
+    tokenizer_name: gpt2
+  drop_last: true
+  name: text
+  num_workers: 8
+run_name: 1b-resume-test-freezing-khWdJy
+n_gpus: 8
+device_train_batch_size: 128
+device_train_grad_accum: 32
+n_params: 1315950592
+
+Starting training...
+Set LR and WD to 0.00031822953259000834, 1.591147662950042e-05
+Froze layer: model._fsdp_wrapped_module.flat_param
+Param: Parameter containing:
+Parameter(FlatParameter([ 0.1879, -0.1166, -0.1271,  ..., -0.1758,  0.0990,  0.1692],
+              device='cuda:0', requires_grad=True))
+Froze layer: model._fsdp_wrapped_module._fpw_module.transformer.blocks.1._fsdp_wrapped_module.flat_param
+Param: Parameter containing:
+Parameter(FlatParameter([ 0.0033,  0.0366,  0.1973,  ..., -0.1078, -0.1057, -0.0951],
+              device='cuda:0', requires_grad=True))
+Froze layer: model._fsdp_wrapped_module._fpw_module.transformer.blocks.3._fsdp_wrapped_module.flat_param
+Param: Parameter containing:
+Parameter(FlatParameter([ 0.3977,  0.3815,  0.6142,  ..., -0.2556,  0.0559,  0.4095],
+              device='cuda:0', requires_grad=True))
+******************************
+Config:
+enabled_algorithms/GradientClipping: true
+num_gpus_per_node: 8
+num_nodes: 1
+rank_zero_seed: 17
+
+******************************
+Traceback (most recent call last):
+  File "/examples/examples/llm/main.py", line 227, in <module>
+    main(cfg)
+  File "/examples/examples/llm/main.py", line 216, in main
+    trainer.fit()
+  File "/usr/lib/python3/dist-packages/composer/trainer/trainer.py", line 1798, in fit
+    self._train_loop()
+  File "/usr/lib/python3/dist-packages/composer/trainer/trainer.py", line 1997, in _train_loop
+    self._compute_and_log_metrics(
+  File "/usr/lib/python3/dist-packages/composer/trainer/trainer.py", line 1832, in _compute_and_log_metrics
+    computed_metrics[metric_name] = metric.compute()
+  File "/usr/lib/python3/dist-packages/torchmetrics/metric.py", line 526, in wrapped_func
+    with self.sync_context(
+  File "/usr/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/usr/lib/python3/dist-packages/torchmetrics/metric.py", line 497, in sync_context
+    self.sync(
+  File "/usr/lib/python3/dist-packages/torchmetrics/metric.py", line 434, in sync
+    if distributed_available is None and self.distributed_available_fn is not None:
+  File "/usr/lib/python3/dist-packages/torch/nn/modules/module.py", line 1269, in __getattr__
+    raise AttributeError("'{}' object has no attribute '{}'".format(
+AttributeError: 'LanguageCrossEntropy' object has no attribute 'distributed_available_fn'
+wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
+wandb: 
+wandb: Run history:
+wandb:                     loss/train/total ▁
+wandb:                    memory/active_mem ▁
+wandb:                 memory/alloc_retries ▁
+wandb:                 memory/allocated_mem ▁
+wandb:                  memory/inactive_mem ▁
+wandb:                  memory/reserved_mem ▁
+wandb:                    trainer/batch_idx ▁
+wandb: trainer/device_train_microbatch_size ▁
+wandb:                  trainer/global_step ▁
+wandb: 
+wandb: Run summary:
+wandb:                     loss/train/total 2.71336
+wandb:                    memory/active_mem 4.706
+wandb:                 memory/alloc_retries 0
+wandb:                 memory/allocated_mem 3.3582
+wandb:                  memory/inactive_mem 0.3439
+wandb:                  memory/reserved_mem 17.016
+wandb:                    trainer/batch_idx 20000
+wandb: trainer/device_train_microbatch_size 4
+wandb:                  trainer/global_step 20000
+wandb: 
+wandb: Synced 1b-resume-test-freezing-khWdJy: https://wandb.ai/mosaic-ml/nlp-hero-jeremy-fork/runs/rt3iuqdk
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20230308_021851-rt3iuqdk/logs
+/usr/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 8 leaked shared_memory objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+ERROR:composer.cli.launcher:Rank 0 crashed with exit code 1.
+ERROR:composer.cli.launcher:Global rank 0 (PID 289) exited with code 1
+Waiting up to 30 seconds for all training processes to terminate. Press Ctrl-C to exit immediately.
+Global rank 0 (PID 289) exited with code 1

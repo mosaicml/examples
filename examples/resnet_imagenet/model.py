@@ -5,8 +5,7 @@ import torch
 from composer.loss import binary_cross_entropy_with_logits, soft_cross_entropy
 from composer.metrics import CrossEntropy
 from composer.models import ComposerClassifier
-from torchmetrics import MetricCollection
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics import Accuracy, MetricCollection
 from torchvision.models import resnet
 
 
@@ -42,11 +41,8 @@ def build_composer_resnet(model_name: str = 'resnet50',
     model.apply(weight_init)
 
     # Performance metrics to log other than training loss
-    train_metrics = MulticlassAccuracy(num_classes=num_classes, average='micro')
-    val_metrics = MetricCollection([
-        CrossEntropy(),
-        MulticlassAccuracy(num_classes=num_classes, average='micro')
-    ])
+    train_metrics = Accuracy()
+    val_metrics = MetricCollection([CrossEntropy(), Accuracy()])
 
     # Choose loss function: either cross entropy or binary cross entropy
     if loss_name == 'cross_entropy':

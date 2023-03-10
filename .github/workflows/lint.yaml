@@ -29,7 +29,6 @@ jobs:
         - resnet_imagenet
         - stable_diffusion
         - nemo
-        - gpt_neox
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
