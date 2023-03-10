@@ -36,13 +36,13 @@ The files in this folder are:
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `resnet56.yaml` - Configuration for a CIFAR ResNet56 training run, to be used as the first argument to `main.py`
-  * `mcloud_run.yaml` - yaml to use if running on the [MosaicML platform](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
+  * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
 
 Now that you've explored the code, let's get training.
 
-## Get started with the MosaicML platform
+## Get started with the MosaicML Cloud
 
-If you're using the MosaicML platform, all you need to install is [`mcli`](https://github.com/mosaicml/mosaicml-cli/):
+If you're using the MosaicML cloud, all you need to install is [`mcli`](https://github.com/mosaicml/mosaicml-cli/):
 
 ```bash
 pip install --upgrade mosaicml-cli
@@ -67,11 +67,11 @@ mcli run -f yamls/mcloud_run.yaml
 
 You're done. You can skip the rest of the instructions except [saving and loading checkpoints](#saving-and-loading-checkpoints).
 
-## Get started without the MosaicML platform
+## Get started without the MosaicML Cloud
 
 ### Prerequisites
 
-If you're not using the MosaicML platform, here's what you need to start training:
+If you're not using the MosaicML cloud, here's what you need to start training:
 
 * Docker image with PyTorch 1.12+, e.g. [MosaicML's PyTorch image](https://hub.docker.com/r/mosaicml/pytorch/tags)
   * Recommended tag: `mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04`
@@ -128,7 +128,7 @@ You should see logs printed to your terminal like below. You can also easily ena
 [epoch=0][batch=16/625]: memory/alloc_retries: 3
 [epoch=0][batch=16/625]: trainer/grad_accum: 2
 [epoch=0][batch=16/625]: loss/train/total: 7.1292
-[epoch=0][batch=16/625]: metrics/train/MulticlassAccuracy: 0.0005
+[epoch=0][batch=16/625]: metrics/train/Accuracy: 0.0005
 [epoch=0][batch=17/625]: wall_clock/train: 17.8836
 [epoch=0][batch=17/625]: wall_clock/val: 10.9666
 [epoch=0][batch=17/625]: wall_clock/total: 28.8502
@@ -144,7 +144,7 @@ You should see logs printed to your terminal like below. You can also easily ena
 [epoch=0][batch=17/625]: memory/alloc_retries: 3
 [epoch=0][batch=17/625]: trainer/grad_accum: 2
 [epoch=0][batch=17/625]: loss/train/total: 7.1243
-[epoch=0][batch=17/625]: metrics/train/MulticlassAccuracy: 0.0010
+[epoch=0][batch=17/625]: metrics/train/Accuracy: 0.0010
 train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23,  1.37ba/s, loss/train/total=7.1292]
 ```
 

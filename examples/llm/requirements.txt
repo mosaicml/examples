@@ -1,7 +1,7 @@
 torch==1.13.1
 einops==0.5.0
-mosaicml @ git+https://github.com/abhi-mosaic/composer.git@abhi/lpln_bias
 mosaicml-streaming @ git+https://github.com/mosaicml/streaming@0aacad84892670d0f74de5bbdbac6252471dc52a
+mosaicml @ git+https://github.com/bmosaicml/composer.git@non_reentrant_ckpt
 flash-attn==0.2.8
 mosaicml-cli>=0.2.32,<1
 # need a newer version of triton

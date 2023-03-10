@@ -33,7 +33,7 @@ The specific files in this folder are:
 * `tests/` - A suite of tests to check each training component
 * `yamls/`
   * `resnet50.yaml` - Configuration for a ResNet50 training run to be used as the first argument to `main.py`
-  * `mcloud_run.yaml` - yaml to use if running on the [MosaicML platform](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
+  * `mcloud_run.yaml` - yaml to use if running on the [MosaicML Cloud](https://www.mosaicml.com/blog/introducing-mosaicml-cloud)
 
 Now that you've explored the code, let's get training.
 
@@ -50,9 +50,9 @@ python data.py path/to/data
 python data.py s3://my-bucket/my-dir/data /tmp/path/to/local
 ```
 
-## Get started with the MosaicML platform
+## Get started with the MosaicML Cloud
 
-If you're using the MosaicML platform, all you need to install is [`mcli`](https://mcli.docs.mosaicml.com/):
+If you're using the MosaicML cloud, all you need to install is [`mcli`](https://github.com/mosaicml/mosaicml-cli/):
 
 ```bash
 pip install --upgrade mosaicml-cli
@@ -88,7 +88,7 @@ mcli run -f yamls/mcloud_run.yaml
 
 You're done. You can skip the rest of the instructions except [using Mosaic recipes](#using-mosaic-recipes).
 
-## Get started without the MosaicML platform
+## Get started without the MosaicML Cloud
 
 ### Prerequisites
 
@@ -133,7 +133,7 @@ If training on a single node, the `composer` launcher will autodetect the number
 composer main.py yamls/resnet50.yaml
 ```
 
-To train with high performance on multi-node clusters, the easiest way is with the MosaicML platform ;)
+To train with high performance on multi-node clusters, the easiest way is with MosaicML Cloud ;)
 
 But if you really must try this manually on your own cluster, then just provide a few variables to `composer`
 either directly via CLI, or via environment variables that can be read. Then launch the appropriate command on each node:
@@ -193,7 +193,7 @@ by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/t
 [epoch=0][batch=16/625]: memory/alloc_retries: 3
 [epoch=0][batch=16/625]: trainer/grad_accum: 2
 [epoch=0][batch=16/625]: loss/train/total: 7.1292
-[epoch=0][batch=16/625]: metrics/train/MulticlassAccuracy: 0.0005
+[epoch=0][batch=16/625]: metrics/train/Accuracy: 0.0005
 [epoch=0][batch=17/625]: wall_clock/train: 17.8836
 [epoch=0][batch=17/625]: wall_clock/val: 10.9666
 [epoch=0][batch=17/625]: wall_clock/total: 28.8502
@@ -209,7 +209,7 @@ by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/t
 [epoch=0][batch=17/625]: memory/alloc_retries: 3
 [epoch=0][batch=17/625]: trainer/grad_accum: 2
 [epoch=0][batch=17/625]: loss/train/total: 7.1243
-[epoch=0][batch=17/625]: metrics/train/MulticlassAccuracy: 0.0010
+[epoch=0][batch=17/625]: metrics/train/Accuracy: 0.0010
 train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23,  1.37ba/s, loss/train/total=7.1292]
 ```
 
