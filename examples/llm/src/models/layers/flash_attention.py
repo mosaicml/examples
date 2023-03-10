@@ -58,14 +58,7 @@ class FlashAttention(nn.Module):
                 Binary and byte masks are supported.
                 For a binary mask, a ``True`` value indicates that the corresponding ``key`` value will be ignored for
                 the purpose of attention. For a float mask, it will be directly added to the corresponding ``key`` value.
-            attn_mask: If specified, a 2D or 3D mask preventing attention to certain positions. Must be of shape
-                :math:`(L, S)` or :math:`(N\cdot\text{num\_heads}, L, S)`, where :math:`N` is the batch size,
-                :math:`L` is the target sequence length, and :math:`S` is the source sequence length. A 2D mask will be
-                broadcasted across the batch while a 3D mask allows for a different mask for each entry in the batch.
-                Binary, byte, and float masks are supported. For a binary mask, a ``True`` value indicates that the
-                corresponding position is not allowed to attend. For a byte mask, a non-zero value indicates that the
-                corresponding position is not allowed to attend. For a float mask, the mask values will be added to
-                the attention weight.
+            attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             is_causal: If specified, applies a causal mask as attention mask. Mutually exclusive with providing attn_mask.
                 Default: ``False``.
             need_weights: If specified, returns ``attn_output_weights`` in addition to ``attn_outputs``.
@@ -137,14 +130,7 @@ class FlashMHA(nn.Module):
         Args:
             x: (batch, seqlen, hidden_dim) (where hidden_dim = num heads * head dim)
             key_padding_mask: bool tensor of shape (batch, seqlen)
-            attn_mask: If specified, a 2D or 3D mask preventing attention to certain positions. Must be of shape
-                :math:`(L, S)` or :math:`(N\cdot\text{num\_heads}, L, S)`, where :math:`N` is the batch size,
-                :math:`L` is the target sequence length, and :math:`S` is the source sequence length. A 2D mask will be
-                broadcasted across the batch while a 3D mask allows for a different mask for each entry in the batch.
-                Binary, byte, and float masks are supported. For a binary mask, a ``True`` value indicates that the
-                corresponding position is not allowed to attend. For a byte mask, a non-zero value indicates that the
-                corresponding position is not allowed to attend. For a float mask, the mask values will be added to
-                the attention weight.
+            attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             need_weights: If specified, returns ``attn_output_weights`` in addition to ``attn_outputs``.
                 Default: ``True``.
         """
