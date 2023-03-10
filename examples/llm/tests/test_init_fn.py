@@ -158,13 +158,15 @@ def test_emb_init(emb_init_cfg):
     if cfg.get('emb_init_std') is not None:
         emb_init_std = cfg.get('emb_init_std')
         if emb_init_std == 0:
-            assert (model.emb.weight == 0).all()
+            assert (model.emb.weight == 0).all()  # type: ignore
     elif cfg.get('emb_init_uniform_lim') is not None:
         emb_init_uniform_lim = cfg.get('emb_init_uniform_lim')
         if emb_init_uniform_lim == 0:
-            assert (model.emb.weight == 0).all()
+            assert (model.emb.weight == 0).all()  # type: ignore
         elif isinstance(emb_init_uniform_lim, Sequence):
             assert len(emb_init_uniform_lim) <= 2
             if len(emb_init_uniform_lim
                   ) == 2 and emb_init_uniform_lim[0] == emb_init_uniform_lim[1]:
-                assert (model.emb.weight == emb_init_uniform_lim[0]).all()
+                assert (
+                    model.emb.weight == emb_init_uniform_lim[0]  # type: ignore
+                ).all()
