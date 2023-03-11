@@ -23,7 +23,7 @@ class GPTMLP(nn.Module):
                                   device=device)
         self.mlp_down._is_residual = True  # type: ignore
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         return self.mlp_down(self.mlp_act(self.mlp_up(x)))
 
 
@@ -31,7 +31,7 @@ class GPTBlock(nn.Module):
 
     def __init__(self,
                  cfg: DictConfig,
-                 causal_attn_cls,
+                 causal_attn_cls: nn.Module,
                  device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
@@ -55,4 +55,40 @@ class GPTBlock(nn.Module):
         m = self.ln_2(x)
         n = self.mlp(m)
         x = x + self.resid_mlp_dropout(n)
+        return x
+
+
+class GPTBlockPostLN(nn.Module):
+
+    def __init__(self,
+                 cfg: DictConfig,
+                 causal_attn_cls: nn.Module,
+                 device: Optional[str] = None):
+        super().__init__()
+        if cfg.get('alibi', False):
+            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
+        self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
+        self.causal_attn = causal_attn_cls(cfg, device)
+        self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
+        self.mlp = GPTMLP(cfg, device=device)
+        self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
+        self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
+        if cfg.get('norm_style', 'post_ln') == 'deepnorm':
+            # constant for decoder-only models
+            # see the paper DeepNet, https://arxiv.org/abs/2203.00555
+            self.residual_scale = (2 * cfg.n_layers)**0.25
+        else:
+            self.residual_scale = 1.0
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        key_padding_mask: Optional[torch.ByteTensor] = None,
+        attn_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        a, _ = self.causal_attn(x, key_padding_mask, attn_mask)
+        residue = x * self.residual_scale
+        x = self.ln_1(residue + self.resid_attn_dropout(a))
+        residue = x * self.residual_scale
+        x = self.ln_2(residue + self.resid_mlp_dropout(self.mlp(x)))
         return x

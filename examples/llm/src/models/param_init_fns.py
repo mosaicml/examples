@@ -293,9 +293,112 @@ def xavier_normal_param_init_fn_(module, cfg):
     generic_param_init_fn_(module, cfg, xavier_normal_)
 
 
+def deepnorm_init_fn_(module, cfg):
+    if cfg.get('verbose') and cfg.get('verbose') > 1:
+        warnings.warn(
+            f'If model has bias parameters they are initialized to 0.')
+
+    beta = (8 * cfg.n_layers)**-0.25
+    fvo_init_fn_ = partial(nn.init.xavier_normal_, gain=beta)
+    qk_init_fn_ = partial(nn.init.xavier_normal_, gain=1.)
+
+    if isinstance(module, nn.Linear):
+        # Linear
+        if hasattr(module, '_fused'):
+            fused_init_helper_(module, fvo_init_fn_)
+        else:
+            fvo_init_fn_(module.weight)
+        if module.bias is not None:
+            torch.nn.init.zeros_(module.bias)
+
+    elif isinstance(module, nn.Embedding):
+        # Embedding
+        if cfg.get('emb_init_std') is not None:
+            std = cfg.get('emb_init_std')
+            if std == 0:
+                warnings.warn(f'Embedding layer initialized to 0.')
+            emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
+            if cfg.get('verbose', 0) > 1:
+                warnings.warn(
+                    f'Embedding layer initialized using normal distribution with mean=0 and {std=}.'
+                )
+        elif cfg.get('emb_init_uniform_lim') is not None:
+            lim = cfg.get('emb_init_uniform_lim')
+            if isinstance(lim, Sequence):
+                if len(lim) > 2:
+                    raise ValueError(
+                        f'Uniform init requires a min and a max limit. User input: {lim}.'
+                    )
+                if lim[0] == lim[1]:
+                    warnings.warn(f'Embedding layer initialized to {lim[0]}.')
+            else:
+                if lim == 0:
+                    warnings.warn(f'Embedding layer initialized to 0.')
+                lim = [-lim, lim]
+            a, b = lim
+            emb_init_fn_ = partial(torch.nn.init.uniform_, a=a, b=b)
+            if cfg.get('verbose', 0) > 1:
+                warnings.warn(
+                    f'Embedding layer initialized using uniform distribution in range {lim}.'
+                )
+        else:
+            emb_init_fn_ = fvo_init_fn_
+
+        emb_init_fn_(module.weight)
+
+    elif isinstance(module, nn.LayerNorm):
+        # LayerNorm
+        if cfg.get('verbose', 0) > 1:
+            warnings.warn(
+                f'LayerNorm gamma weights are set to 1. If the layer has a bias it is initialized to 0.'
+            )
+        torch.nn.init.ones_(module.weight)
+        if module.bias is not None:
+            torch.nn.init.zeros_(module.bias)
+
+    elif isinstance(module, nn.MultiheadAttention):
+        # torch's MultiheadAttention
+        if module._qkv_same_embed_dim:
+            assert module.in_proj_weight is not None
+            assert module.q_proj_weight is None and module.k_proj_weight is None and module.v_proj_weight is None
+            # in_proj_weight is actually 3 layers and should be split up for width based init
+            _d = cfg.d_model
+            splits = (0, _d, 2 * _d, 3 * _d)
+            for s, e in zip(splits[:-1], splits[1:]):
+                fvo_init_fn_(module.in_proj_weight[s:e])
+        else:
+            assert module.q_proj_weight is not None and module.k_proj_weight is not None and module.v_proj_weight is not None
+            assert module.in_proj_weight is None
+            qk_init_fn_(module.q_proj_weight)
+            qk_init_fn_(module.k_proj_weight)
+            fvo_init_fn_(module.v_proj_weight)
+
+        # bias
+        if module.in_proj_bias is not None:
+            torch.nn.init.zeros_(module.in_proj_bias)
+        if module.bias_k is not None:
+            torch.nn.init.zeros_(module.bias_k)
+        if module.bias_v is not None:
+            torch.nn.init.zeros_(module.bias_v)
+
+        # out proj
+        fvo_init_fn_(module.out_proj.weight)
+
+        if module.out_proj.bias is not None:
+            torch.nn.init.zeros_(module.out_proj.bias)
+
+    else:
+        for _ in module.parameters(recurse=False):
+            # raise error if uninitialized module has any parameters
+            raise NotImplementedError(
+                f'{module.__class__.__name__} parameters are not initialized by param_init_fn.'
+            )
+
+
 MODEL_INIT_REGISTRY = {
     'default_': torch_default_param_init_fn_,
     'baseline_': baseline_param_init_fn_,
+    'deepnorm_': deepnorm_init_fn_,
     'kaiming_uniform_': kaiming_uniform_param_init_fn_,
     'kaiming_normal_': kaiming_normal_param_init_fn_,
     'neox_init_': neox_param_init_fn_,

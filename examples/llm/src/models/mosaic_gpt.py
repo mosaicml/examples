@@ -66,6 +66,11 @@ class MosaicGPT(nn.Module):
         self.embedding_fraction = cfg.get('embedding_fraction', 1)
         assert 0 < self.embedding_fraction <= 1, 'model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!'
 
+        # default to PreLN blocks for consistency for now
+        # if PostLN ends up being better, switch this default
+        gpt_block_type = gpt_blocks.GPTBlock if cfg.get(
+            'norm_style', 'pre_ln') == 'pre_ln' else gpt_blocks.GPTBlockPostLN
+
         self.transformer = nn.ModuleDict({
             'wte':
                 nn.Embedding(cfg.vocab_size,
@@ -83,9 +88,9 @@ class MosaicGPT(nn.Module):
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    gpt_blocks.GPTBlock(cfg,
-                                        causal_attn_cls=self.causal_attn_cls,
-                                        device=cfg.init_device)
+                    gpt_block_type(cfg,
+                                   causal_attn_cls=self.causal_attn_cls,
+                                   device=cfg.init_device)
                     for _ in range(cfg.n_layers)
                 ])
         })
