@@ -14,18 +14,26 @@ from composer.loggers import Logger
 from composer.utils import dist
 from torch import nn
 
+from examples.llm.src.models.param_init_fns import get_div_is_residual_factor
+
 
 class BruteForceInit(Callback):
     """Brute Force Initialize weights to preserve flow stability.
-    
+
     Args:
         init_mode (str): string dictating which variance to optimizer for
             Options: ``'forward'``, ``'backward'``, ``'forward_backward_avg'``
             Default: ``'forward'``
+        mode (str): string dictating if bfi is applied per feature or layer
+            Options: ``'feature'``, ``'layer'``
+            Default: ``'layer'``
     """
 
-    def __init__(self, init_mode='forward'):
+    def __init__(self, init_mode='forward', mode='feature'):
         self.init_mode = init_mode.lower()
+        if mode not in ['feature', 'layer']:
+            raise ValueError(f"Mode option not recognized. Options: 'feature' or 'layer'.")
+        self.mode = mode.lower()
 
         self.initialized = False
 
@@ -43,11 +51,15 @@ class BruteForceInit(Callback):
                 self._bfi_forward(state, logger)
             elif self.init_mode in ['backward', 'bwd', 'b']:
                 self._bfi_backward(state, logger)
-            elif self.init_mode in ['forward_backward_avg', 'fwd_bwd_avg', 'fba']:
+            elif self.init_mode in [
+                    'forward_backward_avg', 'fwd_bwd_avg', 'fba'
+            ]:
                 self._bfi_forward_backward_avg(state, logger)
 
     def _bfi_forward(self, state: State, logger: Logger):
-        # TODO: handel div_is_residual
+
+        init_div_is_residual, div_is_residual = get_div_is_residual_factor(
+            state.model.model.cfg)
 
         hooks = {}  # dict storing all hooks
 
@@ -56,7 +68,8 @@ class BruteForceInit(Callback):
             hooks[module].remove()
 
             with torch.no_grad():
-                with state.model.model.summon_full_params(module):  # get params from FSDP
+                with state.model.model.summon_full_params(
+                        module):  # get params from FSDP
                     if hasattr(module, 'bias') and module.bias is not None:
                         module.bias.fill_(0.)
 
@@ -65,6 +78,11 @@ class BruteForceInit(Callback):
 
                     reduce_dims = list(range(y.dim()))[:-1]
                     sec_mom = (y * y).mean(reduce_dims).sqrt()
+                    if self.mode == 'layer':
+                        sec_mom = sec_mom.mean()
+                    elif self.mode == 'feature':
+                        # do nothing, this is the default behavior
+                        pass
                     dist.all_reduce(sec_mom)
 
                     if isinstance(module, nn.Linear):
@@ -72,9 +90,13 @@ class BruteForceInit(Callback):
                         module.weight.div_(sec_mom.unsqueeze(-1))
                     else:  # nn.Embedding
                         module.weight.div_(sec_mom)
-                        pass
 
-        # if using fsdp this initial first pass instantiates and shards parameters
+                    if init_div_is_residual is not False and getattr(
+                            module, '_is_residual', False):
+                        with torch.no_grad():
+                            module.weight.div_(div_is_residual)
+
+        # if using fsdp this initial first pass (without hooks) instantiates and shards parameters
         with torch.no_grad():
             y = state.model(state.batch)
 

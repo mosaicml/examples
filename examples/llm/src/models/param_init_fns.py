@@ -40,11 +40,7 @@ def fused_init_helper_(module, init_fn_):
         init_fn_(module.weight[slice_indices])
 
 
-def generic_param_init_fn_(module, cfg, init_fn_):
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
-        warnings.warn(
-            f'If model has bias parameters they are initialized to 0.')
-
+def get_div_is_residual_factor(cfg):
     # enable user to divide _is_residual weights by
     # a value which defaults to math.sqrt(2 * cfg.n_layers)
     init_div_is_residual = cfg.get('init_div_is_residual', True)
@@ -67,6 +63,50 @@ def generic_param_init_fn_(module, cfg, init_fn_):
         raise ValueError(
             f'Expected init_div_is_residual to be boolean or numeric, got {init_div_is_residual}'
         )
+    return init_div_is_residual, div_is_residual
+
+
+def get_embed_init_fn(cfg, init_fn_):
+    # Embedding
+    if cfg.get('emb_init_std') is not None:
+        std = cfg.get('emb_init_std')
+        if std == 0:
+            warnings.warn(f'Embedding layer initialized to 0.')
+        emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
+        if cfg.get('verbose', 0) > 1:
+            warnings.warn(
+                f'Embedding layer initialized using normal distribution with mean=0 and {std=}.'
+            )
+    elif cfg.get('emb_init_uniform_lim') is not None:
+        lim = cfg.get('emb_init_uniform_lim')
+        if isinstance(lim, Sequence):
+            if len(lim) > 2:
+                raise ValueError(
+                    f'Uniform init requires a min and a max limit. User input: {lim}.'
+                )
+            if lim[0] == lim[1]:
+                warnings.warn(f'Embedding layer initialized to {lim[0]}.')
+        else:
+            if lim == 0:
+                warnings.warn(f'Embedding layer initialized to 0.')
+            lim = [-lim, lim]
+        a, b = lim
+        emb_init_fn_ = partial(torch.nn.init.uniform_, a=a, b=b)
+        if cfg.get('verbose', 0) > 1:
+            warnings.warn(
+                f'Embedding layer initialized using uniform distribution in range {lim}.'
+            )
+    else:
+        emb_init_fn_ = init_fn_
+    return emb_init_fn_
+
+
+def generic_param_init_fn_(module, cfg, init_fn_):
+    if cfg.get('verbose') and cfg.get('verbose') > 1:
+        warnings.warn(
+            f'If model has bias parameters they are initialized to 0.')
+
+    init_div_is_residual, div_is_residual = get_div_is_residual_factor(cfg)
 
     if init_div_is_residual is not False:
         if cfg.get('verbose', 0) > 1:
@@ -91,37 +131,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
 
     elif isinstance(module, nn.Embedding):
         # Embedding
-        if cfg.get('emb_init_std') is not None:
-            std = cfg.get('emb_init_std')
-            if std == 0:
-                warnings.warn(f'Embedding layer initialized to 0.')
-            emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
-            if cfg.get('verbose', 0) > 1:
-                warnings.warn(
-                    f'Embedding layer initialized using normal distribution with mean=0 and {std=}.'
-                )
-        elif cfg.get('emb_init_uniform_lim') is not None:
-            lim = cfg.get('emb_init_uniform_lim')
-            if isinstance(lim, Sequence):
-                if len(lim) > 2:
-                    raise ValueError(
-                        f'Uniform init requires a min and a max limit. User input: {lim}.'
-                    )
-                if lim[0] == lim[1]:
-                    warnings.warn(f'Embedding layer initialized to {lim[0]}.')
-            else:
-                if lim == 0:
-                    warnings.warn(f'Embedding layer initialized to 0.')
-                lim = [-lim, lim]
-            a, b = lim
-            emb_init_fn_ = partial(torch.nn.init.uniform_, a=a, b=b)
-            if cfg.get('verbose', 0) > 1:
-                warnings.warn(
-                    f'Embedding layer initialized using uniform distribution in range {lim}.'
-                )
-        else:
-            emb_init_fn_ = init_fn_
-
+        emb_init_fn_ = get_embed_init_fn(cfg, init_fn_)
         emb_init_fn_(module.weight)
 
     elif isinstance(module, nn.LayerNorm):
