@@ -16,9 +16,17 @@ from torch import nn
 
 
 class BruteForceInit(Callback):
-    """Brute Force Initialize weights so that layer output has unit norm."""
+    """Brute Force Initialize weights to preserve flow stability.
+    
+    Args:
+        init_mode (str): string dictating which variance to optimizer for
+            Options: ``'forward'``, ``'backward'``, ``'forward_backward_avg'``
+            Default: ``'forward'``
+    """
 
-    def __init__(self):
+    def __init__(self, init_mode='forward'):
+        self.init_mode = init_mode.lower()
+
         self.initialized = False
 
     def state_dict(self) -> Dict[str, Any]:
@@ -31,45 +39,59 @@ class BruteForceInit(Callback):
 
     def before_forward(self, state: State, logger: Logger):
         if not self.initialized:
-            # TODO: handel div_is_residual
+            if self.init_mode in ['forward', 'fwd', 'f']:
+                self._bfi_forward(state, logger)
+            elif self.init_mode in ['backward', 'bwd', 'b']:
+                self._bfi_backward(state, logger)
+            elif self.init_mode in ['forward_backward_avg', 'fwd_bwd_avg', 'fba']:
+                self._bfi_forward_backward_avg(state, logger)
 
-            hooks = {}  # dict storing all hooks
+    def _bfi_forward(self, state: State, logger: Logger):
+        # TODO: handel div_is_residual
 
-            def init_pre_fwd_hook(module, input) -> None:
-                # removes fwd pre hooks so that they are not called recussivly
-                hooks[module].remove()
+        hooks = {}  # dict storing all hooks
 
-                with torch.no_grad():
-                    with state.model.model.summon_full_params(module):  # get params from FSDP
-                        if hasattr(module, 'bias') and module.bias is not None:
-                            module.bias.fill_(0.)
+        def init_pre_fwd_hook(module, input) -> None:
+            # removes fwd pre hooks so that they are not called recussivly
+            hooks[module].remove()
 
-                        x, = input
-                        y = module(x)
-
-                        reduce_dims = list(range(y.dim()))[:-1]
-                        sec_mom = (y * y).mean(reduce_dims).sqrt()
-                        dist.all_reduce(sec_mom)
-
-                        if isinstance(module, nn.Linear):
-                            # required because linear layer's weights are transpose before being applied
-                            module.weight.div_(sec_mom.unsqueeze(-1))
-                        else:  # nn.Embedding
-                            module.weight.div_(sec_mom)
-                            pass
-
-            # if using fsdp this initial first pass instantiates and shards parameters
             with torch.no_grad():
-                y = state.model(state.batch)
+                with state.model.model.summon_full_params(module):  # get params from FSDP
+                    if hasattr(module, 'bias') and module.bias is not None:
+                        module.bias.fill_(0.)
 
-            # register initialization hooks
-            for module in state.model.modules():
-                if isinstance(module, (nn.Linear, nn.Embedding)):
-                    hooks[module] = module.register_forward_pre_hook(
-                        init_pre_fwd_hook)
+                    x, = input
+                    y = module(x)
 
-            # forawrd pass and initialize model
-            with torch.no_grad():
-                y = state.model(state.batch)
+                    reduce_dims = list(range(y.dim()))[:-1]
+                    sec_mom = (y * y).mean(reduce_dims).sqrt()
+                    dist.all_reduce(sec_mom)
 
-            self.initialized = True
+                    if isinstance(module, nn.Linear):
+                        # required because linear layer's weights are transpose before being applied
+                        module.weight.div_(sec_mom.unsqueeze(-1))
+                    else:  # nn.Embedding
+                        module.weight.div_(sec_mom)
+                        pass
+
+        # if using fsdp this initial first pass instantiates and shards parameters
+        with torch.no_grad():
+            y = state.model(state.batch)
+
+        # register initialization hooks
+        for module in state.model.modules():
+            if isinstance(module, (nn.Linear, nn.Embedding)):
+                hooks[module] = module.register_forward_pre_hook(
+                    init_pre_fwd_hook)
+
+        # forawrd pass and initialize model
+        with torch.no_grad():
+            y = state.model(state.batch)
+
+        self.initialized = True
+
+    def _bfi_backward(self, state: State, logger: Logger):
+        raise NotImplementedError
+
+    def _bfi_forward_backward_avg(self, state: State, logger: Logger):
+        raise NotImplementedError
