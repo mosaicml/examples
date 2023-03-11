@@ -6,6 +6,7 @@
 
 """Brute Force Initialize weights so that layer output has unit norm."""
 
+import math
 from typing import Any, Dict
 
 import torch
@@ -24,15 +25,18 @@ class BruteForceInit(Callback):
         init_mode (str): string dictating which variance to optimizer for
             Options: ``'forward'``, ``'backward'``, ``'forward_backward_avg'``
             Default: ``'forward'``
+        init_norm (int): desired norm of layer outputs
         mode (str): string dictating if bfi is applied per feature or layer
             Options: ``'feature'``, ``'layer'``
             Default: ``'layer'``
     """
 
-    def __init__(self, init_mode='forward', mode='feature'):
+    def __init__(self, init_mode='forward', init_norm=1., mode='feature'):
         self.init_mode = init_mode.lower()
+        self.init_norm = init_norm
         if mode not in ['feature', 'layer']:
-            raise ValueError(f"Mode option not recognized. Options: 'feature' or 'layer'.")
+            raise ValueError(
+                f"Mode option not recognized. Options: 'feature' or 'layer'.")
         self.mode = mode.lower()
 
         self.initialized = False
@@ -57,7 +61,6 @@ class BruteForceInit(Callback):
                 self._bfi_forward_backward_avg(state, logger)
 
     def _bfi_forward(self, state: State, logger: Logger):
-
         init_div_is_residual, div_is_residual = get_div_is_residual_factor(
             state.model.model.cfg)
 
@@ -78,23 +81,24 @@ class BruteForceInit(Callback):
 
                     reduce_dims = list(range(y.dim()))[:-1]
                     sec_mom = (y * y).mean(reduce_dims).sqrt()
+                    scale_factor = sec_mom / math.sqrt(self.init_norm)
                     if self.mode == 'layer':
-                        sec_mom = sec_mom.mean()
+                        scale_factor = scale_factor.mean()
                     elif self.mode == 'feature':
                         # do nothing, this is the default behavior
                         pass
-                    dist.all_reduce(sec_mom)
-
-                    if isinstance(module, nn.Linear):
-                        # required because linear layer's weights are transpose before being applied
-                        module.weight.div_(sec_mom.unsqueeze(-1))
-                    else:  # nn.Embedding
-                        module.weight.div_(sec_mom)
 
                     if init_div_is_residual is not False and getattr(
                             module, '_is_residual', False):
-                        with torch.no_grad():
-                            module.weight.div_(div_is_residual)
+                        scale_factor *= div_is_residual
+
+                    dist.all_reduce(scale_factor)
+
+                    if isinstance(module, nn.Linear):
+                        # required because linear layer's weights are transpose before being applied
+                        module.weight.div_(scale_factor.unsqueeze(-1))
+                    else:  # nn.Embedding
+                        module.weight.div_(scale_factor)
 
         # if using fsdp this initial first pass (without hooks) instantiates and shards parameters
         with torch.no_grad():
