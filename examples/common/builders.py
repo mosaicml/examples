@@ -14,6 +14,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
+from examples.common.bfi import BruteForceInit
 from examples.common.fdiff import FDiffMetrics
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
@@ -30,6 +31,8 @@ def build_callback(name, kwargs):
                                    'gpu_flops_available', None))
     elif name == 'fdiff':
         return FDiffMetrics(**kwargs)
+    elif name == 'bfi':
+        return BruteForceInit()
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
