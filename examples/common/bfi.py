@@ -7,6 +7,7 @@
 """Brute Force Initialize weights so that layer output has unit norm."""
 
 import math
+import warnings
 from typing import Any, Dict
 
 import torch
@@ -49,6 +50,11 @@ class BruteForceInit(Callback):
 
     def before_forward(self, state: State, logger: Logger):
         if not self.initialized:
+            if state.model.model.cfg.get('verbose', 0) > 1:
+                warnings.warn(
+                    f'Brute force initializing model weights with init_mode={self.init_mode}, init_norm={self.init_norm} and mode={self.mode}.'
+                )
+
             if self.init_mode in ['forward', 'fwd', 'f']:
                 self._bfi_forward(state, logger)
             elif self.init_mode in ['backward', 'bwd', 'b']:
