@@ -69,7 +69,11 @@ class MosaicGPT(nn.Module):
         # default to PreLN blocks for consistency for now
         # if PostLN ends up being better, switch this default
         gpt_block_type = gpt_blocks.GPTBlock if cfg.get(
-            'norm_style', 'pre_ln') == 'pre_ln' else gpt_blocks.GPTBlockPostLN
+            'norm_location',
+            'pre_ln') == 'pre_ln' else gpt_blocks.GPTBlockPostLN
+        gpt_block_type = gpt_blocks.GPTBlockPostLN if cfg.get(
+            'param_init_fn',
+            'baseline_') == 'deepnorm_' else gpt_blocks.GPTBlock
 
         self.transformer = nn.ModuleDict({
             'wte':

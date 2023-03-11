@@ -73,7 +73,7 @@ class GPTBlockPostLN(nn.Module):
         self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
         self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
-        if cfg.get('norm_style', 'post_ln') == 'deepnorm':
+        if cfg.get('param_init_fn', 'default_') == 'deepnorm_':
             # constant for decoder-only models
             # see the paper DeepNet, https://arxiv.org/abs/2203.00555
             self.residual_scale = (2 * cfg.n_layers)**0.25
