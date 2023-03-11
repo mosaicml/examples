@@ -100,9 +100,12 @@ class BruteForceInit(Callback):
                     else:  # nn.Embedding
                         module.weight.div_(scale_factor)
 
-        # if using fsdp this initial first pass (without hooks) instantiates and shards parameters
-        with torch.no_grad():
-            y = state.model(state.batch)
+        # this initial first pass (without hooks) verifies everything works
+        device_type = state.batch['input_ids'].device.type
+        with torch.autocast(device_type=device_type):
+            loss = state.model(state.batch).mean()  # proxy loss
+        loss.backward()
+        state.model.zero_grad(set_to_none=True)
 
         # register initialization hooks
         for module in state.model.modules():
@@ -112,7 +115,8 @@ class BruteForceInit(Callback):
 
         # forawrd pass and initialize model
         with torch.no_grad():
-            y = state.model(state.batch)
+            with torch.autocast(device_type=device_type):
+                y = state.model(state.batch)
 
         self.initialized = True
 
