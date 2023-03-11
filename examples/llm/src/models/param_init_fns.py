@@ -294,6 +294,7 @@ def xavier_normal_param_init_fn_(module, cfg):
 
 
 def deepnorm_init_fn_(module, cfg):
+    # from DeepNet by Wang et al 2022 https://arxiv.org/abs/2203.00555
     if cfg.get('verbose') and cfg.get('verbose') > 1:
         warnings.warn(
             f'If model has bias parameters they are initialized to 0.')
@@ -342,7 +343,7 @@ def deepnorm_init_fn_(module, cfg):
                     f'Embedding layer initialized using uniform distribution in range {lim}.'
                 )
         else:
-            emb_init_fn_ = fvo_init_fn_
+            emb_init_fn_ = fvo_init_fn_  # deepnet paper does not mention embedding init
 
         emb_init_fn_(module.weight)
 
@@ -364,8 +365,11 @@ def deepnorm_init_fn_(module, cfg):
             # in_proj_weight is actually 3 layers and should be split up for width based init
             _d = cfg.d_model
             splits = (0, _d, 2 * _d, 3 * _d)
-            for s, e in zip(splits[:-1], splits[1:]):
-                fvo_init_fn_(module.in_proj_weight[s:e])
+            for i, (s, e) in enumerate(zip(splits[:-1], splits[1:])):
+                if i < 2:
+                    qk_init_fn_(module.in_proj_weight[s:e])
+                else:
+                    fvo_init_fn_(module.in_proj_weight[s:e])
         else:
             assert module.q_proj_weight is not None and module.k_proj_weight is not None and module.v_proj_weight is not None
             assert module.in_proj_weight is None
