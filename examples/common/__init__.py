@@ -16,6 +16,7 @@ try:
                                                      get_gpu_flops_available)
     from examples.common.text_data import (StreamingTextDataset,
                                            build_text_dataloader)
+    from examples.common.bfi import BruteForceInit
 except ImportError as e:
     raise ImportError(
         'Please make sure to pip install . to get the common requirements for all examples.'
@@ -39,4 +40,5 @@ __all__ = [
     'prepare_hf_causal_lm_model_for_fsdp',
     'prepare_hf_enc_dec_model_for_fsdp',
     'prepare_hf_model_for_fsdp',
+    'BruteForceInit',
 ]
