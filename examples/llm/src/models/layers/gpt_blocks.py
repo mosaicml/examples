@@ -31,7 +31,7 @@ class GPTBlock(nn.Module):
 
     def __init__(self,
                  cfg: DictConfig,
-                 causal_attn_cls: nn.Module,
+                 causal_attn_cls,
                  device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
@@ -62,7 +62,7 @@ class GPTBlockPostLN(nn.Module):
 
     def __init__(self,
                  cfg: DictConfig,
-                 causal_attn_cls: nn.Module,
+                 causal_attn_cls,
                  device: Optional[str] = None):
         super().__init__()
         if cfg.get('alibi', False):
