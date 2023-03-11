@@ -41,13 +41,11 @@ class FlashAttention(nn.Module):
         self.softmax_scale = softmax_scale
 
     def forward(
-            self,
-            qkv,
-            key_padding_mask: Optional[Tensor] = None,
-            attn_mask: Optional[Tensor] = None,
-            is_causal: bool = False,
-            need_weights: bool = False,
-            average_attn_weights: bool = True
+        self,
+        qkv,
+        key_padding_mask: Optional[Tensor] = None,
+        attn_mask: Optional[Tensor] = None,
+        is_causal: bool = False,
     ) -> Tuple[Tensor, Optional[Tensor]]:
         r"""Multiheaded softmax attention.
 
@@ -56,12 +54,9 @@ class FlashAttention(nn.Module):
             key_padding_mask: not implemented for triton kernel.
             attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             is_causal: If specified, applies a causal mask as attention mask. Default: ``False``.
-            need_weights: not implemented for triton kernel.
-            average_attn_weights: not implemented for triton kernel.
         """
         from flash_attn import flash_attn_triton  # type: ignore
 
-        assert not need_weights and not average_attn_weights
         assert qkv.dtype in [torch.float16, torch.bfloat16]
         assert qkv.is_cuda
 
@@ -125,12 +120,13 @@ class FlashMHA(nn.Module):
             attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             need_weights: not implemented for triton kernel.
         """
+        if need_weights:
+            raise NotImplementedError(f'Not implemented for triton kernel.')
+
         qkv = self.Wqkv(x)
         context, attn_weights = self.inner_attn(
             qkv,
             key_padding_mask=key_padding_mask,
             attn_mask=attn_mask,
-            is_causal=self.causal,
-            need_weights=need_weights,
-            average_attn_weights=False)
+            is_causal=self.causal)
         return self.out_proj(context), attn_weights
