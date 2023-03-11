@@ -59,6 +59,10 @@ class BruteForceInit(Callback):
                     'forward_backward_avg', 'fwd_bwd_avg', 'fba'
             ]:
                 self._bfi_forward_backward_avg(state, logger)
+            else:
+                raise ValueError(
+                    f"BFI init_mode not recognized. Options: 'forward', 'backward', 'forward_backward_avg'"
+                )
 
     def _bfi_forward(self, state: State, logger: Logger):
         init_div_is_residual, div_is_residual = get_div_is_residual_factor(
