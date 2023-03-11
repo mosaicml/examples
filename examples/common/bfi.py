@@ -15,8 +15,6 @@ from composer.loggers import Logger
 from composer.utils import dist
 from torch import nn
 
-from examples.llm.src.models.param_init_fns import get_div_is_residual_factor
-
 
 class BruteForceInit(Callback):
     """Brute Force Initialize weights to preserve flow stability.
@@ -65,6 +63,8 @@ class BruteForceInit(Callback):
                 )
 
     def _bfi_forward(self, state: State, logger: Logger):
+        from examples.llm.src.models.param_init_fns import \
+            get_div_is_residual_factor
         init_div_is_residual, div_is_residual = get_div_is_residual_factor(
             state.model.model.cfg)
 
