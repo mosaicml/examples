@@ -314,38 +314,21 @@ def deepnorm_init_fn_(module, cfg):
 
     elif isinstance(module, nn.Embedding):
         # Embedding
+        # DeepNet paper doesn't mention what they used, so assume PyTorch default
+        emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=1)
         if cfg.get('emb_init_std') is not None:
-            std = cfg.get('emb_init_std')
-            if std == 0:
-                warnings.warn(f'Embedding layer initialized to 0.')
-            emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
-            if cfg.get('verbose', 0) > 1:
-                warnings.warn(
-                    f'Embedding layer initialized using normal distribution with mean=0 and {std=}.'
-                )
+            warnings.warn(
+                f'emb_init_std ignored when using param_init_fn: deepnorm_')
         elif cfg.get('emb_init_uniform_lim') is not None:
-            lim = cfg.get('emb_init_uniform_lim')
-            if isinstance(lim, Sequence):
-                if len(lim) > 2:
-                    raise ValueError(
-                        f'Uniform init requires a min and a max limit. User input: {lim}.'
-                    )
-                if lim[0] == lim[1]:
-                    warnings.warn(f'Embedding layer initialized to {lim[0]}.')
-            else:
-                if lim == 0:
-                    warnings.warn(f'Embedding layer initialized to 0.')
-                lim = [-lim, lim]
-            a, b = lim
-            emb_init_fn_ = partial(torch.nn.init.uniform_, a=a, b=b)
-            if cfg.get('verbose', 0) > 1:
-                warnings.warn(
-                    f'Embedding layer initialized using uniform distribution in range {lim}.'
-                )
-        else:
-            emb_init_fn_ = fvo_init_fn_  # deepnet paper does not mention embedding init
+            warnings.warn(
+                f'emb_init_uniform_lim ignored when using param_init_fn: deepnorm_'
+            )
 
         emb_init_fn_(module.weight)
+        if cfg.get('verbose', 0) > 1:
+            warnings.warn(
+                'Embedding layer initialized using normal distribution with mean=0 and std=1.'
+            )
 
     elif isinstance(module, nn.LayerNorm):
         # LayerNorm
