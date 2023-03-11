@@ -19,6 +19,7 @@ class FlashAttention(nn.Module):
     """Implement the scaled dot product attention with softmax.
 
     Args:
+        num_heads: number of attention heads
         softmax_scale: The temperature to use for the softmax attention.
                       (default: 1/sqrt(d_keys) where d_keys is computed at
                       runtime)
@@ -51,21 +52,12 @@ class FlashAttention(nn.Module):
         r"""Multiheaded softmax attention.
 
         Arguments:
-            qkv: The tensor containing the query, key, and value. (B, S, 3, H, D) if key_padding_mask is None
-                if unpadded: (nnz, 3, h, d)
-            key_padding_mask: If specified, a mask of shape :math:`(N, S)` indicating which elements within ``key``
-                to ignore for the purpose of attention (i.e. treat as "padding"). For unbatched `query`, shape should be :math:`(S)`.
-                Binary and byte masks are supported.
-                For a binary mask, a ``True`` value indicates that the corresponding ``key`` value will be ignored for
-                the purpose of attention. For a float mask, it will be directly added to the corresponding ``key`` value.
+            qkv: The tensor containing the query, key, and value. (B, S, 3, H, D)
+            key_padding_mask: not implemented for triton kernel.
             attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
-            is_causal: If specified, applies a causal mask as attention mask. Mutually exclusive with providing attn_mask.
-                Default: ``False``.
-            need_weights: If specified, returns ``attn_output_weights`` in addition to ``attn_outputs``.
-                Default: ``True``.
-            average_attn_weights: If true, indicates that the returned ``attn_weights`` should be averaged across
-                heads. Otherwise, ``attn_weights`` are provided separately per head. Note that this flag only has an
-                effect when ``need_weights=True``. Default: ``True`` (i.e. average weights across heads)
+            is_causal: If specified, applies a causal mask as attention mask. Default: ``False``.
+            need_weights: not implemented for triton kernel.
+            average_attn_weights: not implemented for triton kernel.
         """
         from flash_attn import flash_attn_triton  # type: ignore
 
@@ -129,10 +121,9 @@ class FlashMHA(nn.Module):
 
         Args:
             x: (batch, seqlen, hidden_dim) (where hidden_dim = num heads * head dim)
-            key_padding_mask: bool tensor of shape (batch, seqlen)
+            key_padding_mask: not implemented for triton kernel.
             attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
-            need_weights: If specified, returns ``attn_output_weights`` in addition to ``attn_outputs``.
-                Default: ``True``.
+            need_weights: not implemented for triton kernel.
         """
         qkv = self.Wqkv(x)
         context, attn_weights = self.inner_attn(
