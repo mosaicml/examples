@@ -152,7 +152,7 @@ def build_streams(cfg: DictConfig):
     if cfg.get('streams', None) is not None:
         streams = []
         for stream_name in cfg.streams:
-            streams.append(Stream(**cfg.streams.get(stream_name)))
+            streams.append(Stream(**cfg.streams.get(stream_name), keep_zip=False))
         return streams
     else:
         return None
