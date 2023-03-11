@@ -32,7 +32,7 @@ def build_callback(name, kwargs):
     elif name == 'fdiff':
         return FDiffMetrics(**kwargs)
     elif name == 'bfi':
-        return BruteForceInit()
+        return BruteForceInit(**kwargs)
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
