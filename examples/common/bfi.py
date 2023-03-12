@@ -71,44 +71,45 @@ class BruteForceInit(Callback):
     def _bfi_forward(self, state: State, logger: Logger):
         from examples.llm.src.models.param_init_fns import \
             get_div_is_residual_factor
+
         init_div_is_residual, div_is_residual = get_div_is_residual_factor(
             state.model.model.cfg)
 
         hooks = {}  # dict storing all hooks
+        init_done = set()
+        self.init_layer = None
 
         def init_pre_fwd_hook(module, input) -> None:
             # removes fwd pre hooks so that they are not called recussivly
-            hooks[module].remove()
+            hook = hooks.pop(module)
+            hook.remove()
 
             with torch.no_grad():
-                with state.model.model.summon_full_params(
-                        module):  # get params from FSDP
-                    if hasattr(module, 'bias') and module.bias is not None:
-                        module.bias.fill_(0.)
+                if hasattr(module, 'bias') and module.bias is not None:
+                    module.bias.fill_(0.)
 
-                    x, = input
-                    y = module(x)
+                x, = input
+                y = module(x)
 
-                    reduce_dims = list(range(y.dim()))[:-1]
-                    sec_mom = (y * y).mean(reduce_dims).sqrt()
-                    scale_factor = sec_mom / math.sqrt(self.init_norm)
-                    if self.mode == 'layer':
-                        scale_factor = scale_factor.mean()
-                    elif self.mode == 'feature':
-                        # do nothing, this is the default behavior
-                        pass
+                reduce_dims = list(range(y.dim()))[:-1]
+                sec_mom = (y * y).mean(reduce_dims).sqrt()
 
-                    if init_div_is_residual is not False and getattr(
-                            module, '_is_residual', False):
-                        scale_factor *= div_is_residual
+                scale_factor = sec_mom / math.sqrt(self.init_norm)
 
-                    dist.all_reduce(scale_factor)
+                if self.mode == 'layer':
+                    scale_factor = scale_factor.mean()
+                elif self.mode == 'feature':
+                    # do nothing, this is the default behavior
+                    pass
 
-                    if isinstance(module, nn.Linear):
-                        # required because linear layer's weights are transpose before being applied
-                        module.weight.div_(scale_factor.unsqueeze(-1))
-                    else:  # nn.Embedding
-                        module.weight.div_(scale_factor)
+                if init_div_is_residual is not False and getattr(
+                        module, '_is_residual', False):
+                    scale_factor *= div_is_residual
+
+                dist.all_reduce(scale_factor)
+
+                if self.init_layer is None:
+                    self.init_layer = (module, module.weight, scale_factor)
 
         # this initial first pass (without hooks) verifies everything works
         device_type = state.batch['input_ids'].device.type
@@ -117,16 +118,42 @@ class BruteForceInit(Callback):
         loss.backward()
         state.model.zero_grad(set_to_none=True)
 
-        # register initialization hooks
-        for module in state.model.modules():
-            if isinstance(module, (nn.Linear, nn.Embedding)):
-                hooks[module] = module.register_forward_pre_hook(
-                    init_pre_fwd_hook)
+        while True:
+            # this looping is only required because FSDP does not enable summon_full_params within a fwd or bwd pass
 
-        # forawrd pass and initialize model
-        with torch.no_grad():
-            with torch.autocast(device_type=device_type):
-                y = state.model(state.batch)
+            # register initialization hooks
+            for module in state.model.modules():
+                if isinstance(module, (nn.Linear, nn.Embedding)):
+                    if module not in init_done:
+                        hooks[module] = module.register_forward_pre_hook(
+                            init_pre_fwd_hook)
+
+            if not hooks:
+                break
+
+            # forawrd pass and initialize model
+            with torch.no_grad():
+                with torch.autocast(device_type=device_type):
+                    y = state.model(state.batch)
+
+            with state.model.model.summon_full_params(
+                    state.model.model,
+                    writeback=True,
+            ):  # get params from FSDP and enable writeback
+                with torch.no_grad():
+                    module, param, scale_factor = self.init_layer
+                    if isinstance(module, nn.Linear):
+                        # required because linear layer's weights are transpose before being applied
+                        module.weight.div_(scale_factor.unsqueeze(-1))
+                    elif isinstance(module, nn.Embedding):
+                        # nn.Embedding
+                        module.weight.div_(scale_factor)
+                    else:
+                        raise NotImplementedError(
+                            f'BFI not implemented for {module}.')
+
+            init_done.add(module)
+            self.init_layer = None
 
         self.initialized = True
 
