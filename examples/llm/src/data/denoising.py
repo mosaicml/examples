@@ -499,8 +499,8 @@ def noise_token_sequence(
             u = np.random.uniform(low=0.0, high=mask_ratio * 2)
         else:
             u = np.random.uniform(low=(mask_ratio * 2) - 1, high=1.0)
-        mean_span_length = np.round(1 + u * (length - 1))
-        mask_ratio = mean_span_length / length
+        mean_span_length = float(np.round(1 + u * (length - 1)))
+        mask_ratio = mean_span_length / length  # type: ignore
         use_sentinels = False
     else:
         use_sentinels = True
