@@ -868,8 +868,8 @@ def convert_hf_causal_lm_to_prefix_lm(
 
 
 def add_bidirectional_mask_if_missing(batch: Dict[str, Any]):
-    """Attempts to add bidirectional_mask to batch if missing
-    
+    """Attempts to add bidirectional_mask to batch if missing.
+
     Raises:
         KeyError if bidirectional_mask is missing and can't be inferred
     """
