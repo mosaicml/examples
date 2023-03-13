@@ -82,10 +82,16 @@ class TorchCausalAttention(nn.Module):
         batch_size,
         heads,
         seq_len,
+        prefix_mask=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
     ):
+
+        if prefix_mask is not None:
+            raise NotImplementedError(
+                'This attention implementation does not support use of `prefix_lm`.'
+            )
 
         # select seq_len subset of attn mask
         attn_mask = attn_mask[..., :seq_len, :seq_len]
@@ -213,10 +219,16 @@ class FlashCausalAttention(nn.Module):
         batch_size,
         heads,
         seq_len,
+        prefix_mask=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
     ):
+        if prefix_mask is not None:
+            raise NotImplementedError(
+                'This attention implementation does not support use of `prefix_lm`.'
+            )
+
         return attn_mask  # None
 
 
@@ -273,7 +285,7 @@ class TritonFlashAttention(nn.Module):
                 num_heads=cfg.n_heads,
                 bias=True,
                 batch_first=True,
-                causal=self.causal,
+                causal=self.causal,  # type: ignore
                 softmax_scale=cfg.get('softmax_scale'),
                 device=device,
             )
@@ -364,10 +376,16 @@ class TritonFlashCausalAttention(TritonFlashAttention):
         batch_size,
         heads,
         seq_len,
+        prefix_mask=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
     ):
+        if prefix_mask is not None:
+            raise NotImplementedError(
+                'This attention implementation does not support use of `prefix_lm`.'
+            )
+
         if attn_mask is not None:
             # select seq_len subset of attn mask
             attn_mask = attn_mask[..., :seq_len, :seq_len]

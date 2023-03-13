@@ -158,24 +158,17 @@ class MosaicGPT(nn.Module):
                                             alibi_bias_max=self.alibi_bias_max)
             self._attn_mask_initialized = True
 
-        if self.is_prefix_lm:
-            if prefix_mask is None:
-                raise ValueError(
-                    'prefix_mask cannot be None when using prefix_lm')
-            return self.causal_attn_cls.generate_attn_mask(
-                self.attn_mask,
-                batch_size,
-                self.cfg.n_heads,
-                seq_len,
-                prefix_mask,
-                key_padding_mask=key_padding_mask,
-                alibi=self.alibi,
-                dtype=dtype)
+        if self.is_prefix_lm and (prefix_mask is None):
+            raise ValueError('prefix_mask cannot be None when using prefix_lm')
+        elif (not self.is_prefix_lm) and (prefix_mask is not None):
+            raise ValueError(
+                'prefix_mask should be None when not using prefix_lm')
         return self.causal_attn_cls.generate_attn_mask(
             self.attn_mask,
             batch_size,
             self.cfg.n_heads,
             seq_len,
+            prefix_mask,
             key_padding_mask=key_padding_mask,
             alibi=self.alibi,
             dtype=dtype)
