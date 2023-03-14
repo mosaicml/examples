@@ -16,7 +16,7 @@ from examples.common.builders import (build_algorithm, build_callback,
                                       build_dataloader, build_logger,
                                       build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
-
+os.environ["NCCL_P2P_LEVEL"] = "NVL"
 
 def build_model(cfg: DictConfig):
     if cfg.name == 'hf_bert':

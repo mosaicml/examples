@@ -11,7 +11,7 @@ tokenizer_name: bert-base-uncased
 mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
 # Run Name
-run_name: bert-base_1
+run_name: bert-base_1_bf16
 
 # Model
 model:
@@ -80,7 +80,7 @@ seed: 17
 device_eval_batch_size: 128
 device_train_microbatch_size: 128
 # device_train_microbatch_size: auto
-precision: fp32
+precision: bf16
 
 # Logging
 progress_bar: false
