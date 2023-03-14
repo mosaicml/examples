@@ -66,7 +66,7 @@ matplotlib==3.7.1
 matplotlib-inline==0.1.6
 mdurl==0.1.2
 mlnx-tools===-5.2.0-
-mosaicml @ git+https://github.com/mosaicml/composer.git@1f359945398f3d22136b446a0fa344374ba430b3
+mosaicml @ git+https://github.com/mosaicml/composer@1f359945398f3d22136b446a0fa344374ba430b3
 mosaicml-cli==0.2.39
 mosaicml-examples @ file:///examples
 mosaicml-streaming @ git+https://github.com/mosaicml/streaming@0aacad84892670d0f74de5bbdbac6252471dc52a
