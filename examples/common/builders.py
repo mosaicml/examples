@@ -17,6 +17,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.fdiff import FDiffMetrics
+from examples.common.optim.lion import DecoupledLionW
 from examples.common.text_data import build_text_dataloader
 
 
