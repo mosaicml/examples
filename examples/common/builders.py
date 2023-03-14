@@ -16,7 +16,8 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
-from examples.common.optim import DecoupledLionW
+from examples.common.fdiff import FDiffMetrics
+from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
 
 
@@ -26,9 +27,11 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitor(window_size=kwargs.get('window_size', 1),
-                            gpu_flops_available=kwargs.get(
-                                'gpu_flops_available', None))
+        return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
+                               gpu_flops_available=kwargs.get(
+                                   'gpu_flops_available', None))
+    elif name == 'fdiff':
+        return FDiffMetrics(**kwargs)
     elif name == 'runtime_estimator':
         return RuntimeEstimator()
     elif name == 'optimizer_monitor':
