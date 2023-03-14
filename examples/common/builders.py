@@ -14,9 +14,11 @@ from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
+                                      CosineAnnealingWarmupWithRestartsScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.fdiff import FDiffMetrics
+from examples.common.optim.lion import DecoupledLionW
 from examples.common.text_data import build_text_dataloader
 
 
@@ -84,6 +86,13 @@ def build_optimizer(cfg, model):
 def build_scheduler(cfg):
     if cfg.name == 'constant_with_warmup':
         return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
+    elif cfg.name == 'cosine_warmup_with_restarts':
+        return CosineAnnealingWarmupWithRestartsScheduler(
+            t_0=cfg.t_0,
+            warmup_frac=cfg.warmup_frac,
+            t_mult=cfg.t_mult,
+            alpha_f=cfg.alpha_f
+        )
     elif cfg.name == 'cosine_with_warmup':
         return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
                                                   alpha_f=cfg.alpha_f)
