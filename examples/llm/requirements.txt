@@ -85,7 +85,7 @@ parso==0.8.3
 pathtools==0.1.2
 pexpect==4.8.0
 pickleshare==0.7.5
-pillow @ file:///tmp/pillow_stub
+# pillow @ file:///tmp/pillow_stub
 Pillow-SIMD==9.0.0.post1
 platformdirs==3.1.1
 pluggy==1.0.0
