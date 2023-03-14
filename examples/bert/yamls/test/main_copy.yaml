@@ -1,23 +1,23 @@
-# Use this YAML to verify that MLM pre-training works. Runs on CPU or GPUs (if available).
-# From `examples/bert`, run:
-#   `composer main.py yamls/test/main.yaml` to run using the HuggingFace BERT
-#   `composer main.py yamls/test/main.yaml model.name=mosaic_bert` to run using the Mosaic BERT
-
 data_remote: # If blank, files must be present in data_local
-data_local: ./my-copy-c4
-tokenizer_name: prajjwal1/bert-tiny
+data_local: /serenity/data/datasets/c4
+tokenizer_name: bert-base-uncased
 max_seq_len: 128
 mlm_probability: 0.15
 
 # Run Name
-run_name: test
+run_name: test_mosaic_bert
 
 # Model
 model:
-  name: hf_bert
+  name: mosaic_bert
   use_pretrained: false # Train the model from scratch. Set to true to start from the HF off-the-shelf weights.
   pretrained_model_name: ${tokenizer_name}
   tokenizer_name: ${tokenizer_name}
+  model_config:
+    num_attention_heads: 12 # bert-base default
+    num_hidden_layers: 12 # bert-base default
+    # attention_probs_dropout_prob: 0.0 # This must be 0 for Flash Attention with triton to work
+
 
 # Dataloaders
 train_loader:
@@ -25,7 +25,7 @@ train_loader:
   dataset:
     remote: ${data_remote}
     local: ${data_local}
-    split: train_small
+    split: train
     tokenizer_name: ${tokenizer_name}
     max_seq_len: ${max_seq_len}
     predownload: 1000
