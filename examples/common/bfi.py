@@ -14,7 +14,7 @@ import torch
 from composer.core import Callback, State
 from composer.loggers import Logger
 from composer.utils import dist
-from torch import nn
+from torch import nn, Tensor
 
 
 class BruteForceInit(Callback):
@@ -24,7 +24,7 @@ class BruteForceInit(Callback):
         init_mode (str): string dictating which variance to optimizer for
             Options: ``'forward'``, ``'backward'``, ``'forward_backward_avg'``
             Default: ``'forward'``
-        init_norm (int): desired norm of layer outputs
+        init_norm (int, str): desired norm of layer outputs
         mode (str): string dictating if bfi is applied per feature or layer
             Options: ``'feature'``, ``'layer'``
             Default: ``'layer'``
@@ -79,6 +79,7 @@ class BruteForceInit(Callback):
         init_done = set()
         self.init_layer = None
 
+
         def init_pre_fwd_hook(module, input) -> None:
             # removes fwd pre hooks so that they are not called recussivly
             hook = hooks.pop(module)
@@ -94,13 +95,23 @@ class BruteForceInit(Callback):
                 reduce_dims = list(range(y.dim()))[:-1]
                 sec_mom = (y * y).mean(reduce_dims).sqrt()
 
-                scale_factor = sec_mom / math.sqrt(self.init_norm)
+                if isinstance(self.init_norm, str):
+                    in_scale = (x * x).mean(reduce_dims).sqrt().mean()
+                    if self.init_norm == 'same':
+                        scale_factor = sec_mom.mean() / in_scale
+                    elif self.init_norm.beginswith('mul'):
+                        mul = float(self.init_norm.strip('mul'))
+                        scale_factor = sec_mom.mean() / (mul * in_scale)
+                    else:
+                        raise NotImplementedError
+                else:
+                    scale_factor = sec_mom / math.sqrt(self.init_norm)
 
-                if self.mode == 'layer':
-                    scale_factor = scale_factor.mean()
-                elif self.mode == 'feature':
-                    # do nothing, this is the default behavior
-                    pass
+                    if self.mode == 'layer':
+                        scale_factor = scale_factor.mean()
+                    elif self.mode == 'feature':
+                        # do nothing, this is the default behavior
+                        pass
 
                 if init_div_is_residual is not False and getattr(
                         module, '_is_residual', False):
@@ -110,6 +121,7 @@ class BruteForceInit(Callback):
 
                 if self.init_layer is None:
                     self.init_layer = (module, module.weight, scale_factor)
+
 
         # this initial first pass (without hooks) verifies everything works
         device_type = state.batch['input_ids'].device.type
@@ -123,7 +135,7 @@ class BruteForceInit(Callback):
 
             # register initialization hooks
             for module in state.model.modules():
-                if isinstance(module, (nn.Linear, nn.Embedding)):
+                if isinstance(module, (nn.Linear,)):  # nn.Embedding
                     if module not in init_done:
                         hooks[module] = module.register_forward_pre_hook(
                             init_pre_fwd_hook)
@@ -145,9 +157,6 @@ class BruteForceInit(Callback):
                     if isinstance(module, nn.Linear):
                         # required because linear layer's weights are transpose before being applied
                         module.weight.div_(scale_factor.unsqueeze(-1))
-                    elif isinstance(module, nn.Embedding):
-                        # nn.Embedding
-                        module.weight.div_(scale_factor)
                     else:
                         raise NotImplementedError(
                             f'BFI not implemented for {module}.')
@@ -158,7 +167,114 @@ class BruteForceInit(Callback):
         self.initialized = True
 
     def _bfi_backward(self, state: State, logger: Logger):
-        raise NotImplementedError
+        from examples.llm.src.models.param_init_fns import \
+            get_div_is_residual_factor
+
+        init_div_is_residual, div_is_residual = get_div_is_residual_factor(
+            state.model.model.cfg)
+
+        hooks = {}  # dict storing all hooks
+        init_done = set()
+        self.init_layer = None
+
+
+        def init_bwd_hook(module, grad_input, grad_output):
+            # removes fwd pre hooks so that they are not called recussivly
+            hook = hooks.pop(module)
+            hook.remove()
+
+            with torch.no_grad():
+
+                dy, = grad_output
+                dx = dy @ module.weight.to(dy.dtype)
+
+                reduce_dims = list(range(y.dim()))[:-1]
+                sec_mom = (dx * dx).mean(reduce_dims).sqrt()
+
+                if isinstance(self.init_norm, str):
+                    in_scale = (dy * dy).mean(reduce_dims).sqrt().mean()
+                    if self.init_norm == 'same':
+                        scale_factor = sec_mom.mean() / in_scale
+                    elif self.init_norm.beginswith('mul'):
+                        mul = float(self.init_norm.strip('mul'))
+                        scale_factor = sec_mom.mean() / (mul * in_scale)
+                    else:
+                        raise NotImplementedError
+                else:
+                    scale_factor = sec_mom / math.sqrt(self.init_norm)
+
+                    if self.mode == 'layer':
+                        scale_factor = scale_factor.mean()
+                    elif self.mode == 'feature':
+                        # do nothing, this is the default behavior
+                        pass
+
+                if init_div_is_residual is not False and getattr(
+                        module, '_is_residual', False):
+                    scale_factor *= div_is_residual
+
+                dist.all_reduce(scale_factor)
+
+                if self.init_layer is None:
+                    self.init_layer = (module, module.weight, scale_factor)
+
+
+        # this initial first pass (without hooks) verifies everything works
+        device_type = state.batch['input_ids'].device.type
+        with torch.autocast(device_type=device_type):
+            loss = state.model(state.batch).mean()  # proxy loss
+        loss.backward()
+        state.model.zero_grad(set_to_none=True)
+
+        # zero all bias if model has bias
+        with state.model.model.summon_full_params(
+                    state.model.model,
+                    writeback=True,
+            ):  # get params from FSDP and enable writeback
+            with torch.no_grad():
+                for module in state.model.modules():
+                    if hasattr(module, 'bias'):
+                        module.bias.fill_(0)
+
+        while True:
+            # this looping is only required because FSDP does not enable summon_full_params within a fwd or bwd pass
+
+            # register initialization hooks
+            for module in state.model.modules():
+                if isinstance(module, (nn.Linear)):
+                    if module not in init_done:
+                        hooks[module] = module.register_full_backward_hook(
+                            init_bwd_hook)
+
+            if not hooks:
+                break
+
+            with torch.autocast(device_type=device_type):
+                y = state.model(state.batch)
+            loss = state.model.loss(y, state.batch)
+            loss.backward()
+            # state.model.zero_grad(set_to_none=True)
+
+            with state.model.model.summon_full_params(
+                    state.model.model,
+                    writeback=True,
+            ):  # get params from FSDP and enable writeback
+                with torch.no_grad():
+                    module, param, scale_factor = self.init_layer
+                    if isinstance(module, nn.Linear):
+                        # required because linear layer's weights are transpose before being applied
+                        try:
+                            module.weight.div_(scale_factor)
+                        except:
+                            module.weight.div_(scale_factor.unsqueeze(-1))
+                    else:
+                        raise NotImplementedError(
+                            f'BFI not implemented for {module}.')
+
+            init_done.add(module)
+            self.init_layer = None
+
+        self.initialized = True
 
     def _bfi_forward_backward_avg(self, state: State, logger: Logger):
         raise NotImplementedError
