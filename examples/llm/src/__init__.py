@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from examples.llm.src.data import (MixtureOfDenoisersCollator,
+                                   build_finetuning_dataloader,
                                    build_text_denoising_dataloader)
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 from examples.llm.src.models.hf import (ComposerHFCausalLM, ComposerHFPrefixLM,
@@ -18,6 +19,7 @@ from examples.llm.src.tokenizer import (TOKENIZER_REGISTRY, HFTokenizer,
 
 __all__ = [
     'build_text_denoising_dataloader',
+    'build_finetuning_dataloader',
     'MixtureOfDenoisersCollator',
     'FlashAttention',
     'FlashMHA',
