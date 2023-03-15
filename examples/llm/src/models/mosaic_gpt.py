@@ -17,122 +17,101 @@ from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
+from transformers import PreTrainedModel
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
+from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
 from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
 
 
-class MosaicGPT(nn.Module):
+class MosaicGPT(PreTrainedModel):
+    config_class = MosaicGPTConfig
+    base_model_prefix = 'mosaic_gpt'
 
-    def __init__(self, cfg: DictConfig):
-        super().__init__()
-        assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
-        self.cfg = cfg
-        if cfg.attn_impl == 'torch':
+    def __init__(self, config: MosaicGPTConfig):
+        super().__init__(config)
+        if config.attn_impl == 'torch':
             self.causal_attn_cls = attention.TorchCausalAttention
-        elif cfg.attn_impl == 'flash':
+        elif config.attn_impl == 'flash':
             self.causal_attn_cls = attention.FlashCausalAttention
-        elif cfg.attn_impl == 'triton':
+        elif config.attn_impl == 'triton':
             self.causal_attn_cls = attention.TritonFlashCausalAttention
-        else:
-            raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
-            raise NotImplementedError(
-                'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'
-            )
-        if cfg.get('attn_clip_qkv') and cfg.attn_impl not in [
-                'flash', 'triton'
-        ]:
-            raise NotImplementedError(
-                'QKV clipping only implemented with flash and triton attention.'
-            )
+        self.alibi = config.get('alibi', False)
+        self.alibi_bias_max = config.get('alibi_bias_max',
+                                         8 if self.alibi else None)
 
-        if cfg.get('softmax_scale') and cfg.attn_impl not in [
-                'flash', 'triton'
-        ]:
-            raise NotImplementedError(
-                'softmax_scale only implemented with flash and triton attention.'
-            )
-
-        self.alibi = cfg.get('alibi', False)
-        self.alibi_bias_max = cfg.get('alibi_bias_max',
-                                      8 if self.alibi else None)
-        if self.alibi and cfg.attn_impl not in ['torch', 'triton']:
-            raise NotImplementedError(
-                'alibi only implemented with torch and triton attention.')
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
-        self.embedding_fraction = cfg.get('embedding_fraction', 1)
-        assert 0 < self.embedding_fraction <= 1, 'model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!'
+        self.embedding_fraction = config.get('embedding_fraction', 1)
 
         self.transformer = nn.ModuleDict({
             'wte':
-                nn.Embedding(cfg.vocab_size,
-                             cfg.d_model,
-                             device=cfg.init_device)
+                nn.Embedding(config.vocab_size,
+                             config.d_model,
+                             device=config.init_device)
         })
         if not self.alibi:
             self.transformer.update({
                 'wpe':
-                    nn.Embedding(cfg.max_seq_len,
-                                 cfg.d_model,
-                                 device=cfg.init_device)
+                    nn.Embedding(config.max_seq_len,
+                                 config.d_model,
+                                 device=config.init_device)
             })
-        self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
+        self.transformer.update({'emb_drop': nn.Dropout(config.emb_pdrop)})
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    gpt_blocks.GPTBlock(cfg,
+                    gpt_blocks.GPTBlock(config,
                                         causal_attn_cls=self.causal_attn_cls,
-                                        device=cfg.init_device)
-                    for _ in range(cfg.n_layers)
+                                        device=config.init_device)
+                    for _ in range(config.n_layers)
                 ])
         })
         self.transformer.update(
-            {'ln_f': nn.LayerNorm(cfg.d_model, device=cfg.init_device)})
+            {'ln_f': nn.LayerNorm(config.d_model, device=config.init_device)})
 
         # enables scaling output logits; similar to a softmax "temperature"
-        # PaLM paper uses scale 1/sqrt(cfg.d_model)
+        # PaLM paper uses scale 1/sqrt(config.d_model)
         self.logit_scale = None
-        if self.cfg.get('logit_scale') is not None:
-            logit_scale = self.cfg.get('logit_scale')
+        if self.config.get('logit_scale') is not None:
+            logit_scale = self.config.get('logit_scale')
             if isinstance(logit_scale, str):
                 if logit_scale == 'inv_sqrt_d_model':
-                    logit_scale = 1 / math.sqrt(self.cfg.d_model)
+                    logit_scale = 1 / math.sqrt(self.config.d_model)
                 else:
                     raise ValueError(
                         f"{logit_scale=} is not recognized as an option; use numeric value or 'inv_sqrt_d_model'."
                     )
             self.logit_scale = logit_scale
 
-        if cfg.init_device != 'meta':
+        if config.init_device != 'meta':
             print(
-                f'You are using {cfg.init_device=}, but you can also use cfg.init_device="meta" with Composer + FSDP for fast initialization.'
+                f'You are using {config.init_device=}, but you can also use config.init_device="meta" with Composer + FSDP for fast initialization.'
             )
             self.apply(self.param_init_fn)
 
         # define attn mask
         self._attn_mask_initialized = False
-        mask_shape = self.causal_attn_cls.mask_shape(cfg.n_heads,
-                                                     cfg.max_seq_len,
+        mask_shape = self.causal_attn_cls.mask_shape(config.n_heads,
+                                                     config.max_seq_len,
                                                      self.alibi)
         if mask_shape is not None:
             self.register_buffer(
-                'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
+                'attn_mask', torch.empty(mask_shape, device=config.init_device))
         else:
             self.attn_mask = None
 
-        if cfg.get('no_bias', False):
+        if config.get('no_bias', False):
             for module in self.modules():
                 if hasattr(module, 'bias') and isinstance(
                         module.bias, nn.Parameter):
-                    if cfg.get('verbose'):
+                    if config.get('verbose'):
                         print(f'Removing bias ({module.bias}) from {module}.')
                     module.register_parameter('bias', None)
 
-        if cfg.get('verbose') and cfg.get('verbose') > 2:
+        if config.get('verbose') and config.get('verbose') > 2:
             print(self)
 
     def _attn_mask(self,
@@ -142,8 +121,8 @@ class MosaicGPT(nn.Module):
                    dtype=None):
         if not self._attn_mask_initialized:
             self.causal_attn_cls.attn_mask_(self.attn_mask,
-                                            self.cfg.n_heads,
-                                            self.cfg.max_seq_len,
+                                            self.config.n_heads,
+                                            self.config.max_seq_len,
                                             alibi=self.alibi,
                                             alibi_bias_max=self.alibi_bias_max)
             self._attn_mask_initialized = True
@@ -151,7 +130,7 @@ class MosaicGPT(nn.Module):
         return self.causal_attn_cls.generate_attn_mask(
             self.attn_mask,
             batch_size,
-            self.cfg.n_heads,
+            self.config.n_heads,
             seq_len,
             key_padding_mask=key_padding_mask,
             alibi=self.alibi,
@@ -162,8 +141,8 @@ class MosaicGPT(nn.Module):
                 key_padding_mask: Optional[torch.ByteTensor] = None):
         B, S = input_ids.size()
         assert (
-            S <= self.cfg.max_seq_len
-        ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
+            S <= self.config.max_seq_len
+        ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.config.max_seq_len}'
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
         if self.alibi:
@@ -187,12 +166,12 @@ class MosaicGPT(nn.Module):
                                     seq_len=S,
                                     key_padding_mask=key_padding_mask,
                                     dtype=x.dtype)
-        if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
+        if self.config.attn_impl == 'flash' and key_padding_mask is None:
             # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
             # in certain settings like MosaicGPT-7B. So we always provide a tensor.
             # See https://github.com/mosaicml/examples/pull/163 for more details.
             mod_key_padding_mask = torch.ones_like(input_ids, dtype=torch.bool)
-        elif self.cfg.attn_impl == 'triton':
+        elif self.config.attn_impl == 'triton':
             mod_key_padding_mask = None
         else:
             mod_key_padding_mask = key_padding_mask
@@ -215,10 +194,10 @@ class MosaicGPT(nn.Module):
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
-        init_fn_name = self.cfg.get('param_init_fn', 'baseline_')
-        if self.cfg.get('verbose', 0) > 1:
+        init_fn_name = self.config.get('param_init_fn', 'baseline_')
+        if self.config.get('verbose', 0) > 1:
             warnings.warn(f'Using {init_fn_name} initialization.')
-        MODEL_INIT_REGISTRY[init_fn_name](module, self.cfg)
+        MODEL_INIT_REGISTRY[init_fn_name](module, self.config)
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
@@ -231,16 +210,16 @@ class MosaicGPT(nn.Module):
 
 class ComposerMosaicGPT(ComposerModel):
 
-    def __init__(self, cfg):
+    def __init__(self, config):
         super().__init__()
-        self.model = MosaicGPT(cfg)
+        self.model = MosaicGPT(config)
         self.__num_fwd_flops = None
         self.train_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
+            'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
             'Perplexity': Perplexity(),
         }
         self.eval_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(cfg.vocab_size),
+            'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
             'Perplexity': Perplexity(),
         }
 
@@ -298,9 +277,9 @@ class ComposerMosaicGPT(ComposerModel):
         # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
         # this gets us FLOPs / token
         params_flops_per_token = 2 * n_params
-        params_flops_per_seq = params_flops_per_token * self.model.cfg.max_seq_len
+        params_flops_per_seq = params_flops_per_token * self.model.config.max_seq_len
         # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
-        attn_flops_per_seq = self.model.cfg.n_layers * 2 * 2 * (
-            self.model.cfg.d_model * (self.model.cfg.max_seq_len**2))
+        attn_flops_per_seq = self.model.config.n_layers * 2 * 2 * (
+            self.model.config.d_model * (self.model.config.max_seq_len**2))
         self.__num_fwd_flops = params_flops_per_seq + attn_flops_per_seq
         return self.__num_fwd_flops

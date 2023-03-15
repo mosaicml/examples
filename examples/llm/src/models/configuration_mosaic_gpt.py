@@ -41,15 +41,9 @@ class MosaicGPTConfig(PretrainedConfig):
         init_gain: float = 0,
         fan_mode: str = 'fan_in',
         init_nonlinearity: str = 'leaky_relu',
+        embedding_fraction: float = 1.0,
         **kwargs,
     ):
-        if d_model % n_heads != 0:
-            raise ValueError('d_model must be divisible by n_heads')
-        if any(prob < 0 or prob > 1
-               for prob in [attn_pdrop, resid_pdrop, emb_pdrop]):
-            raise ValueError(
-                'attn_pdrop, resid_pdrop, emb_pdrop are probabilities and must be between 0 and 1'
-            )
         self.d_model = d_model
         self.n_heads = n_heads
         self.n_layers = n_layers
@@ -78,6 +72,46 @@ class MosaicGPTConfig(PretrainedConfig):
         self.init_gain = init_gain
         self.fan_mode = fan_mode
         self.init_nonlinearity = init_nonlinearity
+        self.embedding_fraction = embedding_fraction
         if 'name' in kwargs:
             del kwargs['name']
         super().__init__(**kwargs)
+
+        self._validate_config()
+
+    def _validate_config(self):
+        if self.d_model % self.n_heads != 0:
+            raise ValueError('d_model must be divisible by n_heads')
+        if any(prob < 0 or prob > 1
+               for prob in [self.attn_pdrop, self.resid_pdrop, self.emb_pdrop]):
+            raise ValueError(
+                'attn_pdrop, resid_pdrop, emb_pdrop are probabilities and must be between 0 and 1'
+            )
+        if self.attn_impl not in ['torch', 'flash', 'triton']:
+            raise ValueError(f'Unknown attn_impl={self.attn_impl}')
+        if self.attn_qk_ln and self.attn_impl not in ['flash', 'triton']:
+            raise NotImplementedError(
+                'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'
+            )
+        if self.attn_clip_qkv and self.attn_impl not in ['flash', 'triton']:
+            raise NotImplementedError(
+                'QKV clipping only implemented with flash and triton attention.'
+            )
+        if self.softmax_scale is not None and self.attn_impl not in [
+                'flash', 'triton'
+        ]:
+            raise NotImplementedError(
+                'softmax_scale only implemented with flash and triton attention.'
+            )
+        if self.alibi and self.attn_impl not in ['torch', 'triton']:
+            raise NotImplementedError(
+                'alibi only implemented with torch and triton attention.')
+        if self.embedding_fraction > 1 or self.embedding_fraction <= 0:
+            raise ValueError(
+                'model.embedding_fraction must be between 0 (exclusive) and 1 (inclusive)!'
+            )
+        if isinstance(self.logit_scale,
+                      str) and self.logit_scale != 'inv_sqrt_d_model':
+            raise ValueError(
+                f"{self.logit_scale=} is not recognized as an option; use numeric value or 'inv_sqrt_d_model'."
+            )
