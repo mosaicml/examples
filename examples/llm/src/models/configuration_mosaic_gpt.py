@@ -3,6 +3,8 @@
 
 """A HuggingFace-style model configuration."""
 
+from typing import Optional, Tuple, Union
+
 from transformers import PretrainedConfig
 
 
@@ -26,6 +28,19 @@ class MosaicGPTConfig(PretrainedConfig):
         attn_clip_qkv: Optional[float] = None,
         softmax_scale: Optional[float] = None,
         alibi: bool = False,
+        alibi_bias_max: int = 8,
+        init_device: str = 'cpu',
+        logit_scale: Optional[Union[float, str]] = None,
+        no_bias: bool = False,
+        verbose: int = 0,
+        param_init_fn: str = 'baseline_',
+        init_div_is_residual: bool = True,
+        emb_init_std: Optional[float] = None,
+        emb_init_uniform_lim: Optional[Union[Tuple[float, float],
+                                             float]] = None,
+        init_gain: float = 0,
+        fan_mode: str = 'fan_in',
+        init_nonlinearity: str = 'leaky_relu',
         **kwargs,
     ):
         if d_model % n_heads != 0:
@@ -46,6 +61,23 @@ class MosaicGPTConfig(PretrainedConfig):
         self.resid_pdrop = resid_pdrop
         self.emb_pdrop = emb_pdrop
         self.attn_impl = attn_impl
+        self.attn_qk_ln = attn_qk_ln
+        self.attn_clip_qkv = attn_clip_qkv
+        self.softmax_scale = softmax_scale
+        self.alibi = alibi
+        self.alibi_bias_max = alibi_bias_max
+        self.init_device = init_device
+        self.logit_scale = logit_scale
+        self.no_bias = no_bias
+        self.verbose = verbose
+        self.param_init_fn = param_init_fn
+        self.init_div_is_residual = init_div_is_residual
+        self.emb_init_std = emb_init_std
+        self.emb_init_uniform_lim = emb_init_uniform_lim
+        self.init_std = init_std
+        self.init_gain = init_gain
+        self.fan_mode = fan_mode
+        self.init_nonlinearity = init_nonlinearity
         if 'name' in kwargs:
             del kwargs['name']
         super().__init__(**kwargs)
