@@ -11,8 +11,9 @@ from composer.utils import dist, get_device, reproducibility
 from omegaconf import OmegaConf as om
 
 from examples.common.builders import (build_algorithm, build_callback,
-                                      build_icl_evaluators, build_logger,
-                                      build_optimizer, build_scheduler)
+                                      build_dataloader, build_icl_evaluators,
+                                      build_logger, build_optimizer,
+                                      build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
 from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
@@ -86,7 +87,7 @@ def main(cfg):
     )
 
     reproducibility.seed_all(cfg.seed)
-    dist.initialize_dist(get_device(None), timeout=1500.0)
+    dist.initialize_dist(get_device(None), 5400)
 
     # Run Name
     if cfg.get('run_name') is None:
@@ -158,12 +159,16 @@ def main(cfg):
         build_callback(name, callback_cfg)
         for name, callback_cfg in (cfg.get('callbacks') or {}).items()
     ]
+    callbacks = [c for c in callbacks if c is not None]
 
     # Algorithms
     algorithms = [
         build_algorithm(name, algorithm_cfg)
         for name, algorithm_cfg in (cfg.get('algorithms') or {}).items()
     ]
+
+    for metric in model.train_metrics.values():
+        assert hasattr(metric, 'distributed_available_fn')
 
     # Build the Trainer
     print('Building trainer...')
@@ -199,12 +204,18 @@ def main(cfg):
         autoresume=cfg.get('autoresume', False),
         python_log_level=cfg.get('python_log_level', None),
     )
+    for metric in model.train_metrics.values():
+        assert hasattr(metric, 'distributed_available_fn')
+    print(f"Has distributed_vailable_fn: {hasattr(metric, 'distributed_available_fn')}")
 
     print('Logging config...')
     log_config(cfg)
 
     if cfg.get('eval_first', False):
         trainer.eval()
+    for metric in model.train_metrics.values():
+        assert hasattr(metric, 'distributed_available_fn')
+    print(f"Has distributed_vailable_fn: {hasattr(metric, 'distributed_available_fn')}")
 
     print('Starting training...')
     trainer.fit()

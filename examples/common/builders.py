@@ -4,9 +4,7 @@
 import os
 
 from composer import algorithms
-from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
-                                OptimizerMonitor, RuntimeEstimator,
-                                SpeedMonitor)
+from composer.callbacks import HealthChecker, LRMonitor, MemoryMonitor, OptimizerMonitor, RuntimeEstimator
 from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
@@ -19,7 +17,11 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 
 from examples.common.fdiff import FDiffMetrics
 from examples.common.optim.lion import DecoupledLionW
+from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
 from examples.common.text_data import build_text_dataloader
+from examples.llm.loss_spikes.resumption_callbacks import RESUMPTION_STRATEGIES
+from examples.common.optim import DecoupledLionW
+
 
 
 def build_callback(name, kwargs):
@@ -28,18 +30,21 @@ def build_callback(name, kwargs):
     elif name == 'memory_monitor':
         return MemoryMonitor()
     elif name == 'speed_monitor':
-        return SpeedMonitor(window_size=kwargs.get('window_size', 1),
+        return SpeedMonitorMFU(window_size=kwargs.get('window_size', 1),
                                gpu_flops_available=kwargs.get(
                                    'gpu_flops_available', None))
     elif name == 'fdiff':
         return FDiffMetrics(**kwargs)
+    elif name == 'health_checker':
+        return HealthChecker(**kwargs)
     elif name == 'runtime_estimator':
         return RuntimeEstimator()
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
-    elif name == 'health_checker':
-        return HealthChecker(**kwargs)
+    elif name in RESUMPTION_STRATEGIES:
+        resumption_args = kwargs.get('config', {})
+        return RESUMPTION_STRATEGIES[name](**resumption_args)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -78,7 +83,6 @@ def build_optimizer(cfg, model):
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
-
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
