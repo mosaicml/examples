@@ -45,7 +45,7 @@ dataset_constructor = DatasetConstructor()
 
 def alpaca_tokenize_function(inp, tokenizer):
     """Format the text string and simply tokenize."""
-    # `text` is the text the encoder recieves (i.e. the prompt)
+    # `text` is the text the encoder receives (i.e. the prompt)
     # `text_target` is the target output the decoder should produce
     try:
         prompt, response = inp['text'].split('### Response:')
@@ -58,4 +58,24 @@ def alpaca_tokenize_function(inp, tokenizer):
     )
 
 
+def oig_tokenize_function(inp, tokenizer):
+    """Format the text string and simply tokenize."""
+    # `text` is the text the encoder receives (i.e. the prompt)
+    # `text_target` is the target output the decoder should produce
+    try:
+        # janky heuristic but I really want to train on this data
+        # all data is OTF human: blah\n bot: blah blah
+        # so this should "work" for some definition of work
+        # too many of the tokens are loss generating but I am okay with that
+        prompt, response = inp['text'].split(sep=':', maxsplit=1)
+    except:
+        print(inp)
+        raise
+    return tokenizer(
+        text=prompt + ':',
+        text_target=response,
+    )
+
+
 dataset_constructor.add('HuggingFaceH4/alpaca', alpaca_tokenize_function)
+dataset_constructor.add('laion/OIG', oig_tokenize_function)
