@@ -4,6 +4,7 @@ import torch
 import collections
 from composer.core import Callback, State, TimeUnit
 from composer.loggers import Logger
+from composer.optim.scheduler import _convert_time
 from typing import List
 
 __all__ = ['ResumptionCallback', 'RESUMPTION_STRATEGIES',]
@@ -68,9 +69,8 @@ class ResetOptimizer(ResumptionCallback):
             optimizer.reset_state()
 
 class LayerFreezing(ResumptionCallback):
-    def __init__(self, layer_names: List[str], delete_param= False):
+    def __init__(self, layer_names: List[str]):
         self.layer_names = layer_names
-        self.delete_param = delete_param
        
     def fit_start(self, state: State, logger: Logger):
         model_layers = set(name for name, _ in state.model.named_parameters())
@@ -82,15 +82,40 @@ class LayerFreezing(ResumptionCallback):
         for name, p in state.model.named_parameters():
             if p.requires_grad and name in self.layer_names:
                 print(f"Froze layer: {name}")
+                p.requires_grad = False
                 print(f"Param: {p}")
-                if self.delete_param:
-                    _remove_param_from_optimizers(p, state.optimizers)
-                else:
-                    p.requires_grad = False
                 count += 1
         
         if count == 0:
             raise Exception(f"Tried to run LayerFreezing but didn't freeze any layers {count}")
+
+
+class ProgressiveLayerFreezing(ResumptionCallback):
+    def __init__(self, batch_interval=150):
+        self.batch_interval = batch_interval
+        self.freeze_times = {}
+    
+    def fit_start(self, state: State, logger: Logger):
+        total_train_dur = _convert_time('1dur', state)
+        print(f"Total train dur: {total_train_dur}")
+        params = [name for name, _ in state.model.named_parameters()]
+
+
+        self.freeze_times = {int(total_train_dur-(len(params)-idx)*self.batch_interval) : p  for idx, p in enumerate(params)}
+        
+        print(f"Following freezing schedule: {self.freeze_times}")
+       
+       
+    def batch_end(self, state: State, logger: Logger):
+        curr_time = int(state.timestamp.get(TimeUnit.BATCH).value)
+        if curr_time in self.freeze_times:
+            layer_name = self.freeze_times[curr_time]
+            for name, p in state.model.named_parameters():
+                if p.requires_grad and name == layer_name:
+                    print(f"Froze layer: {name} at time {curr_time}")
+                    p.requires_grad = False
+                    print(f"Param: {p}")
+
 
 
 class LayerwiseMasking(ResumptionCallback):
@@ -128,5 +153,6 @@ RESUMPTION_STRATEGIES = {
     'global_lr_scaling': GlobalLRScaling,
     'layerwise_lr_lowering': LayerwiseLRScaling,
     "reset_optimizer": ResetOptimizer,
-    "layerwise_masking": LayerwiseMasking
+    "layerwise_masking": LayerwiseMasking,
+    "progressive_layer_freezing": ProgressiveLayerFreezing
 }
