@@ -9,9 +9,7 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 
-from examples.llm.src.models.ops import (DenseResGeluDense, DropoutAddLayerNorm,
-                                         FusedMLP,
-                                         check_if_dense_gelu_dense_installed,
+from examples.llm.src.models.ops import (DropoutAddLayerNorm, FusedMLP,
                                          check_if_dropout_layer_norm_installed,
                                          check_if_fused_mlp_installed)
 
@@ -31,22 +29,6 @@ class GPTMLP(nn.Module):
 
     def forward(self, x):
         return self.mlp_down(self.mlp_act(self.mlp_up(x)))
-
-
-class FusedGPTMLP(nn.Module):
-
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
-        super().__init__()
-        check_if_dense_gelu_dense_installed()
-        self.dense_gelu_dense = DenseResGeluDense(cfg.d_model,
-                                                  cfg.mlp_ratio * cfg.d_model,
-                                                  cfg.d_model,
-                                                  device=device)
-        self.dense_gelu_dense.fc2._is_residual = True  # type: ignore
-
-    def forward(self, x):
-        out, _ = self.dense_gelu_dense(x)
-        return out
 
 
 class GPTBlock(nn.Module):
@@ -103,6 +85,7 @@ class OptimizedGPTBlock(nn.Module):
                             hidden_features=cfg.mlp_ratio * cfg.d_model,
                             out_features=cfg.d_model,
                             device=device)
+        setattr(self.mlp.fc2, _is_residual, True)  # type: ignore
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,

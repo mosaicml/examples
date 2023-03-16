@@ -141,8 +141,12 @@ class FusedMLPFunc(torch.autograd.Function):
         if checkpoint_lvl == 0 or (checkpoint_lvl == 1 and
                                    activation == 'relu'):
             # For RELU the pre_act is very small (just a bit-mask) so we just save it
-            ctx.save_for_backward(x, weight1, weight2, pre_act,
-                                  output1)  # type: ignore
+            ctx.save_for_backward(
+                x,
+                weight1,
+                weight2,
+                pre_act,  # type: ignore
+                output1)  # type: ignore
         elif checkpoint_lvl == 1:
             ctx.save_for_backward(x, weight1, weight2, pre_act)  # type: ignore
         elif checkpoint_lvl == 2:
@@ -189,7 +193,9 @@ class FusedMLPFunc(torch.autograd.Function):
                 output1 = activation_fn(pre_act)
             else:
                 output1, pre_act = fused_dense_cuda.linear_act_forward(
-                    total_x.reshape(batch_dim, total_x.shape[-1]),
+                    total_x.reshape(  # type: ignore
+                        batch_dim,  # type: ignore
+                        total_x.shape[-1]),  # type: ignore
                     weight1,  # type: ignore
                     bias1,
                     activation == 'gelu_approx',
@@ -224,8 +230,9 @@ class FusedMLPFunc(torch.autograd.Function):
                 grad_input = F.linear(grad_pre_act, weight1.t())
             else:
                 grad_input = torch.addmm(
-                    grad_input.reshape(batch_dim,
-                                       grad_input.shape[-1]),  # type: ignore
+                    grad_input.reshape(  # type: ignore
+                        batch_dim,  # type: ignore
+                        grad_input.shape[-1]),  # type: ignore
                     grad_pre_act,
                     weight1)
             grad_input = grad_input.reshape(*batch_shape, grad_input.shape[-1])
@@ -241,7 +248,9 @@ class FusedMLPFunc(torch.autograd.Function):
                 if process_group is not None and sequence_parallel:
                     handle_x.wait()  # type: ignore
                 grad_weight1, grad_bias1 = fused_dense_cuda.linear_bias_wgrad(
-                    total_x.reshape(batch_dim, total_x.shape[-1]),
+                    total_x.reshape(  # type: ignore
+                        batch_dim,  # type: ignore
+                        total_x.shape[-1]),  # type: ignore
                     grad_pre_act,  # type: ignore
                     ctx.needs_input_grad[2])
             else:
@@ -253,8 +262,9 @@ class FusedMLPFunc(torch.autograd.Function):
                     handle_x.wait()  # type: ignore
                 grad_weight1 = F.linear(
                     grad_pre_act.t(),
-                    total_x.reshape(batch_dim,
-                                    total_x.shape[-1]).t())  # type: ignore
+                    total_x.reshape(  # type: ignore
+                        batch_dim,  # type: ignore
+                        total_x.shape[-1]).t())  # type: ignore
             else:
                 grad_weight1 = None
         if process_group is not None and ctx.needs_input_grad[0]:
@@ -262,7 +272,7 @@ class FusedMLPFunc(torch.autograd.Function):
         return (
             grad_input,
             grad_weight1,
-            grad_bias1,
+            grad_bias1,  # type: ignore
             grad_weight2,
             grad_bias2,  # type: ignore
             None,
