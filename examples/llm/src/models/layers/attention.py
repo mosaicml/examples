@@ -40,7 +40,10 @@ def scaled_multihead_dot_product_attention(
     attn_weight *= softmax_scale
 
     if attn_bias is not None:
-        attn_bias = attn_bias[:, :, :s_q, :s_k]
+        if attn_bias.size(-1) != s_k or attn_bias.size(-2) != s_q:
+            raise RuntimeError(
+                f'attn_bias (shape: {attn_bias.shape}) is expected to broadcast to shape: {attn_weight.shape}.'
+            )
         attn_weight = attn_weight + attn_bias
 
     if key_padding_mask is not None:
