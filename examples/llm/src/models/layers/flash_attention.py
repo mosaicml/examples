@@ -44,7 +44,7 @@ class FlashAttention(nn.Module):
         self,
         qkv,
         key_padding_mask: Optional[Tensor] = None,
-        attn_mask: Optional[Tensor] = None,
+        attn_bias: Optional[Tensor] = None,
         is_causal: bool = False,
     ) -> Tuple[Tensor, Optional[Tensor]]:
         r"""Multiheaded softmax attention.
@@ -52,7 +52,7 @@ class FlashAttention(nn.Module):
         Arguments:
             qkv: The tensor containing the query, key, and value. (B, S, 3, H, D)
             key_padding_mask: not implemented for triton kernel.
-            attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
+            attn_bias: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             is_causal: If specified, applies a causal mask as attention mask. Default: ``False``.
         """
         from flash_attn import flash_attn_triton  # type: ignore
@@ -63,11 +63,11 @@ class FlashAttention(nn.Module):
         if key_padding_mask is not None and key_padding_mask.bool().logical_not(
         ).any():
             raise NotImplementedError(
-                f'assumes key_padding_mask is taken care of by attn_mask')
+                f'assumes key_padding_mask is taken care of by attn_bias')
         qkv = rearrange(qkv, 'b s (t h d) -> b s t h d', t=3, h=self.num_heads)
 
         attn_output = flash_attn_triton.flash_attn_qkvpacked_func(
-            qkv, attn_mask, is_causal, self.softmax_scale)
+            qkv, attn_bias, is_causal, self.softmax_scale)
         output = rearrange(attn_output, 'b s h d -> b s (h d)')
         return output, None
 
@@ -110,14 +110,14 @@ class FlashMHA(nn.Module):
     def forward(self,
                 x,
                 key_padding_mask: Optional[torch.Tensor] = None,
-                attn_mask: Optional[torch.Tensor] = None,
+                attn_bias: Optional[torch.Tensor] = None,
                 need_weights: bool = False):
         r"""Multiheaded softmax attention.
 
         Args:
             x: (batch, seqlen, hidden_dim) (where hidden_dim = num heads * head dim)
             key_padding_mask: not implemented for triton kernel.
-            attn_mask: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
+            attn_bias: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             need_weights: not implemented for triton kernel.
         """
         if need_weights:
@@ -127,6 +127,6 @@ class FlashMHA(nn.Module):
         context, attn_weights = self.inner_attn(
             qkv,
             key_padding_mask=key_padding_mask,
-            attn_mask=attn_mask,
+            attn_bias=attn_bias,
             is_causal=self.causal)
         return self.out_proj(context), attn_weights

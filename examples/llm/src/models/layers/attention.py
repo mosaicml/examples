@@ -3,380 +3,306 @@
 
 """Attention layers for the GPT models."""
 
+import math
 import warnings
 from typing import Optional
 
 import torch
-import torch.nn as nn
 from einops import rearrange
 from omegaconf import DictConfig
+from torch import nn
 
 
-class TorchCausalAttention(nn.Module):
+def scaled_multihead_dot_product_attention(
+    query,
+    key,
+    value,
+    n_heads,
+    softmax_scale=None,
+    attn_bias=None,
+    key_padding_mask=None,
+    is_causal=False,
+    dropout_p=0.0,
+    training=False,
+    needs_weights=False,
+):
+    q = rearrange(query, 'b s (h d) -> b h s d', h=n_heads)
+    k = rearrange(key, 'b s (h d) -> b h s d', h=n_heads)
+    v = rearrange(value, 'b s (h d) -> b h s d', h=n_heads)
 
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
-        super().__init__()
-        self.mhsa = nn.MultiheadAttention(
-            embed_dim=cfg.d_model,
-            num_heads=cfg.n_heads,
-            dropout=cfg.attn_pdrop,
-            bias=True,
-            batch_first=True,
-            device=device,
-        )
-        self.mhsa.out_proj._is_residual = True  # type: ignore
+    b, _, s, d = q.shape
 
-        warnings.warn(
-            DeprecationWarning(
-                'Using `attn_impl: torch` is deprecated; recommened using `attn_impl: flash`.'
-            ))
+    if softmax_scale is None:
+        softmax_scale = 1 / math.sqrt(d)
 
-    def forward(self, x, key_padding_mask, attn_mask=None):
-        if key_padding_mask is not None:
-            key_padding_mask = ~key_padding_mask
-        return self.mhsa(x,
-                         x,
-                         x,
-                         attn_mask=attn_mask,
-                         key_padding_mask=key_padding_mask,
-                         need_weights=True)
+    attn_weight = q @ k.transpose(-2, -1)
+    attn_weight *= softmax_scale
 
-    @staticmethod
-    def mask_shape(n_heads, seq_len, alibi):
-        if alibi:
-            return (n_heads, seq_len, seq_len)
-        return (seq_len, seq_len)
+    if attn_bias is not None:
+        attn_weight = attn_weight + attn_bias
 
-    @staticmethod
-    def attn_mask_(attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
-        # in-place fill causal attn mask
-        #
-        # Two important disclaimers
-        # 1. Torch uses additive attention. If your attn_mask/key_padding mask is a float tensor, it will add the floats
-        #   directly to your attention matrix. If they are boolean masks, True will be converted to -inf before adding the
-        #   mask to your attentions. See https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html#torch.nn.MultiheadAttention.forward
-        #   Basically True/-inf indicates tokens we do not want to attend to.
-        #
-        # 2. This is is the exact opposite behavior of Huggingface's tokenizers, which use the convention that True denotes tokens
-        #   we do want to attend to. See https://huggingface.co/docs/transformers/glossary#attention-mask
-        attn_mask.fill_(float('-inf'))
-        # attn_mask.triu_(diagonal=1)  # triu_ is not implemented for cuda bf16
-        # TODO: revert back to triu_ when torch supports triu_ for cuda bf16
-        attn_mask.masked_fill_(attn_mask.to(bool).fill_(1).tril_(), 0.)
+    if key_padding_mask is not None:
+        attn_weight.masked_fill(~key_padding_mask.view((b, 1, 1, s)),
+                                -float('inf'))
 
-        if alibi:
-            device, dtype = attn_mask.device, attn_mask.dtype
-            a_bias = alibi_bias(n_heads,
-                                seq_len,
-                                full=True,
-                                alibi_bias_max=alibi_bias_max,
-                                device=device,
-                                dtype=dtype)
-            attn_mask.add_(a_bias.squeeze())
+    if is_causal:
+        causal_mask = attn_weight.new_ones(s, s, dtype=torch.bool)
+        causal_mask.tril_()
+        causal_mask.logical_not_()
+        attn_weight = attn_weight.masked_fill_(causal_mask.view(1, 1, s, s),
+                                               -float('inf'))
 
-        return attn_mask
+    attn_weight = torch.softmax(attn_weight, dim=-1)
 
-    @staticmethod
-    def generate_attn_mask(
-        attn_mask,
-        batch_size,
-        heads,
-        seq_len,
-        key_padding_mask=None,
-        alibi=False,
-        dtype=None,
-    ):
+    if dropout_p:
+        attn_weight = torch.nn.functional.dropout(attn_weight,
+                                                  p=dropout_p,
+                                                  training=training,
+                                                  inplace=True)
 
-        # select seq_len subset of attn mask
-        attn_mask = attn_mask[..., :seq_len, :seq_len]
+    out = attn_weight @ v
+    out = rearrange(out, 'b h s d -> b s (h d)', h=n_heads)
 
-        if key_padding_mask is not None and _check_apply_key_padding_mask(
-                key_padding_mask):
-            attn_mask = attn_mask.expand(batch_size, heads, seq_len,
-                                         seq_len).clone()
-
-            kpm_fill_value = -1e4  # numerically stable -inf
-            attn_mask.masked_fill_(
-                ~key_padding_mask.view(batch_size, 1, 1, seq_len),
-                kpm_fill_value)
-            attn_mask.masked_fill_(
-                ~key_padding_mask.view(batch_size, 1, seq_len, 1),
-                kpm_fill_value)
-            attn_mask = attn_mask.reshape(-1, seq_len, seq_len)
-        elif alibi:
-            # WARNING: Alibi with torch attn is not thoroughly tested
-            # torch mask is supposed to be of shape nzz x SeqLen x SeqLen
-            # we must braodcast to batch size then flatten batchsize * n_heads dim
-            # Note: if key_padding_mask is triggered, the needed expansion is already done.
-            attn_mask = attn_mask.expand(batch_size, heads, seq_len,
-                                         seq_len).reshape(-1, seq_len, seq_len)
-
-        return attn_mask
+    if needs_weights:
+        return out, attn_weight
+    return out, None
 
 
-class FlashCausalAttention(nn.Module):
+def scaled_multihead_dot_product_self_attention(
+    qkv,
+    n_heads,
+    softmax_scale=None,
+    attn_bias=None,
+    key_padding_mask=None,
+    is_causal=False,
+    dropout_p=0.0,
+    training=False,
+    needs_weights=False,
+):
+    qkv = rearrange(qkv, 'b s (t hd) -> b s t hd', t=3)
+    return scaled_multihead_dot_product_attention(
+        qkv[:, :, 0],
+        qkv[:, :, 1],
+        qkv[:, :, 2],
+        n_heads,
+        softmax_scale=softmax_scale,
+        attn_bias=attn_bias,
+        key_padding_mask=key_padding_mask,
+        is_causal=is_causal,
+        dropout_p=dropout_p,
+        training=training,
+        needs_weights=needs_weights,
+    )
+
+
+class MultiheadAttention(nn.Module):
+    """Multi-head self attention.
+
+    Using torch or triton attention implemetation enables user to also use
+    additive bias.
+    """
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
-        try:
-            from flash_attn.flash_attention import (  # type: ignore
-                FlashAttention, FlashMHA)
-        except ImportError as e:
-            raise e
+        self.attn_impl = cfg.get('attn_impl')
 
         self.clip_qkv = cfg.get('attn_clip_qkv')
         self.attn_qk_ln = cfg.get('attn_qk_ln')
-        self.softmax_scale = cfg.get('softmax_scale')
+
         self.d_model = cfg.d_model
         self.n_heads = cfg.n_heads
+        self.softmax_scale = cfg.get('softmax_scale')
+        if self.softmax_scale is None:
+            self.softmax_scale = 1 / math.sqrt(self.d_model / self.n_heads)
+        self.attn_dropout_p = cfg.get('attn_pdrop')
 
-        if self.attn_qk_ln or self.clip_qkv or self.softmax_scale:
-            self.W_qkv = nn.Linear(self.d_model,
-                                   3 * self.d_model,
-                                   bias=True,
-                                   device=device)
-            self.inner_attn = FlashAttention(attention_dropout=cfg.attn_pdrop,
-                                             device=device,
-                                             softmax_scale=self.softmax_scale)
-            self.out_proj = nn.Linear(self.d_model,
-                                      self.d_model,
-                                      bias=True,
-                                      device=device)
-            # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
-            self.W_qkv._fused = (0, fuse_splits)  # type: ignore
-            self.out_proj._is_residual = True  # type: ignore
+        self.Wqkv = nn.Linear(self.d_model,
+                              3 * self.d_model,
+                              bias=True,
+                              device=device)
+        # for param init fn; enables shape based init of fused layers
+        fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+        self.Wqkv._fused = (0, fuse_splits)  # type: ignore
 
-            if self.attn_qk_ln:
-                self.q_ln = nn.LayerNorm(self.d_model, device=device)
-                self.k_ln = nn.LayerNorm(self.d_model, device=device)
-        else:
-            self.mhsa = FlashMHA(
-                embed_dim=cfg.d_model,
-                num_heads=cfg.n_heads,
-                attention_dropout=cfg.attn_pdrop,
-                bias=True,
-                batch_first=True,
-                causal=True,
+        if self.attn_qk_ln:
+            self.q_ln = nn.LayerNorm(self.d_model, device=device)
+            self.k_ln = nn.LayerNorm(self.d_model, device=device)
+
+        self.is_causal = True  # causal attn impl
+        if self.attn_impl == 'flash':
+            try:
+                from flash_attn import flash_attention  # type: ignore
+            except ImportError as e:
+                raise e
+
+            self.inner_attn = flash_attention.FlashAttention(  # type: ignore
+                attention_dropout=self.attn_dropout_p,
                 device=device,
-            )
-            # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
-            self.mhsa.Wqkv._fused = (0, fuse_splits)  # type: ignore
-            self.mhsa.out_proj._is_residual = True
+                softmax_scale=self.softmax_scale)
+        elif self.attn_impl == 'triton':
+            if self.attn_dropout_p:
+                raise ValueError(
+                    'Triton kernel does not support attention dropout.')
 
-    def forward(self, x, key_padding_mask, attn_mask=None):
-        assert attn_mask is None
+            try:
+                from examples.llm.src.models import layers  # type: ignore
+            except ImportError as e:
+                raise e
 
-        if self.attn_qk_ln or self.clip_qkv or self.softmax_scale:
-            qkv = self.W_qkv(x)
-            if self.clip_qkv:
-                qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
-            if self.attn_qk_ln:
-                # Applying layernorm to qk
-                dtype = qkv.dtype
-                q, k, v = qkv.split(self.d_model, dim=-1)
-                q = self.q_ln(q).to(dtype)
-                k = self.k_ln(k).to(dtype)
-                qkv = torch.cat([q, k, v], dim=-1)
+            warnings.warn(
+                'While `attn_impl: triton` can be faster than `attn_impl: flash` '
+                'it uses more memory. When training larger models this can trigger '
+                'alloc retries which hurts performance. If encountered, we recommend '
+                'using `attn_impl: flash`.')
 
-            # attention
+            self.inner_attn = layers.flash_attention.FlashAttention(  # type: ignore
+                num_heads=cfg.n_heads,
+                softmax_scale=self.softmax_scale,
+                device=device)
+
+        elif self.attn_impl == 'torch':
+            pass
+
+        else:
+            raise ValueError(f"{cfg.get('attn_impl')=} is an invalid setting.")
+
+        self.out_proj = nn.Linear(self.d_model,
+                                  self.d_model,
+                                  bias=True,
+                                  device=device)
+        self.out_proj._is_residual = True  # type: ignore
+
+    def forward(self,
+                x,
+                attn_bias=None,
+                key_padding_mask=None,
+                needs_weights=False):
+        qkv = self.Wqkv(x)
+        if self.clip_qkv:
+            qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
+        if self.attn_qk_ln:
+            # Applying layernorm to qk
+            dtype = qkv.dtype
+            q, k, v = qkv.split(self.d_model, dim=-1)
+            q = self.q_ln(q).to(dtype)
+            k = self.k_ln(k).to(dtype)
+            qkv = torch.cat([q, k, v], dim=-1)
+
+        # attention
+        if self.attn_impl == 'flash':
+            if needs_weights:
+                raise NotImplementedError(
+                    'FlashAttn cannot return attention weights.')
+            if attn_bias is not None:
+                raise RuntimeError(
+                    'attn_impl: flash does not support an attn bias.')
             qkv = rearrange(qkv,
-                            'b s (three h d) -> b s three h d',
-                            three=3,
+                            'b s (t h d) -> b s t h d',
+                            t=3,
                             h=self.n_heads)
 
             context, attn_weights = self.inner_attn(
                 qkv,
                 key_padding_mask=key_padding_mask,
-                causal=True,
+                causal=self.is_causal,
                 need_weights=False)
-            return self.out_proj(rearrange(
-                context, 'b s h d -> b s (h d)')), attn_weights
+            context = rearrange(context, 'b s h d -> b s (h d)')
 
-        else:
-            return self.mhsa(x,
-                             key_padding_mask=key_padding_mask,
-                             need_weights=False)
-
-    @staticmethod
-    def mask_shape(*args, **kwargs):
-        return None
-
-    @staticmethod
-    def attn_mask_(*args, **kwargs):
-        return None
-
-    @staticmethod
-    def generate_attn_mask(
-        attn_mask,
-        batch_size,
-        heads,
-        seq_len,
-        key_padding_mask=None,
-        alibi=False,
-        dtype=None,
-    ):
-        return attn_mask  # None
-
-
-class TritonFlashCausalAttention(nn.Module):
-    """Multi-headed self attention using triton FlashAttn kernel.
-
-    This also includes bias for Alibi integration.
-    """
-
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
-        super().__init__()
-        try:
-            from examples.llm.src.models.layers.flash_attention import (  # type: ignore
-                FlashAttention, FlashMHA)
-        except ImportError as e:
-            raise e
-
-        assert cfg.attn_pdrop == 0, 'triton kernel does not support attn_dropout'
-
-        self.clip_qkv = cfg.get('attn_clip_qkv')
-        self.attn_qk_ln = cfg.get('attn_qk_ln')
-        self.d_model = cfg.d_model
-        self.n_heads = cfg.n_heads
-
-        if self.attn_qk_ln or self.clip_qkv:
-            self.Wqkv = nn.Linear(self.d_model,
-                                  3 * self.d_model,
-                                  bias=True,
-                                  device=device)
-            self.inner_attn = FlashAttention(
-                num_heads=cfg.n_heads,
-                softmax_scale=cfg.get('softmax_scale'),
-                device=device)
-            self.out_proj = nn.Linear(self.d_model,
-                                      self.d_model,
-                                      bias=True,
-                                      device=device)
-            # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
-            self.Wqkv._fused = (0, fuse_splits)  # type: ignore
-            self.out_proj._is_residual = True  # type: ignore
-
-            if self.attn_qk_ln:
-                self.q_ln = nn.LayerNorm(self.d_model, device=device)
-                self.k_ln = nn.LayerNorm(self.d_model, device=device)
-        else:
-            self.mhsa = FlashMHA(
-                embed_dim=cfg.d_model,
-                num_heads=cfg.n_heads,
-                bias=True,
-                batch_first=True,
-                causal=True,
-                softmax_scale=cfg.get('softmax_scale'),
-                device=device,
-            )
-            # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
-            self.mhsa.Wqkv._fused = (0, fuse_splits)  # type: ignore
-            self.mhsa.out_proj._is_residual = True  # type: ignore
-
-        warnings.warn(
-            'While `attn_impl: triton` can be faster than `attn_impl: flash` '
-            'it uses more memory. When training larger models this can trigger '
-            'alloc retries which hurts performance. If encountered, we recommend '
-            'using `attn_impl: flash`.')
-
-    def forward(self, x, key_padding_mask=None, attn_mask=None):
-        if self.attn_qk_ln or self.clip_qkv:
-            qkv = self.Wqkv(x)
-            if self.clip_qkv:
-                qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
-            if self.attn_qk_ln:
-                # Applying layernorm to qk
-                dtype = qkv.dtype
-                q, k, v = qkv.split(self.d_model, dim=-1)
-                q = self.q_ln(q).to(dtype)
-                k = self.k_ln(k).to(dtype)
-                qkv = torch.cat([q, k, v], dim=-1)
-
-            # attention
+        elif self.attn_impl == 'triton':
+            if needs_weights:
+                raise NotImplementedError(
+                    'Triton variant of FlashAttn cannot return attention weigths.'
+                )
             context, attn_weights = self.inner_attn(
                 qkv,
                 key_padding_mask=key_padding_mask,
-                attn_mask=attn_mask,
-                is_causal=True)
+                attn_bias=attn_bias,
+                is_causal=self.is_causal)
 
-            return self.out_proj(context), attn_weights
-
+        elif self.attn_impl == 'torch':
+            context, attn_weights = scaled_multihead_dot_product_self_attention(
+                qkv,
+                self.n_heads,
+                softmax_scale=self.softmax_scale,
+                attn_bias=attn_bias,
+                key_padding_mask=key_padding_mask,
+                is_causal=self.is_causal,
+                dropout_p=self.attn_dropout_p,
+                training=self.training,
+                needs_weights=needs_weights,
+            )
         else:
-            return self.mhsa(x,
-                             key_padding_mask=None,
-                             attn_mask=attn_mask,
-                             need_weights=False)
+            raise RuntimeError('Internal Logic Error')
 
-    @staticmethod
-    def mask_shape(n_heads, seq_len, alibi):
+        return self.out_proj(context), attn_weights
+
+
+def attn_bias_shape(attn_impl, n_heads, seq_len, alibi):
+    if attn_impl == 'flash':
+        return None
+    elif attn_impl == 'triton':
+        # in triton, key_padding_mask must be integrated into attn_bias
+        return (1, n_heads, 1, seq_len) if alibi else (1, 1, 1, seq_len)
+    elif attn_impl == 'torch':
         return (1, n_heads, 1, seq_len) if alibi else None
+    else:
+        raise ValueError(f'{attn_impl=} is an invalid setting.')
 
-    @staticmethod
-    def attn_mask_(attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
-        if attn_mask is not None:
-            # in-place fill causal attn mask
-            attn_mask.zero_()
 
+def attn_bias_(attn_impl,
+               attn_bias,
+               n_heads,
+               seq_len,
+               alibi=False,
+               alibi_bias_max=8):
+    if attn_impl == 'flash':
+        return None
+    elif attn_impl == 'triton':
+        attn_bias.zero_()
+        if alibi:
+            # in place add alibi to attn bias
+            device, dtype = attn_bias.device, attn_bias.dtype
+            attn_bias.add_(
+                alibi_bias(n_heads,
+                           seq_len,
+                           full=False,
+                           alibi_bias_max=alibi_bias_max,
+                           device=device,
+                           dtype=dtype))
+        return attn_bias
+    elif attn_impl == 'torch':
+        if attn_bias is not None:
+            attn_bias.zero_()
             if alibi:
-                device, dtype = attn_mask.device, attn_mask.dtype
-                attn_mask.add_(
+                # in place add alibi to attn bias
+                device, dtype = attn_bias.device, attn_bias.dtype
+                attn_bias.add_(
                     alibi_bias(n_heads,
                                seq_len,
                                full=False,
                                alibi_bias_max=alibi_bias_max,
                                device=device,
                                dtype=dtype))
-
-        return attn_mask
-
-    @staticmethod
-    def generate_attn_mask(
-        attn_mask,
-        batch_size,
-        heads,
-        seq_len,
-        key_padding_mask=None,
-        alibi=False,
-        dtype=None,
-    ):
-        if attn_mask is not None:
-            # select seq_len subset of attn mask
-            attn_mask = attn_mask[..., :seq_len, :seq_len]
-
-        if key_padding_mask is not None and _check_apply_key_padding_mask(
-                key_padding_mask):
-            if attn_mask is None:
-                attn_mask = key_padding_mask.new_zeros(
-                    ((batch_size, 1, seq_len, seq_len)), dtype=dtype)
-
-            kpm_fill_value = -1e4  # numerically stable -inf
-            attn_mask = attn_mask.masked_fill(
-                ~key_padding_mask.view((batch_size, 1, 1, seq_len)),
-                kpm_fill_value)
-            attn_mask = attn_mask.masked_fill(
-                ~key_padding_mask.view((batch_size, 1, seq_len, 1)),
-                kpm_fill_value)
-
-        return attn_mask
+            return attn_bias
+    else:
+        raise ValueError(f'{attn_impl=} is an invalid setting.')
 
 
-def _check_apply_key_padding_mask(key_padding_mask):
-    if key_padding_mask.bool().logical_not().any():
-        # check to verify all tokens after the first invalid tokens are invalid.
-        # if there are no valid tokens after the first invalid token,
-        # key_padding_mask isn't required given causal mask will eliminate
-        # unwanted token interaction.
-        # WARNING: this approach only works for right padded causal attn
-        # NOTE: I chose this algorithm given its vectorized; there is room for improvement...
-        c_sum = key_padding_mask.cumsum(1)
-        num_valid_tokens = c_sum[:, -1].long()
-        vals = c_sum[range(key_padding_mask.size(0)), num_valid_tokens - 1]
-        return any(vals != num_valid_tokens)
-    return False
+def generate_attn_bias(attn_impl,
+                       attn_bias,
+                       seq_len,
+                       batch_size,
+                       key_padding_mask=None):
+    if attn_bias is not None:
+        # select seq_len subset of attn mask
+        attn_bias = attn_bias[..., :seq_len, :seq_len]
+
+    if attn_impl == 'triton' and key_padding_mask is not None:
+        attn_bias = attn_bias.expand(batch_size, -1, -1, -1)
+        attn_bias.masked_fill(
+            ~key_padding_mask.view((batch_size, 1, 1, seq_len)), -float('inf'))
+
+    return attn_bias
 
 
 def alibi_bias(n_heads,

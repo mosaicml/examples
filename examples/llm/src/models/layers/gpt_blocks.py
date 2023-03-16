@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 from omegaconf import DictConfig
 
+from examples.llm.src.models.layers.attention import MultiheadAttention
+
 
 class GPTMLP(nn.Module):
 
@@ -29,15 +31,10 @@ class GPTMLP(nn.Module):
 
 class GPTBlock(nn.Module):
 
-    def __init__(self,
-                 cfg: DictConfig,
-                 causal_attn_cls,
-                 device: Optional[str] = None):
+    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
-        if cfg.get('alibi', False):
-            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
         self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
-        self.causal_attn = causal_attn_cls(cfg, device)
+        self.attn = MultiheadAttention(cfg, device)
         self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
         self.mlp = GPTMLP(cfg, device=device)
         self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
@@ -46,11 +43,13 @@ class GPTBlock(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
+        attn_bias: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.ByteTensor] = None,
-        attn_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         a = self.ln_1(x)
-        b, _ = self.causal_attn(a, key_padding_mask, attn_mask)
+        b, _ = self.attn(a,
+                         attn_bias=attn_bias,
+                         key_padding_mask=key_padding_mask)
         x = x + self.resid_attn_dropout(b)
         m = self.ln_2(x)
         n = self.mlp(m)

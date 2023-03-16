@@ -29,39 +29,15 @@ class MosaicGPT(nn.Module):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
-        if cfg.attn_impl == 'torch':
-            self.causal_attn_cls = attention.TorchCausalAttention
-        elif cfg.attn_impl == 'flash':
-            self.causal_attn_cls = attention.FlashCausalAttention
-        elif cfg.attn_impl == 'triton':
-            self.causal_attn_cls = attention.TritonFlashCausalAttention
-        else:
-            raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
-            raise NotImplementedError(
-                'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'
-            )
-        if cfg.get('attn_clip_qkv') and cfg.attn_impl not in [
-                'flash', 'triton'
-        ]:
-            raise NotImplementedError(
-                'QKV clipping only implemented with flash and triton attention.'
-            )
-
-        if cfg.get('softmax_scale') and cfg.attn_impl not in [
-                'flash', 'triton'
-        ]:
-            raise NotImplementedError(
-                'softmax_scale only implemented with flash and triton attention.'
-            )
-
+        self.attn_impl = cfg.attn_impl
         self.alibi = cfg.get('alibi', False)
         self.alibi_bias_max = cfg.get('alibi_bias_max',
                                       8 if self.alibi else None)
         if self.alibi and cfg.attn_impl not in ['torch', 'triton']:
             raise NotImplementedError(
                 'alibi only implemented with torch and triton attention.')
+
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
         self.embedding_fraction = cfg.get('embedding_fraction', 1)
@@ -84,9 +60,7 @@ class MosaicGPT(nn.Module):
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    gpt_blocks.GPTBlock(cfg,
-                                        causal_attn_cls=self.causal_attn_cls,
-                                        device=cfg.init_device)
+                    gpt_blocks.GPTBlock(cfg, device=cfg.init_device)
                     for _ in range(cfg.n_layers)
                 ])
         })
@@ -114,15 +88,10 @@ class MosaicGPT(nn.Module):
             self.apply(self.param_init_fn)
 
         # define attn mask
-        self._attn_mask_initialized = False
-        mask_shape = self.causal_attn_cls.mask_shape(cfg.n_heads,
-                                                     cfg.max_seq_len,
-                                                     self.alibi)
-        if mask_shape is not None:
-            self.register_buffer(
-                'attn_mask', torch.empty(mask_shape, device=cfg.init_device))
-        else:
-            self.attn_mask = None
+        self._attn_bias_initialized = False
+        self.attn_bias = None
+        self.attn_bias_shape = attention.attn_bias_shape(
+            self.attn_impl, cfg.n_heads, cfg.max_seq_len, self.alibi)
 
         if cfg.get('no_bias', False):
             for module in self.modules():
@@ -135,27 +104,30 @@ class MosaicGPT(nn.Module):
         if cfg.get('verbose') and cfg.get('verbose') > 2:
             print(self)
 
-    def _attn_mask(self,
+    def _attn_bias(self,
                    batch_size=None,
                    seq_len=None,
                    key_padding_mask=None,
+                   device=None,
                    dtype=None):
-        if not self._attn_mask_initialized:
-            self.causal_attn_cls.attn_mask_(self.attn_mask,
-                                            self.cfg.n_heads,
-                                            self.cfg.max_seq_len,
-                                            alibi=self.alibi,
-                                            alibi_bias_max=self.alibi_bias_max)
-            self._attn_mask_initialized = True
+        if not self._attn_bias_initialized:
+            if self.attn_bias_shape:
+                self.attn_bias = torch.empty(self.attn_bias_shape,
+                                             device=device,
+                                             dtype=dtype)
+                attention.attn_bias_(self.attn_impl,
+                                     self.attn_bias,
+                                     self.cfg.n_heads,
+                                     self.cfg.max_seq_len,
+                                     alibi=self.alibi,
+                                     alibi_bias_max=self.alibi_bias_max)
+            self._attn_bias_initialized = True
 
-        return self.causal_attn_cls.generate_attn_mask(
-            self.attn_mask,
-            batch_size,
-            self.cfg.n_heads,
-            seq_len,
-            key_padding_mask=key_padding_mask,
-            alibi=self.alibi,
-            dtype=dtype)
+        return attention.generate_attn_bias(self.attn_impl,
+                                            self.attn_bias,
+                                            seq_len,
+                                            batch_size,
+                                            key_padding_mask=key_padding_mask)
 
     def forward(self,
                 input_ids: torch.LongTensor,
@@ -183,9 +155,10 @@ class MosaicGPT(nn.Module):
             assert isinstance(self.transformer.emb_drop, nn.Module)  # pyright
             x = self.transformer.emb_drop(x_shrunk)
 
-        attn_mask = self._attn_mask(batch_size=B,
+        attn_bias = self._attn_bias(batch_size=B,
                                     seq_len=S,
                                     key_padding_mask=key_padding_mask,
+                                    device=x.device,
                                     dtype=x.dtype)
         if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
             # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
@@ -197,7 +170,9 @@ class MosaicGPT(nn.Module):
         else:
             mod_key_padding_mask = key_padding_mask
         for block in self.transformer.blocks:  # type: ignore
-            x = block(x, mod_key_padding_mask, attn_mask)
+            x = block(x,
+                      attn_bias=attn_bias,
+                      key_padding_mask=mod_key_padding_mask)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
