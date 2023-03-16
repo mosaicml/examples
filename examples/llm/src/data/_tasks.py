@@ -21,12 +21,12 @@ class DatasetConstructor:
     def add(self, dataset_name: str, tokenize_function: callable):
         self._task_tokenization_registry[dataset_name] = tokenize_function
 
-    def build(self, dataset_name: str,
+    def build(self, dataset_name: str, subset: str,
               tokenizer: Union[PreTrainedTokenizer,
                                PreTrainedTokenizerFast], split: str):
         assert dataset_name in self._task_tokenization_registry
         # UPDATE THIS LINE TO LOAD YOUR RAW DATASET
-        dataset = datasets.load_dataset(dataset_name, split=split)
+        dataset = datasets.load_dataset(dataset_name, name=subset, split=split)
 
         tokenize_function = partial(
             self._task_tokenization_registry[dataset_name], tokenizer=tokenizer)
