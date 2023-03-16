@@ -8,6 +8,6 @@ mosaicml-cli>=0.2.32,<1
 triton==2.0.0.dev20221202
 transformers==4.26.1
 omegaconf==2.2.3
-wandb==0.13.4
+wandb==0.13.6
 pytest>=7.2.1,<8
 torchmetrics==0.11.3
