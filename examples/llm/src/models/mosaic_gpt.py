@@ -23,6 +23,7 @@ from omegaconf import DictConfig
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
+from examples.llm.src.models.utils import add_bidirectional_mask_if_missing
 
 
 class MosaicGPT(nn.Module):
@@ -31,7 +32,15 @@ class MosaicGPT(nn.Module):
         super().__init__()
         assert cfg.name == 'mosaic_gpt', f'Tried to build MosaicGPT model with cfg.name={cfg.name}'
         self.cfg = cfg
-        if cfg.attn_impl == 'torch':
+        self.is_prefix_lm = False
+        if cfg.get('prefix_lm', False):
+            if cfg.attn_impl != 'triton':
+                raise NotImplementedError(
+                    f"prefix_lm attention for mosaic_gpt is only implemented for triton, but got cfg.attn_impl='{cfg.attn_impl}'."
+                )
+            self.causal_attn_cls = attention.TritonFlashPrefixAttention
+            self.is_prefix_lm = True
+        elif cfg.attn_impl == 'torch':
             self.causal_attn_cls = attention.TorchCausalAttention
         elif cfg.attn_impl == 'flash':
             self.causal_attn_cls = attention.FlashCausalAttention
@@ -143,6 +152,7 @@ class MosaicGPT(nn.Module):
     def _attn_mask(self,
                    batch_size=None,
                    seq_len=None,
+                   prefix_mask=None,
                    key_padding_mask=None,
                    dtype=None):
         if not self._attn_mask_initialized:
@@ -153,18 +163,27 @@ class MosaicGPT(nn.Module):
                                             alibi_bias_max=self.alibi_bias_max)
             self._attn_mask_initialized = True
 
+        if self.is_prefix_lm and (prefix_mask is None):
+            raise ValueError('prefix_mask cannot be None when using prefix_lm')
+        elif (not self.is_prefix_lm) and (prefix_mask is not None):
+            raise ValueError(
+                'prefix_mask should be None when not using prefix_lm')
         return self.causal_attn_cls.generate_attn_mask(
             self.attn_mask,
             batch_size,
             self.cfg.n_heads,
             seq_len,
+            prefix_mask,
             key_padding_mask=key_padding_mask,
             alibi=self.alibi,
             dtype=dtype)
 
     def forward(self,
                 input_ids: torch.LongTensor,
+                prefix_mask: Optional[torch.ByteTensor] = None,
                 key_padding_mask: Optional[torch.ByteTensor] = None):
+        if self.is_prefix_lm and (prefix_mask is None):
+            raise ValueError('prefix_mask cannot be None when using prefix_lm')
         B, S = input_ids.size()
         assert (
             S <= self.cfg.max_seq_len
@@ -190,6 +209,7 @@ class MosaicGPT(nn.Module):
 
         attn_mask = self._attn_mask(batch_size=B,
                                     seq_len=S,
+                                    prefix_mask=prefix_mask,
                                     key_padding_mask=key_padding_mask,
                                     dtype=x.dtype)
         if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
@@ -238,6 +258,7 @@ class ComposerMosaicGPT(ComposerModel):
 
     def __init__(self, cfg):
         super().__init__()
+        self.is_prefix_lm = cfg.get('prefix_lm', False)
         self.model = MosaicGPT(cfg)
         self.num_fwd_flops = self._compute_num_fwd_flops()
         self.train_metrics = {
@@ -258,7 +279,14 @@ class ComposerMosaicGPT(ComposerModel):
         input_ids = batch['input_ids']
         key_padding_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
+        if not self.is_prefix_lm:
+            return self.model(input_ids=input_ids,
+                              key_padding_mask=key_padding_mask)
+        # Add bidirectional_mask if it is missing and can be constructed
+        add_bidirectional_mask_if_missing(batch)
+        prefix_mask = batch['bidirectional_mask']
         return self.model(input_ids=input_ids,
+                          prefix_mask=prefix_mask,
                           key_padding_mask=key_padding_mask)
 
     def eval_forward(self, batch, outputs=None):

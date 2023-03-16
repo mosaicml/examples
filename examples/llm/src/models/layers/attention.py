@@ -84,10 +84,16 @@ class TorchCausalAttention(nn.Module):
         batch_size,
         heads,
         seq_len,
+        prefix_mask=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
     ):
+
+        if prefix_mask is not None:
+            raise NotImplementedError(
+                'This attention implementation does not support use of `prefix_lm`.'
+            )
 
         # select seq_len subset of attn mask
         attn_mask = attn_mask[..., :seq_len, :seq_len]
@@ -217,18 +223,29 @@ class FlashCausalAttention(nn.Module):
         batch_size,
         heads,
         seq_len,
+        prefix_mask=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
     ):
+        if prefix_mask is not None:
+            raise NotImplementedError(
+                'This attention implementation does not support use of `prefix_lm`.'
+            )
+
         return attn_mask  # None
 
 
-class TritonFlashCausalAttention(nn.Module):
+class TritonFlashAttention(nn.Module):
     """Multi-headed self attention using triton FlashAttn kernel.
 
-    This also includes bias for Alibi integration.
+    This also includes bias for Alibi integration or Prefix LM attention
+    (see :class:`TritonFlashPrefixAttention` for the latter).
+
+    Don't invoke this class directly! Use `TritonFlashCausalAttention`
+    or `TritonFlashPrefixAttention`.
     """
+    causal = None
 
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
@@ -274,7 +291,7 @@ class TritonFlashCausalAttention(nn.Module):
                 num_heads=cfg.n_heads,
                 bias=True,
                 batch_first=True,
-                causal=True,
+                causal=self.causal,  # type: ignore
                 softmax_scale=cfg.get('softmax_scale'),
                 device=device,
             )
@@ -307,7 +324,7 @@ class TritonFlashCausalAttention(nn.Module):
                 qkv,
                 key_padding_mask=key_padding_mask,
                 attn_mask=attn_mask,
-                is_causal=True)
+                is_causal=self.causal)
 
             return self.out_proj(context), attn_weights
 
@@ -317,12 +334,19 @@ class TritonFlashCausalAttention(nn.Module):
                              attn_mask=attn_mask,
                              need_weights=False)
 
-    @staticmethod
-    def mask_shape(n_heads, seq_len, alibi):
-        return (1, n_heads, 1, seq_len) if alibi else None
+    @classmethod
+    def mask_shape(cls, n_heads, seq_len, alibi):
+        if cls.causal:
+            return (1, n_heads, 1, seq_len) if alibi else None
+        return (1, n_heads, seq_len, seq_len) if alibi else None
 
-    @staticmethod
-    def attn_mask_(attn_mask, n_heads, seq_len, alibi=False, alibi_bias_max=8):
+    @classmethod
+    def attn_mask_(cls,
+                   attn_mask,
+                   n_heads,
+                   seq_len,
+                   alibi=False,
+                   alibi_bias_max=8):
         if attn_mask is not None:
             # in-place fill causal attn mask
             attn_mask.zero_()
@@ -332,7 +356,7 @@ class TritonFlashCausalAttention(nn.Module):
                 attn_mask.add_(
                     alibi_bias(n_heads,
                                seq_len,
-                               full=False,
+                               full=not cls.causal,
                                alibi_bias_max=alibi_bias_max,
                                device=device,
                                dtype=dtype))
@@ -340,15 +364,34 @@ class TritonFlashCausalAttention(nn.Module):
         return attn_mask
 
     @staticmethod
+    def generate_attn_mask(*args, **kwargs):
+        # To be implemented by child classes
+        raise NotImplementedError
+
+
+class TritonFlashCausalAttention(TritonFlashAttention):
+    """Triton FlashAttn kernel for a Causal LM.
+
+    See parent class :class:`TritonFlashAttention` for details.
+    """
+    causal = True
+
+    @staticmethod
     def generate_attn_mask(
         attn_mask,
         batch_size,
         heads,
         seq_len,
+        prefix_mask=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
     ):
+        if prefix_mask is not None:
+            raise NotImplementedError(
+                'This attention implementation does not support use of `prefix_lm`.'
+            )
+
         if attn_mask is not None:
             # select seq_len subset of attn mask
             attn_mask = attn_mask[..., :seq_len, :seq_len]
@@ -368,6 +411,56 @@ class TritonFlashCausalAttention(nn.Module):
                 kpm_fill_value)
 
         return attn_mask
+
+
+class TritonFlashPrefixAttention(TritonFlashAttention):
+    """Triton FlashAttn kernel for a Prefix LM.
+
+    See parent class :class:`TritonFlashAttention` for details.
+    """
+    causal = False
+
+    @staticmethod
+    def generate_attn_mask(
+        attn_mask,
+        batch_size,
+        heads,
+        seq_len,
+        prefix_mask,
+        key_padding_mask=None,
+        alibi=False,
+        dtype=None,
+    ):
+        if attn_mask is not None:
+            # select seq_len subset of attn mask
+            attn_mask = attn_mask[..., :seq_len, :seq_len]
+
+        # Mix the causal max and the bidirectional mask to get the full
+        # allowable attention (i.e. full = not accounting for padding yet)
+        causal = torch.tril(
+            torch.ones((seq_len, seq_len),
+                       dtype=torch.uint8,
+                       device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
+        prefix = prefix_mask.view(batch_size, 1, 1, seq_len)
+        can_attend = torch.logical_or(causal, prefix)
+
+        kpm_fill_value = -1e4  # numerically stable -inf
+
+        # Account for padding
+        if key_padding_mask is not None:
+            not_padding = key_padding_mask.view(batch_size, 1, 1, seq_len)
+            can_attend = torch.logical_and(can_attend, not_padding)
+
+        # attn_mask is added to the attention logits. Convert accordingly.
+        if attn_mask is None:
+            attn_mask = torch.where(can_attend, 0, kpm_fill_value)
+        else:
+            attn_mask = torch.where(can_attend, attn_mask, kpm_fill_value)
+
+        if dtype is not None:
+            attn_mask = attn_mask.to(dtype)
+
+        return attn_mask  # [batch_size, 1, seq_len, seq_len]
 
 
 def _check_apply_key_padding_mask(key_padding_mask):
