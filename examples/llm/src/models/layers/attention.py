@@ -40,7 +40,9 @@ def scaled_multihead_dot_product_attention(
     attn_weight *= softmax_scale
 
     if attn_bias is not None:
-        if attn_bias.size(-1) != s_k or attn_bias.size(-2) != s_q:
+        if (attn_bias.size(-1) != 1 and
+                attn_bias.size(-1) != s_k) or (attn_bias.size(-2) != 1 and
+                                               attn_bias.size(-2) != s_q):
             raise RuntimeError(
                 f'attn_bias (shape: {attn_bias.shape}) is expected to broadcast to shape: {attn_weight.shape}.'
             )
@@ -55,7 +57,7 @@ def scaled_multihead_dot_product_attention(
         causal_mask = attn_weight.new_ones(s, s, dtype=torch.bool)
         causal_mask.tril_()
         causal_mask.logical_not_()
-        causal_mask = causal_mask[:s_q, :s_k]
+        causal_mask = causal_mask[-s_q:, -s_k:]
         attn_weight.masked_fill_(causal_mask.view(1, 1, s_q, s_k),
                                  -float('inf'))
 
