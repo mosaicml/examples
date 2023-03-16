@@ -10,8 +10,10 @@ import torch.nn as nn
 from omegaconf import DictConfig
 
 from examples.llm.src.models.ops import (DenseResGeluDense, DropoutAddLayerNorm,
+                                         FusedMLP,
                                          check_if_dense_gelu_dense_installed,
-                                         check_if_dropout_layer_norm_installed)
+                                         check_if_dropout_layer_norm_installed,
+                                         check_if_fused_mlp_installed)
 
 
 class GPTMLP(nn.Module):
@@ -91,12 +93,16 @@ class OptimizedGPTBlock(nn.Module):
             if not (cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch'):
                 raise ValueError(f'Only triton kernel or torch supports alibi')
         check_if_dropout_layer_norm_installed()
+        check_if_fused_mlp_installed()
         self.causal_attn = causal_attn_cls(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,
                                                     device=device)
-        self.mlp = FusedGPTMLP(cfg, device=device)
+        self.mlp = FusedMLP(in_features=cfg.d_model,
+                            hidden_features=cfg.mlp_ratio * cfg.d_model,
+                            out_features=cfg.d_model,
+                            device=device)
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,

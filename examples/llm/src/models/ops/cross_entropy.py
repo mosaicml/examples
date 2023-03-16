@@ -1,6 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+# Copyright (c) 2023, Tri Dao.
 # Inspired by https://github.com/NVIDIA/apex/blob/master/apex/transformer/tensor_parallel/cross_entropy.py
 # But we make it much faster: we compute the local loss and the LSE, and by exchanging the LSE and
 # the losses we can get the global loss. There's no need to do it step by step
@@ -19,7 +20,7 @@ except ImportError as e:
 def check_if_xentropy_cuda_installed():
     if not XENTROPY_CUDA_LIB:
         raise ImportError(
-            'The Xentropy CUDA extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/csrc.'
+            'The Xentropy CUDA extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/requirements_performance.txt.'
         )
 
 

@@ -79,22 +79,6 @@ cc_flag.append('arch=compute_70,code=sm_70')
 cc_flag.append('-gencode')
 cc_flag.append('arch=compute_80,code=sm_80')
 
-"""
-ext_modules.append(
-    CUDAExtension(
-        name='fused_dense_lib',
-        sources=[
-            'fused_dense_lib/fused_dense.cpp',
-            'fused_dense_lib/fused_dense_cuda.cu'
-        ],
-        extra_compile_args={
-            'cxx': ['-O3',],
-            'nvcc': append_nvcc_threads(['-O3'])
-        },
-        include_dirs=[os.path.join(this_dir, 'fused_dense_lib')],
-    ))
-"""
-
 ext_modules.append(
     CUDAExtension(
         name='dropout_layer_norm',
