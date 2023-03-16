@@ -55,33 +55,3 @@ tasks: # Only run MNLI and RTE for the sake of testing
       save_num_checkpoints_to_keep: 0
       max_duration: 10ba
       eval_subset_num_batches: 10
-  qqp:
-    trainer_kwargs:
-      save_num_checkpoints_to_keep: 0
-      max_duration: 10ba
-      eval_subset_num_batches: 10
-  qnli:
-    trainer_kwargs:
-      save_num_checkpoints_to_keep: 0
-      max_duration: 10ba
-      eval_subset_num_batches: 10
-  sst2:
-    trainer_kwargs:
-      save_num_checkpoints_to_keep: 0
-      max_duration: 10ba
-      eval_subset_num_batches: 10
-  stsb:
-    trainer_kwargs:
-      save_num_checkpoints_to_keep: 0
-      max_duration: 10ba
-      eval_subset_num_batches: 10
-  mrpc:
-    trainer_kwargs:
-      save_num_checkpoints_to_keep: 0
-      max_duration: 10ba
-      eval_subset_num_batches: 10
-  cola:
-    trainer_kwargs:
-      save_num_checkpoints_to_keep: 0
-      max_duration: 10ba
-      eval_subset_num_batches: 10
