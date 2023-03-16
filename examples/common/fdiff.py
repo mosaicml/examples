@@ -7,8 +7,6 @@
 """Monitor rate of change of loss."""
 from __future__ import annotations
 
-from typing import Any, Dict
-
 from composer.core import Callback, State
 from composer.loggers import Logger
 
@@ -16,8 +14,8 @@ from composer.loggers import Logger
 class FDiffMetrics(Callback):
     """Rate of chage of metrics.
 
-    tracks and plots the rate of change of metrics effectively taking the numerical
-    derivative of the metrics
+    tracks and plots the rate of change of metrics effectively taking the
+    numerical derivative of the metrics
     """
 
     def __init__(self, diff_train_metrics=True, diff_eval_metrics=True):
