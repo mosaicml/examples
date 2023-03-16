@@ -124,9 +124,9 @@ class FlashCausalAttention(nn.Module):
         except ImportError as e:
             raise e
 
-        self.clip_qkv = cfg.get('attn_clip_qkv')
-        self.attn_qk_ln = cfg.get('attn_qk_ln')
-        self.softmax_scale = cfg.get('softmax_scale')
+        self.clip_qkv = cfg.attn_clip_qkv
+        self.attn_qk_ln = cfg.attn_qk_ln
+        self.softmax_scale = cfg.softmax_scale
         self.d_model = cfg.d_model
         self.n_heads = cfg.n_heads
 
@@ -236,8 +236,8 @@ class TritonFlashCausalAttention(nn.Module):
 
         assert cfg.attn_pdrop == 0, 'triton kernel does not support attn_dropout'
 
-        self.clip_qkv = cfg.get('attn_clip_qkv')
-        self.attn_qk_ln = cfg.get('attn_qk_ln')
+        self.clip_qkv = cfg.attn_clip_qkv
+        self.attn_qk_ln = cfg.attn_qk_ln
         self.d_model = cfg.d_model
         self.n_heads = cfg.n_heads
 
@@ -246,10 +246,9 @@ class TritonFlashCausalAttention(nn.Module):
                                   3 * self.d_model,
                                   bias=True,
                                   device=device)
-            self.inner_attn = FlashAttention(
-                num_heads=cfg.n_heads,
-                softmax_scale=cfg.get('softmax_scale'),
-                device=device)
+            self.inner_attn = FlashAttention(num_heads=cfg.n_heads,
+                                             softmax_scale=cfg.softmax_scale,
+                                             device=device)
             self.out_proj = nn.Linear(self.d_model,
                                       self.d_model,
                                       bias=True,
@@ -269,7 +268,7 @@ class TritonFlashCausalAttention(nn.Module):
                 bias=True,
                 batch_first=True,
                 causal=True,
-                softmax_scale=cfg.get('softmax_scale'),
+                softmax_scale=cfg.softmax_scale,
                 device=device,
             )
             # for param init fn

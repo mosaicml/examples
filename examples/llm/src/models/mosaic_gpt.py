@@ -17,6 +17,7 @@ from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
 from omegaconf import DictConfig
+from omegaconf import OmegaConf as om
 from transformers import PreTrainedModel
 
 import examples.llm.src.models.layers.attention as attention
@@ -38,13 +39,12 @@ class MosaicGPT(PreTrainedModel):
         elif config.attn_impl == 'triton':
             self.causal_attn_cls = attention.TritonFlashCausalAttention
 
-        self.alibi = config.get('alibi', False)
-        self.alibi_bias_max = config.get('alibi_bias_max',
-                                         8 if self.alibi else None)
+        self.alibi = config.alibi
+        self.alibi_bias_max = config.alibi_bias_max
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
-        self.embedding_fraction = config.get('embedding_fraction', 1)
+        self.embedding_fraction = config.embedding_fraction
 
         self.transformer = nn.ModuleDict({
             'wte':
@@ -75,11 +75,11 @@ class MosaicGPT(PreTrainedModel):
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(config.d_model)
         self.logit_scale = None
-        if self.config.get('logit_scale') is not None:
-            logit_scale = self.config.get('logit_scale')
+        if config.logit_scale is not None:
+            logit_scale = config.logit_scale
             if isinstance(logit_scale, str):
                 if logit_scale == 'inv_sqrt_d_model':
-                    logit_scale = 1 / math.sqrt(self.config.d_model)
+                    logit_scale = 1 / math.sqrt(config.d_model)
                 else:
                     raise ValueError(
                         f"{logit_scale=} is not recognized as an option; use numeric value or 'inv_sqrt_d_model'."
@@ -103,15 +103,15 @@ class MosaicGPT(PreTrainedModel):
         else:
             self.attn_mask = None
 
-        if config.get('no_bias', False):
+        if config.no_bias:
             for module in self.modules():
                 if hasattr(module, 'bias') and isinstance(
                         module.bias, nn.Parameter):
-                    if config.get('verbose'):
+                    if config.verbose:
                         print(f'Removing bias ({module.bias}) from {module}.')
                     module.register_parameter('bias', None)
 
-        if config.get('verbose') and config.get('verbose') > 2:
+        if config.verbose and config.verbose > 2:
             print(self)
 
     def _attn_mask(self,
@@ -194,8 +194,8 @@ class MosaicGPT(PreTrainedModel):
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
-        init_fn_name = self.config.get('param_init_fn', 'baseline_')
-        if self.config.get('verbose', 0) > 1:
+        init_fn_name = self.config.param_init_fn
+        if self.config.verbose > 1:
             warnings.warn(f'Using {init_fn_name} initialization.')
         MODEL_INIT_REGISTRY[init_fn_name](module, self.config)
 
@@ -210,17 +210,24 @@ class MosaicGPT(PreTrainedModel):
 
 class ComposerMosaicGPT(ComposerModel):
 
-    def __init__(self, config):
+    def __init__(self, om_model_config: DictConfig):
         super().__init__()
-        self.model = MosaicGPT(config)
+
+        self.hf_config = MosaicGPTConfig.from_dict(
+            om.to_container(om_model_config))
+        self.model = MosaicGPT(self.hf_config)
         self.__num_fwd_flops = None
         self.train_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
-            'Perplexity': Perplexity(),
+            'LanguageCrossEntropy':
+                LanguageCrossEntropy(self.hf_config.vocab_size),
+            'Perplexity':
+                Perplexity(),
         }
         self.eval_metrics = {
-            'LanguageCrossEntropy': LanguageCrossEntropy(config.vocab_size),
-            'Perplexity': Perplexity(),
+            'LanguageCrossEntropy':
+                LanguageCrossEntropy(self.hf_config.vocab_size),
+            'Perplexity':
+                Perplexity(),
         }
 
     def get_targets(self, batch):

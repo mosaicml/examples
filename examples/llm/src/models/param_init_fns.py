@@ -11,7 +11,7 @@ from torch import nn
 
 
 def torch_default_param_init_fn_(module, cfg):
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f"Initializing network using module's reset_parameters attribute")
 
@@ -41,13 +41,13 @@ def fused_init_helper_(module, init_fn_):
 
 
 def generic_param_init_fn_(module, cfg, init_fn_):
-    if cfg.get('verbose') and cfg.get('verbose') > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f'If model has bias parameters they are initialized to 0.')
 
     # enable user to divide _is_residual weights by
     # a value which defaults to math.sqrt(2 * cfg.n_layers)
-    init_div_is_residual = cfg.get('init_div_is_residual', True)
+    init_div_is_residual = cfg.init_div_is_residual
 
     if init_div_is_residual is False:
         # not used, for pyright
@@ -69,7 +69,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
         )
 
     if init_div_is_residual is not False:
-        if cfg.get('verbose', 0) > 1:
+        if cfg.verbose > 1:
             warnings.warn(
                 f'Initializing _is_residual layers then dividing them by {div_is_residual}.' +\
                 f'set `init_div_is_residual: false` in model config to disable this.'
@@ -91,17 +91,17 @@ def generic_param_init_fn_(module, cfg, init_fn_):
 
     elif isinstance(module, nn.Embedding):
         # Embedding
-        if cfg.get('emb_init_std') is not None:
-            std = cfg.get('emb_init_std')
+        if cfg.emb_init_std is not None:
+            std = cfg.emb_init_std
             if std == 0:
                 warnings.warn(f'Embedding layer initialized to 0.')
             emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
-            if cfg.get('verbose', 0) > 1:
+            if cfg.verbose > 1:
                 warnings.warn(
                     f'Embedding layer initialized using normal distribution with mean=0 and {std=}.'
                 )
-        elif cfg.get('emb_init_uniform_lim') is not None:
-            lim = cfg.get('emb_init_uniform_lim')
+        elif cfg.emb_init_uniform_lim is not None:
+            lim = cfg.emb_init_uniform_lim
             if isinstance(lim, Sequence):
                 if len(lim) > 2:
                     raise ValueError(
@@ -115,7 +115,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
                 lim = [-lim, lim]
             a, b = lim
             emb_init_fn_ = partial(torch.nn.init.uniform_, a=a, b=b)
-            if cfg.get('verbose', 0) > 1:
+            if cfg.verbose > 1:
                 warnings.warn(
                     f'Embedding layer initialized using uniform distribution in range {lim}.'
                 )
@@ -126,7 +126,7 @@ def generic_param_init_fn_(module, cfg, init_fn_):
 
     elif isinstance(module, nn.LayerNorm):
         # LayerNorm
-        if cfg.get('verbose', 0) > 1:
+        if cfg.verbose > 1:
             warnings.warn(
                 f'LayerNorm gamma weights are set to 1. If the layer has a bias it is initialized to 0.'
             )
@@ -183,7 +183,7 @@ def _normal_init_(std, mean=0.0):
 def _normal_param_init_fn_(module, cfg, std):
     init_fn_ = _normal_init_(std=std)
 
-    if cfg.get('verbose', 0) > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f'Using torch.nn.init.normal_ init fn mean=0.0, std={std}')
 
@@ -191,7 +191,7 @@ def _normal_param_init_fn_(module, cfg, std):
 
 
 def baseline_param_init_fn_(module, cfg):
-    std = cfg.get('init_std')
+    std = cfg.init_std
     if std is None:
         raise ValueError(
             'You must set model.init_std to a float value to use the default initialization scheme.'
@@ -215,7 +215,7 @@ def neox_param_init_fn_(module, cfg):
     """
     residual_div = cfg.n_layers / math.sqrt(10)  # small std / wang std
 
-    if cfg.get('verbose', 0) > 1:
+    if cfg.verbose > 1:
         warnings.warn(f'setting init_div_is_residual to {residual_div}')
     cfg['init_div_is_residual'] = residual_div
     small_param_init_fn_(module, cfg)
@@ -224,11 +224,11 @@ def neox_param_init_fn_(module, cfg):
 def kaiming_uniform_param_init_fn_(module, cfg):
     # set nn.init.kaiming_uniform_ defaults
     # note: not many ppl modify the defaults but maybe we should...
-    init_gain = cfg.get('init_gain', 0)
-    fan_mode = cfg.get('fan_mode', 'fan_in')
-    init_nonlinearity = cfg.get('init_nonlinearity', 'leaky_relu')
+    init_gain = cfg.init_gain
+    fan_mode = cfg.fan_mode
+    init_nonlinearity = cfg.init_nonlinearity
 
-    if cfg.get('verbose', 0) > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f'Using nn.init.kaiming_uniform_ init fn with parameters: ' +\
             f'a={init_gain}, mode={fan_mode}, nonlinearity={init_nonlinearity}'
@@ -245,11 +245,11 @@ def kaiming_uniform_param_init_fn_(module, cfg):
 def kaiming_normal_param_init_fn_(module, cfg):
     # set torch.nn.init.kaiming_normal_ defaults
     # note: not many ppl modify the defaults but maybe we should...
-    init_gain = cfg.get('init_gain', 0)
-    fan_mode = cfg.get('fan_mode', 'fan_in')
-    init_nonlinearity = cfg.get('init_nonlinearity', 'leaky_relu')
+    init_gain = cfg.init_gain
+    fan_mode = cfg.fan_mode
+    init_nonlinearity = cfg.init_nonlinearity
 
-    if cfg.get('verbose', 0) > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f'Using nn.init.kaiming_normal_ init fn with parameters: ' +\
             f'a={init_gain}, mode={fan_mode}, nonlinearity={init_nonlinearity}'
@@ -266,10 +266,10 @@ def kaiming_normal_param_init_fn_(module, cfg):
 def xavier_uniform_param_init_fn_(module, cfg):
     # set nn.init.xavier_uniform_ defaults
     # note: not many ppl modify the defaults but maybe we should...
-    init_gain = cfg.get('init_gain', 1.0)
+    init_gain = cfg.init_gain
     xavier_uniform_ = partial(torch.nn.init.xavier_uniform_, gain=init_gain)
 
-    if cfg.get('verbose', 0) > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f'Using torch.nn.init.xavier_uniform_ init fn with parameters: ' +\
             f'gain={init_gain}'
@@ -281,10 +281,10 @@ def xavier_uniform_param_init_fn_(module, cfg):
 def xavier_normal_param_init_fn_(module, cfg):
     # set nn.init.xavier_normal_ defaults
     # note: not many ppl modify the defaults but maybe we should...
-    init_gain = cfg.get('init_gain', 1.0)
+    init_gain = cfg.init_gain
     xavier_normal_ = partial(torch.nn.init.xavier_normal_, gain=init_gain)
 
-    if cfg.get('verbose', 0) > 1:
+    if cfg.verbose > 1:
         warnings.warn(
             f'Using torch.nn.init.xavier_normal_ init fn with parameters: ' +\
             f'gain={init_gain}'
