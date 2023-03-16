@@ -422,6 +422,7 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
         batch_size=device_batch_size)
+    dataset.tokenizer.pad_token = dataset.tokenizer.eos_token
 
     return DataLoader(
         dataset,
