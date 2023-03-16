@@ -21,11 +21,10 @@ class DatasetConstructor:
     def add(self, dataset_name: str, tokenize_function: callable):
         self._task_tokenization_registry[dataset_name] = tokenize_function
 
-    def build(self, dataset_name: str,
-              tokenizer: Union[PreTrainedTokenizer,
+    def build(self, dataset_name: str, tokenizer: Union[PreTrainedTokenizer,
                                PreTrainedTokenizerFast], split: str):
         assert dataset_name in self._task_tokenization_registry
-        # UPDATE THIS LINE TO LOAD YOUR RAW DATSET
+        # UPDATE THIS LINE TO LOAD YOUR RAW DATASET
         dataset = datasets.load_dataset(dataset_name, split=split)
 
         tokenize_function = partial(
@@ -77,5 +76,22 @@ def oig_tokenize_function(inp, tokenizer):
     )
 
 
+def p3_tokenize_function(inp, tokenizer):
+    """Format the text string and simply tokenize."""
+    # `text` is the text the encoder receives (i.e. the prompt)
+    # `text_target` is the target output the decoder should produce
+    try:
+        prompt = inp['inputs']  # instruction-finetuned prompts
+        response = inp['targets']  # sequence of values
+    except:
+        print(inp)
+        raise
+    return tokenizer(
+        text=prompt + ':',
+        text_target=response,
+    )
+
+
 dataset_constructor.add('HuggingFaceH4/alpaca', alpaca_tokenize_function)
 dataset_constructor.add('laion/OIG', oig_tokenize_function)
+dataset_constructor.add('bigscience/P3', p3_tokenize_function)
