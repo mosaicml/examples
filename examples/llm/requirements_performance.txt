@@ -1,0 +1,5 @@
+# CUDA Dependencies for optimized GPT models
+# Not required for default GPT blocks
+
+git+https://github.com/HazyResearch/flash-attention.git#subdirectory=csrc/xentropy
+git+https://github.com/HazyResearch/flash-attention.git#subdirectory=csrc/fused_dense_lib

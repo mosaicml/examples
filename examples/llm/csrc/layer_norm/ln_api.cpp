@@ -370,7 +370,7 @@ std::vector<at::Tensor> dropout_add_ln_bwd(const at::Tensor &dz,     // BxSxhidd
 
     auto hidden_size = gamma.numel();
     TORCH_CHECK(hidden_size == cols);
-    TORCH_CHECK((hidden_size % 8 == 0) && (hidden_size <= 6144));
+    TORCH_CHECK((hidden_size % 8 == 0) && (hidden_size <= 8192));
 
     TORCH_CHECK(mu.numel() == rows);
     TORCH_CHECK(mu.sizes() == rsigma.sizes());

@@ -79,17 +79,7 @@ cc_flag.append('arch=compute_70,code=sm_70')
 cc_flag.append('-gencode')
 cc_flag.append('arch=compute_80,code=sm_80')
 
-ext_modules.append(
-    CUDAExtension(
-        name='xentropy_cuda_lib',
-        sources=['xentropy/interface.cpp', 'xentropy/xentropy_kernel.cu'],
-        extra_compile_args={
-            'cxx': ['-O3'] + generator_flag,
-            'nvcc': append_nvcc_threads(['-O3'] + generator_flag + cc_flag),
-        },
-        include_dirs=[os.path.join(this_dir, 'xentropy')],
-    ))
-
+"""
 ext_modules.append(
     CUDAExtension(
         name='fused_dense_lib',
@@ -103,6 +93,7 @@ ext_modules.append(
         },
         include_dirs=[os.path.join(this_dir, 'fused_dense_lib')],
     ))
+"""
 
 ext_modules.append(
     CUDAExtension(
@@ -133,6 +124,10 @@ ext_modules.append(
             'layer_norm/ln_bwd_5120.cu',
             'layer_norm/ln_fwd_6144.cu',
             'layer_norm/ln_bwd_6144.cu',
+            'layer_norm/ln_fwd_7168.cu',
+            'layer_norm/ln_bwd_7168.cu',
+            'layer_norm/ln_fwd_8192.cu',
+            'layer_norm/ln_bwd_8192.cu',
         ],
         extra_compile_args={
             'cxx': ['-O3'] + generator_flag,
