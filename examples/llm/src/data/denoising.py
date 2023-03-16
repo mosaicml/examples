@@ -15,7 +15,7 @@ from omegaconf import OmegaConf as om
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from examples.common.text_data import StreamingTextDataset
+from examples.common.text_data import StreamingTextDataset, build_streams
 from examples.llm.src.models import utils
 
 __all__ = ['MixtureOfDenoisersCollator', 'build_text_denoising_dataloader']
@@ -405,20 +405,22 @@ def build_text_denoising_dataloader(cfg: DictConfig,
                 f'truncate_raw_tokens_to(={truncate_to}) must be "min", "max", a positive int, or None.'
             )
 
+    streams = build_streams(cfg.dataset)
     dataset = StreamingTextDataset(
-        local=cfg.dataset.local,
+        streams=streams,
+        local=cfg.dataset.get('local', None),
         tokenizer_name=cfg.dataset.tokenizer_name,
-        max_seq_len=truncate_to,
-        remote=cfg.dataset.get('remote'),
-        split=cfg.dataset.get('split'),
+        max_seq_len=cfg.dataset.max_seq_len,
+        remote=cfg.dataset.get('remote', None),
+        split=cfg.dataset.get('split', None),
         shuffle=cfg.dataset.get('shuffle', False),
         predownload=cfg.dataset.get('predownload', 100_000),
-        keep_zip=cfg.dataset.get('keep_zip', False),
+        keep_zip=cfg.dataset.get('keep_zip', None),
         download_retry=cfg.dataset.get('download_retry', 2),
         download_timeout=cfg.dataset.get('download_timeout', 60),
-        validate_hash=cfg.dataset.get('validate_hash'),
-        shuffle_seed=cfg.dataset.get('shuffle_seed'),
-        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes'),
+        validate_hash=cfg.dataset.get('validate_hash', None),
+        shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
+        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
         batch_size=device_batch_size)
 
     return DataLoader(
