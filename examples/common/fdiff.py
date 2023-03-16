@@ -38,26 +38,24 @@ class FDiffMetrics(Callback):
 
             self.train_prev_loss = state.loss.item()
 
-            if self.train_prev_metric:
-                for k in state.train_metric_values.keys():
-                    logger.log_metrics({
-                        f'metrics/train/{k}_fdiff':
-                            state.train_metric_values[k].item() -
-                            self.train_prev_metric[k]
-                    })
+            for k in self.train_prev_metric.keys():
+                logger.log_metrics({
+                    f'metrics/train/{k}_fdiff':
+                        state.train_metric_values[k].item() -
+                        self.train_prev_metric[k]
+                })
 
             for k in state.train_metric_values.keys():
                 self.train_prev_metric[k] = state.train_metric_values[k].item()
 
     def eval_end(self, state: State, logger: Logger):
         if self.diff_eval_metrics:
-            if self.eval_prev_metric:
-                for k in state.eval_metric_values.keys():
-                    logger.log_metrics({
-                        f'metrics/eval/{k}_fdiff':
-                            state.eval_metric_values[k].item() -
-                            self.eval_prev_metric[k]
-                    })
+            for k in self.eval_prev_metric.keys():
+                logger.log_metrics({
+                    f'metrics/eval/{k}_fdiff':
+                        state.eval_metric_values[k].item() -
+                        self.eval_prev_metric[k]
+                })
 
             for k in state.eval_metric_values.keys():
                 self.eval_prev_metric[k] = state.eval_metric_values[k].item()
