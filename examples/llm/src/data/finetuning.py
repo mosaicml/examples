@@ -54,8 +54,12 @@ def build_finetuning_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
-                                        cfg.dataset.split)
+    if cfg.dataset.subset:
+        dataset = dataset_constructor.build(cfg.dataset.name, cfg.dataset.subset, tokenizer,
+                                            cfg.dataset.split)
+    else:
+        dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
+                                            cfg.dataset.split)
 
     return DataLoader(
         dataset,
