@@ -18,7 +18,7 @@ class FDiffMetrics(Callback):
     numerical derivative of the metrics
     """
 
-    def __init__(self, diff_train_metrics=True, diff_eval_metrics=True):
+    def __init__(self, diff_train_metrics=False, diff_eval_metrics=True):
         self.diff_train_metrics = diff_train_metrics
         self.diff_eval_metrics = diff_eval_metrics
 
@@ -48,12 +48,19 @@ class FDiffMetrics(Callback):
 
     def eval_end(self, state: State, logger: Logger):
         if self.diff_eval_metrics:
-            for k in self.eval_prev_metric.keys():
-                logger.log_metrics({
-                    f'metrics/eval/{k}_fdiff':
-                        state.eval_metric_values[k].item() -
-                        self.eval_prev_metric[k]
-                })
+            evaluator = state.dataloader_label
+            metrics = list(state.eval_metrics[evaluator].keys())
+
+            for k in metrics:
+                mkey = '/'.join(['metrics', evaluator, k])
+                if mkey in self.eval_prev_metric.keys():
+                    logger.log_metrics({
+                        f'{mkey}_fdiff':
+                            state.eval_metric_values[k].item() -
+                            self.eval_prev_metric[mkey]
+                    })
 
             for k in state.eval_metric_values.keys():
-                self.eval_prev_metric[k] = state.eval_metric_values[k].item()
+                mkey = '/'.join(['metrics', evaluator, k])
+                value = state.eval_metric_values[k].item()
+                self.eval_prev_metric[mkey] = value
