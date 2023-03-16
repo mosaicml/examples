@@ -26,7 +26,7 @@ class DatasetConstructor:
                                PreTrainedTokenizerFast], split: str):
         assert dataset_name in self._task_tokenization_registry
         # UPDATE THIS LINE TO LOAD YOUR RAW DATASET
-        dataset = datasets.load_dataset(dataset_name, name=subset, split=split)
+        dataset = datasets.load_dataset(dataset_name, split=split)
 
         tokenize_function = partial(
             self._task_tokenization_registry[dataset_name], tokenizer=tokenizer)
