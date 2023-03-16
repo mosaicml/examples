@@ -86,7 +86,8 @@ def main(cfg):
     )
 
     reproducibility.seed_all(cfg.seed)
-    dist.initialize_dist(get_device(None), timeout=1500.0)
+    dist.initialize_dist(get_device(None),
+                         timeout=cfg.get('dist_timeout', 1500.0))
 
     # Run Name
     if cfg.get('run_name') is None:

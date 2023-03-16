@@ -1,5 +1,5 @@
-# data_local: ./my-copy-c4
-# data_remote:  # If blank, files must be present in data_local
+data_local: ./my-copy-c4
+data_remote: # If blank, files must be present in data_local
 tokenizer_name: gpt2
 max_seq_len: 2048
 global_seed: 17
@@ -35,17 +35,8 @@ tokenizer:
 train_loader:
   name: text
   dataset:
-    # local: ${data_local}
-    # remote: ${data_remote}
-    streams:
-      c4_pruned:
-        remote: s3://mosaicml-internal-checkpoints-shared/matthew/c4/preconcat/0pt8/
-        split: train
-        proportion: .67
-      s2:
-        remote: oci://mosaicml-internal-datasets/s2/base/pretok-gpt2-2k/
-        split: train
-        proportion: .33
+    local: ${data_local}
+    remote: ${data_remote}
     split: train
     shuffle: true
     tokenizer_name: ${tokenizer_name}
@@ -58,7 +49,7 @@ eval_loader:
   name: text
   dataset:
     local: ${data_local}
-    remote: s3://mosaicml-internal-checkpoints-shared/c4/gpt2-tokenized-2k/
+    remote: ${data_remote}
     split: val
     shuffle: false
     tokenizer_name: ${tokenizer_name}
