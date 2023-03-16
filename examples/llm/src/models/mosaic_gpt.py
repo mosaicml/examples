@@ -40,8 +40,8 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        layernorm_class = nn.LayerNorm if not cfg.get(
-            'low_precision_layernorm', False) else LPLayerNorm
+        layernorm_class = LPLayerNorm if cfg.get(
+            'low_precision_layernorm', False) else nn.LayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(

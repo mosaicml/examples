@@ -8,8 +8,6 @@ from composer.utils import dist
 
 log = logging.getLogger(__name__)
 
-# functions
-
 class DecoupledLionW(Optimizer):
     metric_functions = {
         'l2_norm/moment':
