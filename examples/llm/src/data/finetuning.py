@@ -56,6 +56,7 @@ def build_finetuning_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
 
     # custom for P3
     dataset = dataset_constructor.build(cfg.dataset.name,
+                                        cfg.dataset.subset,
                                         tokenizer,
                                         cfg.dataset.split)
 
