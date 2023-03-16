@@ -30,7 +30,8 @@ def scaled_multihead_dot_product_attention(
     k = rearrange(key, 'b s (h d) -> b h d s', h=n_heads)  # includes key.t()
     v = rearrange(value, 'b s (h d) -> b h s d', h=n_heads)
 
-    b, _, s, d = q.shape
+    b, _, s_q, d = q.shape
+    s_k = k.size(-1)
 
     if softmax_scale is None:
         softmax_scale = 1 / math.sqrt(d)
@@ -39,17 +40,21 @@ def scaled_multihead_dot_product_attention(
     attn_weight *= softmax_scale
 
     if attn_bias is not None:
+        attn_bias = attn_bias[:, :, :s_q, :s_k]
         attn_weight = attn_weight + attn_bias
 
     if key_padding_mask is not None:
-        attn_weight.masked_fill_(~key_padding_mask.view((b, 1, 1, s)),
+        attn_weight.masked_fill_(~key_padding_mask.view((b, 1, 1, s_k)),
                                  -float('inf'))
 
     if is_causal:
+        s = max(s_q, s_k)
         causal_mask = attn_weight.new_ones(s, s, dtype=torch.bool)
         causal_mask.tril_()
         causal_mask.logical_not_()
-        attn_weight.masked_fill_(causal_mask.view(1, 1, s, s), -float('inf'))
+        causal_mask = causal_mask[:s_q, :s_k]
+        attn_weight.masked_fill_(causal_mask.view(1, 1, s_q, s_k),
+                                 -float('inf'))
 
     attn_weight = torch.softmax(attn_weight, dim=-1)
 

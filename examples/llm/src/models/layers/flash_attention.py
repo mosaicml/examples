@@ -52,7 +52,7 @@ class FlashAttention(nn.Module):
         Arguments:
             qkv: The tensor containing the query, key, and value. (B, S, 3, H, D)
             key_padding_mask: not implemented for triton kernel.
-            attn_bias: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
+            attn_bias: If specified, a 4D tensor of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             is_causal: If specified, applies a causal mask as attention mask. Default: ``False``.
         """
         from flash_attn import flash_attn_triton  # type: ignore
@@ -117,7 +117,7 @@ class FlashMHA(nn.Module):
         Args:
             x: (batch, seqlen, hidden_dim) (where hidden_dim = num heads * head dim)
             key_padding_mask: not implemented for triton kernel.
-            attn_bias: If specified, a 4D mask of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
+            attn_bias: If specified, a 4D tensor of floats which will be added to the attention weight. Must braodcast to (B, H, S, S).
             need_weights: not implemented for triton kernel.
         """
         if need_weights:
