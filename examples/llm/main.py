@@ -85,7 +85,7 @@ def main(cfg):
         f'torch.distributed.*_base is a private function and will be deprecated.*'
     )
 
-    cfg.dist_timeout = cfg.get('dist_timeout', 1500.0)
+    cfg.dist_timeout = cfg.get('dist_timeout', 1800.0)
 
     reproducibility.seed_all(cfg.seed)
     dist.initialize_dist(get_device(None), timeout=cfg.dist_timeout)

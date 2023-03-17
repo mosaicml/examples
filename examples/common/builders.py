@@ -28,8 +28,8 @@ def build_callback(name, kwargs):
         return MemoryMonitor()
     elif name == 'speed_monitor':
         return SpeedMonitor(window_size=kwargs.get('window_size', 1),
-                               gpu_flops_available=kwargs.get(
-                                   'gpu_flops_available', None))
+                            gpu_flops_available=kwargs.get(
+                                'gpu_flops_available', None))
     elif name == 'fdiff':
         return FDiffMetrics(**kwargs)
     elif name == 'runtime_estimator':

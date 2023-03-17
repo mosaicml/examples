@@ -40,8 +40,8 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        layernorm_class = LPLayerNorm if cfg.get(
-            'low_precision_layernorm', False) else nn.LayerNorm
+        layernorm_class = LPLayerNorm if cfg.get('low_precision_layernorm',
+                                                 False) else nn.LayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(
@@ -308,6 +308,6 @@ class ComposerMosaicGPT(ComposerModel):
 
     def flops_per_batch(self, batch):
         # Note: this computation does not take into account padding, and assumes
-        # that the dataset has been constructed without padding. Additionally, we 
+        # that the dataset has been constructed without padding. Additionally, we
         # assume the backward pass is approximately 2x the forward pass
         return self.num_fwd_flops * 3 * batch['input_ids'].shape[0]
