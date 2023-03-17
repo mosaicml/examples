@@ -92,11 +92,16 @@ class MosaicGPT(nn.Module):
             )
             self.apply(self.param_init_fn)
 
+        self.is_causal = True
+
         # define attn mask
         self._attn_bias_initialized = False
         self.attn_bias = None
-        self.attn_bias_shape = attention.attn_bias_shape(
-            self.attn_impl, cfg.n_heads, cfg.max_seq_len, self.alibi)
+        self.attn_bias_shape = attention.attn_bias_shape(self.attn_impl,
+                                                         cfg.n_heads,
+                                                         cfg.max_seq_len,
+                                                         self.alibi,
+                                                         causal=self.is_causal)
 
         if cfg.get('no_bias', False):
             for module in self.modules():
@@ -112,15 +117,16 @@ class MosaicGPT(nn.Module):
     def _attn_bias(self, device, dtype):
         if not self._attn_bias_initialized:
             if self.attn_bias_shape:
-                self.attn_bias = torch.empty(self.attn_bias_shape,
+                self.attn_bias = torch.zeros(self.attn_bias_shape,
                                              device=device,
                                              dtype=dtype)
-                attention.attn_bias_(self.attn_impl,
-                                     self.attn_bias,
-                                     self.cfg.n_heads,
-                                     self.cfg.max_seq_len,
-                                     alibi=self.alibi,
-                                     alibi_bias_max=self.alibi_bias_max)
+                attention.attn_bias(self.attn_impl,
+                                    self.attn_bias,
+                                    self.cfg.n_heads,
+                                    self.cfg.max_seq_len,
+                                    causal=self.is_causal,
+                                    alibi=self.alibi,
+                                    alibi_bias_max=self.alibi_bias_max)
             self._attn_bias_initialized = True
 
         return self.attn_bias
@@ -152,19 +158,11 @@ class MosaicGPT(nn.Module):
             x = self.transformer.emb_drop(x_shrunk)
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
-        if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
-            # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
-            # in certain settings like MosaicGPT-7B. So we always provide a tensor.
-            # See https://github.com/mosaicml/examples/pull/163 for more details.
-            mod_key_padding_mask = torch.ones_like(input_ids, dtype=torch.bool)
-        elif self.cfg.attn_impl == 'triton':
-            mod_key_padding_mask = None
-        else:
-            mod_key_padding_mask = key_padding_mask
         for block in self.transformer.blocks:  # type: ignore
             x = block(x,
                       attn_bias=attn_bias,
-                      key_padding_mask=mod_key_padding_mask)
+                      key_padding_mask=key_padding_mask,
+                      is_causal=self.is_causal)
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright

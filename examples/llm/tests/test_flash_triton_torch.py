@@ -55,16 +55,22 @@ def test_attn_impl(attn_impl_0,
     key_padding_mask = torch.ones(n, s).to(device).bool()
 
     def gen_bias(attn_impl, key_padding_mask):
+        causal = True
         attn_bias = None
-        bs = attention.attn_bias_shape(attn_impl, cfg.n_heads, s, alibi)
+        bs = attention.attn_bias_shape(attn_impl,
+                                       cfg.n_heads,
+                                       s,
+                                       alibi,
+                                       causal=causal)
         if bs is not None:
-            attn_bias = torch.empty(*bs, device=device)
-            attention.attn_bias_(attn_impl,
-                                 attn_bias,
-                                 cfg.n_heads,
-                                 s,
-                                 alibi=alibi,
-                                 alibi_bias_max=8)
+            attn_bias = torch.zeros(*bs, device=device)
+            attention.attn_bias(attn_impl,
+                                attn_bias,
+                                cfg.n_heads,
+                                s,
+                                causal=causal,
+                                alibi=alibi,
+                                alibi_bias_max=8)
 
         return attn_bias, key_padding_mask
 

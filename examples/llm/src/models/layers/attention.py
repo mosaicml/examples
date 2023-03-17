@@ -39,8 +39,7 @@ def scaled_multihead_dot_product_attention(
     if softmax_scale is None:
         softmax_scale = 1 / math.sqrt(d)
 
-    attn_weight = q.matmul(k)
-    attn_weight *= softmax_scale
+    attn_weight = q.matmul(k) * softmax_scale
 
     if attn_bias is not None:
         if (attn_bias.size(-1) != 1 and
@@ -52,17 +51,17 @@ def scaled_multihead_dot_product_attention(
         attn_weight = attn_weight + attn_bias
 
     if key_padding_mask is not None:
-        attn_weight.masked_fill_(~key_padding_mask.view((b, 1, 1, s_k)),
-                                 -float('inf'))
+        attn_weight = attn_weight.masked_fill(
+            ~key_padding_mask.view((b, 1, 1, s_k)), -float('inf'))
 
     if is_causal:
         s = max(s_q, s_k)
         causal_mask = attn_weight.new_ones(s, s, dtype=torch.bool)
-        causal_mask.tril_()
-        causal_mask.logical_not_()
+        causal_mask = causal_mask.tril()
+        causal_mask = causal_mask.logical_not()
         causal_mask = causal_mask[-s_q:, -s_k:]
-        attn_weight.masked_fill_(causal_mask.view(1, 1, s_q, s_k),
-                                 -float('inf'))
+        attn_weight = attn_weight.masked_fill(causal_mask.view(1, 1, s_q, s_k),
+                                              -float('inf'))
 
     attn_weight = torch.softmax(attn_weight, dim=-1)
 
@@ -114,6 +113,9 @@ def flash_attn_fn(
 
     batch_size, seqlen = query.shape[:2]
 
+    if key_padding_mask is None:
+        key_padding_mask = torch.ones_like(key[:, :, 0], dtype=torch.bool)
+
     if training:
         pad_mask = key_padding_mask
     else:
@@ -122,8 +124,6 @@ def flash_attn_fn(
         query, pad_mask)
     query_unpad = rearrange(query_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
 
-    if key_padding_mask is None:
-        key_padding_mask = torch.ones_like(key[:, :, 0], dtype=torch.bool)
     key_unpad, _, cu_seqlens_k, max_seqlen_k = bert_padding.unpad_input(
         key, key_padding_mask)
     key_unpad = rearrange(key_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
@@ -223,10 +223,7 @@ class MultiheadAttention(nn.Module):
             self.softmax_scale = 1 / math.sqrt(self.d_model / self.n_heads)
         self.attn_dropout_p = cfg.get('attn_pdrop')
 
-        self.Wqkv = nn.Linear(self.d_model,
-                              3 * self.d_model,
-                              bias=True,
-                              device=device)
+        self.Wqkv = nn.Linear(self.d_model, 3 * self.d_model, device=device)
         # for param init fn; enables shape based init of fused layers
         fuse_splits = (cfg.d_model, 2 * cfg.d_model)
         self.Wqkv._fused = (0, fuse_splits)  # type: ignore
@@ -237,7 +234,6 @@ class MultiheadAttention(nn.Module):
             self.q_ln = layernorm_class(self.d_model, device=device)
             self.k_ln = layernorm_class(self.d_model, device=device)
 
-        self.is_causal = True  # causal attn impl
         if self.attn_impl == 'flash':
             self.attn_fn = flash_attn_fn
         elif self.attn_impl == 'triton':
@@ -250,36 +246,31 @@ class MultiheadAttention(nn.Module):
         elif self.attn_impl == 'torch':
             self.attn_fn = scaled_multihead_dot_product_attention
             warnings.warn(
-                DeprecationWarning(
-                    'Using `attn_impl: torch` is deprecated; recommened using `attn_impl: flash`.'
-                ))
+                'Using `attn_impl: torch`; recommened using `attn_impl: flash`.'
+            )
         else:
             raise ValueError(f"{cfg.get('attn_impl')=} is an invalid setting.")
 
-        self.out_proj = nn.Linear(self.d_model,
-                                  self.d_model,
-                                  bias=True,
-                                  device=device)
+        self.out_proj = nn.Linear(self.d_model, self.d_model, device=device)
         self.out_proj._is_residual = True  # type: ignore
 
     def forward(self,
                 x,
                 attn_bias=None,
                 key_padding_mask=None,
+                is_causal=True,
                 needs_weights=False):
         qkv = self.Wqkv(x)
         if self.clip_qkv:
             qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
+
+        query, key, value = qkv.chunk(3, dim=2)
+
         if self.attn_qk_ln:
             # Applying layernorm to qk
-            dtype = qkv.dtype
-            q, k, v = qkv.split(self.d_model, dim=-1)
-            q = self.q_ln(q).to(dtype)
-            k = self.k_ln(k).to(dtype)
-            qkv = torch.cat([q, k, v], dim=-1)
-
-        # attention
-        query, key, value = qkv.chunk(3, dim=2)
+            dtype = query.dtype
+            query = self.q_ln(query).to(dtype)
+            key = self.k_ln(key).to(dtype)
 
         if attn_bias is not None:
             attn_bias = attn_bias[:, :, -query.size(1):, -key.size(1):]
@@ -292,7 +283,7 @@ class MultiheadAttention(nn.Module):
             softmax_scale=self.softmax_scale,
             attn_bias=attn_bias,
             key_padding_mask=key_padding_mask,
-            is_causal=self.is_causal,
+            is_causal=is_causal,
             dropout_p=self.attn_dropout_p,
             training=self.training,
             needs_weights=needs_weights,
@@ -301,49 +292,55 @@ class MultiheadAttention(nn.Module):
         return self.out_proj(context), attn_weights
 
 
-def attn_bias_shape(attn_impl, n_heads, seq_len, alibi):
+def attn_bias_shape(attn_impl, n_heads, seq_len, alibi, causal):
     if attn_impl == 'flash':
         return None
     elif attn_impl == 'triton':
-        # in triton, key_padding_mask must be integrated into attn_bias
-        return (1, n_heads, 1, seq_len) if alibi else (1, 1, 1, seq_len)
+        if alibi:
+            if not causal:
+                return (1, n_heads, seq_len, seq_len)
+            return (1, n_heads, 1, seq_len)
+        return None
     elif attn_impl == 'torch':
-        return (1, n_heads, 1, seq_len) if alibi else None
+        if alibi:
+            if not causal:
+                return (1, n_heads, seq_len, seq_len)
+            return (1, n_heads, 1, seq_len)
+        return None
     else:
         raise ValueError(f'{attn_impl=} is an invalid setting.')
 
 
-def attn_bias_(attn_impl,
-               attn_bias,
-               n_heads,
-               seq_len,
-               alibi=False,
-               alibi_bias_max=8):
+def attn_bias(attn_impl,
+              attn_bias,
+              n_heads,
+              seq_len,
+              causal=False,
+              alibi=False,
+              alibi_bias_max=8):
     if attn_impl == 'flash':
         return None
     elif attn_impl == 'triton':
-        attn_bias.zero_()
         if alibi:
             # in place add alibi to attn bias
             device, dtype = attn_bias.device, attn_bias.dtype
-            attn_bias.add_(
+            attn_bias = attn_bias.add(
                 alibi_bias(n_heads,
                            seq_len,
-                           full=False,
+                           full=not causal,
                            alibi_bias_max=alibi_bias_max,
                            device=device,
                            dtype=dtype))
         return attn_bias
     elif attn_impl == 'torch':
         if attn_bias is not None:
-            attn_bias.zero_()
             if alibi:
                 # in place add alibi to attn bias
                 device, dtype = attn_bias.device, attn_bias.dtype
-                attn_bias.add_(
+                attn_bias = attn_bias.add(
                     alibi_bias(n_heads,
                                seq_len,
-                               full=False,
+                               full=not causal,
                                alibi_bias_max=alibi_bias_max,
                                device=device,
                                dtype=dtype))
@@ -362,14 +359,12 @@ def alibi_bias(n_heads,
                               device=device).view(1, 1, 1, seq_len)
     if full:
         # generate 1 x Heads x SeqLen x SeqLen alibi bias mask
-        # otherwise the mask is 1 x Heads x 1 x SeqLen (which is braodcasted up to the approproate size)
+        # otherwise the mask is 1 x Heads x 1 x SeqLen (which is broadcast to the appropriate size)
         alibi_bias = alibi_bias - torch.arange(
             1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
-        alibi_bias.abs_().mul_(
-            -1
-        )  # since we're using causal flag, this isn't really needed, but why not include it
+        alibi_bias = alibi_bias.abs().mul(-1)
 
     m = torch.arange(1, n_heads + 1, dtype=dtype, device=device)
-    m.mul_(alibi_bias_max / n_heads)
+    m = m.mul(alibi_bias_max / n_heads)
     alibi_bias = alibi_bias * (1. / (2**m.view(1, n_heads, 1, 1)))
     return alibi_bias
