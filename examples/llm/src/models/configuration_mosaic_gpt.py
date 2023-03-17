@@ -17,7 +17,7 @@ class MosaicGPTConfig(PretrainedConfig):
         n_heads: int = 16,
         n_layers: int = 24,
         mlp_ratio: int = 4,
-        max_seq_len: int = 8096,
+        max_seq_len: int = 2048,
         vocab_size: int = 50257,
         init_std: float = 0.02,
         attn_pdrop: float = 0.0,

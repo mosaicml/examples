@@ -34,6 +34,7 @@ class GPTBlock(nn.Module):
                                         attention.TorchCausalAttention,
                                         attention.TritonFlashCausalAttention],
                  d_model: int,
+                 n_heads: int,
                  mlp_ratio: int,
                  alibi: bool = False,
                  resid_pdrop: float = 0.0,
@@ -47,7 +48,12 @@ class GPTBlock(nn.Module):
                     causal_attn_cls, attention.TorchCausalAttention
                 ), 'Only triton kernel or torch supports alibi'
         self.ln_1 = nn.LayerNorm(d_model, device=device)
-        self.causal_attn = causal_attn_cls(device=device, **kwargs)
+        self.causal_attn = causal_attn_cls(
+            d_model=d_model,
+            n_heads=n_heads,
+            device=device,
+            **kwargs,
+        )
         self.ln_2 = nn.LayerNorm(d_model, device=device)
         self.mlp = GPTMLP(
             d_model=d_model,
