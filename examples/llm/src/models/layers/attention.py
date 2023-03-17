@@ -9,17 +9,24 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from einops import rearrange
-from omegaconf import DictConfig
 
 
 class TorchCausalAttention(nn.Module):
 
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        attn_pdrop: float = 0.0,
+        device: Optional[str] = None,
+        **kwargs,
+    ):
+        del kwargs  # unused, just to capture any extra args from the config
         super().__init__()
         self.mhsa = nn.MultiheadAttention(
-            embed_dim=cfg.d_model,
-            num_heads=cfg.n_heads,
-            dropout=cfg.attn_pdrop,
+            embed_dim=d_model,
+            num_heads=n_heads,
+            dropout=attn_pdrop,
             bias=True,
             batch_first=True,
             device=device,
@@ -116,7 +123,18 @@ class TorchCausalAttention(nn.Module):
 
 class FlashCausalAttention(nn.Module):
 
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        attn_clip_qkv: Optional[float] = None,
+        attn_qk_ln: bool = False,
+        softmax_scale: Optional[float] = None,
+        attn_pdrop: float = 0.0,
+        device: Optional[str] = None,
+        **kwargs,
+    ):
+        del kwargs  # unused, just to capture any extra args from the config
         super().__init__()
         try:
             from flash_attn.flash_attention import (  # type: ignore
@@ -124,18 +142,18 @@ class FlashCausalAttention(nn.Module):
         except ImportError as e:
             raise e
 
-        self.clip_qkv = cfg.attn_clip_qkv
-        self.attn_qk_ln = cfg.attn_qk_ln
-        self.softmax_scale = cfg.softmax_scale
-        self.d_model = cfg.d_model
-        self.n_heads = cfg.n_heads
+        self.clip_qkv = attn_clip_qkv
+        self.attn_qk_ln = attn_qk_ln
+        self.softmax_scale = softmax_scale
+        self.d_model = d_model
+        self.n_heads = n_heads
 
         if self.attn_qk_ln or self.clip_qkv or self.softmax_scale:
             self.W_qkv = nn.Linear(self.d_model,
                                    3 * self.d_model,
                                    bias=True,
                                    device=device)
-            self.inner_attn = FlashAttention(attention_dropout=cfg.attn_pdrop,
+            self.inner_attn = FlashAttention(attention_dropout=attn_pdrop,
                                              device=device,
                                              softmax_scale=self.softmax_scale)
             self.out_proj = nn.Linear(self.d_model,
@@ -143,7 +161,7 @@ class FlashCausalAttention(nn.Module):
                                       bias=True,
                                       device=device)
             # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            fuse_splits = (d_model, 2 * d_model)
             self.W_qkv._fused = (0, fuse_splits)  # type: ignore
             self.out_proj._is_residual = True  # type: ignore
 
@@ -152,16 +170,16 @@ class FlashCausalAttention(nn.Module):
                 self.k_ln = nn.LayerNorm(self.d_model, device=device)
         else:
             self.mhsa = FlashMHA(
-                embed_dim=cfg.d_model,
-                num_heads=cfg.n_heads,
-                attention_dropout=cfg.attn_pdrop,
+                embed_dim=d_model,
+                num_heads=n_heads,
+                attention_dropout=attn_pdrop,
                 bias=True,
                 batch_first=True,
                 causal=True,
                 device=device,
             )
             # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            fuse_splits = (d_model, 2 * d_model)
             self.mhsa.Wqkv._fused = (0, fuse_splits)  # type: ignore
             self.mhsa.out_proj._is_residual = True
 
@@ -226,7 +244,16 @@ class TritonFlashCausalAttention(nn.Module):
     This also includes bias for Alibi integration.
     """
 
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+    def __init__(self,
+                 d_model: int,
+                 n_heads: int,
+                 attn_clip_qkv: Optional[float] = None,
+                 attn_qk_ln: bool = False,
+                 softmax_scale: Optional[float] = None,
+                 attn_pdrop: float = 0.0,
+                 device: Optional[str] = None,
+                 **kwargs):
+        del kwargs  # unused, just to capture any extra args from the config
         super().__init__()
         try:
             from examples.llm.src.models.layers.flash_attention import (  # type: ignore
@@ -234,27 +261,27 @@ class TritonFlashCausalAttention(nn.Module):
         except ImportError as e:
             raise e
 
-        assert cfg.attn_pdrop == 0, 'triton kernel does not support attn_dropout'
+        assert attn_pdrop == 0, 'triton kernel does not support attn_dropout'
 
-        self.clip_qkv = cfg.attn_clip_qkv
-        self.attn_qk_ln = cfg.attn_qk_ln
-        self.d_model = cfg.d_model
-        self.n_heads = cfg.n_heads
+        self.clip_qkv = attn_clip_qkv
+        self.attn_qk_ln = attn_qk_ln
+        self.d_model = d_model
+        self.n_heads = n_heads
 
         if self.attn_qk_ln or self.clip_qkv:
             self.Wqkv = nn.Linear(self.d_model,
                                   3 * self.d_model,
                                   bias=True,
                                   device=device)
-            self.inner_attn = FlashAttention(num_heads=cfg.n_heads,
-                                             softmax_scale=cfg.softmax_scale,
+            self.inner_attn = FlashAttention(num_heads=n_heads,
+                                             softmax_scale=softmax_scale,
                                              device=device)
             self.out_proj = nn.Linear(self.d_model,
                                       self.d_model,
                                       bias=True,
                                       device=device)
             # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            fuse_splits = (d_model, 2 * d_model)
             self.Wqkv._fused = (0, fuse_splits)  # type: ignore
             self.out_proj._is_residual = True  # type: ignore
 
@@ -263,16 +290,16 @@ class TritonFlashCausalAttention(nn.Module):
                 self.k_ln = nn.LayerNorm(self.d_model, device=device)
         else:
             self.mhsa = FlashMHA(
-                embed_dim=cfg.d_model,
-                num_heads=cfg.n_heads,
+                embed_dim=d_model,
+                num_heads=n_heads,
                 bias=True,
                 batch_first=True,
                 causal=True,
-                softmax_scale=cfg.softmax_scale,
+                softmax_scale=softmax_scale,
                 device=device,
             )
             # for param init fn
-            fuse_splits = (cfg.d_model, 2 * cfg.d_model)
+            fuse_splits = (d_model, 2 * d_model)
             self.mhsa.Wqkv._fused = (0, fuse_splits)  # type: ignore
             self.mhsa.out_proj._is_residual = True  # type: ignore
 

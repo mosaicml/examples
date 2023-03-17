@@ -3,24 +3,24 @@
 
 """GPT Blocks used for the GPT Model."""
 
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 import torch.nn as nn
-from omegaconf import DictConfig
+
+import examples.llm.src.models.layers.attention as attention
 
 
 class GPTMLP(nn.Module):
 
-    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
+    def __init__(self,
+                 d_model: int,
+                 mlp_ratio: int,
+                 device: Optional[str] = None):
         super().__init__()
-        self.mlp_up = nn.Linear(cfg.d_model,
-                                cfg.mlp_ratio * cfg.d_model,
-                                device=device)
+        self.mlp_up = nn.Linear(d_model, mlp_ratio * d_model, device=device)
         self.mlp_act = nn.GELU(approximate='none')
-        self.mlp_down = nn.Linear(cfg.mlp_ratio * cfg.d_model,
-                                  cfg.d_model,
-                                  device=device)
+        self.mlp_down = nn.Linear(mlp_ratio * d_model, d_model, device=device)
         self.mlp_down._is_residual = True  # type: ignore
 
     def forward(self, x):
@@ -30,18 +30,32 @@ class GPTMLP(nn.Module):
 class GPTBlock(nn.Module):
 
     def __init__(self,
-                 cfg: DictConfig,
-                 causal_attn_cls,
-                 device: Optional[str] = None):
+                 causal_attn_cls: Union[attention.FlashCausalAttention,
+                                        attention.TorchCausalAttention,
+                                        attention.TritonFlashCausalAttention],
+                 d_model: int,
+                 mlp_ratio: int,
+                 alibi: bool = False,
+                 resid_pdrop: float = 0.0,
+                 device: Optional[str] = None,
+                 **kwargs):
         super().__init__()
-        if cfg.alibi:
-            assert cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch', 'Only triton kernel or torch supports alibi'
-        self.ln_1 = nn.LayerNorm(cfg.d_model, device=device)
-        self.causal_attn = causal_attn_cls(cfg, device)
-        self.ln_2 = nn.LayerNorm(cfg.d_model, device=device)
-        self.mlp = GPTMLP(cfg, device=device)
-        self.resid_attn_dropout = nn.Dropout(cfg.resid_pdrop)
-        self.resid_mlp_dropout = nn.Dropout(cfg.resid_pdrop)
+        if alibi:
+            assert isinstance(
+                causal_attn_cls,
+                attention.TritonFlashCausalAttention) or isinstance(
+                    causal_attn_cls, attention.TorchCausalAttention
+                ), 'Only triton kernel or torch supports alibi'
+        self.ln_1 = nn.LayerNorm(d_model, device=device)
+        self.causal_attn = causal_attn_cls(device=device, **kwargs)
+        self.ln_2 = nn.LayerNorm(d_model, device=device)
+        self.mlp = GPTMLP(
+            d_model=d_model,
+            mlp_ratio=mlp_ratio,
+            device=device,
+        )
+        self.resid_attn_dropout = nn.Dropout(resid_pdrop)
+        self.resid_mlp_dropout = nn.Dropout(resid_pdrop)
 
     def forward(
         self,

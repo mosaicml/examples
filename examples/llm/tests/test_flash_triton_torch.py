@@ -26,8 +26,8 @@ def test_flash_torch(device='cuda'):
 
     n, s, f = 2, 16, cfg.d_model
 
-    fca = FlashCausalAttention(cfg).to(device)
-    tca = TorchCausalAttention(cfg).to(device)
+    fca = FlashCausalAttention(**cfg).to(device)
+    tca = TorchCausalAttention(**cfg).to(device)
 
     def gen_tca_mask():
         ms = TorchCausalAttention.mask_shape(cfg.n_heads, s, False)
@@ -96,8 +96,8 @@ def test_flash_triton(attn_clip_qkv, attn_qk_ln, device='cuda'):
 
     n, s, f = 2, 16, cfg.d_model
 
-    fca = FlashCausalAttention(cfg).to(device)
-    tfca = TritonFlashCausalAttention(cfg).to(device)
+    fca = FlashCausalAttention(**cfg).to(device)
+    tfca = TritonFlashCausalAttention(**cfg).to(device)
     # clone weights
     if cfg.attn_qk_ln or cfg.attn_clip_qkv:
         tfca.Wqkv.weight.data = fca.W_qkv.weight.data.clone().detach()

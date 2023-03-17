@@ -63,9 +63,9 @@ class MosaicGPT(PreTrainedModel):
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    gpt_blocks.GPTBlock(config,
-                                        causal_attn_cls=self.causal_attn_cls,
-                                        device=config.init_device)
+                    gpt_blocks.GPTBlock(causal_attn_cls=self.causal_attn_cls,
+                                        device=config.init_device,
+                                        **config.to_dict())
                     for _ in range(config.n_layers)
                 ])
         })
@@ -197,7 +197,8 @@ class MosaicGPT(PreTrainedModel):
         init_fn_name = self.config.param_init_fn
         if self.config.verbose > 1:
             warnings.warn(f'Using {init_fn_name} initialization.')
-        MODEL_INIT_REGISTRY[init_fn_name](module, self.config)
+        MODEL_INIT_REGISTRY[init_fn_name](module=module,
+                                          **self.config.to_dict())
 
     # FSDP Wrap function
     def fsdp_wrap_fn(self, module):
