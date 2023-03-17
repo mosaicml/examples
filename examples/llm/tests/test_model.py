@@ -359,21 +359,23 @@ def test_mosaic_gpt_creation():
     assert mosaic_gpt.config.mlp_ratio == 2
     assert mosaic_gpt.config.max_seq_len == 2048
 
-    assert mosaic_gpt.transformer.wte.weight.shape == torch.Size(
+    assert mosaic_gpt.transformer.wte.weight.shape == torch.Size(  # type: ignore
         [hf_config.vocab_size, hf_config.d_model])
-    assert mosaic_gpt.transformer.wpe.weight.shape == torch.Size(
+    assert mosaic_gpt.transformer.wpe.weight.shape == torch.Size(  # type: ignore
         [hf_config.max_seq_len, hf_config.d_model])
-    assert mosaic_gpt.transformer.emb_drop.p == 0.1
-    assert len(mosaic_gpt.transformer.blocks) == 2
-    block = mosaic_gpt.transformer.blocks[0]
-    assert block.ln_1.weight.shape == torch.Size([hf_config.d_model])
-    assert block.ln_2.weight.shape == torch.Size([hf_config.d_model])
-    assert block.mlp.mlp_up.weight.shape == torch.Size(
+    assert mosaic_gpt.transformer.emb_drop.p == 0.1  # type: ignore
+    assert len(mosaic_gpt.transformer.blocks) == 2  # type: ignore
+    block = mosaic_gpt.transformer.blocks[0]  # type: ignore
+    assert block.ln_1.weight.shape == torch.Size([hf_config.d_model
+                                                 ])  # type: ignore
+    assert block.ln_2.weight.shape == torch.Size([hf_config.d_model
+                                                 ])  # type: ignore
+    assert block.mlp.mlp_up.weight.shape == torch.Size(  # type: ignore
         [hf_config.d_model * hf_config.mlp_ratio, hf_config.d_model])
-    assert block.mlp.mlp_down.weight.shape == torch.Size(
+    assert block.mlp.mlp_down.weight.shape == torch.Size(  # type: ignore
         [hf_config.d_model, hf_config.d_model * hf_config.mlp_ratio])
-    assert block.resid_attn_dropout.p == 0.2
-    assert block.resid_mlp_dropout.p == 0.2
+    assert block.resid_attn_dropout.p == 0.2  # type: ignore
+    assert block.resid_mlp_dropout.p == 0.2  # type: ignore
 
 
 @pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),

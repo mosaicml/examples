@@ -34,7 +34,7 @@ class MosaicGPTConfig(PretrainedConfig):
         no_bias: bool = False,
         verbose: int = 0,
         param_init_fn: str = 'baseline_',
-        init_div_is_residual: bool = True,
+        init_div_is_residual: Union[int, float, str, bool] = True,
         emb_init_std: Optional[float] = None,
         emb_init_uniform_lim: Optional[Union[Tuple[float, float],
                                              float]] = None,

@@ -127,7 +127,7 @@ def main(cfg):
                           load_weights_only=True)
         # replace flash/triton attention with torch causal attention
         for idx in range(cfg.model.n_layers):
-            torch_causal_attn = TorchCausalAttention(cfg.model)
+            torch_causal_attn = TorchCausalAttention(**cfg.model)
             torch_causal_attn.mhsa.in_proj_weight = orig_model.model.transformer.blocks[
                 idx].causal_attn.mhsa.Wqkv.weight
             torch_causal_attn.mhsa.in_proj_bias = orig_model.model.transformer.blocks[

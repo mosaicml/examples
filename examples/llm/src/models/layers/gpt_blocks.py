@@ -3,7 +3,7 @@
 
 """GPT Blocks used for the GPT Model."""
 
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 import torch
 import torch.nn as nn
@@ -31,18 +31,19 @@ class GPTMLP(nn.Module):
 
 class GPTBlock(nn.Module):
 
-    def __init__(self,
-                 causal_attn_cls: Union[attention.FlashCausalAttention,
-                                        attention.TorchCausalAttention,
-                                        attention.TritonFlashCausalAttention],
-                 d_model: int,
-                 n_heads: int,
-                 mlp_ratio: int,
-                 alibi: bool = False,
-                 resid_pdrop: float = 0.0,
-                 low_precision_layernorm: bool = False,
-                 device: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+            self,
+            causal_attn_cls: Union[Type[attention.FlashCausalAttention],
+                                   Type[attention.TorchCausalAttention],
+                                   Type[attention.TritonFlashCausalAttention]],
+            d_model: int,
+            n_heads: int,
+            mlp_ratio: int,
+            alibi: bool = False,
+            resid_pdrop: float = 0.0,
+            low_precision_layernorm: bool = False,
+            device: Optional[str] = None,
+            **kwargs):
         super().__init__()
         if alibi:
             assert isinstance(

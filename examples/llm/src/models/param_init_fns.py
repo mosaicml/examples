@@ -21,7 +21,7 @@ def torch_default_param_init_fn_(
             f"Initializing network using module's reset_parameters attribute")
 
     if hasattr(module, 'reset_parameters'):
-        module.reset_parameters()
+        module.reset_parameters()  # type: ignore
 
 
 def fused_init_helper_(module: nn.Module, init_fn_):
@@ -38,11 +38,11 @@ def fused_init_helper_(module: nn.Module, init_fn_):
         raise RuntimeError(f'Internal logic error')
 
     dim, splits = _fused
-    splits = (0, *splits, module.weight.size(dim))
+    splits = (0, *splits, module.weight.size(dim))  # type: ignore
     for s, e in zip(splits[:-1], splits[1:]):
-        slice_indices = [slice(None)] * module.weight.ndim
+        slice_indices = [slice(None)] * module.weight.ndim  # type: ignore
         slice_indices[dim] = slice(s, e)
-        init_fn_(module.weight[slice_indices])
+        init_fn_(module.weight[slice_indices])  # type: ignore
 
 
 def generic_param_init_fn_(
@@ -50,7 +50,7 @@ def generic_param_init_fn_(
     init_fn_,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     verbose: int = 0,
@@ -155,6 +155,7 @@ def generic_param_init_fn_(
         if module._qkv_same_embed_dim:
             assert module.in_proj_weight is not None
             assert module.q_proj_weight is None and module.k_proj_weight is None and module.v_proj_weight is None
+            assert d_model is not None
             # in_proj_weight is actually 3 layers and should be split up for width based init
             _d = d_model
             splits = (0, _d, 2 * _d, 3 * _d)
@@ -201,7 +202,7 @@ def _normal_param_init_fn_(
     std: float,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     verbose: int = 0,
@@ -231,7 +232,7 @@ def baseline_param_init_fn_(
     init_std: float,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     verbose: int = 0,
@@ -257,8 +258,8 @@ def baseline_param_init_fn_(
 def small_param_init_fn_(
     module: nn.Module,
     n_layers: int,
-    d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    d_model: int,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     verbose: int = 0,
@@ -283,7 +284,7 @@ def small_param_init_fn_(
 def neox_param_init_fn_(
     module: nn.Module,
     n_layers: int,
-    d_model: Optional[int] = None,
+    d_model: int,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     verbose: int = 0,
@@ -316,7 +317,7 @@ def kaiming_uniform_param_init_fn_(
     module: nn.Module,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     init_gain: float = 0,
@@ -354,7 +355,7 @@ def kaiming_normal_param_init_fn_(
     module: nn.Module,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     init_gain: float = 0,
@@ -392,7 +393,7 @@ def xavier_uniform_param_init_fn_(
     module: nn.Module,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     init_gain: float = 0,
@@ -424,7 +425,7 @@ def xavier_normal_param_init_fn_(
     module: nn.Module,
     n_layers: int,
     d_model: Optional[int] = None,
-    init_div_is_residual: bool = True,
+    init_div_is_residual: Union[int, float, str, bool] = True,
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     init_gain: float = 0,
