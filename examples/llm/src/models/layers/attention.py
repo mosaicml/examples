@@ -133,6 +133,7 @@ class FlashCausalAttention(nn.Module):
         attn_qk_ln: bool = False,
         softmax_scale: Optional[float] = None,
         attn_pdrop: float = 0.0,
+        low_precision_layernorm: bool = False,
         device: Optional[str] = None,
         **kwargs,
     ):
@@ -168,8 +169,7 @@ class FlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                layernorm_class = nn.LayerNorm if not cfg.get(
-                    'low_precision_layernorm', False) else LPLayerNorm
+                layernorm_class = nn.LayerNorm if low_precision_layernorm else LPLayerNorm
                 self.q_ln = layernorm_class(self.d_model, device=device)
                 self.k_ln = layernorm_class(self.d_model, device=device)
         else:
@@ -255,6 +255,7 @@ class TritonFlashCausalAttention(nn.Module):
                  attn_qk_ln: bool = False,
                  softmax_scale: Optional[float] = None,
                  attn_pdrop: float = 0.0,
+                 low_precision_layernorm: bool = False,
                  device: Optional[str] = None,
                  **kwargs):
         del kwargs  # unused, just to capture any extra args from the config
@@ -290,8 +291,7 @@ class TritonFlashCausalAttention(nn.Module):
             self.out_proj._is_residual = True  # type: ignore
 
             if self.attn_qk_ln:
-                layernorm_class = nn.LayerNorm if not cfg.get(
-                    'low_precision_layernorm', False) else LPLayerNorm
+                layernorm_class = nn.LayerNorm if low_precision_layernorm else LPLayerNorm
                 self.q_ln = layernorm_class(self.d_model, device=device)
                 self.k_ln = layernorm_class(self.d_model, device=device)
         else:
