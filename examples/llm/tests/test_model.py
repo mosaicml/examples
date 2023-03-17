@@ -9,7 +9,7 @@ from typing import cast
 import pytest
 import torch
 import torch.nn as nn
-from composer import precision
+from composer.core.precision import get_precision_context
 from composer.optim import DecoupledAdamW
 from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
@@ -385,6 +385,7 @@ def test_generate(attention_impl, device):
             f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
         )
 
+    reproducibility.seed_all(1234)
     device = get_device(device)
 
     hf_config = MosaicGPTConfig(
@@ -405,10 +406,11 @@ def test_generate(attention_impl, device):
     input_ids = device.tensor_to_device(input_ids)
     attention_mask = torch.tensor([[1, 1, 0], [1, 1, 1]])
     attention_mask = device.tensor_to_device(attention_mask)
+    reproducibility.seed_all(1234)
 
-    with precision.get_precision_context('bf16' if device.name ==
-                                         'gpu' else 'fp32'):
+    with get_precision_context('amp_bf16' if device.name == 'gpu' else 'fp32'):
         generation = mosaic_gpt.generate(input_ids=input_ids,
-                                         attention_mask=attention_mask)
-    print(generation)
-    asdf
+                                         attention_mask=attention_mask,
+                                         max_new_tokens=5)
+
+    assert generation.shape == (2, 3 + 5)

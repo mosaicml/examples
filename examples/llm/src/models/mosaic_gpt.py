@@ -279,7 +279,8 @@ class ComposerMosaicGPT(ComposerModel):
         input_ids = batch['input_ids']
         attention_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
-        return self.model(input_ids=input_ids, attention_mask=attention_mask)
+        return self.model(input_ids=input_ids,
+                          attention_mask=attention_mask).logits
 
     def eval_forward(self, batch, outputs=None):
         return outputs if outputs is not None else self.forward(batch)
