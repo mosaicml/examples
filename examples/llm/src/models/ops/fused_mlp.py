@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Adapted from https://github.com/HazyResearch/flash-attention/blob/dc08ea1c33afca500a3d4ada907608f7815a11d9/flash_attn/ops/fused_dense.py
-# We remove the tensor parallelism-specific code as we do not support TP yet.
+# We remove the tensor parallelism code as we do not support it yet.
 
 # Copyright (c) 2023, Tri Dao.
 # Inspired by https://github.com/NVIDIA/apex/blob/master/apex/fused_dense/fused_dense.py
-# We make it work with pytorch amp and with bfloat16.
-# The TensorParallel linear modules are inspired by https://github.com/NVIDIA/apex/blob/master/apex/transformer/tensor_parallel/layers.py
+# Works with PyTorch amp and with bfloat16.
 
 from functools import partial
 from typing import Optional
@@ -15,12 +14,8 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from flash_attn.ops.gelu_activation import gelu_bwd
-from flash_attn.utils.distributed import (all_gather_raw, all_reduce_raw,
-                                          reduce_scatter, reduce_scatter_raw)
 from torch import Tensor
 from torch.cuda.amp import custom_bwd, custom_fwd
-from torch.distributed import ProcessGroup
 
 try:
     import fused_dense_lib as fused_dense_cuda  # type: ignore
@@ -67,31 +62,20 @@ class FusedMLPFunc(torch.autograd.Function):
                 save_pre_act=True,
                 return_residual=False,
                 checkpoint_lvl=0,
-                heuristic=0,
-                process_group=None,
-                sequence_parallel=True):
+                heuristic=0):
         """Forward pass for FusedMLP.
-
-        We currently require process_group = None.
-        In the future, if process_group is not None and sequence_parallel=True, we're doing
-        Tensor Parallel with sequence parallelism: we do an all_gather of x
-        before doing the matmul. If sequence_parallel=False, then the input is
-        already gathered.
 
         checkpoint_lvl:
         0: no recomputation in the bwd
         1: recompute gelu_out / relu_out in the bwd
         2: recompute pre_act and gelu_out / relu_out in the bwd
         """
-        assert process_group is None
         assert -1 <= heuristic <= 4
         assert activation in ['gelu_approx', 'relu']
         if not save_pre_act:
             checkpoint_lvl = 2
         assert checkpoint_lvl in [0, 1, 2]
         ctx.return_residual = return_residual
-        ctx.process_group = process_group
-        ctx.sequence_parallel = sequence_parallel
         ctx.checkpoint_lvl = checkpoint_lvl
         ctx.activation = activation
         ctx.heuristic = heuristic
@@ -99,11 +83,7 @@ class FusedMLPFunc(torch.autograd.Function):
         if torch.is_autocast_enabled():
             x = x.to(dtype=torch.get_autocast_gpu_dtype())
         x = x.contiguous()
-        if process_group is not None and sequence_parallel:
-            # We want to kick off the all_gather early, before weight dtype conversion
-            total_x, handle_x = all_gather_raw(x, process_group, async_op=True)
-        else:
-            total_x = x
+        total_x = x
 
         if torch.is_autocast_enabled():
             dtype = torch.get_autocast_gpu_dtype()
@@ -114,8 +94,6 @@ class FusedMLPFunc(torch.autograd.Function):
         bias1 = bias1.contiguous() if bias1 is not None else None
         weight2 = weight2.contiguous()
         bias2 = bias2.contiguous() if bias2 is not None else None
-        if process_group is not None and sequence_parallel:
-            handle_x.wait()  # type: ignore
         batch_shape, n = total_x.shape[:-1], total_x.shape[-1]
         batch_dim = batch_shape.numel()
         # https://github.com/pytorch/pytorch/blob/5b51849b48a7dbccd297286cc0110def4706f9e7/aten/src/ATen/native/cuda/Blas.cpp#L174
@@ -165,19 +143,11 @@ class FusedMLPFunc(torch.autograd.Function):
         if ctx.return_residual:
             grad_input, = args
             grad_input = grad_input.contiguous()
-        process_group = ctx.process_group
-        sequence_parallel = ctx.sequence_parallel
         x, weight1, weight2, *rest = ctx.saved_tensors
-        if process_group is None or not sequence_parallel:
-            total_x = x
+        total_x = x
         batch_shape = grad_output.shape[:-1]
         batch_dim = batch_shape.numel()
         if checkpoint_lvl in [0, 1]:
-            if process_group is not None and sequence_parallel:
-                total_x, handle_x = all_gather_raw(
-                    x,  # type: ignore
-                    process_group,
-                    async_op=True)
             if checkpoint_lvl == 0 or (checkpoint_lvl == 1 and
                                        activation == 'relu'):
                 pre_act, output1 = rest
@@ -186,8 +156,6 @@ class FusedMLPFunc(torch.autograd.Function):
                 output1 = activation_fn(pre_act)
         elif checkpoint_lvl == 2:
             bias1, = rest
-            if process_group is not None and sequence_parallel:
-                total_x, _ = all_gather_raw(x, process_group)
             if ctx.heuristic == -1:
                 pre_act = F.linear(total_x, weight1, bias1)  # type: ignore
                 output1 = activation_fn(pre_act)
@@ -236,17 +204,10 @@ class FusedMLPFunc(torch.autograd.Function):
                     grad_pre_act,
                     weight1)
             grad_input = grad_input.reshape(*batch_shape, grad_input.shape[-1])
-            if process_group is not None:
-                reduce_fn = reduce_scatter_raw if sequence_parallel else all_reduce_raw
-                grad_input, handle_grad_input = reduce_fn(grad_input,
-                                                          process_group,
-                                                          async_op=True)
         else:
             grad_input = None
         if ctx.heuristic == -1:
             if ctx.needs_input_grad[1]:
-                if process_group is not None and sequence_parallel:
-                    handle_x.wait()  # type: ignore
                 grad_weight1, grad_bias1 = fused_dense_cuda.linear_bias_wgrad(
                     total_x.reshape(  # type: ignore
                         batch_dim,  # type: ignore
@@ -258,8 +219,6 @@ class FusedMLPFunc(torch.autograd.Function):
                 grad_bias1 = grad_pre_act if ctx.needs_input_grad[2] else None
         else:
             if ctx.needs_input_grad[1]:
-                if process_group is not None and sequence_parallel:
-                    handle_x.wait()  # type: ignore
                 grad_weight1 = F.linear(
                     grad_pre_act.t(),
                     total_x.reshape(  # type: ignore
@@ -267,8 +226,6 @@ class FusedMLPFunc(torch.autograd.Function):
                         total_x.shape[-1]).t())  # type: ignore
             else:
                 grad_weight1 = None
-        if process_group is not None and ctx.needs_input_grad[0]:
-            handle_grad_input.wait()  # type: ignore
         return (
             grad_input,
             grad_weight1,
@@ -293,9 +250,7 @@ def fused_mlp_func(x: Tensor,
                    save_pre_act: bool = True,
                    return_residual: bool = False,
                    checkpoint_lvl: int = 0,
-                   heuristic: int = 0,
-                   process_group: Optional[ProcessGroup] = None,
-                   sequence_parallel: bool = True):
+                   heuristic: int = 0):
     assert activation in ['gelu_approx', 'relu']
     dtype_eligible = (x.dtype in [torch.float16, torch.bfloat16] or
                       (x.dtype == torch.float32 and
@@ -309,9 +264,8 @@ def fused_mlp_func(x: Tensor,
         (bias2 is None or bias2.is_cuda) and dtype_eligible and dim_eligible):
         return FusedMLPFunc.apply(x, weight1, bias1, weight2, bias2, activation,
                                   save_pre_act, return_residual, checkpoint_lvl,
-                                  heuristic, process_group, sequence_parallel)
+                                  heuristic)
     else:
-        assert process_group is None
         pre_act = F.linear(x, weight1, bias1)
         activation_fn = (partial(F.gelu, approximate='tanh') if activation
                          == 'gelu_approx' else partial(F.relu, inplace=True))
@@ -335,10 +289,6 @@ class FusedMLP(nn.Module):
                  device=None,
                  dtype=None):
         """Fused MLP class. Replacement for GPTMLP.
-
-        If process_group is not None, we're doing Tensor Parallel with
-        sequence parallelism: we do an all_gather of x before doing the matmul,
-        gelu, then matmul. Finally we do a reduce_scatter of the output.
 
         checkpoint_lvl (increasing lvl means slower but more memory saving):
             0: no recomputation in the bwd
@@ -375,7 +325,7 @@ class FusedMLP(nn.Module):
                              bias=bias2,
                              **factory_kwargs)
 
-    def forward(self, x, process_group=None):
+    def forward(self, x):
         dtype = x.dtype if not torch.is_autocast_enabled(
         ) else torch.get_autocast_gpu_dtype()
         if self.heuristic == 'auto':
@@ -405,10 +355,7 @@ class FusedMLP(nn.Module):
                              save_pre_act=self.training,
                              return_residual=self.return_residual,
                              checkpoint_lvl=self.checkpoint_lvl,
-                             heuristic=heuristic,
-                             process_group=process_group)
+                             heuristic=heuristic)
         if self.return_residual:
             out, x = out
-        if process_group is not None:
-            out = reduce_scatter(out, process_group)
         return out if not self.return_residual else (out, x)

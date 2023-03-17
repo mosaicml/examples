@@ -60,8 +60,7 @@ cd examples/llm
 
 If you have an NVIDIA GPU, you can install our library of CUDA optimizations to speed up your models.
 ```bash
-cd csrc
-pip install .  # may take a long time (up to 20 minutes)
+pip install -r requirements_performance.txt  # may take a long time (up to 10 minutes)
 cd ..
 ```
 See the section [Optimizing Performance](#optimizing-performance) below for instructions on how to use these speedups.
@@ -220,7 +219,7 @@ The YAMLs in this repo are relatively well tuned for medium-to-large NVIDIA A100
 
 If you have an NVIDIA GPU, you may want to enable our suite of CUDA optimizations. You can do so by first installing the optimization library in the `src/csrc/` folder, and then setting `model.gpt_block=optimized`. These optimizations consist mostly of kernel fusions designed to improve compute utilization of memory-bound operations, and are well-tested on models up to 13B parameters on NVIDIA A100 GPUs. On A100-40GB and A100-80GB GPUs, they should produce a 5-15\% speedup over the standard GPT block (`model.gpt_block=standard`).
 
-On different devices with more / less GPU memory than an NVIDIA A100-40GB,
+On devices with more / less GPU memory than an NVIDIA A100-40GB,
 you may wish to edit the default `device_train_microbatch_size` or `fsdp_config` values.
 In general, larger microbatch sizes and disabling `activation_checkpointing` lead to higher throughput.
 

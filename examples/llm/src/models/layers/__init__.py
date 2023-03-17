@@ -6,8 +6,7 @@ from examples.llm.src.models.layers.attention import (
     alibi_bias)
 from examples.llm.src.models.layers.flash_attention import (FlashAttention,
                                                             FlashMHA)
-from examples.llm.src.models.layers.gpt_blocks import (GPTMLP, FusedGPTMLP,
-                                                       GPTBlock,
+from examples.llm.src.models.layers.gpt_blocks import (GPTMLP, GPTBlock,
                                                        OptimizedGPTBlock)
 
 __all__ = [
@@ -18,7 +17,6 @@ __all__ = [
     'TritonFlashCausalAttention',
     'alibi_bias',
     'GPTMLP',
-    'FusedGPTMLP',
     'GPTBlock',
     'OptimizedGPTBlock',
 ]
