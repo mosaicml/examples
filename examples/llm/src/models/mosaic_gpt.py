@@ -109,12 +109,7 @@ class MosaicGPT(nn.Module):
         if cfg.get('verbose') and cfg.get('verbose') > 2:
             print(self)
 
-    def _attn_bias(self,
-                   batch_size=None,
-                   seq_len=None,
-                   key_padding_mask=None,
-                   device=None,
-                   dtype=None):
+    def _attn_bias(self, device, dtype):
         if not self._attn_bias_initialized:
             if self.attn_bias_shape:
                 self.attn_bias = torch.empty(self.attn_bias_shape,
@@ -128,16 +123,12 @@ class MosaicGPT(nn.Module):
                                      alibi_bias_max=self.alibi_bias_max)
             self._attn_bias_initialized = True
 
-        return attention.generate_attn_bias(self.attn_impl,
-                                            self.attn_bias,
-                                            seq_len,
-                                            batch_size,
-                                            key_padding_mask=key_padding_mask)
+        return self.attn_bias
 
     def forward(self,
                 input_ids: torch.LongTensor,
                 key_padding_mask: Optional[torch.ByteTensor] = None):
-        B, S = input_ids.size()
+        S = input_ids.size(1)
         assert (
             S <= self.cfg.max_seq_len
         ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
@@ -160,11 +151,7 @@ class MosaicGPT(nn.Module):
             assert isinstance(self.transformer.emb_drop, nn.Module)  # pyright
             x = self.transformer.emb_drop(x_shrunk)
 
-        attn_bias = self._attn_bias(batch_size=B,
-                                    seq_len=S,
-                                    key_padding_mask=key_padding_mask,
-                                    device=x.device,
-                                    dtype=x.dtype)
+        attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
         if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
             # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
             # in certain settings like MosaicGPT-7B. So we always provide a tensor.

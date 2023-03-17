@@ -3,8 +3,7 @@
 
 from examples.llm.src.models.layers.attention import (
     MultiheadAttention, alibi_bias, attn_bias_, attn_bias_shape, flash_attn_fn,
-    generate_attn_bias, scaled_multihead_dot_product_attention,
-    triton_flash_attn_fn)
+    scaled_multihead_dot_product_attention, triton_flash_attn_fn)
 from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
 
 __all__ = [
@@ -14,7 +13,6 @@ __all__ = [
     'MultiheadAttention',
     'attn_bias_shape',
     'attn_bias_',
-    'generate_attn_bias',
     'alibi_bias',
     'GPTMLP',
     'GPTBlock',

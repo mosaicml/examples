@@ -179,10 +179,16 @@ def triton_flash_attn_fn(
         raise NotImplementedError(
             f'attn_impl: triton cannot return attn weights.')
 
-    if key_padding_mask is not None and key_padding_mask.bool().logical_not(
-    ).any():
-        raise NotImplementedError(
-            f'assumes key_padding_mask is taken care of by attn_bias')
+    if key_padding_mask is not None:
+        b_size, s_k = key_padding_mask.shape
+
+        if attn_bias is not None:
+            attn_bias = attn_bias.expand(b_size, -1, -1, -1)
+        else:
+            attn_bias = query.new_zeros(b_size, 1, 1, s_k)
+
+        attn_bias = attn_bias.masked_fill(
+            ~key_padding_mask.view((b_size, 1, 1, s_k)), -float('inf'))
 
     query = rearrange(query, 'b s (h d) -> b s h d', h=n_heads)
     key = rearrange(key, 'b s (h d) -> b s h d', h=n_heads)
@@ -274,6 +280,10 @@ class MultiheadAttention(nn.Module):
 
         # attention
         query, key, value = qkv.chunk(3, dim=2)
+
+        if attn_bias is not None:
+            attn_bias = attn_bias[:, :, -query.size(1):, -key.size(1):]
+
         context, attn_weights = self.attn_fn(
             query,
             key,
@@ -340,23 +350,6 @@ def attn_bias_(attn_impl,
             return attn_bias
     else:
         raise ValueError(f'{attn_impl=} is an invalid setting.')
-
-
-def generate_attn_bias(attn_impl,
-                       attn_bias,
-                       seq_len,
-                       batch_size,
-                       key_padding_mask=None):
-    if attn_bias is not None:
-        # select seq_len subset of attn mask
-        attn_bias = attn_bias[..., :seq_len, :seq_len]
-
-    if attn_impl == 'triton' and key_padding_mask is not None:
-        attn_bias = attn_bias.expand(batch_size, -1, -1, -1)
-        attn_bias.masked_fill(
-            ~key_padding_mask.view((batch_size, 1, 1, seq_len)), -float('inf'))
-
-    return attn_bias
 
 
 def alibi_bias(n_heads,

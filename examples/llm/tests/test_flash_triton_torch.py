@@ -65,11 +65,6 @@ def test_attn_impl(attn_impl_0,
                                  s,
                                  alibi=alibi,
                                  alibi_bias_max=8)
-            attn_bias = attention.generate_attn_bias(
-                attn_impl, attn_bias, s, n, key_padding_mask=key_padding_mask)
-
-            if attn_impl == 'triton':
-                return attn_bias, key_padding_mask
 
         return attn_bias, key_padding_mask
 

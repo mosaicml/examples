@@ -157,9 +157,7 @@ def test_attention_mechanism(batch_size=2):
         axis=1)
     expected_zerod_weights |= torch_key_padding
 
-    attn_bias = model.model._attn_bias(batch_size=batch_size,
-                                       seq_len=test_cfg.max_seq_len,
-                                       key_padding_mask=key_padding_mask)
+    attn_bias = model.model._attn_bias(device=x.device, dtype=x.dtype)
 
     for block in model.model.transformer.blocks:
         a = block.ln_1(x)
