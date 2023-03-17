@@ -117,39 +117,21 @@ class MultiheadAttention(nn.Module):
 
         self.is_causal = True  # causal attn impl
         if self.attn_impl == 'flash':
-            try:
-                # fast fail if not installed
-                from flash_attn import bert_padding  # type: ignore
-                from flash_attn import flash_attn_interface  # type: ignore
-
-                del flash_attn_interface, bert_padding
-            except ImportError as e:
-                raise e
+            pass
         elif self.attn_impl == 'triton':
-            try:
-                # fast fail if not installed
-                from flash_attn import flash_attn_triton  # type: ignore
-
-                del flash_attn_triton
-            except ImportError as e:
-                raise e
-
             if self.attn_dropout_p:
                 raise ValueError(
                     'Triton kernel does not support attention dropout.')
-
             warnings.warn(
                 'While `attn_impl: triton` can be faster than `attn_impl: flash` '
                 'it uses more memory. When training larger models this can trigger '
                 'alloc retries which hurts performance. If encountered, we recommend '
                 'using `attn_impl: flash`.')
-
         elif self.attn_impl == 'torch':
             warnings.warn(
                 DeprecationWarning(
                     'Using `attn_impl: torch` is deprecated; recommened using `attn_impl: flash`.'
                 ))
-
         else:
             raise ValueError(f"{cfg.get('attn_impl')=} is an invalid setting.")
 
@@ -188,34 +170,51 @@ class MultiheadAttention(nn.Module):
             from flash_attn import bert_padding  # type: ignore
             from flash_attn import flash_attn_interface  # type: ignore
 
+            assert qkv.dtype in [torch.float16, torch.bfloat16]
+            assert qkv.is_cuda
+
             batch_size, seqlen = qkv.shape[:2]
 
-            qkv_unpad, indices, cu_seqlens, max_s = bert_padding.unpad_input(
-                qkv, key_padding_mask)
-            qkv_unpad = rearrange(qkv_unpad,
-                                  'nnz (three h d) -> nnz three h d',
-                                  three=3,
+            query, key, value = qkv.chunk(3, dim=2)
+
+            pad_mask = torch.ones_like(query[:, :, 0], dtype=torch.bool)
+            query_unpad, indices_q, cu_seqlens_q, max_seqlen_q = bert_padding.unpad_input(
+                query, pad_mask)
+            query_unpad = rearrange(query_unpad,
+                                    'nnz (h d) -> nnz h d',
+                                    h=self.n_heads)
+
+            if key_padding_mask is None:
+                key_padding_mask = torch.ones_like(key[:, :, 0],
+                                                   dtype=torch.bool)
+            key_unpad, _, cu_seqlens_k, max_seqlen_k = bert_padding.unpad_input(
+                key, key_padding_mask)
+            key_unpad = rearrange(key_unpad,
+                                  'nnz (h d) -> nnz h d',
                                   h=self.n_heads)
-            query = qkv_unpad[:, 0]
-            key = qkv_unpad[:, 1]
-            value = qkv_unpad[:, 2]
+
+            pad_mask = torch.ones_like(value[:, :, 0], dtype=torch.bool)
+            value_unpad, _, _, _ = bert_padding.unpad_input(value, pad_mask)
+            value_unpad = rearrange(value_unpad,
+                                    'nnz (h d) -> nnz h d',
+                                    h=self.n_heads)
 
             dropout_p = self.attn_dropout_p if self.training else 0.0
             output_unpad = flash_attn_interface.flash_attn_unpadded_func(
-                query,
-                key,
-                value,
-                cu_seqlens,
-                cu_seqlens,
-                max_s,
-                max_s,
+                query_unpad,
+                key_unpad,
+                value_unpad,
+                cu_seqlens_q,
+                cu_seqlens_k,
+                max_seqlen_q,
+                max_seqlen_k,
                 dropout_p,
                 softmax_scale=self.softmax_scale,
                 causal=self.is_causal,
                 return_attn_probs=needs_weights)
 
             output = bert_padding.pad_input(
-                rearrange(output_unpad, 'nnz h d -> nnz (h d)'), indices,
+                rearrange(output_unpad, 'nnz h d -> nnz (h d)'), indices_q,
                 batch_size, seqlen)
             context, attn_weights = output, None
 
@@ -230,22 +229,19 @@ class MultiheadAttention(nn.Module):
             assert qkv.dtype in [torch.float16, torch.bfloat16]
             assert qkv.is_cuda
 
-            qkv = rearrange(qkv,
-                            'b s (t h d) -> b s t h d',
-                            t=3,
-                            h=self.n_heads)
-            query, key, value = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
+            qkv = rearrange(qkv, 'b s (th d) -> b s th d', th=3 * self.n_heads)
+            query, key, value = qkv.chunk(3, dim=2)
 
             attn_output = flash_attn_triton.flash_attn_func(
                 query, key, value, attn_bias, self.is_causal,
                 self.softmax_scale)
 
-            output = rearrange(attn_output, 'b s h d -> b s (h d)')
+            bsize, seqlen = attn_output.size(0), attn_output.size(1)
+            output = attn_output.view(bsize, seqlen, -1)
             context, attn_weights = output, None
 
         elif self.attn_impl == 'torch':
-            qkv = rearrange(qkv, 'b s (t hd) -> b s t hd', t=3)
-            query, key, value = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
+            query, key, value = qkv.chunk(3, dim=2)
             context, attn_weights = scaled_multihead_dot_product_attention(
                 query,
                 key,
