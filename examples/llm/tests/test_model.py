@@ -373,3 +373,25 @@ def test_mosaic_gpt_creation():
         [hf_config.d_model, hf_config.d_model * hf_config.mlp_ratio])
     assert block.resid_attn_dropout.p == 0.2
     assert block.resid_mlp_dropout.p == 0.2
+
+
+def test_generate():
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+    )
+    mosaic_gpt = MosaicGPT(hf_config)
+
+    input_ids = torch.tensor([[31373, 11, 50256], [11274, 16390, 11]])
+    attention_mask = torch.tensor([[1, 1, 0], [1, 1, 1]])
+
+    generation = mosaic_gpt.generate(input_ids=input_ids,
+                                     attention_mask=attention_mask)
+    print(generation)
+    asdf

@@ -225,13 +225,9 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'inputs_embeds is not implemented for MosaicGPT yet')
 
-        attention_mask = kwargs.get('attention_mask',
-                                    kwargs.get('key_padding_mask', None))
-
         return {
             'input_ids': input_ids,
-            'use_cache': False,
-            'attention_mask': attention_mask,
+            'attention_mask': kwargs['attention_mask'],
         }
 
 
