@@ -16,6 +16,8 @@ from omegaconf import OmegaConf as om
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                           ComposerHFCausalLM, ComposerHFPrefixLM)
+from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
+from examples.llm.src.models.mosaic_gpt import MosaicGPT
 
 
 def get_config(conf_path='yamls/mosaic_gpt/testing.yaml') -> DictConfig:
@@ -335,3 +337,39 @@ def test_opt_wrapping(prefixlm):
     assert not model.model.model.decoder._fsdp_wrap
     assert not model.model.model.decoder.embed_tokens._fsdp_wrap
     assert not model.model.lm_head._fsdp_wrap
+
+
+def test_mosaic_gpt_creation():
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+    )
+    mosaic_gpt = MosaicGPT(hf_config)
+
+    assert mosaic_gpt.config.d_model == 128
+    assert mosaic_gpt.config.n_heads == 4
+    assert mosaic_gpt.config.n_layers == 2
+    assert mosaic_gpt.config.mlp_ratio == 2
+    assert mosaic_gpt.config.max_seq_len == 2048
+
+    assert mosaic_gpt.transformer.wte.weight.shape == torch.Size(
+        [hf_config.vocab_size, hf_config.d_model])
+    assert mosaic_gpt.transformer.wpe.weight.shape == torch.Size(
+        [hf_config.max_seq_len, hf_config.d_model])
+    assert mosaic_gpt.transformer.emb_drop.p == 0.1
+    assert len(mosaic_gpt.transformer.blocks) == 2
+    block = mosaic_gpt.transformer.blocks[0]
+    assert block.ln_1.weight.shape == torch.Size([hf_config.d_model])
+    assert block.ln_2.weight.shape == torch.Size([hf_config.d_model])
+    assert block.mlp.mlp_up.weight.shape == torch.Size(
+        [hf_config.d_model * hf_config.mlp_ratio, hf_config.d_model])
+    assert block.mlp.mlp_down.weight.shape == torch.Size(
+        [hf_config.d_model, hf_config.d_model * hf_config.mlp_ratio])
+    assert block.resid_attn_dropout.p == 0.2
+    assert block.resid_mlp_dropout.p == 0.2
