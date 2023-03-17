@@ -1,27 +1,27 @@
-run_name: stable-diffusion-finetune
+run_name: stable-diffusion-dreambooth
 
 seed: 42 # Random seed
 
 max_duration: 800ba # Duration to train specified as a Time string
 eval_interval: 200ba
 
-global_train_batch_size: 32 # Training total batch size (4 per 40gb A100, 8 cards)
-global_eval_batch_size: 32
+global_train_batch_size: 1 # Training total batch size (4 per 40gb A100, 8 cards)
+global_eval_batch_size: 1
 
 # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
 grad_accum: 1
 precision: fp32 # (GPU only), set to fp32 if training on cpu
 use_ema: false
 
-use_prior_preservation: true
+use_prior_preservation: false
 prior_loss_weight: 1.0
 num_class_images: 200
 
 dataset:
   instance_prompt: a photo of sks dog
   instance_data_root: ./data/instance_data
-  class_prompt: a photo of dog
-  class_data_root: ./data/class_data
+  # class_prompt: a photo of dog
+  # class_data_root: ./data/class_data
   resolution: 512 # training image size
   center_crop: false
 
@@ -48,7 +48,7 @@ optimizer:
 loggers:
   wandb:     # Uncomment and fill below arguments to use WandB logger
     entity:  # Name of WandB entity, usually username or organization name
-    project: stable-diffusion-finetune # Name of WandB project
+    project: stable-diffusion-dreambooth # Name of WandB project
     group:   # Name of WandB group
     rank_zero_only: false
 

@@ -129,6 +129,7 @@ class StableDiffusion(ComposerModel):
         timesteps = torch.randint(0,
                                   len(self.noise_scheduler),
                                   (latents.shape[0],),
+                                  dtype=latents.dtype,
                                   device=latents.device)
         # Add noise to the inputs (forward diffusion)
         noise = torch.randn_like(latents)
@@ -253,13 +254,15 @@ class StableDiffusion(ComposerModel):
                 self.unet.in_channels,  # type: ignore
                 height // vae_scale_factor,
                 width // vae_scale_factor),
-            device=device)  # type: ignore
+            device=device,
+            dtype=text_embeddings.dtype)  # type: ignore
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
         # scale the initial noise by the standard deviation required by the scheduler
         latents = latents * self.inference_scheduler.init_noise_sigma
 
         # backward diffusion process
+        self.inference_scheduler.timesteps = self.inference_scheduler.timesteps.to(dtype=text_embeddings.dtype) # for mps
         for t in tqdm(self.inference_scheduler.timesteps, disable=disable_progress_bar):
             # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
             latent_model_input = torch.cat([latents] * 2)
