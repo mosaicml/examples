@@ -44,7 +44,7 @@ class MosaicGPT(PreTrainedModel):
         self.alibi = config.alibi
         self.alibi_bias_max = config.alibi_bias_max
 
-        layernorm_class = LPLayerNorm if config.low_precision_layer_norm else nn.LayerNorm
+        layernorm_class = LPLayerNorm if config.low_precision_layernorm else nn.LayerNorm
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
@@ -212,6 +212,33 @@ class MosaicGPT(PreTrainedModel):
     # Activation Checkpointing
     def activation_checkpointing_fn(self, module):
         return isinstance(module, gpt_blocks.GPTBlock)
+
+    def prepare_inputs_for_generation(self,
+                                      input_ids,
+                                      past_key_values=None,
+                                      inputs_embeds=None,
+                                      **kwargs):
+        if past_key_values is not None:
+            raise NotImplementedError(
+                'past_key_values is not implemented for MosaicGPT yet')
+        if inputs_embeds is not None:
+            raise NotImplementedError(
+                'inputs_embeds is not implemented for MosaicGPT yet')
+
+        attention_mask = kwargs.get('attention_mask', None)
+
+        # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
+        if inputs_embeds is not None and past_key_values is None:
+            model_inputs = {'inputs_embeds': inputs_embeds}
+        else:
+            model_inputs = {'input_ids': input_ids}
+
+        model_inputs.update({
+            'past_key_values': past_key_values,
+            'use_cache': kwargs.get('use_cache'),
+            'attention_mask': attention_mask,
+        })
+        return model_inputs
 
 
 class ComposerMosaicGPT(ComposerModel):

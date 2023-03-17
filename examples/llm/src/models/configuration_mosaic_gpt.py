@@ -42,6 +42,7 @@ class MosaicGPTConfig(PretrainedConfig):
         fan_mode: str = 'fan_in',
         init_nonlinearity: str = 'leaky_relu',
         embedding_fraction: float = 1.0,
+        low_precision_layernorm: bool = False,
         **kwargs,
     ):
         self.d_model = d_model
@@ -73,6 +74,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.fan_mode = fan_mode
         self.init_nonlinearity = init_nonlinearity
         self.embedding_fraction = embedding_fraction
+        self.low_precision_layernorm = low_precision_layernorm
         if 'name' in kwargs:
             del kwargs['name']
         super().__init__(**kwargs)
