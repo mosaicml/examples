@@ -8,7 +8,6 @@ from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
 
 __all__ = [
     'scaled_multihead_dot_product_attention',
-    'scaled_multihead_dot_product_self_attention',
     'MultiheadAttention',
     'attn_bias_shape',
     'attn_bias_',

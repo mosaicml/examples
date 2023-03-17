@@ -22,7 +22,6 @@ __all__ = [
     'ComposerHFT5',
     'COMPOSER_MODEL_REGISTRY',
     'scaled_multihead_dot_product_attention',
-    'scaled_multihead_dot_product_self_attention',
     'MultiheadAttention',
     'attn_bias_shape',
     'attn_bias_',
