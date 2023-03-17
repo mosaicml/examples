@@ -366,10 +366,9 @@ def test_mosaic_gpt_creation():
     assert mosaic_gpt.transformer.emb_drop.p == 0.1  # type: ignore
     assert len(mosaic_gpt.transformer.blocks) == 2  # type: ignore
     block = mosaic_gpt.transformer.blocks[0]  # type: ignore
-    assert block.ln_1.weight.shape == torch.Size([hf_config.d_model
-                                                 ])  # type: ignore
-    assert block.ln_2.weight.shape == torch.Size([hf_config.d_model
-                                                 ])  # type: ignore
+    d_model = hf_config.d_model
+    assert block.ln_1.weight.shape == torch.Size([d_model])  # type: ignore
+    assert block.ln_2.weight.shape == torch.Size([d_model])  # type: ignore
     assert block.mlp.mlp_up.weight.shape == torch.Size(  # type: ignore
         [hf_config.d_model * hf_config.mlp_ratio, hf_config.d_model])
     assert block.mlp.mlp_down.weight.shape == torch.Size(  # type: ignore
