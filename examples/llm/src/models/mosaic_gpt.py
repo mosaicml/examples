@@ -196,7 +196,6 @@ class MosaicGPT(PreTrainedModel):
         else:
             mod_key_padding_mask = attention_mask
 
-        print(type(mod_key_padding_mask), mod_key_padding_mask.dtype)
         for block in self.transformer.blocks:  # type: ignore
             x = block(x, mod_key_padding_mask, attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
@@ -242,11 +241,10 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'inputs_embeds is not implemented for MosaicGPT yet')
 
-        print(kwargs['attention_mask'], kwargs['attention_mask'].float(),
-              kwargs['attention_mask'].float().dtype)
+        attention_mask = kwargs['attention_mask'].bool()
         return {
             'input_ids': input_ids,
-            'attention_mask': kwargs['attention_mask'],
+            'attention_mask': attention_mask,
         }
 
 

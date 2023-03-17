@@ -10,7 +10,7 @@ import pytest
 import torch
 import torch.nn as nn
 from composer.optim import DecoupledAdamW
-from composer.utils import reproducibility
+from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
@@ -375,7 +375,17 @@ def test_mosaic_gpt_creation():
     assert block.resid_mlp_dropout.p == 0.2
 
 
-def test_generate():
+@pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
+                                                   ('flash', 'gpu'),
+                                                   ('triton', 'gpu')])
+def test_generate(attention_impl, device):
+    if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
+        pytest.skip(
+            f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
+        )
+
+    device = get_device(device)
+
     hf_config = MosaicGPTConfig(
         init_device='cpu',
         d_model=128,
@@ -385,12 +395,15 @@ def test_generate():
         max_seq_len=2048,
         emb_pdrop=0.1,
         resid_pdrop=0.2,
-        attn_impl='torch',
+        attn_impl=attention_impl,
     )
     mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt = device.module_to_device(mosaic_gpt)
 
     input_ids = torch.tensor([[31373, 11, 50256], [11274, 16390, 11]])
+    input_ids = device.tensor_to_device(input_ids)
     attention_mask = torch.tensor([[1, 1, 0], [1, 1, 1]])
+    attention_mask = device.tensor_to_device(attention_mask)
 
     generation = mosaic_gpt.generate(input_ids=input_ids,
                                      attention_mask=attention_mask)
