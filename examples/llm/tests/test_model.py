@@ -385,6 +385,7 @@ def test_generate():
         max_seq_len=2048,
         emb_pdrop=0.1,
         resid_pdrop=0.2,
+        attn_impl='torch',
     )
     mosaic_gpt = MosaicGPT(hf_config)
 

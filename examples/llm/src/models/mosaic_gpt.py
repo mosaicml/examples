@@ -21,6 +21,7 @@ from composer.models.base import ComposerModel
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from transformers import PreTrainedModel
+from transformers.modeling_outputs import CausalLMOutput
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
@@ -143,7 +144,21 @@ class MosaicGPT(PreTrainedModel):
 
     def forward(self,
                 input_ids: torch.LongTensor,
-                attention_mask: Optional[torch.ByteTensor] = None):
+                attention_mask: Optional[torch.ByteTensor] = None,
+                return_dict: Optional[bool] = None,
+                output_attentions: Optional[bool] = None,
+                output_hidden_states: Optional[bool] = None):
+        return_dict = return_dict if return_dict is not None else self.config.return_dict
+        if not return_dict:
+            raise NotImplementedError(
+                'return_dict False is not implemented yet for MosaicGPT')
+        if output_attentions:
+            raise NotImplementedError(
+                'output_attentions is not implemented yet for MosaicGPT')
+        if output_hidden_states:
+            raise NotImplementedError(
+                'output_hidden_states is not implemented yet for MosaicGPT')
+
         B, S = input_ids.size()
         assert (
             S <= self.config.max_seq_len
@@ -180,6 +195,8 @@ class MosaicGPT(PreTrainedModel):
             mod_key_padding_mask = None
         else:
             mod_key_padding_mask = attention_mask
+
+        print(type(mod_key_padding_mask), mod_key_padding_mask.dtype)
         for block in self.transformer.blocks:  # type: ignore
             x = block(x, mod_key_padding_mask, attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
@@ -195,7 +212,7 @@ class MosaicGPT(PreTrainedModel):
                 )
             logits *= self.logit_scale
 
-        return logits
+        return CausalLMOutput(logits=logits)
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
@@ -225,6 +242,8 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'inputs_embeds is not implemented for MosaicGPT yet')
 
+        print(kwargs['attention_mask'], kwargs['attention_mask'].float(),
+              kwargs['attention_mask'].float().dtype)
         return {
             'input_ids': input_ids,
             'attention_mask': kwargs['attention_mask'],
