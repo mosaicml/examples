@@ -3,15 +3,10 @@
 
 from examples.llm.src.models.layers.attention import (
     MultiheadAttention, alibi_bias, attn_bias_, attn_bias_shape,
-    generate_attn_bias, scaled_multihead_dot_product_attention,
-    scaled_multihead_dot_product_self_attention)
-from examples.llm.src.models.layers.flash_attention import (FlashAttention,
-                                                            FlashMHA)
+    generate_attn_bias, scaled_multihead_dot_product_attention)
 from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
 
 __all__ = [
-    'FlashAttention',
-    'FlashMHA',
     'scaled_multihead_dot_product_attention',
     'scaled_multihead_dot_product_self_attention',
     'MultiheadAttention',

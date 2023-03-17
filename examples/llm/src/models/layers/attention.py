@@ -80,33 +80,6 @@ def scaled_multihead_dot_product_attention(
     return out, None
 
 
-def scaled_multihead_dot_product_self_attention(
-    qkv,
-    n_heads,
-    softmax_scale=None,
-    attn_bias=None,
-    key_padding_mask=None,
-    is_causal=False,
-    dropout_p=0.0,
-    training=False,
-    needs_weights=False,
-):
-    qkv = rearrange(qkv, 'b s (t hd) -> b s t hd', t=3)
-    return scaled_multihead_dot_product_attention(
-        qkv[:, :, 0],
-        qkv[:, :, 1],
-        qkv[:, :, 2],
-        n_heads,
-        softmax_scale=softmax_scale,
-        attn_bias=attn_bias,
-        key_padding_mask=key_padding_mask,
-        is_causal=is_causal,
-        dropout_p=dropout_p,
-        training=training,
-        needs_weights=needs_weights,
-    )
-
-
 class MultiheadAttention(nn.Module):
     """Multi-head self attention.
 
@@ -145,23 +118,25 @@ class MultiheadAttention(nn.Module):
         self.is_causal = True  # causal attn impl
         if self.attn_impl == 'flash':
             try:
-                from flash_attn import flash_attention  # type: ignore
+                # fast fail if not installed
+                from flash_attn import bert_padding  # type: ignore
+                from flash_attn import flash_attn_interface  # type: ignore
+
+                del flash_attn_interface, bert_padding
+            except ImportError as e:
+                raise e
+        elif self.attn_impl == 'triton':
+            try:
+                # fast fail if not installed
+                from flash_attn import flash_attn_triton  # type: ignore
+
+                del flash_attn_triton
             except ImportError as e:
                 raise e
 
-            self.inner_attn = flash_attention.FlashAttention(  # type: ignore
-                attention_dropout=self.attn_dropout_p,
-                device=device,
-                softmax_scale=self.softmax_scale)
-        elif self.attn_impl == 'triton':
             if self.attn_dropout_p:
                 raise ValueError(
                     'Triton kernel does not support attention dropout.')
-
-            try:
-                from examples.llm.src.models import layers  # type: ignore
-            except ImportError as e:
-                raise e
 
             warnings.warn(
                 'While `attn_impl: triton` can be faster than `attn_impl: flash` '
@@ -169,13 +144,11 @@ class MultiheadAttention(nn.Module):
                 'alloc retries which hurts performance. If encountered, we recommend '
                 'using `attn_impl: flash`.')
 
-            self.inner_attn = layers.flash_attention.FlashAttention(  # type: ignore
-                num_heads=cfg.n_heads,
-                softmax_scale=self.softmax_scale,
-                device=device)
-
         elif self.attn_impl == 'torch':
-            pass
+            warnings.warn(
+                DeprecationWarning(
+                    'Using `attn_impl: torch` is deprecated; recommened using `attn_impl: flash`.'
+                ))
 
         else:
             raise ValueError(f"{cfg.get('attn_impl')=} is an invalid setting.")
@@ -203,39 +176,80 @@ class MultiheadAttention(nn.Module):
             qkv = torch.cat([q, k, v], dim=-1)
 
         # attention
+        if needs_weights and self.attn_impl != 'torch':
+            raise NotImplementedError(
+                'needs_weights is only availible with attn_impl: torch.')
+
+        if attn_bias is not None and self.attn_impl == 'flash':
+            raise RuntimeError(
+                'attn_impl: flash does not support an attn bias.')
+
         if self.attn_impl == 'flash':
-            if needs_weights:
+            from flash_attn import bert_padding  # type: ignore
+            from flash_attn import flash_attn_interface  # type: ignore
+
+            batch_size, seqlen = qkv.shape[:2]
+
+            qkv_unpad, indices, cu_seqlens, max_s = bert_padding.unpad_input(
+                qkv, key_padding_mask)
+            qkv_unpad = rearrange(qkv_unpad,
+                                  'nnz (three h d) -> nnz three h d',
+                                  three=3,
+                                  h=self.n_heads)
+            query = qkv_unpad[:, 0]
+            key = qkv_unpad[:, 1]
+            value = qkv_unpad[:, 2]
+
+            dropout_p = self.attn_dropout_p if self.training else 0.0
+            output_unpad = flash_attn_interface.flash_attn_unpadded_func(
+                query,
+                key,
+                value,
+                cu_seqlens,
+                cu_seqlens,
+                max_s,
+                max_s,
+                dropout_p,
+                softmax_scale=self.softmax_scale,
+                causal=self.is_causal,
+                return_attn_probs=needs_weights)
+
+            output = bert_padding.pad_input(
+                rearrange(output_unpad, 'nnz h d -> nnz (h d)'), indices,
+                batch_size, seqlen)
+            context, attn_weights = output, None
+
+        elif self.attn_impl == 'triton':
+            from flash_attn import flash_attn_triton  # type: ignore
+
+            if key_padding_mask is not None and key_padding_mask.bool(
+            ).logical_not().any():
                 raise NotImplementedError(
-                    'FlashAttn cannot return attention weights.')
-            if attn_bias is not None:
-                raise RuntimeError(
-                    'attn_impl: flash does not support an attn bias.')
+                    f'assumes key_padding_mask is taken care of by attn_bias')
+
+            assert qkv.dtype in [torch.float16, torch.bfloat16]
+            assert qkv.is_cuda
+
             qkv = rearrange(qkv,
                             'b s (t h d) -> b s t h d',
                             t=3,
                             h=self.n_heads)
+            query, key, value = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
 
-            context, attn_weights = self.inner_attn(
-                qkv,
-                key_padding_mask=key_padding_mask,
-                causal=self.is_causal,
-                need_weights=False)
-            context = rearrange(context, 'b s h d -> b s (h d)')
+            attn_output = flash_attn_triton.flash_attn_func(
+                query, key, value, attn_bias, self.is_causal,
+                self.softmax_scale)
 
-        elif self.attn_impl == 'triton':
-            if needs_weights:
-                raise NotImplementedError(
-                    'Triton variant of FlashAttn cannot return attention weigths.'
-                )
-            context, attn_weights = self.inner_attn(
-                qkv,
-                key_padding_mask=key_padding_mask,
-                attn_bias=attn_bias,
-                is_causal=self.is_causal)
+            output = rearrange(attn_output, 'b s h d -> b s (h d)')
+            context, attn_weights = output, None
 
         elif self.attn_impl == 'torch':
-            context, attn_weights = scaled_multihead_dot_product_self_attention(
-                qkv,
+            qkv = rearrange(qkv, 'b s (t hd) -> b s t hd', t=3)
+            query, key, value = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
+            context, attn_weights = scaled_multihead_dot_product_attention(
+                query,
+                key,
+                value,
                 self.n_heads,
                 softmax_scale=self.softmax_scale,
                 attn_bias=attn_bias,
