@@ -8,6 +8,7 @@ from functools import partial
 
 import torch
 from torch import nn
+from flash_attn.ops.layer_norm import DropoutAddLayerNorm
 
 
 def torch_default_param_init_fn_(module, cfg):
@@ -133,6 +134,16 @@ def generic_param_init_fn_(module, cfg, init_fn_):
         torch.nn.init.ones_(module.weight)
         if module.bias is not None:
             torch.nn.init.zeros_(module.bias)
+
+    elif isinstance(module, DropoutAddLayerNorm):
+        if cfg.get('verbose', 0) > 1:
+            warnings.warn(
+                f'LayerNorm gamma weights are set to 1.  If the layer has a bias it is initialized to 0.'
+            )
+        torch.nn.init.ones_(module.weight)
+        if module.bias is not None:
+            torch.nn.init.zeros_(module.bias)
+
 
     elif isinstance(module, nn.MultiheadAttention):
         # torch's MultiheadAttention

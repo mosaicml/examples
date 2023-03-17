@@ -11,10 +11,10 @@ from composer.algorithms.low_precision_layernorm.low_precision_layernorm import 
     LPLayerNorm
 from omegaconf import DictConfig
 
-from examples.llm.src.models.ops import (DropoutAddLayerNorm, FusedMLP,
-                                         check_if_dropout_layer_norm_installed,
+from examples.llm.src.models.ops import (check_if_dropout_layer_norm_installed,
                                          check_if_fused_mlp_installed)
-
+from flash_attn.ops.fused_dense import FusedMLP
+from flash_attn.ops.layer_norm import DropoutAddLayerNorm
 
 class GPTMLP(nn.Module):
 
@@ -90,7 +90,7 @@ class OptimizedGPTBlock(nn.Module):
                             hidden_features=cfg.mlp_ratio * cfg.d_model,
                             out_features=cfg.d_model,
                             device=device)
-        setattr(self.mlp.fc2, _is_residual, True)  # type: ignore
+        self.mlp.fc2._is_residual = True # type: ignore
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,
