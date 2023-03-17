@@ -9,6 +9,7 @@ from typing import cast
 import pytest
 import torch
 import torch.nn as nn
+from composer import precision
 from composer.optim import DecoupledAdamW
 from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
@@ -405,7 +406,9 @@ def test_generate(attention_impl, device):
     attention_mask = torch.tensor([[1, 1, 0], [1, 1, 1]])
     attention_mask = device.tensor_to_device(attention_mask)
 
-    generation = mosaic_gpt.generate(input_ids=input_ids,
-                                     attention_mask=attention_mask)
+    with precision.get_precision_context('bf16' if device.name ==
+                                         'gpu' else 'fp32'):
+        generation = mosaic_gpt.generate(input_ids=input_ids,
+                                         attention_mask=attention_mask)
     print(generation)
     asdf
