@@ -214,9 +214,7 @@ class ComposerMosaicGPT(ComposerModel):
     def __init__(self, om_model_config: DictConfig):
         super().__init__()
 
-        print(om_model_config.max_seq_len)
-        resolved_om_config = om.to_container(om_model_config)
-        print(resolved_om_config)
+        resolved_om_config = om.to_container(om_model_config, resolve=True)
         self.hf_config = MosaicGPTConfig.from_dict(resolved_om_config)
         self.model = MosaicGPT(self.hf_config)
         self.__num_fwd_flops = None
