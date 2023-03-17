@@ -111,7 +111,7 @@ class MosaicGPT(nn.Module):
                     for _ in range(cfg.n_layers)
                 ])
         })
-      
+
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(cfg.d_model)
         self.logit_scale = None
