@@ -7,6 +7,8 @@ from typing import Optional, Union
 
 import torch
 import torch.nn as nn
+from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
+    LPLayerNorm
 
 import examples.llm.src.models.layers.attention as attention
 
@@ -38,6 +40,7 @@ class GPTBlock(nn.Module):
                  mlp_ratio: int,
                  alibi: bool = False,
                  resid_pdrop: float = 0.0,
+                 low_precision_layernorm: bool = False,
                  device: Optional[str] = None,
                  **kwargs):
         super().__init__()
@@ -47,14 +50,17 @@ class GPTBlock(nn.Module):
                 attention.TritonFlashCausalAttention) or isinstance(
                     causal_attn_cls, attention.TorchCausalAttention
                 ), 'Only triton kernel or torch supports alibi'
-        self.ln_1 = nn.LayerNorm(d_model, device=device)
+
+        layernorm_class = LPLayerNorm if low_precision_layernorm else nn.LayerNorm
+
+        self.ln_1 = layernorm_class(d_model, device=device)
         self.causal_attn = causal_attn_cls(
             d_model=d_model,
             n_heads=n_heads,
             device=device,
             **kwargs,
         )
-        self.ln_2 = nn.LayerNorm(d_model, device=device)
+        self.ln_2 = layernorm_class(d_model, device=device)
         self.mlp = GPTMLP(
             d_model=d_model,
             mlp_ratio=mlp_ratio,

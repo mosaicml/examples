@@ -13,6 +13,8 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
+    LPLayerNorm
 from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
 from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
 from composer.models.base import ComposerModel
@@ -42,6 +44,8 @@ class MosaicGPT(PreTrainedModel):
         self.alibi = config.alibi
         self.alibi_bias_max = config.alibi_bias_max
 
+        layernorm_class = LPLayerNorm if config.low_precision_layer_norm else nn.LayerNorm
+
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
         self.embedding_fraction = config.embedding_fraction
@@ -69,8 +73,9 @@ class MosaicGPT(PreTrainedModel):
                     for _ in range(config.n_layers)
                 ])
         })
-        self.transformer.update(
-            {'ln_f': nn.LayerNorm(config.d_model, device=config.init_device)})
+        self.transformer.update({
+            'ln_f': layernorm_class(config.d_model, device=config.init_device)
+        })
 
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(config.d_model)
@@ -217,7 +222,7 @@ class ComposerMosaicGPT(ComposerModel):
         resolved_om_config = om.to_container(om_model_config, resolve=True)
         self.hf_config = MosaicGPTConfig.from_dict(resolved_om_config)
         self.model = MosaicGPT(self.hf_config)
-        self.__num_fwd_flops = None
+        self.num_fwd_flops = self._compute_num_fwd_flops()
         self.train_metrics = {
             'LanguageCrossEntropy':
                 LanguageCrossEntropy(self.hf_config.vocab_size),
@@ -276,10 +281,7 @@ class ComposerMosaicGPT(ComposerModel):
         else:
             self.eval_metrics = evaluator_metrics
 
-    @property
-    def num_fwd_flops(self):
-        if self.__num_fwd_flops:
-            return self.__num_fwd_flops
+    def _compute_num_fwd_flops(self):
         n_params = sum(p.numel() for p in self.parameters())
         # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
         # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
@@ -289,5 +291,10 @@ class ComposerMosaicGPT(ComposerModel):
         # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
         attn_flops_per_seq = self.model.config.n_layers * 2 * 2 * (
             self.model.config.d_model * (self.model.config.max_seq_len**2))
-        self.__num_fwd_flops = params_flops_per_seq + attn_flops_per_seq
-        return self.__num_fwd_flops
+        return params_flops_per_seq + attn_flops_per_seq
+
+    def flops_per_batch(self, batch):
+        # Note: this computation does not take into account padding, and assumes
+        # that the dataset has been constructed without padding. Additionally, we
+        # assume the backward pass is approximately 2x the forward pass
+        return self.num_fwd_flops * 3 * batch['input_ids'].shape[0]
