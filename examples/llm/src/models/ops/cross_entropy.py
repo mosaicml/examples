@@ -3,7 +3,7 @@
 
 # Copyright (c) 2023, Tri Dao.
 # Inspired by https://github.com/NVIDIA/apex/blob/master/apex/transformer/tensor_parallel/cross_entropy.py
-# But we make it much faster: we compute the local loss and the LSE, and by exchanging the LSE and
+# This version is faster than APEX: it computes the local loss and the LSE, and by exchanging the LSE and
 # the losses we can get the global loss. There's no need to do it step by step
 # (compute local max, exchange, compute exp, compute local sum, exchange, etc.)
 # The original xentropy interface is here: https://github.com/NVIDIA/apex/blob/master/apex/contrib/xentropy/softmax_xentropy.py

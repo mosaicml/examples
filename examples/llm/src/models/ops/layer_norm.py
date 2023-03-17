@@ -1,6 +1,9 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+# Adapted from https://github.com/HazyResearch/flash-attention/blob/dc08ea1c33afca500a3d4ada907608f7815a11d9/flash_attn/ops/layer_norm.py
+# We add the import try/except and the install check funtion, but otherwise leave the code unchanged.
+
 # Copyright (c) 2022, Tri Dao.
 # Adapted from https://github.com/NVIDIA/apex/blob/master/apex/contrib/layer_norm/layer_norm.py
 
