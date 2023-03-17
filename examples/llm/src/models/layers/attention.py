@@ -8,6 +8,9 @@ import warnings
 from typing import Optional
 
 import torch
+import torch.nn as nn
+from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
+    LPLayerNorm
 from einops import rearrange
 from omegaconf import DictConfig
 from torch import nn
@@ -134,8 +137,10 @@ class MultiheadAttention(nn.Module):
         self.Wqkv._fused = (0, fuse_splits)  # type: ignore
 
         if self.attn_qk_ln:
-            self.q_ln = nn.LayerNorm(self.d_model, device=device)
-            self.k_ln = nn.LayerNorm(self.d_model, device=device)
+            layernorm_class = nn.LayerNorm if not cfg.get(
+                'low_precision_layernorm', False) else LPLayerNorm
+            self.q_ln = layernorm_class(self.d_model, device=device)
+            self.k_ln = layernorm_class(self.d_model, device=device)
 
         self.is_causal = True  # causal attn impl
         if self.attn_impl == 'flash':
