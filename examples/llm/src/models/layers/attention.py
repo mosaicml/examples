@@ -80,6 +80,14 @@ def scaled_multihead_dot_product_attention(
     return out, None
 
 
+def check_valid_inputs(*tensors, valid_dtypes=[torch.float16, torch.bfloat16]):
+    for tensor in tensors:
+        if tensor.dtype not in valid_dtypes:
+            raise TypeError(f'{tensor.dtype=} must be in {valid_dtypes=}.')
+        if not tensor.is_cuda:
+            raise TypeError(f'Inputs must be cuda tensors ({tensor.is_cuda=}).')
+
+
 def flash_attn_fn(
     query,
     key,
@@ -99,20 +107,17 @@ def flash_attn_fn(
     except ImportError as e:
         raise e
 
-    assert query.dtype in [torch.float16, torch.bfloat16]
-    assert key.dtype in [torch.float16, torch.bfloat16]
-    assert value.dtype in [torch.float16, torch.bfloat16]
-
-    assert value.is_cuda
-    assert query.is_cuda
-    assert key.is_cuda
+    check_valid_inputs(query, key, value)
 
     if attn_bias is not None:
         raise NotImplementedError(f'attn_bias not implemented for flash attn.')
 
     batch_size, seqlen = query.shape[:2]
 
-    pad_mask = torch.ones_like(query[:, :, 0], dtype=torch.bool)
+    if training:
+        pad_mask = key_padding_mask
+    else:
+        pad_mask = torch.ones_like(query[:, :, 0], dtype=torch.bool)
     query_unpad, indices_q, cu_seqlens_q, max_seqlen_q = bert_padding.unpad_input(
         query, pad_mask)
     query_unpad = rearrange(query_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
@@ -123,8 +128,7 @@ def flash_attn_fn(
         key, key_padding_mask)
     key_unpad = rearrange(key_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
 
-    pad_mask = torch.ones_like(value[:, :, 0], dtype=torch.bool)
-    value_unpad, _, _, _ = bert_padding.unpad_input(value, pad_mask)
+    value_unpad, _, _, _ = bert_padding.unpad_input(value, key_padding_mask)
     value_unpad = rearrange(value_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
 
     dropout_p = dropout_p if training else 0.0
@@ -165,6 +169,8 @@ def triton_flash_attn_fn(
     except ImportError as e:
         raise e
 
+    check_valid_inputs(query, key, value)
+
     if dropout_p:
         raise NotImplementedError(
             f'Dropout not implemented for attn_impl: triton.')
@@ -177,14 +183,6 @@ def triton_flash_attn_fn(
     ).any():
         raise NotImplementedError(
             f'assumes key_padding_mask is taken care of by attn_bias')
-
-    assert query.dtype in [torch.float16, torch.bfloat16]
-    assert key.dtype in [torch.float16, torch.bfloat16]
-    assert value.dtype in [torch.float16, torch.bfloat16]
-
-    assert value.is_cuda
-    assert query.is_cuda
-    assert key.is_cuda
 
     query = rearrange(query, 'b s (h d) -> b s h d', h=n_heads)
     key = rearrange(key, 'b s (h d) -> b s h d', h=n_heads)
