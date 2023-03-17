@@ -45,6 +45,44 @@ class MosaicGPTConfig(PretrainedConfig):
         low_precision_layernorm: bool = False,
         **kwargs,
     ):
+        """The MosaicGPT configuration class.
+
+        Args:
+            d_model (int): The size of the embedding dimension of the model.
+            n_heads (int): The number of attention heads.
+            n_layers (int): The number of layers in the model.
+            mlp_ratio (int): The ratio of the up/down scale in the MLP.
+            max_seq_len (int): The maximum sequence length of the model.
+            vocab_size (int): The size of the vocabulary.
+            init_std (float): The standard deviation of the normal distribution used to initialize the model,
+                if using the normal parameter initialization scheme.
+            attn_pdrop (float): The dropout probability for the attention layers.
+            resid_pdrop (float): The dropout probability applied to the attention output before combining with residual.
+            emb_pdrop (float): The dropout probability for the embedding layer.
+            attn_impl (str): The attention implementation to use. One of 'torch', 'flash', or 'triton'.
+            attn_qk_ln (bool): Whether to apply layer normalization to the queries and keys in the attention layer.
+            attn_clip_qkv (Optional[float]): If not None, clip the queries, keys, and values in the attention layer to
+                this value.
+            softmax_scale (Optional[float]): If not None, scale the softmax in the attention layer by this value. If None,
+                use the default scale of ``1/sqrt(d_keys)``.
+            alibi (bool): Whether to use the alibi bias instead of position embeddings.
+            alibi_bias_max (int): The maximum value of the alibi bias.
+            init_device (str): The device to use for parameter initialization.
+            logit_scale (Optional[Union[float, str]]): If not None, scale the logits by this value.
+            no_bias (bool): Whether to use bias in all layers.
+            verbose (int): The verbosity level. 0 is silent.
+            param_init_fn (str): The parameter initialization scheme to use. One of 'default_', 'baseline_', 'kaiming_uniform_',
+                'kaiming_normal_', 'neox_init_', 'small_init_', 'xavier_uniform_', or 'xavier_normal_'.
+            init_div_is_residual (Union[int, float, str, bool]): Value to divide initial weights by if ``module._is_residual`` is True.
+            emb_init_std (Optional[float]): The standard deviation of the normal distribution used to initialize the embedding layer.
+            emb_init_uniform_lim (Optional[Union[Tuple[float, float], float]]): The lower and upper limits of the uniform distribution
+                used to initialize the embedding layer. Mutually exclusive with ``emb_init_std``.
+            init_gain (float): The gain to use for parameter initialization with kaiming or xavier initialization schemes.
+            fan_mode (str): The fan mode to use for parameter initialization with kaiming initialization schemes.
+            init_nonlinearity (str): The nonlinearity to use for parameter initialization with kaiming initialization schemes.
+            embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
+            low_precision_layernorm (bool): Whether to use low precision layer normalization.
+        """
         self.d_model = d_model
         self.n_heads = n_heads
         self.n_layers = n_layers
