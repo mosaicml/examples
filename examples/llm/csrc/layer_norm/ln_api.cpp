@@ -169,7 +169,7 @@ std::vector<at::Tensor> dropout_add_ln_fwd(const at::Tensor &x0,      // Input: 
     }
 
     TORCH_CHECK(hidden_size == cols);
-    TORCH_CHECK((hidden_size % 8 == 0) && (hidden_size <= 6144));
+    TORCH_CHECK((hidden_size % 8 == 0) && (hidden_size <= 8192));
 
     TORCH_CHECK(epsilon >= 0.f);
 
