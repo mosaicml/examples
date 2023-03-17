@@ -143,7 +143,7 @@ class MosaicGPT(PreTrainedModel):
 
     def forward(self,
                 input_ids: torch.LongTensor,
-                key_padding_mask: Optional[torch.ByteTensor] = None):
+                attention_mask: Optional[torch.ByteTensor] = None):
         B, S = input_ids.size()
         assert (
             S <= self.config.max_seq_len
@@ -169,9 +169,9 @@ class MosaicGPT(PreTrainedModel):
 
         attn_mask = self._attn_mask(batch_size=B,
                                     seq_len=S,
-                                    key_padding_mask=key_padding_mask,
+                                    key_padding_mask=attention_mask,
                                     dtype=x.dtype)
-        if self.config.attn_impl == 'flash' and key_padding_mask is None:
+        if self.config.attn_impl == 'flash' and attention_mask is None:
             # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
             # in certain settings like MosaicGPT-7B. So we always provide a tensor.
             # See https://github.com/mosaicml/examples/pull/163 for more details.
@@ -179,7 +179,7 @@ class MosaicGPT(PreTrainedModel):
         elif self.config.attn_impl == 'triton':
             mod_key_padding_mask = None
         else:
-            mod_key_padding_mask = key_padding_mask
+            mod_key_padding_mask = attention_mask
         for block in self.transformer.blocks:  # type: ignore
             x = block(x, mod_key_padding_mask, attn_mask)
         x = self.transformer.ln_f(x)  # type: ignore
@@ -225,20 +225,14 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'inputs_embeds is not implemented for MosaicGPT yet')
 
-        attention_mask = kwargs.get('attention_mask', None)
+        attention_mask = kwargs.get('attention_mask',
+                                    kwargs.get('key_padding_mask', None))
 
-        # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
-        if inputs_embeds is not None and past_key_values is None:
-            model_inputs = {'inputs_embeds': inputs_embeds}
-        else:
-            model_inputs = {'input_ids': input_ids}
-
-        model_inputs.update({
-            'past_key_values': past_key_values,
-            'use_cache': kwargs.get('use_cache'),
+        return {
+            'input_ids': input_ids,
+            'use_cache': False,
             'attention_mask': attention_mask,
-        })
-        return model_inputs
+        }
 
 
 class ComposerMosaicGPT(ComposerModel):
@@ -270,10 +264,9 @@ class ComposerMosaicGPT(ComposerModel):
 
     def forward(self, batch):
         input_ids = batch['input_ids']
-        key_padding_mask = batch['attention_mask'].bool(
+        attention_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
-        return self.model(input_ids=input_ids,
-                          key_padding_mask=key_padding_mask)
+        return self.model(input_ids=input_ids, attention_mask=attention_mask)
 
     def eval_forward(self, batch, outputs=None):
         return outputs if outputs is not None else self.forward(batch)
