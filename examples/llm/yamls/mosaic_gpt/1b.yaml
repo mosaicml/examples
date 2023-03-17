@@ -23,6 +23,7 @@ model:
   resid_pdrop: 0.0
   emb_pdrop: 0.0
   attn_impl: flash
+  gpt_block: standard
 
 # Tokenizer
 tokenizer:
@@ -37,7 +38,7 @@ train_loader:
   dataset:
     local: ${data_local}
     remote: ${data_remote}
-    split: train
+    split: train_small
     shuffle: true
     tokenizer_name: ${tokenizer_name}
     max_seq_len: ${max_seq_len}
@@ -109,8 +110,9 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
 
-# loggers:
-#   wandb: {}
+loggers:
+  wandb:
+    project: nikhil-gpt-integration
 
 # Checkpoint to local filesystem or remote object store
 # save_interval: 2000ba

@@ -1,6 +1,9 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+# Adapted from https://github.com/HazyResearch/flash-attention/blob/dc08ea1c33afca500a3d4ada907608f7815a11d9/flash_attn/losses/cross_entropy.py
+# We add the import try/except and the install check funtion, but otherwise leave the code unchanged.
+
 # Copyright (c) 2023, Tri Dao.
 # Inspired by https://github.com/NVIDIA/apex/blob/master/apex/transformer/tensor_parallel/cross_entropy.py
 # This version is faster than APEX: it computes the local loss and the LSE, and by exchanging the LSE and
@@ -20,7 +23,7 @@ except ImportError as e:
 def check_if_xentropy_cuda_installed():
     if not XENTROPY_CUDA_LIB:
         raise ImportError(
-            'The Xentropy CUDA extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/requirements_performance.txt.'
+            'The Xentropy CUDA extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/requirements_optimized_perf.txt.'
         )
 
 

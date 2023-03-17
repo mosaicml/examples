@@ -27,7 +27,7 @@ except ImportError as e:
 def check_if_fused_mlp_installed():
     if not FUSED_MLP_INSTALLED:
         raise ImportError(
-            'The Fused MLP fusion extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/requirements_performance.txt.'
+            'The Fused MLP fusion extension files were not be installed. Please install the CUDA extensions in examples/examples/llm/requirements_optimized_perf.txt.'
         )
 
 
