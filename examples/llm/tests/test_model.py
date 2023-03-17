@@ -164,6 +164,7 @@ def test_attention_mechanism(batch_size=2):
         b, attention_weights = block.attn(a,
                                           attn_bias=attn_bias,
                                           key_padding_mask=key_padding_mask,
+                                          is_causal=model.model.is_causal,
                                           needs_weights=True)
 
         zerod_weights = (attention_weights == 0)

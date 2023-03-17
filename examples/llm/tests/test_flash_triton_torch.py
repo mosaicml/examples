@@ -81,9 +81,15 @@ def test_attn_impl(attn_impl_0,
 
     with torch.autocast(x0.device.type):
         attn_bias, kpm = gen_bias(attn0.attn_impl, key_padding_mask)
-        y0, _ = attn0(x0, attn_bias=attn_bias, key_padding_mask=kpm)
+        y0, _ = attn0(x0,
+                      attn_bias=attn_bias,
+                      key_padding_mask=kpm,
+                      is_causal=True)
         attn_bias, kpm = gen_bias(attn1.attn_impl, key_padding_mask)
-        y1, _ = attn1(x1, attn_bias=attn_bias, key_padding_mask=kpm)
+        y1, _ = attn1(x1,
+                      attn_bias=attn_bias,
+                      key_padding_mask=kpm,
+                      is_causal=True)
         y0 *= key_padding_mask.unsqueeze(-1)
         y1 *= key_padding_mask.unsqueeze(-1)
 
@@ -154,7 +160,10 @@ def test_vs_mha(attn_impl, device='cuda'):
     x1.requires_grad = True
 
     with torch.autocast(x0.device.type):
-        y0, _ = mmhsa(x0, attn_bias=None, key_padding_mask=key_padding_mask)
+        y0, _ = mmhsa(x0,
+                      attn_bias=None,
+                      key_padding_mask=key_padding_mask,
+                      is_causal=True)
         y1, _ = tmhsa(x1,
                       x1,
                       x1,
