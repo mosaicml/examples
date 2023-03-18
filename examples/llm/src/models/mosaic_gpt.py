@@ -162,15 +162,17 @@ class MosaicGPT(PreTrainedModel):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
         if self.alibi:
-            # TODO: support middle padding with alibi
+            # TODO: account for left padding with alibi
             x = tok_emb
         else:
             pos = torch.arange(0, S, dtype=torch.long,
                                device=input_ids.device).unsqueeze(0)
 
-            # adjust the position indices to account for padding tokens
-            pos = torch.clamp(pos - torch.cumsum(attention_mask == 0, dim=1),
-                              min=0)
+            if attention_mask is not None:
+                # adjust the position indices to account for padding tokens
+                pos = torch.clamp(pos -
+                                  torch.cumsum(attention_mask == 0, dim=1),
+                                  min=0)
 
             pos_emb = self.transformer.wpe(pos)  # type: ignore
             x = tok_emb + pos_emb
