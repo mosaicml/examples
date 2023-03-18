@@ -53,7 +53,7 @@ class GPTBlock(nn.Module):
         layernorm_class = LPLayerNorm if low_precision_layernorm else nn.LayerNorm
 
         self.ln_1 = layernorm_class(d_model, device=device)
-        self.causal_attn = MultiheadAttention(
+        self.attn = MultiheadAttention(
             attn_impl=attn_impl,
             attn_clip_qkv=attn_clip_qkv,
             attn_qk_ln=attn_qk_ln,
