@@ -63,8 +63,7 @@ class MosaicGPT(PreTrainedModel):
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    gpt_blocks.GPTBlock(attn_impl=config.attn_impl,
-                                        device=config.init_device,
+                    gpt_blocks.GPTBlock(device=config.init_device,
                                         **config.to_dict())
                     for _ in range(config.n_layers)
                 ])
