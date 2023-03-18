@@ -256,6 +256,7 @@ class MultiheadAttention(nn.Module):
 
     def forward(self,
                 x,
+                past_key_value=None,
                 attn_bias=None,
                 key_padding_mask=None,
                 is_causal=True,
@@ -271,6 +272,20 @@ class MultiheadAttention(nn.Module):
             dtype = query.dtype
             query = self.q_ln(query).to(dtype)
             key = self.k_ln(key).to(dtype)
+
+        if past_key_value is not None:
+            if past_key_value:
+                # reuse k, v, self_attention
+                key_states = torch.cat([past_key_value[0], key], dim=1)
+                value_states = torch.cat([past_key_value[1], value], dim=1)
+
+                if key_padding_mask is not None:
+                    _kpm = torch.ones_like(past_key_value[0][:, :, 0],
+                                           dtype=torch.bool)
+                    key_padding_mask = torch.cat([_kpm, key_padding_mask],
+                                                 dim=1)
+
+            past_key_value = (key_states, value_states)
 
         if attn_bias is not None:
             attn_bias = attn_bias[:, :, -query.size(1):, -key.size(1):]
@@ -289,7 +304,7 @@ class MultiheadAttention(nn.Module):
             needs_weights=needs_weights,
         )
 
-        return self.out_proj(context), attn_weights
+        return self.out_proj(context), attn_weights, past_key_value
 
 
 def attn_bias_shape(attn_impl, n_heads, seq_len, alibi, causal):

@@ -158,11 +158,19 @@ class MosaicGPT(nn.Module):
             x = self.transformer.emb_drop(x_shrunk)
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
-        for block in self.transformer.blocks:  # type: ignore
-            x = block(x,
-                      attn_bias=attn_bias,
-                      key_padding_mask=key_padding_mask,
-                      is_causal=self.is_causal)
+
+        past_key_values = None
+        for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
+            past_key_value = past_key_value[
+                b_idx] if past_key_values is not None else None
+            x, past_key_value = block(x,
+                                      past_key_value=past_key_value,
+                                      attn_bias=attn_bias,
+                                      key_padding_mask=key_padding_mask,
+                                      is_causal=self.is_causal)
+            if past_key_values is not None:
+                past_key_value[b_idx] = past_key_value
+
         x = self.transformer.ln_f(x)  # type: ignore
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
