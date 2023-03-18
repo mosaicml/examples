@@ -70,6 +70,12 @@ def scaled_multihead_dot_product_attention(
                                                   training=training,
                                                   inplace=True)
 
+    # apply the key padding mask to keys and values to replace nans
+    # when using left padding during generation
+    if key_padding_mask is not None:
+        v = v.masked_fill(~key_padding_mask.view((b, 1, s_k, 1)), 0)
+        k = k.masked_fill(~key_padding_mask.view((b, 1, 1, s_k)), 0)
+
     out = attn_weight.matmul(v)
     out = rearrange(out, 'b h s d -> b s (h d)', h=n_heads)
 
@@ -118,7 +124,10 @@ def flash_attn_fn(
     if training:
         pad_mask = key_padding_mask
     else:
-        pad_mask = torch.ones_like(query[:, :, 0], dtype=torch.bool)
+        pad_mask = key_padding_mask
+        # TODO: Fix when implementing kv caching
+        # pad_mask = torch.ones_like(query[:, :, 0], dtype=torch.bool)
+
     query_unpad, indices_q, cu_seqlens_q, max_seqlen_q = bert_padding.unpad_input(
         query, pad_mask)
     query_unpad = rearrange(query_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
@@ -131,6 +140,7 @@ def flash_attn_fn(
     value_unpad = rearrange(value_unpad, 'nnz (h d) -> nnz h d', h=n_heads)
 
     dropout_p = dropout_p if training else 0.0
+
     output_unpad = flash_attn_interface.flash_attn_unpadded_func(
         query_unpad,
         key_unpad,
@@ -193,11 +203,19 @@ def triton_flash_attn_fn(
     key = rearrange(key, 'b s (h d) -> b s h d', h=n_heads)
     value = rearrange(value, 'b s (h d) -> b s h d', h=n_heads)
 
+    # apply the key padding mask to keys and values to replace nans
+    # when using left padding during generation
+    if key_padding_mask is not None:
+        value = value.masked_fill(~key_padding_mask.view((b_size, s_k, 1, 1)),
+                                  0)
+        key = key.masked_fill(~key_padding_mask.view((b_size, s_k, 1, 1)), 0)
+
     attn_output = flash_attn_triton.flash_attn_func(query, key, value,
                                                     attn_bias, is_causal,
                                                     softmax_scale)
 
     output = attn_output.view(*attn_output.shape[:2], -1)
+
     return output, None
 
 

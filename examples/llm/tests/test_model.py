@@ -382,6 +382,99 @@ def test_mosaic_gpt_creation():
 @pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
                                                    ('flash', 'gpu'),
                                                    ('triton', 'gpu')])
+def test_forward_with_padding(attention_impl, device):
+    if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
+        pytest.skip(
+            f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
+        )
+
+    reproducibility.seed_all(1234)
+    device = get_device(device)
+
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=1,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+        attn_impl=attention_impl,
+    )
+    mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt.eval()
+    mosaic_gpt = device.module_to_device(mosaic_gpt)
+
+    with get_precision_context('amp_bf16' if device.name == 'gpu' else 'fp32'):
+        right_padding_input_ids = torch.tensor(
+            [[11274, 16390, 11, 50256, 50256, 50256],
+             [11274, 16390, 11, 50256, 50256, 50256]])
+        right_padding_input_ids = device.tensor_to_device(
+            right_padding_input_ids)
+        right_padding_attention_mask = torch.tensor([[1, 1, 1, 0, 0, 0],
+                                                     [1, 1, 1, 0, 0,
+                                                      0]]).bool()
+        right_padding_attention_mask = device.tensor_to_device(
+            right_padding_attention_mask)
+
+        middle_padding_input_ids = torch.tensor(
+            [[11274, 16390, 50256, 50256, 50256, 11],
+             [11274, 16390, 50256, 50256, 50256, 11]])
+        middle_padding_input_ids = device.tensor_to_device(
+            middle_padding_input_ids)
+        middle_padding_attention_mask = torch.tensor([[1, 1, 0, 0, 0, 1],
+                                                      [1, 1, 0, 0, 0,
+                                                       1]]).bool()
+        middle_padding_attention_mask = device.tensor_to_device(
+            middle_padding_attention_mask)
+
+        left_padding_input_ids = torch.tensor(
+            [[50256, 50256, 50256, 11274, 16390, 11],
+             [50256, 50256, 50256, 11274, 16390, 11]])
+        left_padding_input_ids = device.tensor_to_device(left_padding_input_ids)
+        left_padding_attention_mask = torch.tensor([[0, 0, 0, 1, 1, 1],
+                                                    [0, 0, 0, 1, 1, 1]]).bool()
+        left_padding_attention_mask = device.tensor_to_device(
+            left_padding_attention_mask)
+
+        batched_input_ids = torch.tensor(
+            [[11274, 16390, 11, 50256, 50256, 50256],
+             [11274, 16390, 50256, 50256, 50256, 11]])
+        batched_input_ids = device.tensor_to_device(batched_input_ids)
+        batched_attention_mask = torch.tensor([[1, 1, 1, 0, 0, 0],
+                                               [1, 1, 0, 0, 0, 1]]).bool()
+        batched_attention_mask = device.tensor_to_device(batched_attention_mask)
+
+        right_padding_output = mosaic_gpt(
+            right_padding_input_ids,
+            attention_mask=right_padding_attention_mask).logits
+        middle_padding_output = mosaic_gpt(
+            middle_padding_input_ids,
+            attention_mask=middle_padding_attention_mask).logits
+        left_padding_output = mosaic_gpt(
+            left_padding_input_ids,
+            attention_mask=left_padding_attention_mask).logits
+        batched_output = mosaic_gpt(
+            batched_input_ids, attention_mask=batched_attention_mask).logits
+
+        assert torch.allclose(right_padding_output[0, :3],
+                              left_padding_output[0, 3:],
+                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
+        assert torch.allclose(right_padding_output[0, :3],
+                              middle_padding_output[0, [0, 1, 5]],
+                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
+        assert torch.allclose(right_padding_output[0, :3],
+                              batched_output[0, :3],
+                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
+        assert torch.allclose(middle_padding_output[0],
+                              batched_output[1, :],
+                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
+
+
+@pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
+                                                   ('flash', 'gpu'),
+                                                   ('triton', 'gpu')])
 def test_generate(attention_impl, device):
     if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
         pytest.skip(
@@ -403,17 +496,51 @@ def test_generate(attention_impl, device):
         attn_impl=attention_impl,
     )
     mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt.eval()
     mosaic_gpt = device.module_to_device(mosaic_gpt)
 
-    input_ids = torch.tensor([[31373, 11, 50256], [11274, 16390, 11]])
-    input_ids = device.tensor_to_device(input_ids)
-    attention_mask = torch.tensor([[1, 1, 0], [1, 1, 1]])
-    attention_mask = device.tensor_to_device(attention_mask)
-    reproducibility.seed_all(1234)
+    left_padding_input_ids = torch.tensor(
+        [[50256, 50256, 50256, 11274, 16390, 11],
+         [50256, 50256, 50256, 11274, 16390, 11]])
+    left_padding_input_ids = device.tensor_to_device(left_padding_input_ids)
+    left_padding_attention_mask = torch.tensor([[0, 0, 0, 1, 1, 1],
+                                                [0, 0, 0, 1, 1, 1]])
+    left_padding_attention_mask = device.tensor_to_device(
+        left_padding_attention_mask)
+
+    no_padding_input_ids = torch.tensor([[11274, 16390, 11], [11274, 16390,
+                                                              11]])
+    no_padding_input_ids = device.tensor_to_device(no_padding_input_ids)
+    no_padding_attention_mask = torch.tensor([[1, 1, 1], [1, 1, 1]])
+    no_padding_attention_mask = device.tensor_to_device(
+        no_padding_attention_mask)
+
+    batched_input_ids = torch.tensor([[50256, 50256, 50256, 11274, 16390, 11],
+                                      [50256, 50256, 16, 11274, 16390, 11]])
+    batched_input_ids = device.tensor_to_device(batched_input_ids)
+    batched_attention_mask = torch.tensor([[0, 0, 0, 1, 1, 1],
+                                           [0, 0, 1, 1, 1, 1]]).bool()
+    batched_attention_mask = device.tensor_to_device(batched_attention_mask)
 
     with get_precision_context('amp_bf16' if device.name == 'gpu' else 'fp32'):
-        generation = mosaic_gpt.generate(input_ids=input_ids,
-                                         attention_mask=attention_mask,
-                                         max_new_tokens=5)
+        batched_generation = mosaic_gpt.generate(
+            input_ids=batched_input_ids,
+            attention_mask=batched_attention_mask,
+            max_new_tokens=5)
+        assert batched_generation.shape == (2, 6 + 5)
 
-    assert generation.shape == (2, 3 + 5)
+        reproducibility.seed_all(1234)
+        generation_with_left_padding = mosaic_gpt.generate(
+            input_ids=left_padding_input_ids,
+            attention_mask=left_padding_attention_mask,
+            max_new_tokens=5)
+        assert generation_with_left_padding.shape == (2, 6 + 5)
+        reproducibility.seed_all(1234)
+        generation_with_no_padding = mosaic_gpt.generate(
+            input_ids=no_padding_input_ids,
+            attention_mask=no_padding_attention_mask,
+            max_new_tokens=5)
+        assert generation_with_no_padding.shape == (2, 3 + 5)
+
+        assert generation_with_no_padding[:, 3:].equal(
+            generation_with_left_padding[:, 6:])

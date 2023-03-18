@@ -136,7 +136,8 @@ class MosaicGPT(PreTrainedModel):
                 attention_mask: Optional[torch.ByteTensor] = None,
                 return_dict: Optional[bool] = None,
                 output_attentions: Optional[bool] = None,
-                output_hidden_states: Optional[bool] = None):
+                output_hidden_states: Optional[bool] = None,
+                move_unmasked_logits_to_end: bool = False):
         return_dict = return_dict if return_dict is not None else self.config.return_dict
         if not return_dict:
             raise NotImplementedError(
@@ -148,6 +149,11 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'output_hidden_states is not implemented yet for MosaicGPT')
 
+        if attention_mask is not None and attention_mask[:, 0].sum(
+        ) != attention_mask.shape[0] and self.training:
+            raise NotImplementedError(
+                'MosaicGPT does not support training with left padding.')
+
         S = input_ids.size(1)
 
         assert (
@@ -156,10 +162,16 @@ class MosaicGPT(PreTrainedModel):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
         if self.alibi:
+            # TODO: support middle padding with alibi
             x = tok_emb
         else:
             pos = torch.arange(0, S, dtype=torch.long,
                                device=input_ids.device).unsqueeze(0)
+
+            # adjust the position indices to account for padding tokens
+            pos = torch.clamp(pos - torch.cumsum(attention_mask == 0, dim=1),
+                              min=0)
+
             pos_emb = self.transformer.wpe(pos)  # type: ignore
             x = tok_emb + pos_emb
 
@@ -179,7 +191,7 @@ class MosaicGPT(PreTrainedModel):
                       key_padding_mask=attention_mask,
                       is_causal=self.is_causal)
         x = self.transformer.ln_f(x)  # type: ignore
-        # output embedding weight tied to input embedding
+
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
         assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
         logits = F.linear(x, self.transformer.wte.weight, None)
@@ -222,9 +234,14 @@ class MosaicGPT(PreTrainedModel):
                 'inputs_embeds is not implemented for MosaicGPT yet')
 
         attention_mask = kwargs['attention_mask'].bool()
+        if attention_mask[:, -1].sum() != attention_mask.shape[0]:
+            raise NotImplementedError(
+                'MosaicGPT does not support generation with right padding.')
+
         return {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
+            'move_unmasked_logits_to_end': True,
         }
 
 
