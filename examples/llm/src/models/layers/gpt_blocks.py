@@ -13,8 +13,14 @@ from omegaconf import DictConfig
 
 from examples.llm.src.models.ops import (check_if_dropout_layer_norm_installed,
                                          check_if_fused_mlp_installed)
-from flash_attn.ops.fused_dense import FusedMLP
-from flash_attn.ops.layer_norm import DropoutAddLayerNorm
+
+try:
+    from flash_attn.ops.fused_dense import FusedMLP
+    from flash_attn.ops.layer_norm import DropoutAddLayerNorm
+    CUDA_OPTIMIZATIONS_INSTALLED = True
+except ImportError as e:
+    CUDA_OPTIMIZATIONS_INSTALLED = False
+
 
 class GPTMLP(nn.Module):
 
@@ -79,8 +85,10 @@ class OptimizedGPTBlock(nn.Module):
         if cfg.get('alibi', False):
             if not (cfg.attn_impl == 'triton' or cfg.attn_impl == 'torch'):
                 raise ValueError(f'Only triton kernel or torch supports alibi')
-        check_if_dropout_layer_norm_installed()
-        check_if_fused_mlp_installed()
+        if not CUDA_OPTIMIZATIONS_INSTALLED:
+            raise ImportError(
+                'The CUDA optimizations required for the Optimized GPT Block were not installed. Please install them from examples/llm/requirements_optimized_perf.txt and the examples/llm/csrc folder.'
+            )
         self.causal_attn = causal_attn_cls(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
@@ -90,7 +98,7 @@ class OptimizedGPTBlock(nn.Module):
                             hidden_features=cfg.mlp_ratio * cfg.d_model,
                             out_features=cfg.d_model,
                             device=device)
-        self.mlp.fc2._is_residual = True # type: ignore
+        self.mlp.fc2._is_residual = True  # type: ignore
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,

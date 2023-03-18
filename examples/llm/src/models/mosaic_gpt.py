@@ -22,9 +22,14 @@ from omegaconf import DictConfig
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss
-from examples.llm.src.models.ops import check_if_xentropy_cuda_installed
 from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
+
+try:
+    from flash_attn.losses.cross_entropy import \
+        CrossEntropyLoss as FusedCrossEntropyLoss
+    FUSED_XENTROPY_INSTALLED = True
+except ImportError as e:
+    FUSED_XENTROPY_INSTALLED = False
 
 
 class MosaicGPT(nn.Module):
@@ -262,15 +267,11 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
 
-        if self.model.config_block == 'optimized':
-            try:
-                check_if_xentropy_cuda_installed()
-                print('Using Fused Cross Entropy.')
-                self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
-                                                     ignore_index=-100,
-                                                     process_group=None)
-            except:
-                self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        if self.model.config_block == 'optimized' and FUSED_XENTROPY_INSTALLED:
+            print('Using Fused Cross Entropy Loss.')
+            self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
+                                                 ignore_index=-100,
+                                                 process_group=None)
         else:
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
