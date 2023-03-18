@@ -12,7 +12,6 @@ import torch.nn as nn
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
 from einops import rearrange
-from omegaconf import DictConfig
 from torch import nn
 
 

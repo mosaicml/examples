@@ -10,7 +10,6 @@ import torch.nn as nn
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
 
-import examples.llm.src.models.layers.attention as attention
 from examples.llm.src.models.layers.attention import MultiheadAttention
 
 
@@ -82,10 +81,11 @@ class GPTBlock(nn.Module):
         is_causal: bool = True,
     ) -> torch.Tensor:
         a = self.ln_1(x)
-        b, _ = self.attn(a,
-                         attn_bias=attn_bias,
-                         key_padding_mask=key_padding_mask,
-                         is_causal=is_causal)
+        b, _ = self.attn(
+            a,  # type: ignore
+            attn_bias=attn_bias,
+            key_padding_mask=key_padding_mask,
+            is_causal=is_causal)
         x = x + self.resid_attn_dropout(b)
         m = self.ln_2(x)
         n = self.mlp(m)
