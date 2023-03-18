@@ -8,7 +8,7 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 
 import math
 import warnings
-from typing import Optional
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -131,9 +131,11 @@ class MosaicGPT(nn.Module):
 
         return self.attn_bias
 
-    def forward(self,
-                input_ids: torch.LongTensor,
-                key_padding_mask: Optional[torch.ByteTensor] = None):
+    def forward(
+            self,
+            input_ids: torch.LongTensor,
+            key_padding_mask: Optional[torch.ByteTensor] = None,
+            past_key_values: Optional[List[Tuple[torch.FloatTensor]]] = None):
         S = input_ids.size(1)
         assert (
             S <= self.cfg.max_seq_len
@@ -159,7 +161,6 @@ class MosaicGPT(nn.Module):
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
 
-        past_key_values = None
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
             past_key_value = past_key_value[
                 b_idx] if past_key_values is not None else None
