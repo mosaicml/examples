@@ -313,7 +313,7 @@ class MultiheadAttention(nn.Module):
             key = self.k_ln(key).to(dtype)
 
         if past_key_value is not None:
-            if past_key_value:
+            if len(past_key_value) == 0:
                 key = torch.cat([past_key_value[0], key], dim=1)
                 value = torch.cat([past_key_value[1], value], dim=1)
 

@@ -147,7 +147,11 @@ class MosaicGPT(nn.Module):
         else:
             past_position = 0
             if past_key_values is not None:
-                assert len(past_key_values) == self.cfg.n_layers
+                if len(past_key_values) != self.cfg.n_layers:
+                    raise ValueError(
+                        f'past_key_values must provide a past_key_value for each attention ' +\
+                        f'layer in the network ({len(past_key_values)=}; {self.cfg.n_layers=}).'
+                    )
                 # get the key tensor whose spec should be (batch, seq, dim), and
                 # collect the `seq`, so that the position embedding is shifted
                 past_position = past_key_values[0][0].size(1)
