@@ -301,6 +301,7 @@ class MultiheadAttention(nn.Module):
             qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
 
         query, key, value = qkv.chunk(3, dim=2)
+        query_padding_mask = key_padding_mask
 
         if self.attn_qk_ln:
             # Applying layernorm to qk
@@ -311,18 +312,13 @@ class MultiheadAttention(nn.Module):
         if past_key_value is not None:
             if past_key_value:
                 # reuse k, v, self_attention
-                key_states = torch.cat([past_key_value[0], key], dim=1)
-                value_states = torch.cat([past_key_value[1], value], dim=1)
+                key = torch.cat([past_key_value[0][0], key], dim=1)
+                value = torch.cat([past_key_value[1], value], dim=1)
 
                 if key_padding_mask is not None:
-                    _kpm = torch.ones_like(past_key_value[0][:, :, 0],
-                                           dtype=torch.bool)
-                    key_padding_mask = torch.cat([_kpm, key_padding_mask],
-                                                 dim=1)
+                    key_padding_mask = torch.cat([past_key_value[0][1], key_padding_mask], dim=1)
 
-            past_key_value = (key_states, value_states)
-
-        query_padding_mask = key_padding_mask
+            past_key_value = ((key, key_padding_mask), value)
 
         if attn_bias is not None:
             attn_bias = attn_bias[:, :, -query.size(1):, -key.size(1):]
