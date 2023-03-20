@@ -302,6 +302,7 @@ class MultiheadAttention(nn.Module):
 
         query, key, value = qkv.chunk(3, dim=2)
 
+        query_padding_mask = None
         if key_padding_mask is not None:
             query_padding_mask = key_padding_mask[:, -query.size(1):]
 
