@@ -233,7 +233,7 @@ def triton_flash_attn_fn(
     output = attn_output.view(*attn_output.shape[:2], -1)
     if query_padding_mask is not None:
         output = output.masked_fill(~query_padding_mask.unsqueeze(-1), 0)
-        
+
     return output, None
 
 
@@ -301,7 +301,6 @@ class MultiheadAttention(nn.Module):
             qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
 
         query, key, value = qkv.chunk(3, dim=2)
-        query_padding_mask = key_padding_mask
 
         if self.attn_qk_ln:
             # Applying layernorm to qk
@@ -312,13 +311,10 @@ class MultiheadAttention(nn.Module):
         if past_key_value is not None:
             if past_key_value:
                 # reuse k, v, self_attention
-                key = torch.cat([past_key_value[0][0], key], dim=1)
+                key = torch.cat([past_key_value[0], key], dim=1)
                 value = torch.cat([past_key_value[1], value], dim=1)
 
-                if key_padding_mask is not None:
-                    key_padding_mask = torch.cat([past_key_value[0][1], key_padding_mask], dim=1)
-
-            past_key_value = ((key, key_padding_mask), value)
+            past_key_value = (key, value)
 
         if attn_bias is not None:
             attn_bias = attn_bias[:, :, -query.size(1):, -key.size(1):]
@@ -330,7 +326,7 @@ class MultiheadAttention(nn.Module):
             self.n_heads,
             softmax_scale=self.softmax_scale,
             attn_bias=attn_bias,
-            query_padding_mask=query_padding_mask,
+            query_padding_mask=key_padding_mask[:, -query.size(1):],
             key_padding_mask=key_padding_mask,
             is_causal=is_causal,
             dropout_p=self.attn_dropout_p,
