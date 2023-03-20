@@ -234,6 +234,11 @@ class ComposerMosaicGPT(ComposerModel):
             self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
                                                  ignore_index=-100,
                                                  process_group=None)
+        elif self.model.config_block == 'optimized':
+            warnings.warn(
+                'Model gpt_block config set to `optimized`, but Fused Cross Entropy Loss is not installed. You can install it using the `examples/llm/requirements_optimized_perf.txt` file. Falling back to torch.nn.CrossEntropy.'
+            )
+            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
         else:
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 

@@ -14,11 +14,10 @@ from omegaconf import DictConfig
 from examples.llm.src.models.layers.attention import MultiheadAttention
 
 try:
-    from flash_attn.ops.fused_dense import FusedMLP  # type: ignore
     from flash_attn.ops.layer_norm import DropoutAddLayerNorm  # type: ignore
-    CUDA_OPTIMIZATIONS_INSTALLED = True
+    DROPOUT_ADD_LAYERNORM_INSTALLED = True
 except ImportError as e:
-    CUDA_OPTIMIZATIONS_INSTALLED = False
+    DROPOUT_ADD_LAYERNORM_INSTALLED = False
 
 
 class GPTMLP(nn.Module):
@@ -76,24 +75,22 @@ class OptimizedGPTBlock(nn.Module):
     def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
 
-        if not CUDA_OPTIMIZATIONS_INSTALLED:
+        if not DROPOUT_ADD_LAYERNORM_INSTALLED:
             raise ImportError(
-                'The CUDA optimizations required for the Optimized GPT Block were not installed. Please install them from examples/llm/requirements_optimized_perf.txt and the examples/llm/csrc folder.'
+                'A CUDA optimization required for the Optimized GPT Block were not installed. Please install it from the examples/llm/csrc folder.'
             )
 
         self.attn = MultiheadAttention(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,
+                                                    residual_in_fp32=False,
                                                     device=device)
-        self.mlp = FusedMLP(in_features=cfg.d_model,
-                            hidden_features=cfg.mlp_ratio * cfg.d_model,
-                            out_features=cfg.d_model,
-                            device=device)
-        self.mlp.fc2._is_residual = True  # type: ignore
+        self.mlp = GPTMLP(cfg, device=device)
         self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,
+                                                    residual_in_fp32=False,
                                                     device=device)
 
     def forward(
