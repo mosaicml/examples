@@ -2,6 +2,9 @@
 // which was inspired by https://github.com/NVIDIA/DALI/blob/main/include/dali/core/static_switch.h
 // and https://github.com/pytorch/pytorch/blob/master/aten/src/ATen/Dispatch.h
 
+// Copyright (c) 2022, Tri Dao and Dan Fu. All rights reserved.
+// Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+
 #pragma once
 
 /// @param COND       - a boolean expression to switch by

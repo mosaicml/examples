@@ -1,4 +1,6 @@
 // Copied from https://github.com/HazyResearch/flash-attention/tree/eb33e587e95ec29a13c58f76dadca04b64122784/csrc/layer_norm
+
+// Copyright (c) 2022, Tri Dao and Dan Fu. All rights reserved.
 #include "ln_bwd_kernels.cuh"
 
 // Create backward launch function and register. Macro signature:

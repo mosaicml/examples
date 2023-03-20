@@ -1,12 +1,18 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Install all CUDA sub-folders.
 # Adapted from https://github.com/mlcommons/training_results_v2.0/blob/main/HazyResearch/benchmarks/bert/implementations/pytorch/csrc/layer_norm/setup.py
 # and https://github.com/NVIDIA/apex/blob/master/setup.py
 
+# Copyright (c) 2022, HazyResearch.
+# Copyright (c) 2018-2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright 2018 The MLPerf Authors.
+
+# Install all CUDA sub-folders.
+
 import os
 import subprocess
+from typing import List
 
 from setuptools import setup
 
@@ -29,8 +35,9 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_cuda_bare_metal_version(cuda_dir):
-    raw_output = subprocess.check_output([cuda_dir + '/bin/nvcc', '-V'],
-                                         universal_newlines=True)
+    raw_output = subprocess.check_output(
+        [cuda_dir + '/bin/nvcc', '-V'],  # type: ignore
+        universal_newlines=True)
     output = raw_output.split()
     release_idx = output.index('release') + 1
     release = output[release_idx].split('.')
@@ -49,7 +56,7 @@ def raise_if_cuda_home_none(global_option: str) -> None:
         "only images whose names contain 'devel' will provide nvcc.")
 
 
-def append_nvcc_threads(nvcc_extra_args):
+def append_nvcc_threads(nvcc_extra_args: List[str]):
     _, bare_metal_major, bare_metal_minor = get_cuda_bare_metal_version(
         CUDA_HOME)
     if int(bare_metal_major) >= 11 and int(bare_metal_minor) >= 2:
@@ -71,7 +78,7 @@ if os.path.exists(
         os.path.join(torch_dir, 'include', 'ATen', 'CUDAGeneratorImpl.h')):
     generator_flag = ['-DOLD_GENERATOR_PATH']
 
-raise_if_cuda_home_none('--xentropy')
+raise_if_cuda_home_none('--layer_norm')
 # Check, if CUDA11 is installed for compute capability 8.0
 cc_flag = []
 cc_flag.append('-gencode')
