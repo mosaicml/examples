@@ -58,10 +58,11 @@ pip install -e ".[llm]"  # or pip install -e ".[llm-cpu]" if no NVIDIA GPU
 cd examples/llm
 ```
 
-If you have an NVIDIA GPU, you can install our library of CUDA optimizations to speed up your models.
+If you have an NVIDIA GPU, you can install additional requirements and our library of CUDA optimizations to speed up your models.
 ```bash
 pip install -r requirements_optimized_perf.txt  # may take a long time (up to 20 minutes)
-cd ..
+cd csrc
+pip install .
 ```
 See the section [Optimizing Performance](#optimizing-performance) below for instructions on how to use these speedups.
 
@@ -217,7 +218,7 @@ because more memory will enable you to use larger microbatch sizes.
 # Optimizing Performance
 The YAMLs in this repo are relatively well tuned for medium-to-large NVIDIA A100-40GB clusters.
 
-If you have an NVIDIA GPU, you may want to enable our suite of CUDA optimizations. You can do so by first installing the optimization library requirements (`pip install -r requirements_optimized_perf.txt`), and then the optimization library in the `src/csrc/` folder. Next, set `model.gpt_block=optimized`. These optimizations consist mostly of kernel fusions designed to improve compute utilization of memory-bound operations, and are well-tested on models up to 13B parameters on NVIDIA A100 GPUs. On A100-40GB and A100-80GB GPUs, they should produce a 5-15\% speedup over the standard GPT block (`model.gpt_block=standard`).
+If you have an NVIDIA GPU, you may want to enable our suite of CUDA optimizations. You can do so by first installing the optimization library requirements (`pip install -r requirements_optimized_perf.txt`), and then the optimization library in the `csrc/` folder. To enable the optimizations, set `model.gpt_block=optimized`. These optimizations consist mostly of kernel fusions designed to improve compute utilization of memory-bound operations, and are well-tested on models up to 13B parameters on NVIDIA A100 GPUs. On A100-40GB and A100-80GB GPUs, they should produce a 5-15\% speedup over the standard GPT block. Disable the optimizations by setting `model.gpt_block=standard` or omitting it from your YAMLs.
 
 On devices with more / less GPU memory than an NVIDIA A100-40GB,
 you may wish to edit the default `device_train_microbatch_size` or `fsdp_config` values.

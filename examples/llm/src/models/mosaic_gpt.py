@@ -85,9 +85,7 @@ class MosaicGPT(nn.Module):
         self.transformer.update({
             'blocks':
                 nn.ModuleList([
-                    self.block_cls(cfg,
-                                   causal_attn_cls=self.causal_attn_cls,
-                                   device=cfg.init_device)
+                    self.block_cls(cfg, device=cfg.init_device)
                     for _ in range(cfg.n_layers)
                 ])
         })
@@ -178,13 +176,14 @@ class MosaicGPT(nn.Module):
             x = self.transformer.emb_drop(x_shrunk)
 
         a = self.transformer.ln_i(x)  # type: ignore
-        
+
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
         for block in self.transformer.blocks:  # type: ignore
-            a, x = block(a, x,
-                      attn_bias=attn_bias,
-                      key_padding_mask=key_padding_mask,
-                      is_causal=self.is_causal)
+            a, x = block(a,
+                         x,
+                         attn_bias=attn_bias,
+                         key_padding_mask=key_padding_mask,
+                         is_causal=self.is_causal)
 
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright

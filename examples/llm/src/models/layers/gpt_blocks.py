@@ -10,9 +10,8 @@ import torch.nn as nn
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
 from omegaconf import DictConfig
+
 from examples.llm.src.models.layers.attention import MultiheadAttention
-from examples.llm.src.models.ops import (check_if_dropout_layer_norm_installed,
-                                         check_if_fused_mlp_installed)
 
 try:
     from flash_attn.ops.fused_dense import FusedMLP
@@ -74,16 +73,14 @@ class GPTBlock(nn.Module):
 
 class OptimizedGPTBlock(nn.Module):
 
-    def __init__(self,
-                 cfg: DictConfig,
-                 device: Optional[str] = None):
+    def __init__(self, cfg: DictConfig, device: Optional[str] = None):
         super().__init__()
 
         if not CUDA_OPTIMIZATIONS_INSTALLED:
             raise ImportError(
                 'The CUDA optimizations required for the Optimized GPT Block were not installed. Please install them from examples/llm/requirements_optimized_perf.txt and the examples/llm/csrc folder.'
             )
-        
+
         self.attn = MultiheadAttention(cfg, device)
         self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
