@@ -25,8 +25,7 @@ import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
 
 try:
-    from flash_attn.losses.cross_entropy import \
-        CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore
+    from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
     FUSED_XENTROPY_INSTALLED = True
 except ImportError as e:
     FUSED_XENTROPY_INSTALLED = False
