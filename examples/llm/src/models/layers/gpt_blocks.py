@@ -52,7 +52,7 @@ class GPTBlock(nn.Module):
         attn_bias: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.ByteTensor] = None,
         is_causal: bool = True,
-    ) -> tuple[torch.Tensor, Union[Tuple[torch.Tensor], None]]:
+    ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor]]:
         a = self.ln_1(x)
         b, _, past_key_value = self.attn(a,
                                          past_key_value=past_key_value,
