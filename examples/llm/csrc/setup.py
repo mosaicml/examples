@@ -34,7 +34,7 @@ if not 'cu' in torch.__version__:
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-def get_cuda_bare_metal_version(cuda_dir):
+def get_cuda_bare_metal_version(cuda_dir): # type: ignore
     raw_output = subprocess.check_output(
         [cuda_dir + '/bin/nvcc', '-V'],  # type: ignore
         universal_newlines=True)
