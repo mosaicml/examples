@@ -89,7 +89,7 @@ def scaled_multihead_dot_product_attention(
                                                   inplace=True)
 
     out = attn_weight.matmul(v)
-    out = rearrange(out, 'b h s d -> b s (h d)', h=n_heads)
+    out = rearrange(out, 'b h s d -> b s (h d)')
 
     if needs_weights:
         return out, attn_weight
@@ -314,7 +314,6 @@ class MultiheadAttention(nn.Module):
 
         if past_key_value is not None:
             if past_key_value:
-                # reuse k, v, self_attention
                 key = torch.cat([past_key_value[0], key], dim=1)
                 value = torch.cat([past_key_value[1], value], dim=1)
 
