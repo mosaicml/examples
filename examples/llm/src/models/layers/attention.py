@@ -188,6 +188,7 @@ def triton_flash_attn_fn(
         raise NotImplementedError(
             f'attn_impl: triton cannot return attn weights.')
 
+    b_size, s_k = None, None  # just for pyright
     if key_padding_mask is not None:
         b_size, s_k = key_padding_mask.shape
 
@@ -206,6 +207,8 @@ def triton_flash_attn_fn(
     # apply the key padding mask to keys and values to replace nans
     # when using left padding during generation
     if key_padding_mask is not None:
+        assert b_size is not None
+        assert s_k is not None
         value = value.masked_fill(~key_padding_mask.view((b_size, s_k, 1, 1)),
                                   0)
         key = key.masked_fill(~key_padding_mask.view((b_size, s_k, 1, 1)), 0)
