@@ -141,17 +141,17 @@ class MosaicGPT(nn.Module):
             S <= self.cfg.max_seq_len
         ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.cfg.max_seq_len}'
 
-        past_position = 0
-        if past_key_values is not None:
-            assert len(past_key_values) == self.cfg.n_layers
-            # get the key tensor whose spec should be (batch, seq, dim), and
-            # collect the `seq`, so that the position embedding is shifted
-            past_position = past_key_values[0][0].size(1)
-
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
         if self.alibi:
             x = tok_emb
         else:
+            past_position = 0
+            if past_key_values is not None:
+                assert len(past_key_values) == self.cfg.n_layers
+                # get the key tensor whose spec should be (batch, seq, dim), and
+                # collect the `seq`, so that the position embedding is shifted
+                past_position = past_key_values[0][0].size(1)
+
             if S + past_position > self.cfg.max_seq_len:
                 raise ValueError(
                     f'Cannot forward input with past sequence length {past_position} and current sequence length '
