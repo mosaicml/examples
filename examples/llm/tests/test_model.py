@@ -544,3 +544,39 @@ def test_generate(attention_impl, device):
 
         assert generation_with_no_padding[:, 3:].equal(
             generation_with_left_padding[:, 6:])
+
+
+def check_hf_model_equivalence(model1, model2):
+    expected_model_config_dict = model1.config.to_dict()
+    new_model_config_dict = model2.config.to_dict()
+
+    # this key just says the folder it was loaded from, which is a tmp dir during pytest
+    del expected_model_config_dict['_name_or_path']
+    del new_model_config_dict['_name_or_path']
+
+    assert expected_model_config_dict == new_model_config_dict
+    assert sum(p.numel() for p in model1.parameters()) == sum(
+        p.numel() for p in model2.parameters())
+    assert all(
+        type(module1) == type(module2)
+        for module1, module2 in zip(model1.modules(), model2.modules()))
+
+
+def test_save_from_pretrained(tmp_path):
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+        attn_impl='torch',
+    )
+    mosaic_gpt = MosaicGPT(hf_config)
+
+    mosaic_gpt.save_pretrained(tmp_path / 'test-save-pretrained')
+    mosaic_gpt2 = MosaicGPT.from_pretrained(tmp_path / 'test-save-pretrained')
+
+    check_hf_model_equivalence(mosaic_gpt, mosaic_gpt2)
