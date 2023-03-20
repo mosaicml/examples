@@ -46,9 +46,6 @@ class GPTBlock(nn.Module):
                  device: Optional[str] = None,
                  **kwargs):
         super().__init__()
-        if alibi:
-            assert attn_impl in {'triton', 'torch'
-                                }, 'Only triton kernel or torch supports alibi'
 
         layernorm_class = LPLayerNorm if low_precision_layernorm else nn.LayerNorm
 
