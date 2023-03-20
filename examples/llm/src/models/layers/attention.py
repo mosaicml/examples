@@ -203,11 +203,11 @@ def triton_flash_attn_fn(
         value = value.masked_fill(~key_padding_mask.unsqueeze(-1), 0)
 
     if query_padding_mask is not None or key_padding_mask is not None:
-        s_q, s_k = 1, 1
+        b_size, s_q, s_k = query.size(0), 1, 1
         if query_padding_mask is not None:
-            b_size, s_q = query_padding_mask.shape
+            s_q = query_padding_mask.size(1)
         if key_padding_mask is not None:
-            b_size, s_k = key_padding_mask.shape
+            s_k = key_padding_mask.size(1)
 
         if attn_bias is not None:
             attn_bias = attn_bias.expand(b_size, -1, -1, -1)
@@ -302,6 +302,9 @@ class MultiheadAttention(nn.Module):
 
         query, key, value = qkv.chunk(3, dim=2)
 
+        if key_padding_mask is not None:
+            query_padding_mask = key_padding_mask[:, -query.size(1):]
+
         if self.attn_qk_ln:
             # Applying layernorm to qk
             dtype = query.dtype
@@ -326,7 +329,7 @@ class MultiheadAttention(nn.Module):
             self.n_heads,
             softmax_scale=self.softmax_scale,
             attn_bias=attn_bias,
-            query_padding_mask=key_padding_mask[:, -query.size(1):],
+            query_padding_mask=query_padding_mask,
             key_padding_mask=key_padding_mask,
             is_causal=is_causal,
             dropout_p=self.attn_dropout_p,
