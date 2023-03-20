@@ -26,7 +26,7 @@ from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
 
 try:
     from flash_attn.losses.cross_entropy import \
-        CrossEntropyLoss as FusedCrossEntropyLoss # type: ignore
+        CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore
     FUSED_XENTROPY_INSTALLED = True
 except ImportError as e:
     FUSED_XENTROPY_INSTALLED = False

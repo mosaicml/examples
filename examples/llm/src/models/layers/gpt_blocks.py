@@ -14,8 +14,8 @@ from omegaconf import DictConfig
 from examples.llm.src.models.layers.attention import MultiheadAttention
 
 try:
-    from flash_attn.ops.fused_dense import FusedMLP # type: ignore
-    from flash_attn.ops.layer_norm import DropoutAddLayerNorm # type: ignore
+    from flash_attn.ops.fused_dense import FusedMLP  # type: ignore
+    from flash_attn.ops.layer_norm import DropoutAddLayerNorm  # type: ignore
     CUDA_OPTIMIZATIONS_INSTALLED = True
 except ImportError as e:
     CUDA_OPTIMIZATIONS_INSTALLED = False

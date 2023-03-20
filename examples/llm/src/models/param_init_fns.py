@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 try:
-    from flash_attn.ops.layer_norm import DropoutAddLayerNorm # type: ignore
+    from flash_attn.ops.layer_norm import DropoutAddLayerNorm  # type: ignore
     DROPOUT_ADD_LAYERNORM_INSTALLED = True
 except ImportError as e:
     DROPOUT_ADD_LAYERNORM_INSTALLED = False
