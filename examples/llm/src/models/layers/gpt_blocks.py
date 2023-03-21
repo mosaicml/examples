@@ -54,20 +54,22 @@ class GPTBlock(nn.Module):
         self,
         a: torch.Tensor,
         x: torch.Tensor,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
         attn_bias: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.ByteTensor] = None,
         is_causal: bool = True,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        b, _ = self.attn(a,
-                         attn_bias=attn_bias,
-                         key_padding_mask=key_padding_mask,
-                         is_causal=is_causal)
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[Tuple[torch.Tensor]]]:
+        b, _, past_key_value = self.attn(a,
+                                         past_key_value=past_key_value,
+                                         attn_bias=attn_bias,
+                                         key_padding_mask=key_padding_mask,
+                                         is_causal=is_causal)
         x = x + self.resid_attn_dropout(b)
         m = self.ln_1(x)
         n = self.mlp(m)
         x = x + self.resid_mlp_dropout(n)
         a = self.ln_2(x)
-        return a, x
+        return a, x, past_key_value
 
 
 class OptimizedGPTBlock(nn.Module):
@@ -97,15 +99,17 @@ class OptimizedGPTBlock(nn.Module):
         self,
         a: torch.Tensor,
         x: torch.Tensor,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
         attn_bias: Optional[torch.Tensor] = None,
         key_padding_mask: Optional[torch.ByteTensor] = None,
         is_causal: bool = True,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        b, _ = self.attn(a,
-                         attn_bias=attn_bias,
-                         key_padding_mask=key_padding_mask,
-                         is_causal=is_causal)
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[Tuple[torch.Tensor]]]:
+        b, _, past_key_value = self.attn(a,
+                                         past_key_value=past_key_value,
+                                         attn_bias=attn_bias,
+                                         key_padding_mask=key_padding_mask,
+                                         is_causal=is_causal)
         m, x = self.dropout_add_ln_1(b, x)
         n = self.mlp(m)
         a, x = self.dropout_add_ln_2(n, x)
-        return a, x
+        return a, x, past_key_value
