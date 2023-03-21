@@ -386,7 +386,7 @@ def test_mosaic_gpt_creation():
                                                    ('triton', 'gpu'),
                                                    ('torch', 'gpu')])
 def test_forward_with_padding(attention_impl, device):
-    if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
+    if not torch.cuda.is_available() and device == 'gpu':
         pytest.skip(
             f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
         )
@@ -480,7 +480,7 @@ def test_forward_with_padding(attention_impl, device):
                                                    ('triton', 'gpu'),
                                                    ('torch', 'gpu')])
 def test_generate(attention_impl, device):
-    if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
+    if not torch.cuda.is_available() and device == 'gpu':
         pytest.skip(
             f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
         )
@@ -587,3 +587,93 @@ def test_save_from_pretrained(tmp_path):
     mosaic_gpt2 = MosaicGPT.from_pretrained(tmp_path / 'test-save-pretrained')
 
     check_hf_model_equivalence(mosaic_gpt, mosaic_gpt2)
+
+
+@pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
+                                                   ('flash', 'gpu'),
+                                                   ('triton', 'gpu'),
+                                                   ('torch', 'gpu')])
+def test_forward_with_cache(attention_impl, device):
+    device = get_device(device)
+
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+        attn_impl=attention_impl,
+    )
+    reproducibility.seed_all(1234)
+    mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt.eval()
+    mosaic_gpt = device.module_to_device(mosaic_gpt)
+
+    with get_precision_context('amp_bf16'):
+        reproducibility.seed_all(1234)
+        first_input_ids = torch.tensor([[11274, 16390, 11]])
+        first_input_ids = device.tensor_to_device(first_input_ids)
+        first_attention_mask = torch.tensor([[1, 1, 1]]).bool()
+        first_attention_mask = device.tensor_to_device(first_attention_mask)
+
+        first_output = mosaic_gpt(first_input_ids,
+                                  attention_mask=first_attention_mask)
+
+        assert first_output.logits.shape == (1, 3, hf_config.vocab_size)
+        assert len(first_output.past_key_values) == 2
+        assert all(
+            len(past_key_value) == 2
+            for past_key_value in first_output.past_key_values)
+        assert all(past_key_value[0].shape == (1, 3, 128)
+                   for past_key_value in first_output.past_key_values)
+        assert all(past_key_value[1].shape == (1, 3, 128)
+                   for past_key_value in first_output.past_key_values)
+
+        reproducibility.seed_all(1234)
+        second_input_ids = torch.tensor([[11274, 16390, 11, 11274]])
+        second_input_ids = device.tensor_to_device(second_input_ids)
+        second_attention_mask = torch.tensor([[1, 1, 1, 1]]).bool()
+        second_attention_mask = device.tensor_to_device(second_attention_mask)
+        second_output = mosaic_gpt(second_input_ids[:, -1].unsqueeze(-1),
+                                   attention_mask=second_attention_mask,
+                                   past_key_values=first_output.past_key_values)
+
+        assert second_output.logits.shape == (1, 1, hf_config.vocab_size)
+        assert len(second_output.past_key_values) == 2
+        assert all(
+            len(past_key_value) == 2
+            for past_key_value in second_output.past_key_values)
+        assert all(past_key_value[0].shape == (1, 4, 128)
+                   for past_key_value in second_output.past_key_values)
+        assert all(past_key_value[1].shape == (1, 4, 128)
+                   for past_key_value in second_output.past_key_values)
+
+        reproducibility.seed_all(1234)
+        full_output = mosaic_gpt(second_input_ids,
+                                 attention_mask=second_attention_mask)
+
+        torch.testing.assert_close(second_output.logits,
+                                   full_output.logits[:, -1, :].unsqueeze(1),
+                                   atol=1e-2,
+                                   rtol=1e-2)
+
+        reproducibility.seed_all(1234)
+        third_input_ids = torch.tensor([[11274, 16390, 11, 11274, 64]])
+        third_input_ids = device.tensor_to_device(third_input_ids)
+        third_attention_mask = torch.tensor([[1, 1, 1, 1, 1]]).bool()
+        third_attention_mask = device.tensor_to_device(third_attention_mask)
+        third_output = mosaic_gpt(third_input_ids[:, -1].unsqueeze(-1),
+                                  attention_mask=third_attention_mask,
+                                  past_key_values=second_output.past_key_values)
+
+        reproducibility.seed_all(1234)
+        full_output = mosaic_gpt(third_input_ids,
+                                 attention_mask=third_attention_mask)
+
+        torch.testing.assert_close(third_output.logits,
+                                   full_output.logits[:, -1, :].unsqueeze(1),
+                                   atol=1e-2,
+                                   rtol=1e-2)
