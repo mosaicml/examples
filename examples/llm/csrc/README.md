@@ -28,7 +28,7 @@ model.gpt_block: standard
 or, equivalently, omit `model.gpt_block` from your config entirely.
 
 # Details
-The CUDA module in `requirements_optimized_perf.txt` is a kernel fusions designed to improve the performance of memory-bound operations. Specifically, it fuses the CrossEntropy loss function at the end of the model
+The CUDA module in `requirements_optimized_perf.txt` is a kernel fusion designed to improve the performance of memory-bound operations. Specifically, it fuses the CrossEntropy loss function at the end of the model.
 
 The CUDA module in this folder is also a kernel fusion, [originally written by HazyResearch](https://github.com/HazyResearch/flash-attention/tree/eb33e587e95ec29a13c58f76dadca04b64122784/csrc/layer_norm), which we have modified to work on larger sizes (30B and 70B parameter models). It fuses the dropout, addition, and LayerNorm pattern that occurs inside of each GPT block.
 
