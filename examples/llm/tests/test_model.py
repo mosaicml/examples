@@ -369,7 +369,7 @@ def test_mosaic_gpt_creation():
     assert len(mosaic_gpt.transformer.blocks) == 2  # type: ignore
 
     d_model = hf_config.d_model
-    for block in mosaic_gpt.transformer.blocks:
+    for block in mosaic_gpt.transformer.blocks:  # type: ignore
         assert block.ln_1.weight.shape == torch.Size([d_model])  # type: ignore
         assert block.ln_2.weight.shape == torch.Size([d_model])  # type: ignore
         assert block.mlp.mlp_up.weight.shape == torch.Size(  # type: ignore
