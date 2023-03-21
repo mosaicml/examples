@@ -43,6 +43,7 @@ class MosaicGPTConfig(PretrainedConfig):
         init_nonlinearity: str = 'leaky_relu',
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = False,
+        use_cache: bool = True,
         **kwargs,
     ):
         """The MosaicGPT configuration class.
@@ -82,6 +83,7 @@ class MosaicGPTConfig(PretrainedConfig):
             init_nonlinearity (str): The nonlinearity to use for parameter initialization with kaiming initialization schemes.
             embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
+            use_cache (bool): Whether or not the model should return the last key/values attentions
         """
         self.d_model = d_model
         self.n_heads = n_heads
@@ -113,6 +115,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.init_nonlinearity = init_nonlinearity
         self.embedding_fraction = embedding_fraction
         self.low_precision_layernorm = low_precision_layernorm
+        self.use_cache = use_cache
         if 'name' in kwargs:
             del kwargs['name']
         super().__init__(**kwargs)
@@ -132,10 +135,6 @@ class MosaicGPTConfig(PretrainedConfig):
         if self.attn_qk_ln and self.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(
                 'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'
-            )
-        if self.attn_clip_qkv and self.attn_impl not in ['flash', 'triton']:
-            raise NotImplementedError(
-                'QKV clipping only implemented with flash and triton attention.'
             )
         if self.softmax_scale is not None and self.attn_impl not in [
                 'flash', 'triton'
