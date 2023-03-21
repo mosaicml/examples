@@ -197,16 +197,16 @@ class MosaicGPT(nn.Module):
         a = self.transformer.ln_i(x)  # type: ignore
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
-        
+
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
             past_key_value = past_key_values[
                 b_idx] if past_key_values is not None else None
-            a, x, past_key_value = block(a, 
-                                      x,
-                                      past_key_value=past_key_value,
-                                      attn_bias=attn_bias,
-                                      key_padding_mask=key_padding_mask,
-                                      is_causal=self.is_causal)
+            a, x, past_key_value = block(a,
+                                         x,
+                                         past_key_value=past_key_value,
+                                         attn_bias=attn_bias,
+                                         key_padding_mask=key_padding_mask,
+                                         is_causal=self.is_causal)
             if past_key_values is not None:
                 past_key_values[b_idx] = past_key_value
 
