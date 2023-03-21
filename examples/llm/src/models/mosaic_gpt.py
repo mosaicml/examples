@@ -37,7 +37,6 @@ class MosaicGPT(nn.Module):
             self.causal_attn_cls = attention.TritonFlashCausalAttention
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
-
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(
                 'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'

@@ -209,18 +209,22 @@ class BertUnpadSelfAttention(nn.Module):
                         'b s (t h d) -> b s t h d',
                         t=3,
                         h=self.num_attention_heads)
-        if self.p_dropout or flash_attn_qkvpacked_func is None:
+        # NOTE: FLASH ATTENTION
+        if self.p_dropout or flash_attn_qkvpacked_func is None or True:
             # if we have nonzero attention dropout (e.g. during fine-tuning) or no Triton, compute attention in PyTorch
             q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
-            k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
+            # k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
+            k = qkv[:, :, 1, :, :].permute(0, 2, 1, 3)  # b h s d
             v = qkv[:, :, 2, :, :].permute(0, 2, 1, 3)  # b h s d
-            attention_scores = torch.matmul(q, k) / math.sqrt(
-                self.attention_head_size)
-            attention_scores = attention_scores + bias
-            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-            attention_probs = self.dropout(attention_probs)
-            attention = torch.matmul(attention_probs, v).permute(0, 2, 1,
-                                                                 3)  # b s h d
+            # attention_scores = torch.matmul(q, k) / math.sqrt(
+            #     self.attention_head_size)
+            # attention_scores = attention_scores + bias
+            # attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+            # attention_probs = self.dropout(attention_probs)
+            # attention = torch.matmul(attention_probs, v).permute(0, 2, 1, 3)
+            # ALWAYS RUNS
+            attention = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.p_dropout, is_causal=False)
+            attention = attention.permute(0, 2, 1, 3)
         else:
             # Triton implementation only supports 0 attention dropout
             convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
@@ -237,6 +241,7 @@ class BertUnpadSelfAttention(nn.Module):
                 attention = flash_attn_qkvpacked_func(qkv, bias)
 
         # attn_mask is 1 for attend and 0 for don't
+
         attention = unpad_input_only(attention, torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
 
