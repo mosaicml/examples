@@ -21,7 +21,7 @@ from composer.models.base import ComposerModel
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from transformers import PreTrainedModel
-from transformers.modeling_outputs import CausalLMOutput
+from transformers.modeling_outputs import CausalLMOutputWithPast
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
@@ -139,8 +139,9 @@ class MosaicGPT(PreTrainedModel):
             return_dict: Optional[bool] = None,
             output_attentions: Optional[bool] = None,
             output_hidden_states: Optional[bool] = None,
-            move_unmasked_logits_to_end: bool = False):
+            use_cache: Optional[bool] = None):
         return_dict = return_dict if return_dict is not None else self.config.return_dict
+        use_cache = use_cache if use_cache is not None else self.config.use_cache
         if not return_dict:
             raise NotImplementedError(
                 'return_dict False is not implemented yet for MosaicGPT')
@@ -164,7 +165,6 @@ class MosaicGPT(PreTrainedModel):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
         if self.alibi:
-            # TODO: account for left padding with alibi
             x = tok_emb
         else:
             past_position = 0
@@ -190,8 +190,8 @@ class MosaicGPT(PreTrainedModel):
 
             if attention_mask is not None:
                 # adjust the position indices to account for padding tokens
-                pos = torch.clamp(pos -
-                                  torch.cumsum(attention_mask == 0, dim=1),
+                pos = torch.clamp(pos - torch.cumsum(
+                    (attention_mask == 0)[:, past_position:], dim=1),
                                   min=0)
 
             pos_emb = self.transformer.wpe(pos)  # type: ignore
@@ -207,6 +207,10 @@ class MosaicGPT(PreTrainedModel):
             x = self.transformer.emb_drop(x_shrunk)
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
+
+        # initialize the past key values cache if it should be used
+        if use_cache and past_key_values is None:
+            past_key_values = [[] for _ in range(self.config.n_layers)]
 
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
             past_key_value = past_key_values[
@@ -233,7 +237,8 @@ class MosaicGPT(PreTrainedModel):
                 )
             logits *= self.logit_scale
 
-        return CausalLMOutput(logits=logits)
+        return CausalLMOutputWithPast(logits=logits,
+                                      past_key_values=past_key_values)
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
@@ -256,9 +261,6 @@ class MosaicGPT(PreTrainedModel):
                                       past_key_values=None,
                                       inputs_embeds=None,
                                       **kwargs):
-        if past_key_values is not None:
-            raise NotImplementedError(
-                'past_key_values is not implemented for MosaicGPT yet')
         if inputs_embeds is not None:
             raise NotImplementedError(
                 'inputs_embeds is not implemented for MosaicGPT yet')
@@ -268,10 +270,14 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'MosaicGPT does not support generation with right padding.')
 
+        if past_key_values is not None:
+            input_ids = input_ids[:, -1].unsqueeze(-1)
+
         return {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
-            'move_unmasked_logits_to_end': True,
+            'past_key_values': past_key_values,
+            'use_cache': kwargs.get('use_cache'),
         }
 
 
