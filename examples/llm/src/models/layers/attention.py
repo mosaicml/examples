@@ -15,6 +15,20 @@ from einops import rearrange
 from torch import nn
 
 
+def _reset_is_causal(num_query_tokens: int, num_key_tokens: int,
+                     original_is_causal: bool):
+    num_query_tokens = query.size(1)
+    num_key_tokens = key.size(1)
+    if num_query_tokens != num_key_tokens:
+        if num_query_tokens != 1:
+            raise NotImplementedError(
+                'MosaicGPT does not support query and key with different number of tokens, unless number of query tokens is 1.'
+            )
+        else:
+            return False
+    return original_is_causal
+
+
 def scaled_multihead_dot_product_attention(
     query,
     key,
@@ -148,6 +162,8 @@ def flash_attn_fn(
 
     dropout_p = dropout_p if training else 0.0
 
+    reset_is_causal = _reset_is_causal(query.size(1), key.size(1), is_causal)
+
     output_unpad = flash_attn_interface.flash_attn_unpadded_func(
         query_unpad,
         key_unpad,
@@ -158,7 +174,7 @@ def flash_attn_fn(
         max_seqlen_k,
         dropout_p,
         softmax_scale=softmax_scale,
-        causal=is_causal,
+        causal=reset_is_causal,
         return_attn_probs=needs_weights)
 
     output = bert_padding.pad_input(
@@ -226,8 +242,9 @@ def triton_flash_attn_fn(
     key = rearrange(key, 'b s (h d) -> b s h d', h=n_heads)
     value = rearrange(value, 'b s (h d) -> b s h d', h=n_heads)
 
+    reset_is_causal = _reset_is_causal(query.size(1), key.size(1), is_causal)
     attn_output = flash_attn_triton.flash_attn_func(query, key, value,
-                                                    attn_bias, is_causal,
+                                                    attn_bias, reset_is_causal,
                                                     softmax_scale)
 
     output = attn_output.view(*attn_output.shape[:2], -1)
@@ -307,6 +324,7 @@ class MultiheadAttention(nn.Module):
                 is_causal=True,
                 needs_weights=False):
         qkv = self.Wqkv(x)
+
         if self.clip_qkv:
             qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
 
@@ -323,7 +341,7 @@ class MultiheadAttention(nn.Module):
             key = self.k_ln(key).to(dtype)
 
         if past_key_value is not None:
-            if len(past_key_value) == 0:
+            if len(past_key_value) != 0:
                 key = torch.cat([past_key_value[0], key], dim=1)
                 value = torch.cat([past_key_value[1], value], dim=1)
 
