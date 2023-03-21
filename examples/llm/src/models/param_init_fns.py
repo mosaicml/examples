@@ -130,21 +130,13 @@ def generic_param_init_fn_(module, cfg, init_fn_):
 
         emb_init_fn_(module.weight)
 
-    elif isinstance(module, nn.LayerNorm):
+    elif isinstance(module,
+                    nn.LayerNorm) or (DROPOUT_ADD_LAYERNORM_INSTALLED and
+                                      isinstance(module, DropoutAddLayerNorm)):
         # LayerNorm
         if cfg.get('verbose', 0) > 1:
             warnings.warn(
                 f'LayerNorm gamma weights are set to 1. If the layer has a bias it is initialized to 0.'
-            )
-        torch.nn.init.ones_(module.weight)
-        if module.bias is not None:
-            torch.nn.init.zeros_(module.bias)
-
-    elif DROPOUT_ADD_LAYERNORM_INSTALLED and isinstance(module,
-                                                        DropoutAddLayerNorm):
-        if cfg.get('verbose', 0) > 1:
-            warnings.warn(
-                f'LayerNorm gamma weights are set to 1.  If the layer has a bias it is initialized to 0.'
             )
         torch.nn.init.ones_(module.weight)
         if module.bias is not None:

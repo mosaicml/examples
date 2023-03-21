@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 from composer.optim import DecoupledAdamW
 from composer.utils import reproducibility
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict
 from omegaconf import OmegaConf as om
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
@@ -337,3 +337,53 @@ def test_opt_wrapping(prefixlm):
     assert not model.model.model.decoder._fsdp_wrap
     assert not model.model.model.decoder.embed_tokens._fsdp_wrap
     assert not model.model.lm_head._fsdp_wrap
+
+
+def test_optimized_gpt_model(batch_size=2):
+    pytest.importorskip('flash_attn.ops.layer_norm')
+    pytest.importorskip('flash_attn.losses.cross_entropy')
+
+    conf_path = 'yamls/mosaic_gpt/testing.yaml'
+    with open(conf_path) as f:
+        standard_cfg = om.load(f)
+
+    optimized_cfg = copy.deepcopy(standard_cfg)
+    with open_dict(optimized_cfg):
+        optimized_cfg.model.gpt_block = 'optimized'
+
+    standard_model = COMPOSER_MODEL_REGISTRY[standard_cfg.model.name](
+        standard_cfg.model)
+    optimized_model = COMPOSER_MODEL_REGISTRY[optimized_cfg.model.name](
+        optimized_cfg.model)
+
+    optimizer_sm = DecoupledAdamW(
+        standard_model.parameters(),
+        lr=standard_model.optimizer.lr,
+        betas=standard_model.optimizer.betas,
+        eps=standard_model.optimizer.eps,
+        weight_decay=standard_model.optimizer.weight_decay)
+    optimizer_om = DecoupledAdamW(
+        optimized_model.parameters(),
+        lr=optimized_model.optimizer.lr,
+        betas=optimized_model.optimizer.betas,
+        eps=optimized_model.optimizer.eps,
+        weight_decay=optimized_model.optimizer.weight_decay)
+
+    for i in range(5):
+        batch = gen_random_batch(2, standard_cfg)
+        output_sm = standard_model(batch)
+        output_om = optimized_model(batch)
+        assert output_sm.allclose(output_om, rtol=0.0,
+                                    atol=0.0), f'differed at step {i}'
+
+        loss_sm = standard_model.loss(output_sm, batch)
+        loss_om = optimized_model.loss(output_om, batch)
+        torch.testing.assert_close(loss_sm,
+                                    loss_om,
+                                    rtol=1e-4,
+                                    atol=1e-3,
+                                    msg=f'Loss mismatch at step {i}')
+        loss_sm.backward()
+        loss_om.backward()
+        optimizer_sm.step()
+        optimizer_om.step()

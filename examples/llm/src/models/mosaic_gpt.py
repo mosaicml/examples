@@ -68,8 +68,9 @@ class MosaicGPT(nn.Module):
                                  device=cfg.init_device)
             })
         self.transformer.update({'emb_drop': nn.Dropout(cfg.emb_pdrop)})
-        self.transformer.update(
-            {'ln_i': layernorm_class(cfg.d_model, device=cfg.init_device)})
+        self.transformer.update({
+            'ln_initial': layernorm_class(cfg.d_model, device=cfg.init_device)
+        })
 
         self.config_block = cfg.get('gpt_block', 'standard')
         if self.config_block == 'optimized':
@@ -194,7 +195,7 @@ class MosaicGPT(nn.Module):
             assert isinstance(self.transformer.emb_drop, nn.Module)  # pyright
             x = self.transformer.emb_drop(x_shrunk)
 
-        a = self.transformer.ln_i(x)  # type: ignore
+        a = self.transformer.ln_initial(x)  # type: ignore
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
 
@@ -260,12 +261,11 @@ class ComposerMosaicGPT(ComposerModel):
             self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
                                                  ignore_index=-100,
                                                  process_group=None)
-        elif self.model.config_block == 'optimized':
-            warnings.warn(
-                'Model gpt_block config set to `optimized`, but Fused Cross Entropy Loss is not installed. You can install it using the `examples/llm/requirements_optimized_perf.txt` file. Falling back to torch.nn.CrossEntropy.'
-            )
-            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
         else:
+            if self.model.config_block == 'optimized':
+                warnings.warn(
+                    'Model gpt_block config set to `optimized`, but Fused Cross Entropy Loss is not installed. You can install it using the `examples/llm/requirements_optimized_perf.txt` file. Falling back to torch.nn.CrossEntropy.'
+                )
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def get_targets(self, batch):
