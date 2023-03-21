@@ -18,7 +18,7 @@ from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                               build_text_denoising_dataloader)
 
-
+os.environ["NCCL_P2P_LEVEL"] = "NVL"
 def validate_config(cfg):
     """Validates compatible model and dataloader selection."""
     loaders = [cfg.train_loader]
