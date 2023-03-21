@@ -62,7 +62,7 @@ If you have an NVIDIA GPU, you can install additional requirements and our libra
 ```bash
 pip install -r requirements_optimized_perf.txt
 cd csrc
-pip install .  # may take a long time (up to 20 minutes)
+pip install .  # may take a long time (~20 minutes)
 ```
 See the section [Optimizing Performance](#optimizing-performance) below for instructions on how to use these speedups.
 
