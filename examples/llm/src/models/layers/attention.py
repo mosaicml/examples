@@ -17,8 +17,6 @@ from torch import nn
 
 def _reset_is_causal(num_query_tokens: int, num_key_tokens: int,
                      original_is_causal: bool):
-    num_query_tokens = query.size(1)
-    num_key_tokens = key.size(1)
     if num_query_tokens != num_key_tokens:
         if num_query_tokens != 1:
             raise NotImplementedError(
