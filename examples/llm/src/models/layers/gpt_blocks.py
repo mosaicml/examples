@@ -45,6 +45,7 @@ class GPTBlock(nn.Module):
                  low_precision_layernorm: bool = False,
                  device: Optional[str] = None,
                  **kwargs):
+        del kwargs  # unused, just to capture any extra args from the config
         super().__init__()
 
         layernorm_class = LPLayerNorm if low_precision_layernorm else nn.LayerNorm
@@ -59,7 +60,6 @@ class GPTBlock(nn.Module):
             d_model=d_model,
             n_heads=n_heads,
             device=device,
-            **kwargs,
         )
         self.ln_2 = layernorm_class(d_model, device=device)
         self.mlp = GPTMLP(
