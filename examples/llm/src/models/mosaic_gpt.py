@@ -122,8 +122,8 @@ class MosaicGPT(PreTrainedModel):
                                              dtype=dtype)
                 attention.attn_bias(self.attn_impl,
                                     self.attn_bias,
-                                    self.cfg.n_heads,
-                                    self.cfg.max_seq_len,
+                                    self.config.n_heads,
+                                    self.config.max_seq_len,
                                     causal=self.is_causal,
                                     alibi=self.alibi,
                                     alibi_bias_max=self.alibi_bias_max)
@@ -169,19 +169,19 @@ class MosaicGPT(PreTrainedModel):
         else:
             past_position = 0
             if past_key_values is not None:
-                if len(past_key_values) != self.cfg.n_layers:
+                if len(past_key_values) != self.config.n_layers:
                     raise ValueError(
                         f'past_key_values must provide a past_key_value for each attention ' +\
-                        f'layer in the network ({len(past_key_values)=}; {self.cfg.n_layers=}).'
+                        f'layer in the network ({len(past_key_values)=}; {self.config.n_layers=}).'
                     )
                 # get the key tensor whose spec should be (batch, seq, dim), and
                 # collect the `seq`, so that the position embedding is shifted
                 past_position = past_key_values[0][0].size(1)
 
-            if S + past_position > self.cfg.max_seq_len:
+            if S + past_position > self.config.max_seq_len:
                 raise ValueError(
                     f'Cannot forward input with past sequence length {past_position} and current sequence length '
-                    f'{S + 1}, this model only supports total sequence length <= {self.cfg.max_seq_len}.'
+                    f'{S + 1}, this model only supports total sequence length <= {self.config.max_seq_len}.'
                 )
             pos = torch.arange(past_position,
                                S + past_position,
