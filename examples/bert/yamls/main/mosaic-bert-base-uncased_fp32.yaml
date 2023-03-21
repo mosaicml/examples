@@ -5,7 +5,7 @@ tokenizer_name: bert-base-uncased
 mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
 # Run Name
-run_name: bert-base-2_bf16
+run_name: bert-base-2_fp32_lr9e-4
 
 # Model
 model:
@@ -55,7 +55,7 @@ scheduler:
 
 optimizer:
   name: decoupled_adamw
-  lr: 5.0e-4 # Peak learning rate
+  lr: 9.0e-4 # Peak learning rate
   betas:
   - 0.9
   - 0.98
@@ -71,10 +71,10 @@ global_train_batch_size: 4096
 
 # System
 seed: 17
-device_eval_batch_size: 256
-device_train_microbatch_size: 256
+device_eval_batch_size: 128
+device_train_microbatch_size: 128
 # device_train_microbatch_size: auto
-precision: bf16
+precision: fp32
 
 # Logging
 progress_bar: false
