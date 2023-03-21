@@ -11,7 +11,7 @@ This will install a CUDA module from [HazyResearch](https://github.com/HazyResea
 # Installation
 To install, run the following command from this `csrc` folder:
 ```bash
-pip install . # may take a long time (up to 20 minutes)
+pip install . # may take a long time (~20 minutes)
 ```
 
 # Enabling the Optimizations
