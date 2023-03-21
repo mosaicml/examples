@@ -131,15 +131,15 @@ class MosaicGPT(PreTrainedModel):
 
         return self.attn_bias
 
-    def forward(
-            self,
-            input_ids: torch.LongTensor,
-            past_key_values: Optional[List[Tuple[torch.FloatTensor]]] = None,
-            attention_mask: Optional[torch.ByteTensor] = None,
-            return_dict: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            use_cache: Optional[bool] = None):
+    def forward(self,
+                input_ids: torch.LongTensor,
+                past_key_values: Optional[List[Optional[Tuple[
+                    torch.FloatTensor]]]] = None,
+                attention_mask: Optional[torch.ByteTensor] = None,
+                return_dict: Optional[bool] = None,
+                output_attentions: Optional[bool] = None,
+                output_hidden_states: Optional[bool] = None,
+                use_cache: Optional[bool] = None):
         return_dict = return_dict if return_dict is not None else self.config.return_dict
         use_cache = use_cache if use_cache is not None else self.config.use_cache
         if not return_dict:
