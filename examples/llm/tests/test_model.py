@@ -367,21 +367,23 @@ def test_mosaic_gpt_creation():
         [hf_config.max_seq_len, hf_config.d_model])
     assert mosaic_gpt.transformer.emb_drop.p == 0.1  # type: ignore
     assert len(mosaic_gpt.transformer.blocks) == 2  # type: ignore
-    block = mosaic_gpt.transformer.blocks[0]  # type: ignore
+
     d_model = hf_config.d_model
-    assert block.ln_1.weight.shape == torch.Size([d_model])  # type: ignore
-    assert block.ln_2.weight.shape == torch.Size([d_model])  # type: ignore
-    assert block.mlp.mlp_up.weight.shape == torch.Size(  # type: ignore
-        [hf_config.d_model * hf_config.mlp_ratio, hf_config.d_model])
-    assert block.mlp.mlp_down.weight.shape == torch.Size(  # type: ignore
-        [hf_config.d_model, hf_config.d_model * hf_config.mlp_ratio])
-    assert block.resid_attn_dropout.p == 0.2  # type: ignore
-    assert block.resid_mlp_dropout.p == 0.2  # type: ignore
+    for block in mosaic_gpt.transformer.blocks:
+        assert block.ln_1.weight.shape == torch.Size([d_model])  # type: ignore
+        assert block.ln_2.weight.shape == torch.Size([d_model])  # type: ignore
+        assert block.mlp.mlp_up.weight.shape == torch.Size(  # type: ignore
+            [hf_config.d_model * hf_config.mlp_ratio, hf_config.d_model])
+        assert block.mlp.mlp_down.weight.shape == torch.Size(  # type: ignore
+            [hf_config.d_model, hf_config.d_model * hf_config.mlp_ratio])
+        assert block.resid_attn_dropout.p == 0.2  # type: ignore
+        assert block.resid_mlp_dropout.p == 0.2  # type: ignore
 
 
 @pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
                                                    ('flash', 'gpu'),
-                                                   ('triton', 'gpu')])
+                                                   ('triton', 'gpu'),
+                                                   ('torch', 'gpu')])
 def test_forward_with_padding(attention_impl, device):
     if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
         pytest.skip(
@@ -474,7 +476,8 @@ def test_forward_with_padding(attention_impl, device):
 
 @pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
                                                    ('flash', 'gpu'),
-                                                   ('triton', 'gpu')])
+                                                   ('triton', 'gpu'),
+                                                   ('torch', 'gpu')])
 def test_generate(attention_impl, device):
     if not torch.cuda.is_available() and attention_impl in {'triton', 'flash'}:
         pytest.skip(
@@ -560,6 +563,9 @@ def check_hf_model_equivalence(model1, model2):
     assert all(
         type(module1) == type(module2)
         for module1, module2 in zip(model1.modules(), model2.modules()))
+
+    for p1, p2 in zip(model1.parameters(), model2.parameters()):
+        torch.testing.assert_close(p1, p2)
 
 
 def test_save_from_pretrained(tmp_path):
