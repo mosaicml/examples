@@ -594,6 +594,11 @@ def test_save_from_pretrained(tmp_path):
                                                    ('triton', 'gpu'),
                                                    ('torch', 'gpu')])
 def test_forward_with_cache(attention_impl, device):
+    if not torch.cuda.is_available() and device == 'gpu':
+        pytest.skip(
+            f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
+        )
+
     device = get_device(device)
 
     hf_config = MosaicGPTConfig(
