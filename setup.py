@@ -73,8 +73,7 @@ def _merge_dependencies(deps_base: List[str],
         # a GPU on your machine
         base_dict.pop('flash-attn', None)
         base_dict.pop('triton', None)
-        base_dict.pop('git+https://github.com/HazyResearch/flash-attention.git',
-                      None)
+        base_dict.pop('xentropy-cuda-lib', None)
     return [k + v for k, v in base_dict.items()]  # 'foo': '>3' -> 'foo>3'
 
 
@@ -90,7 +89,7 @@ for name in _EXAMPLE_SUBDIRS:
         extra_deps[f'{name}-cpu'] = _merge_dependencies(install_requires,
                                                         lines,
                                                         cpu_only=True)
-
+    print(extra_deps)
 setup(
     name=_PACKAGE_NAME,
     version=repo_version,
