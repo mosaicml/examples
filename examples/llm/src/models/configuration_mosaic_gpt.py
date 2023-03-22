@@ -132,16 +132,6 @@ class MosaicGPTConfig(PretrainedConfig):
             )
         if self.attn_impl not in ['torch', 'flash', 'triton']:
             raise ValueError(f'Unknown attn_impl={self.attn_impl}')
-        if self.attn_qk_ln and self.attn_impl not in ['flash', 'triton']:
-            raise NotImplementedError(
-                'LayerNorm over queries and keys in attention is only implemented with flash and triton attention.'
-            )
-        if self.softmax_scale is not None and self.attn_impl not in [
-                'flash', 'triton'
-        ]:
-            raise NotImplementedError(
-                'softmax_scale only implemented with flash and triton attention.'
-            )
         if self.alibi and self.attn_impl not in ['torch', 'triton']:
             raise NotImplementedError(
                 'alibi only implemented with torch and triton attention.')
