@@ -14,7 +14,6 @@ from composer.optim import DecoupledAdamW
 from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from omegaconf import open_dict
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                           ComposerHFCausalLM, ComposerHFPrefixLM)
@@ -363,12 +362,10 @@ def test_optimized_gpt_block(batch_size=2):
 
     # Copy weights
     with torch.no_grad():
-        optimized_block.ln_1.weight.copy_(
-            standard_block.ln_1.weight)
+        optimized_block.ln_1.weight.copy_(standard_block.ln_1.weight)
         optimized_block.ln_1.bias.copy_(standard_block.ln_1.bias)
 
-        optimized_block.ln_2.weight.copy_(
-            standard_block.ln_2.weight)
+        optimized_block.ln_2.weight.copy_(standard_block.ln_2.weight)
         optimized_block.ln_2.bias.copy_(standard_block.ln_2.bias)
 
         optimized_block.mlp.mlp_up.weight.copy_(
@@ -410,6 +407,13 @@ def test_optimized_gpt_block(batch_size=2):
             rtol=1e-4,
             atol=1e-3,
             msg=f'Outputs differ:, {out_std_a}, {out_opt_a}')
+
+        torch.testing.assert_close(
+            out_std_x,
+            out_opt_x,
+            rtol=1e-4,
+            atol=1e-3,
+            msg=f'Outputs differ:, {out_std_x}, {out_opt_x}')
 
         # with warnings.catch_warnings():
         #    warnings.simplefilter('ignore')

@@ -84,16 +84,16 @@ class OptimizedGPTBlock(nn.Module):
 
         self.attn = MultiheadAttention(cfg, device)
         self.ln_1 = DropoutAddLayerNorm(cfg.d_model,
-                                                    prenorm=True,
-                                                    p=cfg.resid_pdrop,
-                                                    residual_in_fp32=False,
-                                                    device=device)
+                                        prenorm=True,
+                                        p=cfg.resid_pdrop,
+                                        residual_in_fp32=False,
+                                        device=device)
         self.mlp = GPTMLP(cfg, device=device)
         self.ln_2 = DropoutAddLayerNorm(cfg.d_model,
-                                                    prenorm=True,
-                                                    p=cfg.resid_pdrop,
-                                                    residual_in_fp32=False,
-                                                    device=device)
+                                        prenorm=True,
+                                        p=cfg.resid_pdrop,
+                                        residual_in_fp32=False,
+                                        device=device)
 
     def forward(
         self,
