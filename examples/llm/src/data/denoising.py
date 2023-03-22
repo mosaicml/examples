@@ -133,6 +133,7 @@ class MixtureOfDenoisersCollator:
         sequence_mask_ratios: Optional[Union[List[float], float]] = None,
         allow_pad_trimming: bool = False,
         prefix_function: Optional[PREFIX_FUNCTION] = ul2_prefix_function,
+        context_eos: Optional[bool] = None,
     ):
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
@@ -142,6 +143,13 @@ class MixtureOfDenoisersCollator:
         # Trimming will always be skipped on at least the first __call__
         self._allow_pad_trimming = allow_pad_trimming
         self._seen_first_batch = False
+
+        if decoder_only_format:
+            if context_eos is None:
+                context_eos = False
+        else:
+            context_eos = True
+        self.context_eos = bool(context_eos)
 
         # Prepare the tokenizer for denoising tasks
         utils.adapt_tokenizer_for_denoising(self.tokenizer)
@@ -212,7 +220,8 @@ class MixtureOfDenoisersCollator:
                 mask_ratio=span_mask_ratio,
                 mean_span_length=span_mean_length,
                 n_prefix_tokens=len(prefix_tokens or []),
-                decoder_only_format=self.decoder_only_format)
+                decoder_only_format=self.decoder_only_format,
+                context_eos=self.context_eos)
             if max_raw_length < self._smallest_max_raw_length:
                 self._smallest_max_raw_length = max_raw_length
             if max_raw_length > self._largest_max_raw_length:
@@ -235,6 +244,8 @@ class MixtureOfDenoisersCollator:
                 prefix_tokens = None
 
             max_raw_length = self.max_seq_length - len(prefix_tokens or []) - 1
+            if decoder_only_format and self.context_eos:
+                max_raw_length = max_raw_length - 1
 
             if not self._uses_span_corruption and (
                     max_raw_length < self._smallest_max_raw_length):
@@ -283,7 +294,8 @@ class MixtureOfDenoisersCollator:
                     max_seq_length=self.max_seq_length,
                     tokenizer=self.tokenizer,
                     sentinel_token_ids=self._sentinel_token_ids,
-                    decoder_only_format=self.decoder_only_format))
+                    decoder_only_format=self.decoder_only_format,
+                    context_eos=self.context_eos))
         batch = self.tokenizer.pad(processed_examples)
 
         # This logic prevents trimming on at least the first batch
@@ -401,7 +413,8 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         allow_pad_trimming=cfg.mixture_of_denoisers.get('allow_pad_trimming',
                                                         False),
         prefix_function=cfg.mixture_of_denoisers.get('prefix_function',
-                                                     ul2_prefix_function))
+                                                     ul2_prefix_function),
+        context_eos=cfg.mixture_of_denoisers.get('context_eos'))
 
     truncate_to = cfg.mixture_of_denoisers.get('truncate_raw_tokens_to')
     if truncate_to is None:
@@ -471,6 +484,7 @@ def noise_token_sequence(
     tokenizer: Tokenizer,
     sentinel_token_ids: np.ndarray,
     decoder_only_format: bool,
+    context_eos: bool,
 ) -> Dict[str, torch.Tensor]:
     """Span corruption applicable to all UL2 denoising tasks."""
     # Extract the raw text tokens (trim if we need to)
@@ -508,7 +522,7 @@ def noise_token_sequence(
         use_sentinels = False
     else:
         use_sentinels = True
-    ensure_input_eos = False if decoder_only_format else True
+    # ensure_input_eos = False if decoder_only_format else True
 
     # Generate the mask
     # Note: this function can be used for all the UL2 noising functions
@@ -522,7 +536,7 @@ def noise_token_sequence(
                                 use_sentinels,
                                 tokenizer.eos_token_id,
                                 sentinel_token_ids,
-                                ensure_eos=ensure_input_eos)
+                                ensure_eos=context_eos)
     tokens_labels = _apply_mask(tokens,
                                 1 - mask,
                                 use_sentinels,
@@ -555,7 +569,7 @@ def noise_token_sequence(
 
 def _get_max_starting_length(max_length: int, mask_ratio: float,
                              mean_span_length: float, n_prefix_tokens: int,
-                             decoder_only_format: bool):
+                             decoder_only_format: bool, context_eos: bool):
     """Get max num raw tokens that will fit max_length."""
 
     def sequence_stats(length: int):
@@ -567,8 +581,9 @@ def _get_max_starting_length(max_length: int, mask_ratio: float,
         num_noise_spans = np.maximum(num_spans, 1)
         num_nonnoise_tokens = length - num_noise_tokens
         # Prefix, sentinel, and EOS added to input for Enc-Dec
-        extra_inp_tokens = n_prefix_tokens + num_noise_spans + int(
-            not decoder_only_format)
+        extra_inp_tokens = n_prefix_tokens + num_noise_spans + int(context_eos)
+        # extra_inp_tokens = n_prefix_tokens + num_noise_spans + int(
+        #     not decoder_only_format)
         # Sentinel and EOS added to target
         extra_targ_tokens = num_noise_spans + 1
         # Sequence totals after corruption
@@ -795,6 +810,7 @@ if __name__ == '__main__':
             'decoder_only_format': decoder_only,
             'span_mean_lengths_and_ratios': [[3, .15], [8, .5]],
             'sequence_mask_ratios': 0.25,
+            'context_eos': True,
         },
         'drop_last': False,
         'num_workers': 0,
