@@ -83,13 +83,13 @@ class OptimizedGPTBlock(nn.Module):
             )
 
         self.attn = MultiheadAttention(cfg, device)
-        self.dropout_add_ln_1 = DropoutAddLayerNorm(cfg.d_model,
+        self.ln_1 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,
                                                     residual_in_fp32=False,
                                                     device=device)
         self.mlp = GPTMLP(cfg, device=device)
-        self.dropout_add_ln_2 = DropoutAddLayerNorm(cfg.d_model,
+        self.ln_2 = DropoutAddLayerNorm(cfg.d_model,
                                                     prenorm=True,
                                                     p=cfg.resid_pdrop,
                                                     residual_in_fp32=False,
@@ -109,7 +109,7 @@ class OptimizedGPTBlock(nn.Module):
                                          attn_bias=attn_bias,
                                          key_padding_mask=key_padding_mask,
                                          is_causal=is_causal)
-        m, x = self.dropout_add_ln_1(b, x)
+        m, x = self.ln_1(b, x)
         n = self.mlp(m)
-        a, x = self.dropout_add_ln_2(n, x)
+        a, x = self.ln_2(n, x)
         return a, x, past_key_value

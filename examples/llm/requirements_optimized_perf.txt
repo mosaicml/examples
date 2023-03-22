@@ -1,5 +1,0 @@
-# CUDA Dependency for optimized GPT models.
-# Not required for default GPT blocks.
-# Please also see the examples/llm/csrc/ folder to install our custom CUDA optimizations.
-
-git+https://github.com/HazyResearch/flash-attention.git@v0.2.8#subdirectory=csrc/xentropy

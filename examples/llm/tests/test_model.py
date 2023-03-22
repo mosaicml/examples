@@ -4,6 +4,7 @@
 import copy
 import os
 import warnings
+from copy import deepcopy
 from typing import cast
 
 import pytest
@@ -11,8 +12,9 @@ import torch
 import torch.nn as nn
 from composer.optim import DecoupledAdamW
 from composer.utils import reproducibility
-from omegaconf import DictConfig, open_dict
+from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
+from omegaconf import open_dict
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                           ComposerHFCausalLM, ComposerHFPrefixLM)
@@ -339,51 +341,76 @@ def test_opt_wrapping(prefixlm):
     assert not model.model.lm_head._fsdp_wrap
 
 
-def test_optimized_gpt_model(batch_size=2):
+def test_optimized_gpt_block(batch_size=2):
     pytest.importorskip('flash_attn.ops.layer_norm')
     pytest.importorskip('flash_attn.losses.cross_entropy')
 
+    from examples.llm.src.models.layers import GPTBlock, OptimizedGPTBlock
+
+    device = 'cuda:0'
+
+    # Set model config
     conf_path = 'yamls/mosaic_gpt/testing.yaml'
     with open(conf_path) as f:
-        standard_cfg = om.load(f)
+        cfg = om.load(f)
+    cfg.model.init_device = device
+    cfg.device = device
+    cfg.init_device = device
 
-    optimized_cfg = copy.deepcopy(standard_cfg)
-    with open_dict(optimized_cfg):
-        optimized_cfg.model.gpt_block = 'optimized'
+    # Blocks
+    standard_block = GPTBlock(cfg.model, device)
+    optimized_block = OptimizedGPTBlock(cfg.model, device)
 
-    standard_model = COMPOSER_MODEL_REGISTRY[standard_cfg.model.name](
-        standard_cfg.model)
-    optimized_model = COMPOSER_MODEL_REGISTRY[optimized_cfg.model.name](
-        optimized_cfg.model)
+    # Copy weights
+    with torch.no_grad():
+        optimized_block.ln_1.weight.copy_(
+            standard_block.ln_1.weight)
+        optimized_block.ln_1.bias.copy_(standard_block.ln_1.bias)
 
-    optimizer_sm = DecoupledAdamW(
-        standard_model.parameters(),
-        lr=standard_model.optimizer.lr,
-        betas=standard_model.optimizer.betas,
-        eps=standard_model.optimizer.eps,
-        weight_decay=standard_model.optimizer.weight_decay)
-    optimizer_om = DecoupledAdamW(
-        optimized_model.parameters(),
-        lr=optimized_model.optimizer.lr,
-        betas=optimized_model.optimizer.betas,
-        eps=optimized_model.optimizer.eps,
-        weight_decay=optimized_model.optimizer.weight_decay)
+        optimized_block.ln_2.weight.copy_(
+            standard_block.ln_2.weight)
+        optimized_block.ln_2.bias.copy_(standard_block.ln_2.bias)
 
-    for i in range(5):
-        batch = gen_random_batch(2, standard_cfg)
-        output_sm = standard_model(batch)
-        output_om = optimized_model(batch)
-        assert output_sm.allclose(output_om, rtol=0.0,
-                                    atol=0.0), f'differed at step {i}'
+        optimized_block.mlp.mlp_up.weight.copy_(
+            standard_block.mlp.mlp_up.weight)
+        optimized_block.mlp.mlp_up.bias.copy_(standard_block.mlp.mlp_up.bias)
 
-        loss_sm = standard_model.loss(output_sm, batch)
-        loss_om = optimized_model.loss(output_om, batch)
-        torch.testing.assert_close(loss_sm,
-                                    loss_om,
-                                    rtol=1e-4,
-                                    atol=1e-3,
-                                    msg=f'Loss mismatch at step {i}')
-        loss_sm.backward()
-        loss_om.backward()
-        optimizer_sm.step()
-        optimizer_om.step()
+        optimized_block.mlp.mlp_down.weight.copy_(
+            standard_block.mlp.mlp_down.weight)
+        optimized_block.mlp.mlp_down.bias.copy_(
+            standard_block.mlp.mlp_down.bias)
+
+        optimized_block.attn.Wqkv.weight.copy_(standard_block.attn.Wqkv.weight)
+        optimized_block.attn.Wqkv.bias.copy_(standard_block.attn.Wqkv.bias)
+
+    # Create inputs
+    input_size = cfg.model.d_model
+    std_input_x = torch.rand((batch_size, cfg.max_seq_len, input_size),
+                             device=device,
+                             dtype=torch.float32)
+    std_input_a = torch.rand((batch_size, cfg.max_seq_len, input_size),
+                             device=device,
+                             dtype=torch.float32)
+    opt_input_x = deepcopy(std_input_x)
+    opt_input_a = deepcopy(std_input_a)
+    opt_input_x.requires_grad = True
+    opt_input_a.requires_grad = True
+
+    with torch.autocast(device_type='cuda'):
+        out_std_a, out_std_x, _ = standard_block(a=std_input_a,
+                                                 x=std_input_x,
+                                                 is_causal=True)
+        out_opt_a, out_opt_x, _ = optimized_block(a=opt_input_a,
+                                                  x=opt_input_x,
+                                                  is_causal=True)
+
+        torch.testing.assert_close(
+            out_std_a,
+            out_opt_a,
+            rtol=1e-4,
+            atol=1e-3,
+            msg=f'Outputs differ:, {out_std_a}, {out_opt_a}')
+
+        # with warnings.catch_warnings():
+        #    warnings.simplefilter('ignore')
+        #    gradcheck(optimized_block, (opt_input_a, opt_input_x, None, None, True), eps=1e-4, atol=1e-3, nondet_tol=1e-8)

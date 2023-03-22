@@ -24,12 +24,6 @@ import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
 
-try:
-    from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
-    FUSED_XENTROPY_INSTALLED = True
-except ImportError as e:
-    FUSED_XENTROPY_INSTALLED = False
-
 
 class MosaicGPT(nn.Module):
 
@@ -256,17 +250,22 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity': Perplexity(),
         }
 
-        if self.model.config_block == 'optimized' and FUSED_XENTROPY_INSTALLED:
-            print('Using Fused Cross Entropy Loss.')
-            self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
-                                                 ignore_index=-100,
-                                                 process_group=None)
-        else:
-            if self.model.config_block == 'optimized':
-                warnings.warn(
-                    'Model gpt_block config set to `optimized`, but Fused Cross Entropy Loss is not installed. You can install it using the `examples/llm/requirements_optimized_perf.txt` file. Falling back to torch.nn.CrossEntropy.'
-                )
+        loss_fn_config = cfg.get('loss_fn', 'fused_crossentropy')
+        if loss_fn_config == 'fused_crossentropy':
+            try:
+                from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
+                print('Using Fused Cross Entropy Loss.')
+                self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
+                                                    ignore_index=-100,
+                                                    process_group=None)
+            except:
+                raise ValueError('Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and `pip install .[llm]`, or (2) set your config model.loss_fn=torch_crossentropy.')
+        elif loss_fn_config == 'torch_crossentropy':
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        else:
+            raise NotImplementedError(
+                'MosaicGPT `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+            )
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
