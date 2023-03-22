@@ -37,6 +37,7 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
     """
 
     def __init__(self, cfg: DictConfig):
+        breakpoint()
         config = AutoConfig.from_pretrained(cfg.pretrained_model_name_or_path,
                                             **cfg.get('config_overrides', {}))
 

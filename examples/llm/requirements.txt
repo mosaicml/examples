@@ -11,3 +11,5 @@ omegaconf==2.2.3
 wandb==0.13.6
 pytest>=7.2.1,<8
 torchmetrics==0.11.3
+# deepspeed
+accelerate

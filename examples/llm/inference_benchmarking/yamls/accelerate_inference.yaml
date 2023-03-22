@@ -1,0 +1,24 @@
+# Tokenizer
+tokenizer:
+  type: hftokenizer
+  args:
+    tokenizer_name: gpt2
+    max_seq_len: 2048
+
+model:
+  model_name: EleutherAI/gpt-neo-125M
+  
+inference_platform: accelerate
+dtype: float32 
+num_tokens: 100
+batch_size: 64
+
+input_sentences: 
+  - "DeepSpeed is a machine learning framework"
+  -  "He is working on"
+  -  "He has a"
+  -  "He got all"
+  -  "Everyone is happy and I can"
+  -  "The new movie that got Oscar this year"
+  -  "In the far far distance from our galaxy,"
+  -  "Peace is the only way"

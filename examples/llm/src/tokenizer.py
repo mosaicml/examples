@@ -70,5 +70,5 @@ class HFTokenizer(LLMTokenizer):
     def eos_token_id(self):
         return self.tokenizer.eos_token_id
 
-
+ 
 TOKENIZER_REGISTRY = {'hftokenizer': HFTokenizer}
