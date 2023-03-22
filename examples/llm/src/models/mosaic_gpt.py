@@ -142,6 +142,10 @@ class MosaicGPT(PreTrainedModel):
             use_cache: Optional[bool] = None):
         return_dict = return_dict if return_dict is not None else self.config.return_dict
         use_cache = use_cache if use_cache is not None else self.config.use_cache
+
+        # These args are passed in by keyword in huggingface's generate function
+        # https://github.com/huggingface/transformers/blob/68287689f2f0d8b7063c400230b3766987abf18d/src/transformers/generation/utils.py#L2201-L2206
+        # but have not yet been fully implemented in MosaicGPT
         if not return_dict:
             raise NotImplementedError(
                 'return_dict False is not implemented yet for MosaicGPT')
