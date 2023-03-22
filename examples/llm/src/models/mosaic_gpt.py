@@ -210,7 +210,7 @@ class MosaicGPT(PreTrainedModel):
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
-            past_key_values = [[] for _ in range(self.config.n_layers)
+            past_key_values = [() for _ in range(self.config.n_layers)
                               ]  # type: ignore
 
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
