@@ -366,7 +366,7 @@ class MultiheadAttention(nn.Module):
         return self.out_proj(context), attn_weights, past_key_value
 
 
-def attn_bias_shape(attn_impl, n_heads, seq_len, alibi, causal):
+def attn_bias_shape(attn_impl, n_heads, seq_len, alibi, prefix_lm, causal):
     if attn_impl == 'flash':
         return None
     elif attn_impl == 'triton':
@@ -374,12 +374,16 @@ def attn_bias_shape(attn_impl, n_heads, seq_len, alibi, causal):
             if not causal:
                 return (1, n_heads, seq_len, seq_len)
             return (1, n_heads, 1, seq_len)
+        elif prefix_lm:
+            return (1, n_heads, seq_len, seq_len)
         return None
     elif attn_impl == 'torch':
         if alibi:
             if not causal:
                 return (1, n_heads, seq_len, seq_len)
             return (1, n_heads, 1, seq_len)
+        elif prefix_lm:
+            return (1, n_heads, seq_len, seq_len)
         return None
     else:
         raise ValueError(f'{attn_impl=} is an invalid setting.')

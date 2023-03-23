@@ -27,6 +27,7 @@ import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
 from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
+from examples.llm.src.models.utils import add_bidirectional_mask_if_missing
 
 
 class MosaicGPT(PreTrainedModel):
@@ -37,6 +38,7 @@ class MosaicGPT(PreTrainedModel):
         super().__init__(config)
 
         self.attn_impl = config.attn_impl
+        self.prefix_lm = config.prefix_lm
         self.alibi = config.alibi
         self.alibi_bias_max = config.alibi_bias_max
 
@@ -92,16 +94,18 @@ class MosaicGPT(PreTrainedModel):
             )
             self.apply(self.param_init_fn)
 
-        self.is_causal = True
+        self.is_causal = not self.prefix_lm
 
         # define attn mask
         self._attn_bias_initialized = False
         self.attn_bias = None
-        self.attn_bias_shape = attention.attn_bias_shape(self.attn_impl,
-                                                         config.n_heads,
-                                                         config.max_seq_len,
-                                                         self.alibi,
-                                                         causal=self.is_causal)
+        self.attn_bias_shape = attention.attn_bias_shape(
+            self.attn_impl,
+            config.n_heads,
+            config.max_seq_len,
+            self.alibi,
+            prefix_lm=self.prefix_lm,
+            causal=self.is_causal)
 
         if config.no_bias:
             for module in self.modules():
@@ -131,11 +135,37 @@ class MosaicGPT(PreTrainedModel):
 
         return self.attn_bias
 
+    def _apply_prefix_mask(self, attn_bias: torch.Tensor,
+                           prefix_mask: torch.ByteTensor):
+        assert attn_bias.shape[-1] == self.config.max_seq_len
+        seq_len = prefix_mask.shape[-1]
+        if seq_len > self.config.max_seq_len:
+            raise ValueError(
+                f'prefix_mask sequence length cannot exceed max_seq_len={self.config.max_seq_len}'
+            )
+
+        # select seq_len subset of attn mask
+        attn_bias = attn_bias[..., :seq_len, :seq_len]
+
+        # Mix the causal max and the bidirectional mask to get the full
+        # allowable attention (i.e. full = not accounting for padding yet)
+        causal = torch.tril(
+            torch.ones((seq_len, seq_len),
+                       dtype=torch.uint8,
+                       device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
+        prefix = prefix_mask.view(-1, 1, 1, seq_len)
+        cannot_attend = torch.logical_not(torch.logical_or(causal, prefix))
+
+        attn_bias = attn_bias.masked_fill(cannot_attend, -float('inf'))
+
+        return attn_bias
+
     def forward(
             self,
             input_ids: torch.LongTensor,
             past_key_values: Optional[List[Tuple[torch.FloatTensor]]] = None,
             attention_mask: Optional[torch.ByteTensor] = None,
+            prefix_mask: Optional[torch.ByteTensor] = None,
             return_dict: Optional[bool] = None,
             output_attentions: Optional[bool] = None,
             output_hidden_states: Optional[bool] = None,
@@ -160,6 +190,11 @@ class MosaicGPT(PreTrainedModel):
         ) != attention_mask.shape[0] and self.training:
             raise NotImplementedError(
                 'MosaicGPT does not support training with left padding.')
+
+        if self.prefix_lm and prefix_mask is None:
+            raise ValueError(
+                'prefix_mask is a required argument when is configured with prefix_lm=True.'
+            )
 
         S = input_ids.size(1)
 
@@ -211,6 +246,10 @@ class MosaicGPT(PreTrainedModel):
             x = self.transformer.emb_drop(x_shrunk)
 
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
+
+        if self.prefix_lm:
+            attn_bias = self._apply_prefix_mask(attn_bias,
+                                                prefix_mask)  # type: ignore
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
@@ -278,9 +317,16 @@ class MosaicGPT(PreTrainedModel):
         if past_key_values is not None:
             input_ids = input_ids[:, -1].unsqueeze(-1)
 
+        if self.prefix_lm:
+            # Leverage a convenience of sequential generation!
+            prefix_mask = torch.ones_like(attention_mask)
+        else:
+            prefix_mask = None
+
         return {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
+            'prefix_mask': prefix_mask,
             'past_key_values': past_key_values,
             'use_cache': kwargs.get('use_cache'),
         }
@@ -314,11 +360,17 @@ class ComposerMosaicGPT(ComposerModel):
         return targets
 
     def forward(self, batch):
+        if self.model.prefix_lm:
+            add_bidirectional_mask_if_missing(batch)
         input_ids = batch['input_ids']
         attention_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
+        prefix_mask = batch['bidirectional_mask'].bool(
+        ) if 'bidirectional_mask' in batch else None
+        # Note: prefix_mask is only used if model.prefix_lm is True
         return self.model(input_ids=input_ids,
-                          attention_mask=attention_mask).logits
+                          attention_mask=attention_mask,
+                          prefix_mask=prefix_mask).logits
 
     def eval_forward(self, batch, outputs=None):
         return outputs if outputs is not None else self.forward(batch)
