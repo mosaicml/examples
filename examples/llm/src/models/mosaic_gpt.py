@@ -137,7 +137,7 @@ class MosaicGPT(PreTrainedModel):
         return self.attn_bias
 
     def _apply_prefix_mask(self, attn_bias: torch.Tensor,
-                           prefix_mask: torch.ByteTensor):
+                           prefix_mask: torch.Tensor):
         assert attn_bias.shape[-1] == self.config.max_seq_len
         seq_len = prefix_mask.shape[-1]
         if seq_len > self.config.max_seq_len:
@@ -155,7 +155,8 @@ class MosaicGPT(PreTrainedModel):
                        dtype=torch.uint8,
                        device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
         prefix = prefix_mask.view(-1, 1, 1, seq_len)
-        cannot_attend = torch.logical_not(torch.logical_or(causal, prefix))
+        cannot_attend = torch.logical_not(
+            torch.logical_or(causal, prefix.bool()))
 
         attn_bias = attn_bias.masked_fill(cannot_attend, -float('inf'))
 
@@ -249,8 +250,9 @@ class MosaicGPT(PreTrainedModel):
         attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
 
         if self.prefix_lm:
-            attn_bias = self._apply_prefix_mask(attn_bias,
-                                                prefix_mask)  # type: ignore
+            assert isinstance(attn_bias, torch.Tensor)  # pyright
+            assert isinstance(prefix_mask, torch.Tensor)  # pyright
+            attn_bias = self._apply_prefix_mask(attn_bias, prefix_mask)
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
