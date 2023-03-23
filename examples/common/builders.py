@@ -11,15 +11,15 @@ from composer.core import Evaluator
 from composer.datasets.in_context_learning_evaluation import \
     get_icl_task_dataloader
 from composer.loggers import WandBLogger
-from composer.optim import DecoupledAdamW, ClipLion, AdaLRLion
+from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.fdiff import FDiffMetrics
-from examples.common.optim.lion import DecoupledLionW
+from examples.common.optim import DecoupledLionW, ClipLion, AdaLRLion
 from examples.common.text_data import build_text_dataloader
-from examples.common.resumption_callbacks import RESUMPTION_STRATEGIES
+from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 
 
 def build_callback(name, kwargs):
@@ -40,9 +40,10 @@ def build_callback(name, kwargs):
             'log_optimizer_metrics', True),)
     elif name == 'health_checker':
         return HealthChecker(**kwargs)
-    elif name in RESUMPTION_STRATEGIES:
-        resumption_args = kwargs.get('config', {})
-        return RESUMPTION_STRATEGIES[name](**resumption_args)
+    elif name == 'global_lr_scaling':
+        return GlobalLRScaling(**kwargs)
+    elif name == 'layer_freezing':
+        return LayerFreezing(**kwargs)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -83,19 +84,19 @@ def build_optimizer(cfg, model):
                               weight_decay=cfg.weight_decay)
     elif cfg.name == 'clip_lion':
         return ClipLion(model.parameters(),
-                              lr=cfg.lr,
-                              betas=cfg.betas,
-                              weight_decay=cfg.weight_decay,
-                              outlier_threshold=cfg.outlier_threshold)
+                        lr=cfg.lr,
+                        betas=cfg.betas,
+                        weight_decay=cfg.weight_decay,
+                        outlier_threshold=cfg.outlier_threshold)
     elif cfg.name == 'adalr_lion':
         return AdaLRLion(model.parameters(),
-                              lr=cfg.lr,
-                              betas=cfg.betas,
-                              weight_decay=cfg.weight_decay,
-                              outlier_threshold=cfg.outlier_threshold,
-                              timeout=cfg.timeout,
-                              lr_penalty=cfg.lr_penalty,
-                              min_scale=cfg.min_scale)
+                         lr=cfg.lr,
+                         betas=cfg.betas,
+                         weight_decay=cfg.weight_decay,
+                         outlier_threshold=cfg.outlier_threshold,
+                         timeout=cfg.timeout,
+                         lr_penalty=cfg.lr_penalty,
+                         min_scale=cfg.min_scale)
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 

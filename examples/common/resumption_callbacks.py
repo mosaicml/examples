@@ -2,14 +2,9 @@ from composer.core import Callback, State
 from composer.loggers import Logger
 from typing import List
 
-__all__ = ['ResumptionCallback', 'GlobalLRScaling', 'LayerFreezing',]
+__all__ = ['GlobalLRScaling', 'LayerFreezing',]
 
-
-class ResumptionCallback(Callback):
-    def __init__(self,):
-          pass
-       
-class GlobalLRScaling(ResumptionCallback):
+class GlobalLRScaling(Callback):
     def __init__(self, lr_scale: float, wd_pct: float = 0.0):
         self.lr_scale = lr_scale
         self.wd_pct = wd_pct
@@ -27,7 +22,7 @@ class GlobalLRScaling(ResumptionCallback):
         for scheduler in state.schedulers:
             scheduler.base_lrs = [self.lr_scale * lr for lr in scheduler.base_lrs]
 
-class LayerFreezing(ResumptionCallback):
+class LayerFreezing(Callback):
     def __init__(self, layer_names: List[str]):
         self.layer_names = layer_names
        
