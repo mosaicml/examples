@@ -299,15 +299,17 @@ class MultiheadAttention(nn.Module):
         elif self.attn_impl == 'triton':
             self.attn_fn = triton_flash_attn_fn
             warnings.warn(
-                'While `attn_impl: triton` can be faster than `attn_impl: flash` '
-                'it uses more memory. When training larger models this can trigger '
-                'alloc retries which hurts performance. If encountered, we recommend '
-                'using `attn_impl: flash`.')
+                'While `attn_impl: triton` can be faster than `attn_impl: flash` ' +\
+                'it uses more memory. When training larger models this can trigger '  +\
+                'alloc retries which hurts performance. If encountered, we recommend ' +\
+                'using `attn_impl: flash` if your model does not use `alibi` or `prefix_lm`.')
         elif self.attn_impl == 'torch':
             self.attn_fn = scaled_multihead_dot_product_attention
-            warnings.warn(
-                'Using `attn_impl: torch`; recommened using `attn_impl: flash`.'
-            )
+            if torch.cuda.is_available():
+                warnings.warn(
+                    'Using `attn_impl: torch`; we recommend using `attn_impl: flash` ' +\
+                    'if your model does not use `alibi` or `prefix_lm`.'
+                )
         else:
             raise ValueError(f'{attn_impl=} is an invalid setting.')
 
