@@ -130,7 +130,7 @@ class OptimizedGPTBlock(nn.Module):
             d_model=d_model,
             n_heads=n_heads,
             device=device,
-        )        
+        )
         self.ln_1 = DropoutAddLayerNorm(d_model,
                                         prenorm=True,
                                         p=resid_pdrop,
@@ -140,7 +140,7 @@ class OptimizedGPTBlock(nn.Module):
             d_model=d_model,
             mlp_ratio=mlp_ratio,
             device=device,
-        )        
+        )
         self.ln_2 = DropoutAddLayerNorm(d_model,
                                         prenorm=True,
                                         p=resid_pdrop,

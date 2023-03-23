@@ -61,7 +61,8 @@ class MosaicGPT(PreTrainedModel):
             })
         self.transformer.update({'emb_drop': nn.Dropout(config.emb_pdrop)})
         self.transformer.update({
-            'ln_initial': layernorm_class(config.d_model, device=config.init_device)
+            'ln_initial':
+                layernorm_class(config.d_model, device=config.init_device)
         })
 
         self.config_block = config.get('gpt_block', 'standard')
@@ -78,11 +79,10 @@ class MosaicGPT(PreTrainedModel):
             'blocks':
                 nn.ModuleList([
                     self.block_cls(device=config.init_device,
-                                        **config.to_dict())
+                                   **config.to_dict())
                     for _ in range(config.n_layers)
                 ])
         })
-
 
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(config.d_model)
@@ -243,7 +243,6 @@ class MosaicGPT(PreTrainedModel):
                                          is_causal=self.is_causal)
             if past_key_values is not None:
                 past_key_values[b_idx] = past_key_value
-
 
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
