@@ -744,8 +744,8 @@ def test_optimized_gpt_block(batch_size=2):
     std_input_a = torch.rand((batch_size, cfg.max_seq_len, input_size),
                              device=device,
                              dtype=torch.float32)
-    opt_input_x = deepcopy(std_input_x)
-    opt_input_a = deepcopy(std_input_a)
+    opt_input_x = copy.deepcopy(std_input_x)
+    opt_input_a = copy.deepcopy(std_input_a)
     opt_input_x.requires_grad = True
     opt_input_a.requires_grad = True
 

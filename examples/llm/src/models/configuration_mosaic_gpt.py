@@ -87,7 +87,7 @@ class MosaicGPTConfig(PretrainedConfig):
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
             gpt_block (Optional[str]): The type of GPT Block to use. Either 'standard' or 'optimized'. Defaults to 'standard'.
             loss_fn (Optional[str]): The type of loss function to use. Either 'fused_crossentropy' or 'torch_crossentropy' (torch.nn.CrossEntropy).
-            Defaults to 'fused_crossentropy'.
+            Defaults to 'fused_crossentropy', which requires CUDA.
             use_cache (bool): Whether or not the model should return the last key/values attentions
         """
         self.d_model = d_model

@@ -154,6 +154,7 @@ def generic_param_init_fn_(
             warnings.warn(
                 f'LayerNorm gamma weights are set to 1. If the layer has a bias it is initialized to 0.'
             )
+        assert module.weight is not None
         torch.nn.init.ones_(module.weight)
         if module.bias is not None:
             torch.nn.init.zeros_(module.bias)

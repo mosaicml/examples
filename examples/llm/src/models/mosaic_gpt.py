@@ -240,7 +240,7 @@ class MosaicGPT(PreTrainedModel):
                                          x,
                                          past_key_value=past_key_value,
                                          attn_bias=attn_bias,
-                                         key_padding_mask=key_padding_mask,
+                                         key_padding_mask=attention_mask,
                                          is_causal=self.is_causal)
             if past_key_values is not None:
                 past_key_values[b_idx] = past_key_value
@@ -323,7 +323,7 @@ class ComposerMosaicGPT(ComposerModel):
                 Perplexity(),
         }
 
-        if config.loss_fn == 'fused_crossentropy':
+        if hf_config.loss_fn == 'fused_crossentropy':
             try:
                 from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
                 print('Using Fused Cross Entropy Loss.')
