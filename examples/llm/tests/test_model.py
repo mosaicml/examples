@@ -323,22 +323,22 @@ def test_determinism(attention_type: str, precision):
 
 @pytest.mark.gpu
 def test_loss_fn():
-    if not torch.cuda.is_available():
-        pytest.skip(
-            'This test requires CUDA to be available in order to run with fused_crossentropy.'
-        )
+    from flash_attn.losses.cross_entropy import \
+        CrossEntropyLoss as FusedCrossEntropyLoss
+
     reproducibility.seed_all(1111)
 
     conf_path = 'yamls/mosaic_gpt/testing.yaml'
     with open(conf_path) as f:
         test_cfg = om.load(f)
 
-    test_cfg.model.attn_impl = attention_type
     test_cfg.model.init_device = 'cuda:0'
     test_cfg.device = 'cuda:0'
 
     model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
+    print(model_1.named_parameters())
     model_2 = copy.deepcopy(model_1)
+    assert isinstance(model_1.loss_fn, torch.nn.CrossEntropyLoss)
     model_2.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
                                             ignore_index=-100,
                                             process_group=None)
@@ -354,21 +354,26 @@ def test_loss_fn():
                                  eps=test_cfg.optimizer.eps,
                                  weight_decay=test_cfg.optimizer.weight_decay)
 
-    for i in range(5):
-        with torch.cuda.amp.autocast(True, precision):
-            batch = gen_random_batch(2, test_cfg)
-            output_1 = model_1(batch)
-            output_2 = model_2(batch)
-            assert output_1.allclose(output_2, rtol=0.0,
-                                     atol=0.0), f'differed at step {i}'
+    for i in range(100):
+        batch = gen_random_batch(2, test_cfg)
+        output_1 = model_1(batch)
+        output_2 = model_2(batch)
+        assert output_1.allclose(output_2, rtol=1e-4,
+                                 atol=1e-4), f'differed at step {i}'
 
-            loss_1 = model_1.loss(output_1, batch)
-            loss_2 = model_2.loss(output_2, batch)
-            assert loss_1 == loss_2
-            loss_1.backward()
-            loss_2.backward()
-            optimizer_1.step()
-            optimizer_2.step()
+        loss_1 = model_1.loss(output_1, batch)
+        loss_2 = model_2.loss(output_2, batch)
+        assert loss_1.allclose(loss_2, rtol=1e-3,
+                               atol=1e-3), f'differed at step {i}'
+        loss_1.backward()
+        loss_2.backward()
+        optimizer_1.step()
+        optimizer_2.step()
+
+        for p1, p2 in zip(model_1.parameters(), model_2.parameters()):
+            assert p1.data.shape == p2.data.shape
+            assert p1.data.allclose(p2.data, rtol=1e-5,
+                                    atol=1e-4), f'differed at step {i}'
 
 
 @pytest.mark.parametrize('prefixlm', [False, True])
