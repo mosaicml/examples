@@ -321,6 +321,56 @@ def test_determinism(attention_type: str, precision):
             optimizer_2.step()
 
 
+@pytest.mark.gpu
+def test_loss_fn():
+    if not torch.cuda.is_available():
+        pytest.skip(
+            'This test requires CUDA to be available in order to run with fused_crossentropy.'
+        )
+    reproducibility.seed_all(1111)
+
+    conf_path = 'yamls/mosaic_gpt/testing.yaml'
+    with open(conf_path) as f:
+        test_cfg = om.load(f)
+
+    test_cfg.model.attn_impl = attention_type
+    test_cfg.model.init_device = 'cuda:0'
+    test_cfg.device = 'cuda:0'
+
+    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
+    model_2 = copy.deepcopy(model_1)
+    model_2.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
+                                            ignore_index=-100,
+                                            process_group=None)
+
+    optimizer_1 = DecoupledAdamW(model_1.parameters(),
+                                 lr=test_cfg.optimizer.lr,
+                                 betas=test_cfg.optimizer.betas,
+                                 eps=test_cfg.optimizer.eps,
+                                 weight_decay=test_cfg.optimizer.weight_decay)
+    optimizer_2 = DecoupledAdamW(model_2.parameters(),
+                                 lr=test_cfg.optimizer.lr,
+                                 betas=test_cfg.optimizer.betas,
+                                 eps=test_cfg.optimizer.eps,
+                                 weight_decay=test_cfg.optimizer.weight_decay)
+
+    for i in range(5):
+        with torch.cuda.amp.autocast(True, precision):
+            batch = gen_random_batch(2, test_cfg)
+            output_1 = model_1(batch)
+            output_2 = model_2(batch)
+            assert output_1.allclose(output_2, rtol=0.0,
+                                     atol=0.0), f'differed at step {i}'
+
+            loss_1 = model_1.loss(output_1, batch)
+            loss_2 = model_2.loss(output_2, batch)
+            assert loss_1 == loss_2
+            loss_1.backward()
+            loss_2.backward()
+            optimizer_1.step()
+            optimizer_2.step()
+
+
 @pytest.mark.parametrize('prefixlm', [False, True])
 def test_opt_wrapping(prefixlm):
     conf = {

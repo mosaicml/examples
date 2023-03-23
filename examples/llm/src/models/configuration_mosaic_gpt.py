@@ -18,7 +18,7 @@ class MosaicGPTConfig(PretrainedConfig):
         n_layers: int = 24,
         mlp_ratio: int = 4,
         max_seq_len: int = 2048,
-        vocab_size: int = 50257,
+        vocab_size: int = 50368,
         init_std: float = 0.02,
         attn_pdrop: float = 0.0,
         resid_pdrop: float = 0.0,
@@ -43,6 +43,7 @@ class MosaicGPTConfig(PretrainedConfig):
         init_nonlinearity: str = 'leaky_relu',
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = False,
+        loss_fn: Optional[str] = 'fused_crossentropy',
         use_cache: bool = True,
         **kwargs,
     ):
@@ -83,6 +84,7 @@ class MosaicGPTConfig(PretrainedConfig):
             init_nonlinearity (str): The nonlinearity to use for parameter initialization with kaiming initialization schemes.
             embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
+            loss_fn (Optional[str]): The type of loss function to use. Either 'fused_crossentropy' or 'torch_crossentropy' (torch.nn.CrossEntropy).
             use_cache (bool): Whether or not the model should return the last key/values attentions
         """
         self.d_model = d_model
@@ -115,6 +117,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.init_nonlinearity = init_nonlinearity
         self.embedding_fraction = embedding_fraction
         self.low_precision_layernorm = low_precision_layernorm
+        self.loss_fn = loss_fn
         self.use_cache = use_cache
         if 'name' in kwargs:
             del kwargs['name']
@@ -143,4 +146,8 @@ class MosaicGPTConfig(PretrainedConfig):
                       str) and self.logit_scale != 'inv_sqrt_d_model':
             raise ValueError(
                 f"{self.logit_scale=} is not recognized as an option; use numeric value or 'inv_sqrt_d_model'."
+            )
+        if self.loss_fn not in ['fused_crossentropy', 'torch_crossentropy']:
+            raise ValueError(
+                f'Unknown loss_fn={self.loss_fn}. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
             )
