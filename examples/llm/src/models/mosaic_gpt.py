@@ -321,6 +321,11 @@ class MosaicGPT(PreTrainedModel):
         if self.prefix_lm:
             # Leverage a convenience of sequential generation!
             prefix_mask = torch.ones_like(attention_mask)
+            # This requires that we're using the cache
+            if kwargs.get('use_cache') == False:
+                raise NotImplementedError(
+                    'MosaicGPT with prefix_lm=True does not support use_cache=False.'
+                )
         else:
             prefix_mask = None
 

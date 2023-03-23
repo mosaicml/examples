@@ -140,6 +140,9 @@ class MosaicGPTConfig(PretrainedConfig):
         if self.prefix_lm and self.attn_impl not in ['torch', 'triton']:
             raise NotImplementedError(
                 'prefix_lm only implemented with torch and triton attention.')
+        if self.prefix_lm and not self.use_cache:
+            raise NotImplementedError(
+                'Using prefix_lm with use_cache=False is not supported.')
         if self.alibi and self.attn_impl not in ['torch', 'triton']:
             raise NotImplementedError(
                 'alibi only implemented with torch and triton attention.')
