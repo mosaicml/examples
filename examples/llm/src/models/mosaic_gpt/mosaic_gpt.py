@@ -25,7 +25,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
+from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import MosaicGPTConfig
 from examples.llm.src.models.utils.param_init_fns import MODEL_INIT_REGISTRY
 
 
