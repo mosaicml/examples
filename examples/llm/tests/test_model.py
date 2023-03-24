@@ -19,8 +19,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
                           ComposerHFCausalLM, ComposerHFPrefixLM)
-from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
-from examples.llm.src.models.mosaic_gpt import MosaicGPT
+from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 
 
 def get_config(conf_path='yamls/mosaic_gpt/testing.yaml') -> DictConfig:
@@ -135,7 +134,7 @@ def test_attention_mechanism(batch_size=2):
 
     model.eval()
     # run a partial forward where we explicitly inspect the attention_mask from the causal_attn block
-    input_ids, key_padding_mask = batch['input_ids'], batch[
+    input_ids, attention_mask = batch['input_ids'], batch[
         'attention_mask'].bool()
 
     _, S = input_ids.size()
@@ -158,7 +157,7 @@ def test_attention_mechanism(batch_size=2):
         torch.cat(batch_size * [expected_zerod_weights]))
     torch_key_padding = torch.cat(  # type: ignore
         test_cfg.max_seq_len *
-        [(~key_padding_mask).reshape(batch_size, 1, test_cfg.max_seq_len)],
+        [(~attention_mask).reshape(batch_size, 1, test_cfg.max_seq_len)],
         axis=1)
     expected_zerod_weights |= torch_key_padding
 
@@ -169,7 +168,7 @@ def test_attention_mechanism(batch_size=2):
         b, attention_weights, _ = block.attn(a,
                                              past_key_value=None,
                                              attn_bias=attn_bias,
-                                             key_padding_mask=key_padding_mask,
+                                             attention_mask=attention_mask,
                                              is_causal=model.model.is_causal,
                                              needs_weights=True)
 
