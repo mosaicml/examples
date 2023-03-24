@@ -294,7 +294,7 @@ class ComposerMosaicGPT(HuggingFaceModel):
         resolved_om_model_config = om.to_container(om_model_config,
                                                    resolve=True)
         hf_config = MosaicGPTConfig.from_dict(resolved_om_model_config)
-        model = MosaicGPT(hf_config)\
+        model = MosaicGPT(hf_config)
 
         resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                        resolve=True)
