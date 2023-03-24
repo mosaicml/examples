@@ -314,7 +314,12 @@ class ComposerMosaicGPT(ComposerModel):
             try:
                 from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
                 print('Using Fused Cross Entropy Loss.')
+<<<<<<< HEAD
                 self.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
+=======
+                self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
+                                                     ignore_index=-100)
+>>>>>>> df67cf0 (Fix issues)
             except:
                 raise ValueError(
                     'Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and `pip install .[llm]`, or (2) set your config model.loss_fn=torch_crossentropy.'
@@ -323,7 +328,11 @@ class ComposerMosaicGPT(ComposerModel):
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
         else:
             raise ValueError(
+<<<<<<< HEAD
                 f'Specified loss_fn={self.loss_fn} not recognized. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+=======
+                f'Specified loss_fn={self.loss_fn}. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+>>>>>>> df67cf0 (Fix issues)
             )
 
     def get_targets(self, batch):

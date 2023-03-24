@@ -336,6 +336,7 @@ def test_loss_fn():
 
     model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
     model_2 = copy.deepcopy(model_1)
+    assert isinstance(model_1.loss_fn, torch.nn.CrossEntropyLoss)
     model_2.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
 
     optimizer_1 = DecoupledAdamW(model_1.parameters(),
