@@ -308,7 +308,9 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity':
                 Perplexity(),
         }
-        if self.hf_config.loss_fn == 'fused_crossentropy':
+        print(resolved_om_config)
+        self.loss_fn = resolved_om_config.get('loss_fn', 'fused_crossentropy')
+        if self.loss_fn == 'fused_crossentropy':
             try:
                 from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
                 print('Using Fused Cross Entropy Loss.')
@@ -319,8 +321,12 @@ class ComposerMosaicGPT(ComposerModel):
                 raise ValueError(
                     'Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and `pip install .[llm]`, or (2) set your config model.loss_fn=torch_crossentropy.'
                 )
-        else:
+        elif self.loss_fn == 'torch_crossentropy':
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        else:
+            raise ValueError(
+                f'Unknown loss_fn={self.loss_fn}. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+            )   
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
