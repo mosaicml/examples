@@ -294,12 +294,12 @@ class ComposerMosaicGPT(HuggingFaceModel):
         resolved_om_model_config = om.to_container(om_model_config,
                                                    resolve=True)
         hf_config = MosaicGPTConfig.from_dict(resolved_om_model_config)
-        model = MosaicGPT(self.hf_config)\
+        model = MosaicGPT(hf_config)\
 
         resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                        resolve=True)
-        tokenizer_kwargs = resolved_om_tokenizer_config.kwargs
-        tokenizer_name = resolved_om_tokenizer_config.name
+        tokenizer_kwargs = resolved_om_tokenizer_config.get('kwargs', {})
+        tokenizer_name = resolved_om_tokenizer_config['name']
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
                                                   **tokenizer_kwargs)
 

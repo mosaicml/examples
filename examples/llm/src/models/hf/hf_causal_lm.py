@@ -3,6 +3,8 @@
 
 """Implements a Hugging Causal LM wrapped inside a :class:`.ComposerModel`."""
 
+from typing import Optional
+
 from composer.metrics.nlp import (InContextLearningLMAccuracy,
                                   InContextLearningMetric,
                                   InContextLearningMultipleChoiceAccuracy,
@@ -39,16 +41,17 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
                 to validation metrics. Default: ``False``.
     """
 
-    def __init__(self, om_model_config: DictConfig,
-                 om_tokenizer_config: DictConfig):
+    def __init__(self,
+                 om_model_config: DictConfig,
+                 om_tokenizer_config: Optional[DictConfig] = None):
         config = AutoConfig.from_pretrained(
             om_model_config.pretrained_model_name_or_path,
             **om_model_config.get('config_overrides', {}))
 
         resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                        resolve=True)
-        tokenizer_kwargs = resolved_om_tokenizer_config.kwargs
-        tokenizer_name = resolved_om_tokenizer_config.name
+        tokenizer_kwargs = resolved_om_tokenizer_config.get('kwargs', {})
+        tokenizer_name = resolved_om_tokenizer_config['name']
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
                                                   **tokenizer_kwargs)
 
@@ -97,13 +100,3 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
         #     composer_model.val_metrics[RougeWithDetokenizer.__name__] = rouge_metric
 
         return composer_model
-
-    def update_metric(self, batch, outputs, metric) -> None:
-        if isinstance(metric, InContextLearningMetric):
-            if batch.get('mode', None) == 'icl_task':
-                # only apply ICL metrics to specially constructed
-                # icl_task batches
-                metric.update(batch, outputs, self.labels)  # type: ignore
-        else:
-            outputs = outputs.view(-1, outputs.size(-1))
-            metric.update(outputs, self.labels.view(-1))  # type: ignore

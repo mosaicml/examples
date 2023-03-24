@@ -75,15 +75,15 @@ class ComposerHFPrefixLM(HuggingFaceModelWithZLoss):
         if om_model_config.get('adapt_vocab_for_denoising', False):
             resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                            resolve=True)
-            tokenizer_kwargs = resolved_om_tokenizer_config.kwargs
-            tokenizer_name = resolved_om_tokenizer_config.name
+            tokenizer_kwargs = resolved_om_tokenizer_config.get('kwargs', {})
+            tokenizer_name = resolved_om_tokenizer_config['name']
             tokenizer = AutoTokenizerForMOD.from_pretrained(
                 tokenizer_name, **tokenizer_kwargs)
         else:
             resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                            resolve=True)
-            tokenizer_kwargs = resolved_om_tokenizer_config.kwargs
-            tokenizer_name = resolved_om_tokenizer_config.name
+            tokenizer_kwargs = resolved_om_tokenizer_config.get('kwargs', {})
+            tokenizer_name = resolved_om_tokenizer_config['name']
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
                                                       **tokenizer_kwargs)
         vocab_size = len(tokenizer)

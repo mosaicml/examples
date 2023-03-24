@@ -24,7 +24,8 @@ if __name__ == '__main__':
 
     reproducibility.seed_all(cfg.get('seed', 1234))
 
-    composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
+    composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model,
+                                                             cfg.tokenizer)
     evaluators, logger_keys = build_icl_evaluators(cfg,
                                                    composer_model.tokenizer)
 
