@@ -112,6 +112,7 @@ def test_compare_hf_v_mosaic_gpt(attn_impl, dropout, strict, alibi, mask_val,
     # modify cfg for HF GPT2 compatibility
     model_cfg.max_seq_len = hf_model.model.config.n_ctx
     model_cfg.init_device = device
+    model_cfg.vocab_size = hf_model.model.config.vocab_size
     # set dropout prob
     model_cfg.resid_pdrop = hf_model.model.config.resid_pdrop
     model_cfg.emb_pdrop = hf_model.model.config.embd_pdrop

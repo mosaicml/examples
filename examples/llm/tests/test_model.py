@@ -348,7 +348,8 @@ def test_loss_fn():
     test_cfg.model.init_device = 'cuda:0'
     test_cfg.device = 'cuda:0'
 
-    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
+    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
+                                                           test_cfg.tokenizer)
     model_2 = copy.deepcopy(model_1)
     assert isinstance(model_1.loss_fn, torch.nn.CrossEntropyLoss)
     model_2.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
@@ -368,8 +369,8 @@ def test_loss_fn():
         batch = gen_random_batch(2, test_cfg)
         output_1 = model_1(batch)
         output_2 = model_2(batch)
-        assert output_1.allclose(output_2, rtol=1e-4,
-                                 atol=1e-4), f'differed at step {i}'
+        assert output_1.logits.allclose(output_2.logits, rtol=1e-4,
+                                        atol=1e-4), f'differed at step {i}'
 
         loss_1 = model_1.loss(output_1, batch)
         loss_2 = model_2.loss(output_2, batch)
