@@ -307,8 +307,9 @@ class MultiheadAttention(nn.Module):
             self.attn_fn = scaled_multihead_dot_product_attention
             if torch.cuda.is_available():
                 warnings.warn(
-                    'Using `attn_impl: torch`; we recommend using `attn_impl: flash` ' +\
-                    'if your model does not use `alibi` or `prefix_lm`.'
+                    'Using `attn_impl: torch`. If your model does not use `alibi` or ' +\
+                    '`prefix_lm` we recommend using `attn_impl: flash` otherwise ' +\
+                    'we recommend using `attn_impl: triton`.'
                 )
         else:
             raise ValueError(f'{attn_impl=} is an invalid setting.')
@@ -373,19 +374,19 @@ def attn_bias_shape(attn_impl, n_heads, seq_len, alibi, prefix_lm, causal):
         return None
     elif attn_impl == 'triton':
         if alibi:
-            if not causal:
+            if prefix_lm or not causal:
                 return (1, n_heads, seq_len, seq_len)
             return (1, n_heads, 1, seq_len)
         elif prefix_lm:
-            return (1, n_heads, seq_len, seq_len)
+            return (1, 1, seq_len, seq_len)
         return None
     elif attn_impl == 'torch':
         if alibi:
-            if not causal:
+            if prefix_lm or not causal:
                 return (1, n_heads, seq_len, seq_len)
             return (1, n_heads, 1, seq_len)
         elif prefix_lm:
-            return (1, n_heads, seq_len, seq_len)
+            return (1, 1, seq_len, seq_len)
         return None
     else:
         raise ValueError(f'{attn_impl=} is an invalid setting.')

@@ -152,7 +152,7 @@ class MosaicGPT(PreTrainedModel):
         # allowable attention (i.e. full = not accounting for padding yet)
         causal = torch.tril(
             torch.ones((seq_len, seq_len),
-                       dtype=torch.uint8,
+                       dtype=torch.bool,
                        device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
         prefix = prefix_mask.view(-1, 1, 1, seq_len)
         cannot_attend = torch.logical_not(
