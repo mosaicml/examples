@@ -6,7 +6,6 @@
 from typing import Optional
 
 from composer.metrics.nlp import (InContextLearningLMAccuracy,
-                                  InContextLearningMetric,
                                   InContextLearningMultipleChoiceAccuracy,
                                   LanguageCrossEntropy, LanguagePerplexity)
 from omegaconf import DictConfig
