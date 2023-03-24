@@ -14,7 +14,6 @@ from omegaconf import OmegaConf as om
 
 from examples.common.builders import build_icl_evaluators, build_logger
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
-from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 if __name__ == '__main__':
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
@@ -26,8 +25,8 @@ if __name__ == '__main__':
     reproducibility.seed_all(cfg.get('seed', 1234))
 
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
-    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
-    evaluators, logger_keys = build_icl_evaluators(cfg, tokenizer)
+    evaluators, logger_keys = build_icl_evaluators(cfg,
+                                                   composer_model.tokenizer)
     for evaluator in evaluators:
         composer_model.add_eval_metrics(evaluator)
 
