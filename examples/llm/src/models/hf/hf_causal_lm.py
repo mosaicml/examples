@@ -50,8 +50,8 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
 
         resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
                                                        resolve=True)
-        tokenizer_kwargs = resolved_om_tokenizer_config.get('kwargs',
-                                                            {})  # type: ignore
+        tokenizer_kwargs = resolved_om_tokenizer_config.get(  # type: ignore
+            'kwargs', {})
         tokenizer_name = resolved_om_tokenizer_config['name']  # type: ignore
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
                                                   **tokenizer_kwargs)
