@@ -322,6 +322,11 @@ def test_determinism(attention_type: str, precision):
 
 @pytest.mark.gpu
 def test_loss_fn():
+    """Tests the Fused CrossEntropy vs torch.nn.CrossEntropy loss function.
+
+    We provide non-zero tolerances to account for small numerics differences
+    between the two loss implementations.
+    """
     from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
 
     reproducibility.seed_all(1111)
