@@ -334,7 +334,10 @@ def test_loss_fn():
     We provide non-zero tolerances to account for small numerics differences
     between the two loss implementations.
     """
-    from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
+    try:
+        from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
+    except:
+        pytest.skip('Fused cross entropy was not installed')
 
     reproducibility.seed_all(1111)
 
