@@ -441,9 +441,6 @@ class ComposerMosaicGPT(HuggingFaceModel):
                           attention_mask=attention_mask,
                           prefix_mask=prefix_mask)
 
-    def eval_forward(self, batch, outputs=None):
-        return outputs if outputs is not None else self.forward(batch)
-
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
         return F.cross_entropy(outputs.logits.view(-1, outputs.logits.size(-1)),
