@@ -550,20 +550,23 @@ def test_generate(attention_impl, device):
         batched_generation = mosaic_gpt.generate(
             input_ids=batched_input_ids,
             attention_mask=batched_attention_mask,
-            max_new_tokens=5)
+            max_new_tokens=5,
+            use_cache=False)
         assert batched_generation.shape == (2, 6 + 5)
 
         reproducibility.seed_all(1234)
         generation_with_left_padding = mosaic_gpt.generate(
             input_ids=left_padding_input_ids,
             attention_mask=left_padding_attention_mask,
-            max_new_tokens=5)
+            max_new_tokens=5,
+            use_cache=False)
         assert generation_with_left_padding.shape == (2, 6 + 5)
         reproducibility.seed_all(1234)
         generation_with_no_padding = mosaic_gpt.generate(
             input_ids=no_padding_input_ids,
             attention_mask=no_padding_attention_mask,
-            max_new_tokens=5)
+            max_new_tokens=5,
+            use_cache=False)
         assert generation_with_no_padding.shape == (2, 3 + 5)
 
         # check that left padding and no padding produce the same output
