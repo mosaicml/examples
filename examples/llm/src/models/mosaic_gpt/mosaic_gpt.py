@@ -94,7 +94,7 @@ class MosaicGPT(PreTrainedModel):
                 f'You are using {config.init_device=}, but you can also use config.init_device="meta" with Composer + FSDP for fast initialization.'
             )
             self.apply(self.param_init_fn)
-            
+
         self.is_causal = not self.prefix_lm
 
         # define attn mask
@@ -138,7 +138,6 @@ class MosaicGPT(PreTrainedModel):
                     alibi=self.alibi,
                     alibi_bias_max=self.alibi_bias_max)
             self._attn_bias_initialized = True
-
 
         # flash does not support prefix_lm and will incorporate any
         # attention_mask inside the attention module
@@ -420,7 +419,6 @@ class ComposerMosaicGPT(ComposerModel):
             raise ValueError(
                 f'Specified loss_fn={self.loss_fn} not recognized. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
             )
-
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
