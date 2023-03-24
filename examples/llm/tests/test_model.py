@@ -322,8 +322,7 @@ def test_determinism(attention_type: str, precision):
 
 @pytest.mark.gpu
 def test_loss_fn():
-    from flash_attn.losses.cross_entropy import \
-        CrossEntropyLoss as FusedCrossEntropyLoss
+    from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
 
     reproducibility.seed_all(1111)
 
@@ -355,7 +354,7 @@ def test_loss_fn():
         output_1 = model_1(batch)
         output_2 = model_2(batch)
         assert output_1.allclose(output_2, rtol=1e-4,
-                                    atol=1e-4), f'differed at step {i}'
+                                 atol=1e-4), f'differed at step {i}'
 
         loss_1 = model_1.loss(output_1, batch)
         loss_2 = model_2.loss(output_2, batch)
