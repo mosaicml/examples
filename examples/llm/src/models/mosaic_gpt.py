@@ -313,8 +313,7 @@ class ComposerMosaicGPT(ComposerModel):
             try:
                 from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
                 print('Using Fused Cross Entropy Loss.')
-                self.loss_fn = FusedCrossEntropyLoss(inplace_backward=False,
-                                                     ignore_index=-100)
+                self.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
             except:
                 raise ValueError(
                     'Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and `pip install .[llm]`, or (2) set your config model.loss_fn=torch_crossentropy.'
