@@ -54,12 +54,12 @@ def validate_config(cfg):
             )
 
 
-def build_composer_model(cfg):
+def build_composer_model(model_cfg, tokenizer_cfg):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
     try:
-        return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
+        return COMPOSER_MODEL_REGISTRY[model_cfg.name](model_cfg, tokenizer_cfg)
     except:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
