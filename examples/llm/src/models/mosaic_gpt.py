@@ -323,7 +323,7 @@ class ComposerMosaicGPT(ComposerModel):
             self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
         else:
             raise ValueError(
-                f'Specified loss_fn={self.loss_fn}. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+                f'Specified loss_fn={self.loss_fn} not recognized. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
             )
 
     def get_targets(self, batch):
