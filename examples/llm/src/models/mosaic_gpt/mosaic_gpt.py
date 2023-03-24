@@ -174,7 +174,13 @@ class MosaicGPT(PreTrainedModel):
 
     def _apply_prefix_mask(self, attn_bias: torch.Tensor,
                            prefix_mask: torch.Tensor):
-        assert attn_bias.shape[-1] == self.config.max_seq_len
+        s_k, s_q = attn_bias.shape[-2:]
+        if (s_k != self.config.max_seq_len) or (s_q != self.config.max_seq_len):
+            raise ValueError(
+                'attn_bias does not match the expected shape. ' +\
+                f'The last two dimensions should both be {self.config.max_length} ' +\
+                f'but are {s_k} and {s_q}.'
+            )
         seq_len = prefix_mask.shape[-1]
         if seq_len > self.config.max_seq_len:
             raise ValueError(
@@ -232,7 +238,7 @@ class MosaicGPT(PreTrainedModel):
 
         if self.prefix_lm and prefix_mask is None:
             raise ValueError(
-                'prefix_mask is a required argument when is configured with prefix_lm=True.'
+                'prefix_mask is a required argument when MosaicGPT is configured with prefix_lm=True.'
             )
 
         S = input_ids.size(1)
