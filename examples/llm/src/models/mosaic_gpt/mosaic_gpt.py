@@ -309,7 +309,8 @@ class ComposerMosaicGPT(ComposerModel):
             'Perplexity':
                 Perplexity(),
         }
-        if hf_config.loss_fn == 'fused_crossentropy':
+        self.loss_fn = resolved_om_config.get('loss_fn', 'fused_crossentropy')
+        if self.loss_fn == 'fused_crossentropy':
             try:
                 from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
                 print('Using Fused Cross Entropy Loss.')

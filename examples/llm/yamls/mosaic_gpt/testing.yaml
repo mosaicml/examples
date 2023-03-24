@@ -65,6 +65,7 @@ scheduler:
   t_warmup: 100ba
   alpha_f: 0.1
 
+loss_fn: torch_crossentropy
 optimizer:
   name: decoupled_adamw
   lr: 6.0e-4
