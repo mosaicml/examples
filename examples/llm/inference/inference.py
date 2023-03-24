@@ -101,7 +101,7 @@ def get_mosaicgpt_inference_model(checkpoint_yaml_path: str, tokenizer):
     # set init_device to cpu for checkpoint loading
     # ToDo: Directly load a checkpoint into 'meta' model
     cfg.model.init_device = 'cpu'
-    model = build_composer_model(cfg.model)
+    model = build_composer_model(cfg.model, cfg.tokenizer)
 
     ckpt_load_path = cfg.get('load_path', None)  # type: ignore
     if ckpt_load_path is None:
