@@ -423,6 +423,23 @@ class ComposerMosaicGPT(HuggingFaceModel):
 
         self.num_fwd_flops = self._compute_num_fwd_flops()
 
+        loss_fn_config = om_model_config.get('loss_fn', 'fused_crossentropy')
+        if loss_fn_config == 'fused_crossentropy':
+            try:
+                from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
+                warnings.warn('Using Fused Cross Entropy Loss.')
+                self.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
+            except:
+                raise ValueError(
+                    'Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and `pip install .[llm]`, or (2) set your config model.loss_fn=torch_crossentropy.'
+                )
+        elif loss_fn_config == 'torch_crossentropy':
+            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        else:
+            raise ValueError(
+                f'Specified loss_fn={self.loss_fn} not recognized. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+            )
+
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
         targets[:, -1] = -100
@@ -443,9 +460,8 @@ class ComposerMosaicGPT(HuggingFaceModel):
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
-        return F.cross_entropy(outputs.logits.view(-1, outputs.logits.size(-1)),
-                               targets.view(-1),
-                               ignore_index=-100)
+        return self.loss_fn(outputs.logits.view(-1, outputs.logits.size(-1)),
+                            targets.view(-1))
 
     def _compute_num_fwd_flops(self):
         n_params = sum(p.numel() for p in self.parameters())
