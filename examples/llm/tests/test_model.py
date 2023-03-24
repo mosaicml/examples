@@ -724,15 +724,14 @@ def test_generate_with_past_kv():
             past_key_values=[(torch.randn(1, 3, hf_config.d_model),
                               torch.randn(1, 3, hf_config.d_model))
                              for _ in range(hf_config.n_layers)])
-        generation_with_no_padding = mosaic_gpt.generate(
-            input_ids=no_padding_input_ids,
-            attention_mask=no_padding_attention_mask,
-            max_new_tokens=2)
+        _ = mosaic_gpt.generate(input_ids=no_padding_input_ids,
+                                attention_mask=no_padding_attention_mask,
+                                max_new_tokens=2)
 
         assert forward_mocked.call_count == 2
-        name, args, kwargs = forward_mocked.mock_calls[0]
+        _, _, kwargs = forward_mocked.mock_calls[0]
         assert kwargs['past_key_values'] is None
-        name, args, kwargs = forward_mocked.mock_calls[1]
+        _, _, kwargs = forward_mocked.mock_calls[1]
         assert kwargs['past_key_values'] is not None
         assert len(kwargs['past_key_values']) == hf_config.n_layers
         assert kwargs['past_key_values'][0][0].shape == (1, 3,
