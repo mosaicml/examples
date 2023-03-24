@@ -83,6 +83,7 @@ class MosaicGPTConfig(PretrainedConfig):
             init_nonlinearity (str): The nonlinearity to use for parameter initialization with kaiming initialization schemes.
             embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
+            loss_fn (Optional[str]): The type of loss function to use. Either 'fused_crossentropy' or 'torch_crossentropy' (torch.nn.CrossEntropy).
             use_cache (bool): Whether or not the model should return the last key/values attentions
         """
         self.d_model = d_model
