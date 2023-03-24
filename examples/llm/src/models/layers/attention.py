@@ -301,7 +301,7 @@ class MultiheadAttention(nn.Module):
                 x,
                 past_key_value=None,
                 attn_bias=None,
-                key_padding_mask=None,
+                attention_mask=None,
                 is_causal=True,
                 needs_weights=False):
         qkv = self.Wqkv(x)
@@ -310,6 +310,8 @@ class MultiheadAttention(nn.Module):
             qkv.clamp_(min=-self.clip_qkv, max=self.clip_qkv)
 
         query, key, value = qkv.chunk(3, dim=2)
+
+        key_padding_mask = attention_mask
 
         if self.attn_qk_ln:
             # Applying layernorm to qk
@@ -380,19 +382,6 @@ def attn_bias(attn_impl,
                            device=device,
                            dtype=dtype))
         return attn_bias
-    # elif attn_impl == 'torch':
-    #     if attn_bias is not None:
-    #         if alibi:
-    #             # in place add alibi to attn bias
-    #             device, dtype = attn_bias.device, attn_bias.dtype
-    #             attn_bias = attn_bias.add(
-    #                 alibi_bias(n_heads,
-    #                            seq_len,
-    #                            full=not causal,
-    #                            alibi_bias_max=alibi_bias_max,
-    #                            device=device,
-    #                            dtype=dtype))
-    #         return attn_bias
     else:
         raise ValueError(f'{attn_impl=} is an invalid setting.')
 

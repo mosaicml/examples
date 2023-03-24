@@ -25,9 +25,10 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
-from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
-from examples.llm.src.models.utils import add_bidirectional_mask_if_missing
+from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
+    MosaicGPTConfig
+from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
+                                           add_bidirectional_mask_if_missing)
 
 
 class MosaicGPT(PreTrainedModel):
@@ -118,9 +119,11 @@ class MosaicGPT(PreTrainedModel):
         if config.verbose and config.verbose > 2:
             print(self)
 
-    def _attn_bias(self, device, dtype,
-                   attention_mask: Optional[torch.ByteTensor]=None,
-                   prefix_mask: Optional[torch.ByteTensor]=None):
+    def _attn_bias(self,
+                   device,
+                   dtype,
+                   attention_mask: Optional[torch.ByteTensor] = None,
+                   prefix_mask: Optional[torch.ByteTensor] = None):
         if not self._attn_bias_initialized:
             if self.attn_bias_shape:
                 self.attn_bias = torch.zeros(self.attn_bias_shape,
@@ -140,8 +143,8 @@ class MosaicGPT(PreTrainedModel):
         # attention_mask inside the attention module
         if self.attn_impl == 'flash':
             return self.attn_bias, attention_mask
-        
-        # If using torch or triton, we incorporate the prefix_mask (if 
+
+        # If using torch or triton, we incorporate the prefix_mask (if
         # appropriate), then any attention_mask. This will output None
         # in place of attention_mask since it will not be futher needed
         # in the attention modules.
@@ -157,7 +160,8 @@ class MosaicGPT(PreTrainedModel):
                 attn_bias = torch.zeros((1, 1, 1, s_k),
                                         device=device,
                                         dtype=dtype)
-            if prefix_mask is not None and (attention_mask.shape != prefix_mask.shape):
+            if prefix_mask is not None and (attention_mask.shape !=
+                                            prefix_mask.shape):
                 raise ValueError(
                     f'attention_mask shape={attention_mask.shape} ' +\
                     f'and prefix_mask shape={prefix_mask.shape} are not equal.'
@@ -165,7 +169,7 @@ class MosaicGPT(PreTrainedModel):
             min_val = torch.finfo(attn_bias.dtype).min
             attn_bias = attn_bias.masked_fill(
                 ~attention_mask.view(-1, 1, 1, s_k), min_val)
-            
+
         return attn_bias, None
 
     def _apply_prefix_mask(self, attn_bias: torch.Tensor,
@@ -281,7 +285,10 @@ class MosaicGPT(PreTrainedModel):
             x = self.transformer.emb_drop(x_shrunk)
 
         attn_bias, attention_mask = self._attn_bias(
-            device=x.device, dtype=x.dtype, attention_mask=attention_mask, prefix_mask=prefix_mask)
+            device=x.device,
+            dtype=x.dtype,
+            attention_mask=attention_mask,
+            prefix_mask=prefix_mask)
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
@@ -294,7 +301,7 @@ class MosaicGPT(PreTrainedModel):
             x, past_key_value = block(x,
                                       past_key_value=past_key_value,
                                       attn_bias=attn_bias,
-                                      key_padding_mask=attention_mask,
+                                      attention_mask=attention_mask,
                                       is_causal=self.is_causal)
             if past_key_values is not None:
                 past_key_values[b_idx] = past_key_value
