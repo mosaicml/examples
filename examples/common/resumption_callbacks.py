@@ -5,6 +5,13 @@ from typing import List
 __all__ = ['GlobalLRScaling', 'LayerFreezing',]
 
 class GlobalLRScaling(Callback):
+    """This callback can be applied upon resuming a model checkpoint. Upon fit_start it will multiply the base LR by `lr_scale` and set the WD to be 
+    `wd_pct` * `lr`.
+
+    Args:
+        lr_scale (float): Multiplicative factor to scale LR by
+        wd_pct (float): Percentage of LR to set weight decay to.
+    """
     def __init__(self, lr_scale: float, wd_pct: float = 0.0):
         self.lr_scale = lr_scale
         self.wd_pct = wd_pct
@@ -23,8 +30,15 @@ class GlobalLRScaling(Callback):
             scheduler.base_lrs = [self.lr_scale * lr for lr in scheduler.base_lrs]
 
 class LayerFreezing(Callback):
+    """This callback can be applied upon resuming a model checkpoint. Upon fit_start it freeze the layers specified in `layer_names`. If using activation checkpointing, please
+    set the `activation_checkpointing_reentrant` flag in `fsdp_config` to false.
+
+
+    Args:
+        layer_names (float): Names of layers to freeze.
+    """
     def __init__(self, layer_names: List[str]):
-        self.layer_names = layer_names
+        self.layer_names = set(layer_names)
        
     def fit_start(self, state: State, logger: Logger):
         model_layers = set(name for name, _ in state.model.named_parameters())
@@ -32,14 +46,13 @@ class LayerFreezing(Callback):
             if layer not in model_layers:
                 raise Exception(f"Attempted to freeze layer not found in model: {layer}\nAvailable layers: {model_layers}")
 
-        count = 0
+        successful_freeze = False
         for name, p in state.model.named_parameters():
             if p.requires_grad and name in self.layer_names:
-                print(f"Froze layer: {name}")
                 p.requires_grad = False
-                print(f"Param: {p}")
-                count += 1
+                print(f"Froze layer: {name}\nParam: {p}")
+                successful_freeze = True
         
-        if count == 0:
-            raise Exception(f"Tried to run LayerFreezing but didn't freeze any layers {count}")
+        if not successful_freeze:
+            raise Exception(f"Tried to run LayerFreezing but didn't freeze any layers")
 

@@ -1,6 +1,5 @@
 from typing import Tuple, Optional, Callable
 from examples.common.optim.outlier_detection import OutlierDetector
-from examples.common.optim.lion import DecoupledLionW
 import torch
 from torch.optim.optimizer import Optimizer
 import logging
@@ -11,7 +10,22 @@ log = logging.getLogger(__name__)
 
 # functions
 
-class AdaLRLion(Optimizer):
+class DecoupledAdaLRLion(Optimizer):
+    """This class implements a variant of Lion which lowers the layerwise learning rate when the layer's moment becomes an outlier. A moment is an outlier if it is some multiple
+    `outlier_threshold` times larger than the simple windowed moving average (MVA) of moment norms taken from steps T-1000 to T-500. If an outlier is detected, the LR is lowered by `lr_penalty` for `timeout` steps.
+    If N outliers are detected within `timeout` steps, the LR is scaled down by min(`lr_penalty` ** N, `min_scale`).
+
+    Args:
+        params (Iterable[torch.Parameter]): Model parameters to optimize
+        lr (float): Learning rate for updates
+        betas (Tuple[float]): Momentum factors
+        weight_decay (float): Weight decay
+        outlier_threshold (float): Multiplicative factor determining what constitutes an "outlier" relative to the MVA of gradient norms.
+        timeout (int): Number of steps to lower the learning for after seeing an outlier.
+        lr_penalty (float): Multiplicative scale by which to lower the LR for each outlier.
+        min_scale (float): Minimum allowed scaling of the LR .
+
+    """
     metric_functions = {
         'l2_norm/moment':
             lambda param, optim_state, step_tensor: torch.linalg.vector_norm(optim_state['exp_avg']),
@@ -35,7 +49,7 @@ class AdaLRLion(Optimizer):
         lr: float = 1e-4,
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay: float = 0.0,
-        outlier_threshold = 10.0,
+        outlier_threshold: float = 10.0,
         timeout: int = 100,
         lr_penalty: float = .707,
         min_scale: float = 1e-4
@@ -77,7 +91,18 @@ class AdaLRLion(Optimizer):
         exp_avg.lerp_(grad, 1 - beta2)
 
     @staticmethod
-    def adjust_lr(lr, lr_penalty, num_times, min_scale):
+    def adjust_lr(lr: float, lr_penalty: float, num_times: int, min_scale: float):
+        """Multiplicatively scales down the LR by lr_penalty for each outlier that has occurred in the last `timeout` number of steps, capping the scaling to be no smaller than `min_scale`.
+
+        Args:
+            lr (float): Base learning rate
+            lr_penalty (float): Scaling factor to multiply by for each outlier
+            num_times (int): Number of outliers in the last `timeout` steps
+            min_scale (float): Minimum scaling to apply to our LR.
+
+        Returns:
+            float: Scaled LR
+        """
         return lr * max(min_scale, lr_penalty ** num_times)
 
     @torch.no_grad()
@@ -216,7 +241,18 @@ class AdaLRLion(Optimizer):
         return optimizer_metrics
 
 
-class ClipLion(Optimizer):
+class DecoupledClipLion(Optimizer):
+    """This class implements a variant of Lion which clips layerwise gradients that are "outliers". A gradient is an outlier if it is some multiple
+    k times larger than the simple windowed moving average (MVA) of gradient norms taken from steps T-1000 to T-500. If an outlier is detected, it is clipped
+    to no longer have norm k * MVA.
+
+    Args:
+        params (Iterable[torch.Parameter]): Model parameters to optimize
+        lr (float): Learning rate for updates
+        betas (Tuple[float]): Momentum factors
+        weight_decay (float): Weight decay
+        outlier_threshold (float): Multiplicative factor determining what constitutes an "outlier" relative to the MVA of gradient norms.
+    """
     metric_functions = {
         'l2_norm/moment':
             lambda param, optim_state, step_tensor: torch.linalg.vector_norm(optim_state['exp_avg']),
@@ -242,8 +278,10 @@ class ClipLion(Optimizer):
         weight_decay: float = 0.0,
         outlier_threshold = 5.0
     ):
-        assert lr > 0.
-        assert all([0. <= beta <= 1. for beta in betas])
+        if lr <= 0.:
+            raise Exception(f"Invalid LR: {lr}. LR must be > 0")
+        if not all([0. <= beta <= 1. for beta in betas]):
+            raise Exception(f"Invalid beta values: {betas} All betas must be between 0 and 1.")
         if weight_decay >= 1e-3:
             log.warning(
                 f'You are using a high value of `weight_decay={weight_decay}` for the `DecoupledLionW` optimizer. Are you sure you want to do this? '
@@ -310,7 +348,6 @@ class ClipLion(Optimizer):
                 grad_norm = math.sqrt(grad_norm)
 
                 if state['grad_tracker'].insert_observation(grad_norm):
-                    # skip completely
                     state['clipped_batches'] += 1.0
                     clip_norm = state['grad_tracker'].get_slow_mva() * self.outlier_threshold
                     grad = grad.div(grad_norm).mul_(clip_norm) 
