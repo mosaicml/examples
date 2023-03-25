@@ -19,6 +19,7 @@ from composer.metrics import (InContextLearningLMAccuracy,
                               InContextLearningMultipleChoiceAccuracy)
 from composer.metrics.nlp import LanguageCrossEntropy, LanguagePerplexity
 from composer.models import HuggingFaceModel
+from composer.utils import dist, get_device
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from transformers import AutoTokenizer, PreTrainedModel
@@ -29,7 +30,18 @@ import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
 from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
     MosaicGPTConfig
 from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
-                                           add_bidirectional_mask_if_missing)
+                                           add_bidirectional_mask_if_missing,
+                                           is_torch_2_or_higher)
+
+if is_torch_2_or_higher():
+    from torch.distributed._tensor import DeviceMesh  # type: ignore
+    from torch.distributed.tensor.parallel import \
+        parallelize_module  # type: ignore
+    from torch.distributed.tensor.parallel.fsdp import \
+        enable_2d_with_fsdp  # type: ignore
+
+    from examples.llm.src.models.utils import \
+        PairwiseSequenceParallel  # type: ignore
 
 
 class MosaicGPT(PreTrainedModel):
@@ -72,6 +84,33 @@ class MosaicGPT(PreTrainedModel):
                     for _ in range(config.n_layers)
                 ])
         })
+        if config.tensor_parallel_mlp and is_torch_2_or_higher():
+            if enable_2d_with_fsdp():
+                device_type = 'cuda' if get_device(
+                    None).name == 'gpu' else 'cpu'
+                world_size = dist.get_world_size()
+                node_count = world_size // dist.get_local_world_size()
+                twod_mesh = DeviceMesh(device_type=device_type,
+                                       mesh=torch.arange(0, world_size).view(
+                                           node_count, -1))
+                for idx, block in enumerate(
+                        self.transformer['blocks']):  # type: ignore
+                    block = parallelize_module(
+                        module=block,
+                        device_mesh=twod_mesh,
+                        parallelize_plan={'mlp': PairwiseSequenceParallel()},
+                        tp_mesh_dim=1)
+                    # Call to parallelize_module moves params to gpu if they are cpu params.
+                    # Move them back to cpu so that FSDP wrapping sees all params on cpu.
+                    # Othewise FSDP wrapping fails as it sees some params on cpu and others on gpu.
+                    if config.init_device == 'cpu':
+                        block = block.to('cpu')
+                    self.transformer['blocks'].insert(idx,
+                                                      block)  # type: ignore
+            else:
+                raise ValueError('Enabling 2D parallelism with FSDP failed (call to enable_2d_with_fsdp). ' + \
+                    'Please make sure your torch installation supports 2D parallelism with FSDP')
+
         self.transformer.update({
             'ln_f': layernorm_class(config.d_model, device=config.init_device)
         })

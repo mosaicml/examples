@@ -7,6 +7,8 @@ from typing import Optional, Tuple, Union
 
 from transformers import PretrainedConfig
 
+from examples.llm.src.models.utils import is_torch_2_or_higher
+
 
 class MosaicGPTConfig(PretrainedConfig):
     model_type = 'mosaic_gpt'
@@ -45,6 +47,7 @@ class MosaicGPTConfig(PretrainedConfig):
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = False,
         use_cache: bool = True,
+        tensor_parallel_mlp: bool = False,
         **kwargs,
     ):
         """The MosaicGPT configuration class.
@@ -88,6 +91,7 @@ class MosaicGPTConfig(PretrainedConfig):
             embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
             use_cache (bool): Whether or not the model should return the last key/values attentions
+            tensor_parallel_mlp (bool): Whether or not to tensor parallelize the MLPs
         """
         self.d_model = d_model
         self.n_heads = n_heads
@@ -121,6 +125,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.embedding_fraction = embedding_fraction
         self.low_precision_layernorm = low_precision_layernorm
         self.use_cache = use_cache
+        self.tensor_parallel_mlp = tensor_parallel_mlp
         if 'name' in kwargs:
             del kwargs['name']
         if 'loss_fn' in kwargs:
@@ -153,4 +158,8 @@ class MosaicGPTConfig(PretrainedConfig):
                       str) and self.logit_scale != 'inv_sqrt_d_model':
             raise ValueError(
                 f"{self.logit_scale=} is not recognized as an option; use numeric value or 'inv_sqrt_d_model'."
+            )
+        if not is_torch_2_or_higher() and self.tensor_parallel_mlp:
+            raise NotImplementedError(
+                'Tensor Parallel with torch version < 2.0.0 is not implemented. Please set tensor_parallel_mlp to false.'
             )
