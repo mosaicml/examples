@@ -302,6 +302,7 @@ class MosaicGPT(PreTrainedModel):
         all_hidden_states = () if output_hidden_states else None
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
             if output_hidden_states:
+                assert all_hidden_states is not None
                 all_hidden_states = all_hidden_states + (x,)
             past_key_value = past_key_values[
                 b_idx] if past_key_values is not None else None
