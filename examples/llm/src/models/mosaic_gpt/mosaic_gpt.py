@@ -278,7 +278,6 @@ class MosaicGPT(PreTrainedModel):
                     (attention_mask == 0), dim=1)[:, past_position:],
                                   min=0)
 
-            print(pos)
             pos_emb = self.transformer.wpe(pos)  # type: ignore
             x = tok_emb + pos_emb
 
