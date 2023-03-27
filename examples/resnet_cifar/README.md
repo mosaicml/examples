@@ -55,10 +55,11 @@ Then, just fill in a few fields in [yamls/mcloud_run.yaml](./yamls/mcloud_run.ya
 ```yaml
 cluster: # Add the name of the cluster to use for this run
 gpu_type: # Type of GPU to use; usually a100_40gb
----
-git_repo: mosaicml/examples # Replace with your fork to use custom code
-git_branch: main # Replace with your branch to use custom code
-ssh_clone: false # Should be true if using a private repo
+integrations:
+  - integration_type: git_repo
+    git_repo: mosaicml/examples # Replace with your fork to use custom code
+    git_branch: main # Replace with your branch to use custom code
+    ssh_clone: false # Should be true if using a private repo
 ```
 
 These tell `mcli` where to get your code and what cluster your organization is using.
