@@ -18,7 +18,7 @@ class MosaicGPTConfig(PretrainedConfig):
         n_layers: int = 24,
         mlp_ratio: int = 4,
         max_seq_len: int = 2048,
-        vocab_size: int = 50257,
+        vocab_size: int = 50368,
         init_std: float = 0.02,
         attn_pdrop: float = 0.0,
         resid_pdrop: float = 0.0,
@@ -27,6 +27,7 @@ class MosaicGPTConfig(PretrainedConfig):
         attn_qk_ln: bool = False,
         attn_clip_qkv: Optional[float] = None,
         softmax_scale: Optional[float] = None,
+        prefix_lm: Optional[bool] = False,
         alibi: bool = False,
         alibi_bias_max: int = 8,
         init_device: str = 'cpu',
@@ -66,6 +67,9 @@ class MosaicGPTConfig(PretrainedConfig):
                 this value.
             softmax_scale (Optional[float]): If not None, scale the softmax in the attention layer by this value. If None,
                 use the default scale of ``1/sqrt(d_keys)``.
+            prefix_lm (Optional[bool]): Whether the model should operate as a Prefix LM. This requires passing an
+                extra `prefix_mask` argument which indicates which tokens belong to the prefix. Tokens in the prefix
+                can attend to one another bi-directionally. Tokens outside the prefix use causal attention.
             alibi (bool): Whether to use the alibi bias instead of position embeddings.
             alibi_bias_max (int): The maximum value of the alibi bias.
             init_device (str): The device to use for parameter initialization.
@@ -99,6 +103,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.attn_qk_ln = attn_qk_ln
         self.attn_clip_qkv = attn_clip_qkv
         self.softmax_scale = softmax_scale
+        self.prefix_lm = prefix_lm
         self.alibi = alibi
         self.alibi_bias_max = alibi_bias_max
         self.init_device = init_device
@@ -118,6 +123,8 @@ class MosaicGPTConfig(PretrainedConfig):
         self.use_cache = use_cache
         if 'name' in kwargs:
             del kwargs['name']
+        if 'loss_fn' in kwargs:
+            del kwargs['loss_fn']
         super().__init__(**kwargs)
 
         self._validate_config()
@@ -132,6 +139,9 @@ class MosaicGPTConfig(PretrainedConfig):
             )
         if self.attn_impl not in ['torch', 'flash', 'triton']:
             raise ValueError(f'Unknown attn_impl={self.attn_impl}')
+        if self.prefix_lm and self.attn_impl not in ['torch', 'triton']:
+            raise NotImplementedError(
+                'prefix_lm only implemented with torch and triton attention.')
         if self.alibi and self.attn_impl not in ['torch', 'triton']:
             raise NotImplementedError(
                 'alibi only implemented with torch and triton attention.')

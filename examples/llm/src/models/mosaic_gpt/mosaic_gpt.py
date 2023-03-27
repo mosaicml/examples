@@ -15,18 +15,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
-from composer.metrics import METRIC_DEFAULT_CTORS, InContextLearningMetric
-from composer.metrics.nlp import LanguageCrossEntropy, Perplexity
-from composer.models.base import ComposerModel
+from composer.metrics import (InContextLearningLMAccuracy,
+                              InContextLearningMultipleChoiceAccuracy)
+from composer.metrics.nlp import LanguageCrossEntropy, LanguagePerplexity
+from composer.models import HuggingFaceModel
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from transformers import PreTrainedModel
+from transformers import AutoTokenizer, PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
-from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
-from examples.llm.src.models.param_init_fns import MODEL_INIT_REGISTRY
+from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
+    MosaicGPTConfig
+from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
+                                           add_bidirectional_mask_if_missing)
 
 
 class MosaicGPT(PreTrainedModel):
@@ -37,6 +40,7 @@ class MosaicGPT(PreTrainedModel):
         super().__init__(config)
 
         self.attn_impl = config.attn_impl
+        self.prefix_lm = config.prefix_lm
         self.alibi = config.alibi
         self.alibi_bias_max = config.alibi_bias_max
 
@@ -92,16 +96,18 @@ class MosaicGPT(PreTrainedModel):
             )
             self.apply(self.param_init_fn)
 
-        self.is_causal = True
+        self.is_causal = not self.prefix_lm
 
         # define attn mask
         self._attn_bias_initialized = False
         self.attn_bias = None
-        self.attn_bias_shape = attention.attn_bias_shape(self.attn_impl,
-                                                         config.n_heads,
-                                                         config.max_seq_len,
-                                                         self.alibi,
-                                                         causal=self.is_causal)
+        self.attn_bias_shape = attention.attn_bias_shape(
+            self.attn_impl,
+            config.n_heads,
+            config.max_seq_len,
+            self.alibi,
+            prefix_lm=self.prefix_lm,
+            causal=self.is_causal)
 
         if config.no_bias:
             for module in self.modules():
@@ -114,7 +120,11 @@ class MosaicGPT(PreTrainedModel):
         if config.verbose and config.verbose > 2:
             print(self)
 
-    def _attn_bias(self, device, dtype):
+    def _attn_bias(self,
+                   device,
+                   dtype,
+                   attention_mask: Optional[torch.ByteTensor] = None,
+                   prefix_mask: Optional[torch.ByteTensor] = None):
         if not self._attn_bias_initialized:
             if self.attn_bias_shape:
                 self.attn_bias = torch.zeros(self.attn_bias_shape,
@@ -130,13 +140,78 @@ class MosaicGPT(PreTrainedModel):
                     alibi_bias_max=self.alibi_bias_max)
             self._attn_bias_initialized = True
 
-        return self.attn_bias
+        # flash does not support prefix_lm and will incorporate any
+        # attention_mask inside the attention module
+        if self.attn_impl == 'flash':
+            return self.attn_bias, attention_mask
+
+        # If using torch or triton, we incorporate the prefix_mask (if
+        # appropriate), then any attention_mask. This will output None
+        # in place of attention_mask since it will not be futher needed
+        # in the attention modules.
+        if self.prefix_lm:
+            assert isinstance(self.attn_bias, torch.Tensor)  # pyright
+            assert isinstance(prefix_mask, torch.Tensor)  # pyright
+            attn_bias = self._apply_prefix_mask(self.attn_bias, prefix_mask)
+        else:
+            attn_bias = self.attn_bias
+        if attention_mask is not None:
+            s_k = attention_mask.shape[-1]
+            if attn_bias is None:
+                attn_bias = torch.zeros((1, 1, 1, s_k),
+                                        device=device,
+                                        dtype=dtype)
+            if prefix_mask is not None and (attention_mask.shape !=
+                                            prefix_mask.shape):
+                raise ValueError(
+                    f'attention_mask shape={attention_mask.shape} ' +\
+                    f'and prefix_mask shape={prefix_mask.shape} are not equal.'
+                )
+            min_val = torch.finfo(attn_bias.dtype).min
+            attn_bias = attn_bias.masked_fill(
+                ~attention_mask.view(-1, 1, 1, s_k), min_val)
+
+        return attn_bias, None
+
+    def _apply_prefix_mask(self, attn_bias: torch.Tensor,
+                           prefix_mask: torch.Tensor):
+        s_k, s_q = attn_bias.shape[-2:]
+        if (s_k != self.config.max_seq_len) or (s_q != self.config.max_seq_len):
+            raise ValueError(
+                'attn_bias does not match the expected shape. ' +\
+                f'The last two dimensions should both be {self.config.max_length} ' +\
+                f'but are {s_k} and {s_q}.'
+            )
+        seq_len = prefix_mask.shape[-1]
+        if seq_len > self.config.max_seq_len:
+            raise ValueError(
+                f'prefix_mask sequence length cannot exceed max_seq_len={self.config.max_seq_len}'
+            )
+
+        # select seq_len subset of attn mask
+        attn_bias = attn_bias[..., :seq_len, :seq_len]
+
+        # Mix the causal max and the bidirectional mask to get the full
+        # allowable attention (i.e. full = not accounting for padding yet)
+        causal = torch.tril(
+            torch.ones((seq_len, seq_len),
+                       dtype=torch.bool,
+                       device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
+        prefix = prefix_mask.view(-1, 1, 1, seq_len)
+        cannot_attend = torch.logical_not(
+            torch.logical_or(causal, prefix.bool()))
+
+        min_val = torch.finfo(attn_bias.dtype).min
+        attn_bias = attn_bias.masked_fill(cannot_attend, min_val)
+
+        return attn_bias
 
     def forward(
             self,
             input_ids: torch.LongTensor,
             past_key_values: Optional[List[Tuple[torch.FloatTensor]]] = None,
             attention_mask: Optional[torch.ByteTensor] = None,
+            prefix_mask: Optional[torch.ByteTensor] = None,
             return_dict: Optional[bool] = None,
             output_attentions: Optional[bool] = None,
             output_hidden_states: Optional[bool] = None,
@@ -161,6 +236,11 @@ class MosaicGPT(PreTrainedModel):
         ) != attention_mask.shape[0] and self.training:
             raise NotImplementedError(
                 'MosaicGPT does not support training with left padding.')
+
+        if self.prefix_lm and prefix_mask is None:
+            raise ValueError(
+                'prefix_mask is a required argument when MosaicGPT is configured with prefix_lm=True.'
+            )
 
         S = input_ids.size(1)
 
@@ -192,11 +272,10 @@ class MosaicGPT(PreTrainedModel):
                                S + past_position,
                                dtype=torch.long,
                                device=input_ids.device).unsqueeze(0)
-
             if attention_mask is not None:
                 # adjust the position indices to account for padding tokens
                 pos = torch.clamp(pos - torch.cumsum(
-                    (attention_mask == 0)[:, past_position:], dim=1),
+                    (attention_mask == 0), dim=1)[:, past_position:],
                                   min=0)
 
             pos_emb = self.transformer.wpe(pos)  # type: ignore
@@ -211,7 +290,11 @@ class MosaicGPT(PreTrainedModel):
             assert isinstance(self.transformer.emb_drop, nn.Module)  # pyright
             x = self.transformer.emb_drop(x_shrunk)
 
-        attn_bias = self._attn_bias(device=x.device, dtype=x.dtype)
+        attn_bias, attention_mask = self._attn_bias(
+            device=x.device,
+            dtype=x.dtype,
+            attention_mask=attention_mask,
+            prefix_mask=prefix_mask)
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
@@ -224,7 +307,7 @@ class MosaicGPT(PreTrainedModel):
             x, past_key_value = block(x,
                                       past_key_value=past_key_value,
                                       attn_bias=attn_bias,
-                                      key_padding_mask=attention_mask,
+                                      attention_mask=attention_mask,
                                       is_causal=self.is_causal)
             if past_key_values is not None:
                 past_key_values[b_idx] = past_key_value
@@ -279,35 +362,82 @@ class MosaicGPT(PreTrainedModel):
         if past_key_values is not None:
             input_ids = input_ids[:, -1].unsqueeze(-1)
 
+        if self.prefix_lm:
+            # Leverage a convenience of sequential generation!
+            prefix_mask = torch.ones_like(attention_mask)
+            # This requires that we're using the cache
+            if kwargs.get('use_cache') == False:
+                raise NotImplementedError(
+                    'MosaicGPT with prefix_lm=True does not support use_cache=False.'
+                )
+        else:
+            prefix_mask = None
+
         return {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
+            'prefix_mask': prefix_mask,
             'past_key_values': past_key_values,
             'use_cache': kwargs.get('use_cache'),
         }
 
 
-class ComposerMosaicGPT(ComposerModel):
+class ComposerMosaicGPT(HuggingFaceModel):
 
-    def __init__(self, om_model_config: DictConfig):
-        super().__init__()
+    def __init__(self, om_model_config: DictConfig,
+                 om_tokenizer_config: DictConfig):
+        resolved_om_model_config = om.to_container(om_model_config,
+                                                   resolve=True)
+        hf_config = MosaicGPTConfig.from_dict(resolved_om_model_config)
+        model = MosaicGPT(hf_config)
 
-        resolved_om_config = om.to_container(om_model_config, resolve=True)
-        self.hf_config = MosaicGPTConfig.from_dict(resolved_om_config)
-        self.model = MosaicGPT(self.hf_config)
+        resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
+                                                       resolve=True)
+        tokenizer_kwargs = resolved_om_tokenizer_config.get(  # type: ignore
+            'kwargs', {})
+        tokenizer_name = resolved_om_tokenizer_config['name']  # type: ignore
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
+                                                  **tokenizer_kwargs)
+
+        train_metrics = [
+            LanguageCrossEntropy(hf_config.vocab_size),
+            LanguagePerplexity(hf_config.vocab_size)
+        ]
+        eval_metrics = [
+            LanguageCrossEntropy(hf_config.vocab_size),
+            LanguagePerplexity(hf_config.vocab_size),
+            InContextLearningLMAccuracy(),
+            InContextLearningMultipleChoiceAccuracy(),
+        ]
+
+        super().__init__(
+            model=model,
+            tokenizer=tokenizer,
+            use_logits=True,
+            metrics=train_metrics,
+            eval_metrics=eval_metrics,
+            shift_labels=True,
+            allow_embedding_resizing=True,
+        )
+
         self.num_fwd_flops = self._compute_num_fwd_flops()
-        self.train_metrics = {
-            'LanguageCrossEntropy':
-                LanguageCrossEntropy(self.hf_config.vocab_size),
-            'Perplexity':
-                Perplexity(),
-        }
-        self.eval_metrics = {
-            'LanguageCrossEntropy':
-                LanguageCrossEntropy(self.hf_config.vocab_size),
-            'Perplexity':
-                Perplexity(),
-        }
+
+        loss_fn_config = om_model_config.get('loss_fn', 'fused_crossentropy')
+        if loss_fn_config == 'fused_crossentropy':
+            try:
+                from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
+                warnings.warn('Using Fused Cross Entropy Loss.')
+                self.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
+            except:
+                raise ValueError(
+                    'Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and `pip install .[llm]`, or (2) set your config model.loss_fn=torch_crossentropy.'
+                )
+        elif loss_fn_config == 'torch_crossentropy':
+            self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+        else:
+            raise ValueError(
+                f'Specified loss_fn={self.loss_fn} not recognized. `loss_fn` must be one of [`fused_crossentropy`, `torch_crossentropy`].'
+            )
 
     def get_targets(self, batch):
         targets = torch.roll(batch['labels'], shifts=-1)
@@ -315,44 +445,22 @@ class ComposerMosaicGPT(ComposerModel):
         return targets
 
     def forward(self, batch):
+        if self.model.prefix_lm:
+            add_bidirectional_mask_if_missing(batch)
         input_ids = batch['input_ids']
         attention_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
+        prefix_mask = batch['bidirectional_mask'].bool(
+        ) if 'bidirectional_mask' in batch else None
+        # Note: prefix_mask is only used if model.prefix_lm is True
         return self.model(input_ids=input_ids,
-                          attention_mask=attention_mask).logits
-
-    def eval_forward(self, batch, outputs=None):
-        return outputs if outputs is not None else self.forward(batch)
+                          attention_mask=attention_mask,
+                          prefix_mask=prefix_mask)
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
-        return F.cross_entropy(outputs.view(-1, outputs.size(-1)),
-                               targets.view(-1),
-                               ignore_index=-100)
-
-    def get_metrics(self, is_train=False):
-        return self.train_metrics if is_train else self.eval_metrics
-
-    def update_metric(self, batch, outputs, metric) -> None:
-        if isinstance(metric, InContextLearningMetric):
-            if batch.get('mode', None) == 'icl_task':
-                # only apply ICL metrics to specially constructed
-                # icl_task batches
-                targets = self.get_targets(batch)
-                metric.update(batch, outputs, targets)
-        else:
-            outputs = outputs.view(-1, outputs.size(-1))
-            targets = self.get_targets(batch).view(-1)
-            metric.update(outputs, targets)
-
-    def add_eval_metrics(self, evaluator):
-        evaluator_metrics = {
-            m: METRIC_DEFAULT_CTORS[m]() for m in evaluator.metric_names
-        }
-        if self.eval_metrics is not None:
-            self.eval_metrics.update(evaluator_metrics)
-        else:
-            self.eval_metrics = evaluator_metrics
+        return self.loss_fn(outputs.logits.view(-1, outputs.logits.size(-1)),
+                            targets.view(-1))
 
     def _compute_num_fwd_flops(self):
         n_params = sum(p.numel() for p in self.parameters())

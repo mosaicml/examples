@@ -5,6 +5,7 @@ import copy
 import os
 import warnings
 from typing import cast
+from unittest import mock
 
 import pytest
 import torch
@@ -14,11 +15,11 @@ from composer.optim import DecoupledAdamW
 from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
+from transformers.modeling_outputs import CausalLMOutputWithPast
 
-from examples.llm import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
-                          ComposerHFCausalLM, ComposerHFPrefixLM)
-from examples.llm.src.models.configuration_mosaic_gpt import MosaicGPTConfig
-from examples.llm.src.models.mosaic_gpt import MosaicGPT
+from examples.llm import (COMPOSER_MODEL_REGISTRY, ComposerHFCausalLM,
+                          ComposerHFPrefixLM)
+from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 
 
 def get_config(conf_path='yamls/mosaic_gpt/testing.yaml') -> DictConfig:
@@ -34,8 +35,6 @@ def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
     test_cfg = get_config(conf_path=conf_path)
-    _ = TOKENIZER_REGISTRY[test_cfg.tokenizer.type](
-        **test_cfg.tokenizer.args)  # make sure tokenizer in registry
 
     reproducibility.seed_all(test_cfg.seed)
 
@@ -59,7 +58,8 @@ def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
     test_cfg.device_eval_batch_size = 2
     test_cfg.device_train_microbatch_size = 2
 
-    model = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
+    model = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
+                                                         test_cfg.tokenizer)
     # Optimizer
     assert test_cfg.optimizer.name == 'decoupled_adamw'
     optimizer = DecoupledAdamW(model.parameters(),
@@ -133,7 +133,7 @@ def test_attention_mechanism(batch_size=2):
 
     model.eval()
     # run a partial forward where we explicitly inspect the attention_mask from the causal_attn block
-    input_ids, key_padding_mask = batch['input_ids'], batch[
+    input_ids, attention_mask = batch['input_ids'], batch[
         'attention_mask'].bool()
 
     _, S = input_ids.size()
@@ -156,18 +156,19 @@ def test_attention_mechanism(batch_size=2):
         torch.cat(batch_size * [expected_zerod_weights]))
     torch_key_padding = torch.cat(  # type: ignore
         test_cfg.max_seq_len *
-        [(~key_padding_mask).reshape(batch_size, 1, test_cfg.max_seq_len)],
+        [(~attention_mask).reshape(batch_size, 1, test_cfg.max_seq_len)],
         axis=1)
     expected_zerod_weights |= torch_key_padding
 
-    attn_bias = model.model._attn_bias(device=x.device, dtype=x.dtype)
+    attn_bias, attention_mask = model.model._attn_bias(
+        device=x.device, dtype=x.dtype, attention_mask=attention_mask)
 
     for block in model.model.transformer.blocks:
         a = block.ln_1(x)
         b, attention_weights, _ = block.attn(a,
                                              past_key_value=None,
                                              attn_bias=attn_bias,
-                                             key_padding_mask=key_padding_mask,
+                                             attention_mask=attention_mask,
                                              is_causal=model.model.is_causal,
                                              needs_weights=True)
 
@@ -199,7 +200,7 @@ def test_full_forward_and_backward_gpt2_small(prefixlm, batch_size=2):
         neo_cfg.model.name = 'hf_causal_lm'
 
     model = COMPOSER_MODEL_REGISTRY[neo_cfg.model.name](
-        neo_cfg.model).to(device)
+        neo_cfg.model, neo_cfg.tokenizer).to(device)
 
     assert neo_cfg.optimizer.name == 'decoupled_adamw'
     optimizer = DecoupledAdamW(model.parameters(),
@@ -241,13 +242,17 @@ def test_full_forward_and_backward_t5_small(batch_size=2):
             'betas': [0.9, 0.99],
             'eps': 1e-6,
             'weight_decay': 0.00001
+        },
+        'tokenizer': {
+            'name': 't5-small',
         }
     })
 
     device = 'cpu'
     max_seq_len = 16
 
-    model = COMPOSER_MODEL_REGISTRY['hf_t5'](cfg.model).to(device)
+    model = COMPOSER_MODEL_REGISTRY['hf_t5'](cfg.model,
+                                             cfg.tokenizer).to(device)
 
     optimizer = DecoupledAdamW(model.parameters(),
                                lr=cfg.optimizer.lr,
@@ -290,7 +295,8 @@ def test_determinism(attention_type: str, precision):
     test_cfg.model.init_device = 'cuda:0'
     test_cfg.device = 'cuda:0'
 
-    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model)
+    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
+                                                           test_cfg.tokenizer)
     model_2 = copy.deepcopy(model_1)
 
     optimizer_1 = DecoupledAdamW(model_1.parameters(),
@@ -309,8 +315,8 @@ def test_determinism(attention_type: str, precision):
             batch = gen_random_batch(2, test_cfg)
             output_1 = model_1(batch)
             output_2 = model_2(batch)
-            assert output_1.allclose(output_2, rtol=0.0,
-                                     atol=0.0), f'differed at step {i}'
+            assert output_1.logits.allclose(output_2.logits, rtol=0.0,
+                                            atol=0.0), f'differed at step {i}'
 
             loss_1 = model_1.loss(output_1, batch)
             loss_2 = model_2.loss(output_2, batch)
@@ -321,19 +327,84 @@ def test_determinism(attention_type: str, precision):
             optimizer_2.step()
 
 
+@pytest.mark.gpu
+def test_loss_fn():
+    """Tests the Fused CrossEntropy vs torch.nn.CrossEntropy loss function.
+
+    We provide non-zero tolerances to account for small numerics differences
+    between the two loss implementations.
+    """
+    try:
+        from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss  # type: ignore # isort: skip
+    except:
+        pytest.skip('Fused cross entropy was not installed')
+
+    reproducibility.seed_all(1111)
+
+    conf_path = 'yamls/mosaic_gpt/testing.yaml'
+    with open(conf_path) as f:
+        test_cfg = om.load(f)
+
+    test_cfg.model.init_device = 'cuda:0'
+    test_cfg.device = 'cuda:0'
+
+    model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
+                                                           test_cfg.tokenizer)
+    model_2 = copy.deepcopy(model_1)
+    assert isinstance(model_1.loss_fn, torch.nn.CrossEntropyLoss)
+    model_2.loss_fn = FusedCrossEntropyLoss(ignore_index=-100)
+
+    optimizer_1 = DecoupledAdamW(model_1.parameters(),
+                                 lr=test_cfg.optimizer.lr,
+                                 betas=test_cfg.optimizer.betas,
+                                 eps=test_cfg.optimizer.eps,
+                                 weight_decay=test_cfg.optimizer.weight_decay)
+    optimizer_2 = DecoupledAdamW(model_2.parameters(),
+                                 lr=test_cfg.optimizer.lr,
+                                 betas=test_cfg.optimizer.betas,
+                                 eps=test_cfg.optimizer.eps,
+                                 weight_decay=test_cfg.optimizer.weight_decay)
+
+    for i in range(25):
+        batch = gen_random_batch(2, test_cfg)
+        output_1 = model_1(batch)
+        output_2 = model_2(batch)
+        assert output_1.logits.allclose(output_2.logits, rtol=1e-4,
+                                        atol=1e-4), f'differed at step {i}'
+
+        loss_1 = model_1.loss(output_1, batch)
+        loss_2 = model_2.loss(output_2, batch)
+        assert loss_1.allclose(loss_2, rtol=1e-3,
+                               atol=1e-3), f'differed at step {i}'
+        loss_1.backward()
+        loss_2.backward()
+        optimizer_1.step()
+        optimizer_2.step()
+
+        for p1, p2 in zip(model_1.parameters(), model_2.parameters()):
+            assert p1.data.shape == p2.data.shape
+            assert p1.data.allclose(p2.data, rtol=1e-5,
+                                    atol=1e-4), f'differed at step {i}'
+
+
 @pytest.mark.parametrize('prefixlm', [False, True])
 def test_opt_wrapping(prefixlm):
     conf = {
-        'name': 'hf_prefix_lm' if prefixlm else 'hf_causal_lm',
-        'pretrained_model_name_or_path': 'facebook/opt-125m',
-        'pretrained': 'false'
+        'model': {
+            'name': 'hf_prefix_lm' if prefixlm else 'hf_causal_lm',
+            'pretrained_model_name_or_path': 'facebook/opt-125m',
+            'pretrained': 'false'
+        },
+        'tokenizer': {
+            'name': 'facebook/opt-125m'
+        }
     }
     config = DictConfig(conf)
 
     if prefixlm:
-        model = ComposerHFPrefixLM(config)
+        model = ComposerHFPrefixLM(config.model, config.tokenizer)
     else:
-        model = ComposerHFCausalLM(config)
+        model = ComposerHFCausalLM(config.model, config.tokenizer)
 
     # check that all the modules we except are blocked from FSDP wrapping
     assert not model.model.model._fsdp_wrap
@@ -548,20 +619,23 @@ def test_generate(attention_impl, device):
         batched_generation = mosaic_gpt.generate(
             input_ids=batched_input_ids,
             attention_mask=batched_attention_mask,
-            max_new_tokens=5)
+            max_new_tokens=5,
+            use_cache=False)
         assert batched_generation.shape == (2, 6 + 5)
 
         reproducibility.seed_all(1234)
         generation_with_left_padding = mosaic_gpt.generate(
             input_ids=left_padding_input_ids,
             attention_mask=left_padding_attention_mask,
-            max_new_tokens=5)
+            max_new_tokens=5,
+            use_cache=False)
         assert generation_with_left_padding.shape == (2, 6 + 5)
         reproducibility.seed_all(1234)
         generation_with_no_padding = mosaic_gpt.generate(
             input_ids=no_padding_input_ids,
             attention_mask=no_padding_attention_mask,
-            max_new_tokens=5)
+            max_new_tokens=5,
+            use_cache=False)
         assert generation_with_no_padding.shape == (2, 3 + 5)
 
         # check that left padding and no padding produce the same output
@@ -610,6 +684,64 @@ def test_save_from_pretrained(tmp_path):
     mosaic_gpt2 = MosaicGPT.from_pretrained(tmp_path / 'test-save-pretrained')
 
     check_hf_model_equivalence(mosaic_gpt, mosaic_gpt2)
+
+
+def test_forward_with_cache_and_padding():
+    # Tests that the result is the same with or without padding when using kv caching
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+        attn_impl='torch',
+    )
+
+    mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt.eval()
+
+    first_input_ids_no_padding = torch.tensor([[11274, 16390, 11]])
+    first_attention_mask_no_padding = torch.tensor([[1, 1, 1]]).bool()
+
+    # start with passing the first three tokens through (no padding)
+    first_output_no_padding = mosaic_gpt(
+        first_input_ids_no_padding,
+        attention_mask=first_attention_mask_no_padding)
+
+    second_input_ids_no_padding = torch.tensor([[11274, 16390, 11, 11274]])
+    second_attention_mask_no_padding = torch.tensor([[1, 1, 1, 1]]).bool()
+
+    # pass through the fourth token by itself, using the key-value cache (no padding)
+    second_output_no_padding = mosaic_gpt(
+        second_input_ids_no_padding[:, -1].unsqueeze(-1),
+        attention_mask=second_attention_mask_no_padding,
+        past_key_values=first_output_no_padding.past_key_values)
+
+    first_input_ids_padding = torch.tensor([[50256, 11274, 16390, 11]])
+    first_attention_mask_padding = torch.tensor([[0, 1, 1, 1]]).bool()
+
+    # start with passing the first three tokens through (with left padding)
+    first_output_padding = mosaic_gpt(
+        first_input_ids_padding, attention_mask=first_attention_mask_padding)
+
+    second_input_ids_padding = torch.tensor([[50256, 11274, 16390, 11, 11274]])
+    second_attention_mask_padding = torch.tensor([[0, 1, 1, 1, 1]]).bool()
+
+    # pass through the fourth token by itself, using the key-value cache (with left padding)
+    second_output_padding = mosaic_gpt(
+        second_input_ids_padding[:, -1].unsqueeze(-1),
+        attention_mask=second_attention_mask_padding,
+        past_key_values=first_output_padding.past_key_values)
+
+    # check that the outputs are the same with or without padding
+    torch.testing.assert_close(second_output_no_padding.logits,
+                               second_output_padding.logits[:,
+                                                            -1, :].unsqueeze(1),
+                               atol=1e-6,
+                               rtol=1e-6)
 
 
 @pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
@@ -694,3 +826,43 @@ def test_forward_with_cache(attention_impl, device):
                                    full_output.logits[:, -1, :].unsqueeze(1),
                                    atol=1e-2,
                                    rtol=1e-2)
+
+
+def test_generate_with_past_kv():
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+        attn_impl='torch',
+    )
+    mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt.eval()
+
+    # no padding in the input
+    no_padding_input_ids = torch.tensor([[11274, 16390, 11]])
+    no_padding_attention_mask = torch.tensor([[1, 1, 1]])
+
+    with mock.patch.object(MosaicGPT, 'forward',
+                           autospec=True) as forward_mocked:
+        forward_mocked.return_value = CausalLMOutputWithPast(
+            logits=torch.randn((1, 3, hf_config.vocab_size)),
+            past_key_values=[(torch.randn(1, 3, hf_config.d_model),
+                              torch.randn(1, 3, hf_config.d_model))
+                             for _ in range(hf_config.n_layers)])
+        _ = mosaic_gpt.generate(input_ids=no_padding_input_ids,
+                                attention_mask=no_padding_attention_mask,
+                                max_new_tokens=2)
+
+        assert forward_mocked.call_count == 2
+        _, _, kwargs = forward_mocked.mock_calls[0]
+        assert kwargs['past_key_values'] is None
+        _, _, kwargs = forward_mocked.mock_calls[1]
+        assert kwargs['past_key_values'] is not None
+        assert len(kwargs['past_key_values']) == hf_config.n_layers
+        assert kwargs['past_key_values'][0][0].shape == (1, 3,
+                                                         hf_config.d_model)
