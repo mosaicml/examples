@@ -21,7 +21,8 @@ class DatasetConstructor:
     def add(self, dataset_name: str, tokenize_function: callable):
         self._task_tokenization_registry[dataset_name] = tokenize_function
 
-    def build(self, dataset_name: str, tokenizer: Union[PreTrainedTokenizer,
+    def build(self, dataset_name: str,
+              tokenizer: Union[PreTrainedTokenizer,
                                PreTrainedTokenizerFast], split: str):
         assert dataset_name in self._task_tokenization_registry
         # UPDATE THIS LINE TO LOAD YOUR RAW DATASET
@@ -92,6 +93,6 @@ def p3_tokenize_function(inp, tokenizer):
     )
 
 
-dataset_constructor.add('HuggingFaceH4/alpaca', alpaca_tokenize_function)
+dataset_constructor.add('tatsu-lab/alpaca', alpaca_tokenize_function)
 dataset_constructor.add('laion/OIG', oig_tokenize_function)
 dataset_constructor.add('bigscience/P3', p3_tokenize_function)

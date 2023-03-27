@@ -27,7 +27,7 @@ def build_finetuning_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
     Args:
         cfg (Mapping): The config for your dataset/dataloader. The config needs
             to define the following:
-            - cfg.dataset.name (e.g. "HuggingFaceH4/alpaca"; must be registered in `dataset_constructor`)
+            - cfg.dataset.name (e.g. "tatsu-lab/alpaca"; must be registered in `dataset_constructor`)
             - cfg.dataset.split (e.g. "train" or "validation")
             - cfg.dataset.tokenizer_name (e.g. "gpt2")
             - cfg.dataset.max_seq_length (e.g., 512)
@@ -55,8 +55,8 @@ def build_finetuning_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
         tokenizer.pad_token = tokenizer.eos_token
 
     # custom for P3
-    dataset = dataset_constructor.build(cfg.dataset.name,
-                                        tokenizer, cfg.dataset.split)
+    dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
+                                        cfg.dataset.split)
 
     return DataLoader(
         dataset,
@@ -351,7 +351,7 @@ if __name__ == '__main__':
     from omegaconf import OmegaConf as om
     cfg = om.create({
         'dataset': {
-            'name': 'HuggingFaceH4/alpaca',
+            'name': 'tatsu-lab/alpaca',
             'split': 'train',
             'tokenizer_name': 'gpt2',
             'max_seq_length': 2048,
@@ -391,29 +391,29 @@ if __name__ == '__main__':
                     'INPUT IDS:',
                     tokenizer.decode(
                         batch['input_ids'][j, batch['attention_mask'][j] == 1],
-                        skip_special_tokens=True))
+                        skip_special_tokens=False))
                 print(
                     'CONTEXT:  ',
                     tokenizer.decode(
                         batch['input_ids'][j,
                                            batch['bidirectional_mask'][j] == 1],
-                        skip_special_tokens=True))
+                        skip_special_tokens=False))
                 print(
                     'TARGET:   ',
                     tokenizer.decode(batch['input_ids'][
                         j, batch['labels'][j] != _HF_IGNORE_INDEX],
-                                     skip_special_tokens=True))
+                                     skip_special_tokens=False))
             else:
                 print(
                     'CONTEXT:  ',
                     tokenizer.decode(
                         batch['input_ids'][j, batch['attention_mask'][j] == 1],
-                        skip_special_tokens=True))
+                        skip_special_tokens=False))
                 print(
                     'TARGET:   ',
                     tokenizer.decode(batch['labels'][
                         j, batch['decoder_attention_mask'][j] == 1],
-                                     skip_special_tokens=True))
+                                     skip_special_tokens=False))
         print('   ')
         if i >= 5:
             break
