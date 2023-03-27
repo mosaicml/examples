@@ -283,15 +283,18 @@ class ComposerMosaicGPT(ComposerModel):
         input_ids = batch['input_ids']
         key_padding_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
+        sequence_id = batch.get('sequence_id', None)
         if not self.is_prefix_lm:
             return self.model(input_ids=input_ids,
-                              key_padding_mask=key_padding_mask)
+                              key_padding_mask=key_padding_mask,
+                              sequence_id=sequence_id)
         # Add bidirectional_mask if it is missing and can be constructed
         add_bidirectional_mask_if_missing(batch)
         prefix_mask = batch['bidirectional_mask']
         return self.model(input_ids=input_ids,
                           prefix_mask=prefix_mask,
-                          key_padding_mask=key_padding_mask)
+                          key_padding_mask=key_padding_mask,
+                          sequence_id=sequence_id)
 
     def eval_forward(self, batch, outputs=None):
         return outputs if outputs is not None else self.forward(batch)

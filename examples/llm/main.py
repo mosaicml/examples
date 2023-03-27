@@ -65,11 +65,12 @@ def build_composer_model(cfg):
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
 
-def build_dataloader(cfg, device_batch_size):
+def build_dataloader(cfg, device_batch_size, n_examples_to_pack=None):
     if cfg.name == 'text':
         return build_text_dataloader(cfg, device_batch_size)
     elif cfg.name == 'text_denoising':
-        return build_text_denoising_dataloader(cfg, device_batch_size)
+        return build_text_denoising_dataloader(cfg, device_batch_size,
+                                               n_examples_to_pack)
     elif cfg.name == 'finetuning':
         return build_finetuning_dataloader(cfg, device_batch_size)
     else:
@@ -125,8 +126,14 @@ def main(cfg):
 
     # Dataloaders
     print('Building train loader...')
+    if cfg.get('packing_ratio') is not None:
+        n_examples_to_pack = int(cfg.device_train_batch_size *
+                                 cfg.get('packing_ratio'))
+    else:
+        n_examples_to_pack = None
     train_loader = build_dataloader(cfg.train_loader,
-                                    cfg.device_train_batch_size)
+                                    cfg.device_train_batch_size,
+                                    n_examples_to_pack)
     print('Building eval loader...')
     evaluators = []
     if 'eval_loader' in cfg:

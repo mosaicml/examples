@@ -418,9 +418,9 @@ class TritonFlashCausalAttention(TritonFlashAttention):
                 kpm_fill_value)
 
         if sequence_id is not None:
-            different_sequence = torch.not_equal(
-                sequence_id.view(batch_size, 1, 1, seq_len),
-                sequence_id.view(batch_size, 1, seq_len, 1))
+            different_sequence = torch.logical_not(
+                torch.eq(sequence_id.view(batch_size, 1, 1, seq_len),
+                         sequence_id.view(batch_size, 1, seq_len, 1)))
             attn_mask = attn_mask.masked_fill(different_sequence, -1e4)
 
         return attn_mask
@@ -459,7 +459,7 @@ class TritonFlashPrefixAttention(TritonFlashAttention):
         can_attend = torch.logical_or(causal, prefix)
 
         if sequence_id is not None:
-            same_sequence = torch.equal(
+            same_sequence = torch.eq(
                 sequence_id.view(batch_size, 1, 1, seq_len),
                 sequence_id.view(batch_size, 1, seq_len, 1))
             can_attend = torch.logical_and(can_attend, same_sequence)
