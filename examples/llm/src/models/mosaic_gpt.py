@@ -49,8 +49,8 @@ class MosaicGPT(nn.Module):
         else:
             raise ValueError(f'Unknown attn_impl={cfg.attn_impl}')
 
-        layernorm_class = nn.LayerNorm if not cfg.get(
-            'low_precision_layernorm', False) else LPLayerNorm
+        layernorm_class = nn.LayerNorm if not cfg.get('low_precision_layernorm',
+                                                      False) else LPLayerNorm
 
         if cfg.get('attn_qk_ln') and cfg.attn_impl not in ['flash', 'triton']:
             raise NotImplementedError(
@@ -154,6 +154,7 @@ class MosaicGPT(nn.Module):
                    seq_len=None,
                    prefix_mask=None,
                    key_padding_mask=None,
+                   sequence_id=None,
                    dtype=None):
         if not self._attn_mask_initialized:
             self.causal_attn_cls.attn_mask_(self.attn_mask,
@@ -174,6 +175,7 @@ class MosaicGPT(nn.Module):
             self.cfg.n_heads,
             seq_len,
             prefix_mask,
+            sequence_id=sequence_id,
             key_padding_mask=key_padding_mask,
             alibi=self.alibi,
             dtype=dtype)
@@ -181,7 +183,8 @@ class MosaicGPT(nn.Module):
     def forward(self,
                 input_ids: torch.LongTensor,
                 prefix_mask: Optional[torch.ByteTensor] = None,
-                key_padding_mask: Optional[torch.ByteTensor] = None):
+                key_padding_mask: Optional[torch.ByteTensor] = None,
+                sequence_id: Optional[torch.LongTensor] = None):
         if self.is_prefix_lm and (prefix_mask is None):
             raise ValueError('prefix_mask cannot be None when using prefix_lm')
         B, S = input_ids.size()
@@ -211,6 +214,7 @@ class MosaicGPT(nn.Module):
                                     seq_len=S,
                                     prefix_mask=prefix_mask,
                                     key_padding_mask=key_padding_mask,
+                                    sequence_id=sequence_id,
                                     dtype=x.dtype)
         if self.cfg.attn_impl == 'flash' and key_padding_mask is None:
             # HazyResearch FlashMHA appears to use more memory when `key_padding_mask=None`
@@ -336,6 +340,6 @@ class ComposerMosaicGPT(ComposerModel):
 
     def flops_per_batch(self, batch):
         # Note: this computation does not take into account padding, and assumes
-        # that the dataset has been constructed without padding. Additionally, we 
+        # that the dataset has been constructed without padding. Additionally, we
         # assume the backward pass is approximately 2x the forward pass
         return self.num_fwd_flops * 3 * batch['input_ids'].shape[0]

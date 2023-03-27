@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from examples.common.text_data import StreamingTextDataset, build_streams
+from examples.llm.src.data.auto_packer import PackWrapper
 from examples.llm.src.models import utils
 
 __all__ = ['MixtureOfDenoisersCollator', 'build_text_denoising_dataloader']
@@ -349,8 +350,10 @@ class MixtureOfDenoisersCollator:
         return batch
 
 
-def build_text_denoising_dataloader(cfg: DictConfig,
-                                    device_batch_size: int) -> DataLoader:
+def build_text_denoising_dataloader(
+        cfg: DictConfig,
+        device_batch_size: int,
+        n_examples_to_pack: Optional[int] = None) -> DataLoader:
     """Constructor function for a Mixture of Denoisers dataloader.
 
     This function constructs a dataloader that can be used to train an
@@ -398,6 +401,12 @@ def build_text_denoising_dataloader(cfg: DictConfig,
                 dataloader, such as `cfg.drop_last`, `cfg.num_workers`, etc.
         device_batch_size (int): The size of the batches (number of examples)
             that the dataloader will produce.
+        n_examples_to_pack (optional, int): If provided, the dataloader will fetch
+            `n_examples_to_pack` examples from the dataset and use the automatic
+            packing collator wrapper to pack as many as it can into
+            `device_batch_size` packed examples. A packed example can contain >1
+            examples and includes `sequence_id` in the batch which can be used to
+            restrict attention to tokens within the same sequence.
     """
     assert cfg.name == 'text_denoising', f'Tried to build_denoising text dataloader with cfg.name={cfg.name}'
 
@@ -460,6 +469,21 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         batch_size=device_batch_size)
     if dataset.tokenizer.pad_token is None:
         dataset.tokenizer.pad_token = dataset.tokenizer.eos_token
+
+    if n_examples_to_pack is not None:
+        if not cfg.mixture_of_denoisers.decoder_only_format:
+            raise NotImplementedError(
+                'On-the-fly packing is currently only supported for decoder-only formats.'
+            )
+        if n_examples_to_pack < device_batch_size:
+            raise ValueError(
+                f'{n_examples_to_pack=} must be at least {device_batch_size=}.')
+        collate_fn = PackWrapper(collator=collate_fn,
+                                 target_batch_size=device_batch_size,
+                                 max_seq_len=cfg.dataset.max_seq_len,
+                                 pad_token_id=dataset.tokenizer.pad_token_id,
+                                 padding_side=dataset.tokenizer.padding_side)
+        device_batch_size = n_examples_to_pack
 
     return DataLoader(
         dataset,
@@ -782,7 +806,7 @@ def _format_tokens_for_decoder_only(
 
 
 # Helpful to test if your dataloader is working locally
-# Run `python data_denoising.py [remote] [local, optional]` and verify that batches
+# Run `python denoising.py [remote] [local, optional]` and verify that batches
 # are printed out
 if __name__ == '__main__':
     remote = sys.argv[1]
@@ -802,7 +826,7 @@ if __name__ == '__main__':
             'split': 'val_small',
             'shuffle': False,
             'tokenizer_name': 'gpt2' if decoder_only else 't5-base',
-            'max_seq_len': 256 if decoder_only else 128,
+            'max_seq_len': 2048 if decoder_only else 1024,
             'predownload': 1000,
             'keep_zip': True,  # in case we need compressed files after testing
         },
@@ -810,20 +834,25 @@ if __name__ == '__main__':
             'decoder_only_format': decoder_only,
             'span_mean_lengths_and_ratios': [[3, .15], [8, .5]],
             'sequence_mask_ratios': 0.25,
-            'context_eos': True,
+            'context_eos': False,
         },
         'drop_last': False,
         'num_workers': 0,
     }
     cfg = om.create(cfg)
     device_batch_size = 2
+    n_examples_to_pack = device_batch_size * 5
 
-    loader = build_text_denoising_dataloader(cfg, device_batch_size)
+    loader = build_text_denoising_dataloader(cfg, device_batch_size,
+                                             n_examples_to_pack)
 
     print(
         f'\n\nTRUNCATING TO: {loader.dataset.max_seq_len}\n\n')  # type: ignore
 
-    tokenizer = loader.collate_fn.tokenizer
+    if n_examples_to_pack is None:
+        tokenizer = loader.collate_fn.tokenizer
+    else:
+        tokenizer = loader.collate_fn.base_collator.tokenizer
     batch_ix = 0
     for batch in loader:
         print('\n')

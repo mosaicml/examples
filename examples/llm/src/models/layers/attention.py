@@ -85,6 +85,7 @@ class TorchCausalAttention(nn.Module):
         heads,
         seq_len,
         prefix_mask=None,
+        sequence_id=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
@@ -93,6 +94,10 @@ class TorchCausalAttention(nn.Module):
         if prefix_mask is not None:
             raise NotImplementedError(
                 'This attention implementation does not support use of `prefix_lm`.'
+            )
+        if sequence_id is not None:
+            raise NotImplementedError(
+                'This attention implementation not support use of `sequence_id`... yet.'
             )
 
         # select seq_len subset of attn mask
@@ -224,6 +229,7 @@ class FlashCausalAttention(nn.Module):
         heads,
         seq_len,
         prefix_mask=None,
+        sequence_id=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
@@ -383,6 +389,7 @@ class TritonFlashCausalAttention(TritonFlashAttention):
         heads,
         seq_len,
         prefix_mask=None,
+        sequence_id=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
@@ -410,6 +417,12 @@ class TritonFlashCausalAttention(TritonFlashAttention):
                 ~key_padding_mask.view((batch_size, 1, seq_len, 1)),
                 kpm_fill_value)
 
+        if sequence_id is not None:
+            different_sequence = torch.not_equal(
+                sequence_id.view(batch_size, 1, 1, seq_len),
+                sequence_id.view(batch_size, 1, seq_len, 1))
+            attn_mask = attn_mask.masked_fill(different_sequence, -1e4)
+
         return attn_mask
 
 
@@ -427,6 +440,7 @@ class TritonFlashPrefixAttention(TritonFlashAttention):
         heads,
         seq_len,
         prefix_mask,
+        sequence_id=None,
         key_padding_mask=None,
         alibi=False,
         dtype=None,
@@ -443,6 +457,12 @@ class TritonFlashPrefixAttention(TritonFlashAttention):
                        device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
         prefix = prefix_mask.view(batch_size, 1, 1, seq_len)
         can_attend = torch.logical_or(causal, prefix)
+
+        if sequence_id is not None:
+            same_sequence = torch.equal(
+                sequence_id.view(batch_size, 1, 1, seq_len),
+                sequence_id.view(batch_size, 1, seq_len, 1))
+            can_attend = torch.logical_and(can_attend, same_sequence)
 
         kpm_fill_value = -1e4  # numerically stable -inf
 
