@@ -32,7 +32,7 @@ def gpt_tiny_cfg(conf_path='yamls/mosaic_gpt/125m.yaml'):
     test_cfg.model.n_layers = 2
     test_cfg.max_seq_len = 256
     test_cfg.model.max_seq_len = test_cfg.max_seq_len
-    test_cfg.tokenizer.args.max_seq_len = test_cfg.max_seq_len
+    test_cfg.tokenizer.kwargs.model_max_length = test_cfg.max_seq_len
     test_cfg.train_loader.dataset.max_seq_len = test_cfg.max_seq_len
     test_cfg.eval_loader.dataset.max_seq_len = test_cfg.max_seq_len
 
@@ -46,7 +46,8 @@ def gpt_tiny_cfg(conf_path='yamls/mosaic_gpt/125m.yaml'):
                      not torch.cuda.is_available(),
                      reason='testing with cuda requires GPU')),
 ])
-def test_train(device):
+@pytest.mark.parametrize('logit_scale', [None, 0.036, 'inv_sqrt_d_model'])
+def test_train(device, logit_scale):
     if not os.path.isdir('./my-copy-c4/val'):
         pytest.xfail('c4 dataset not set up as expected')
 
@@ -58,6 +59,9 @@ def test_train(device):
     )
 
     test_cfg = gpt_tiny_cfg(conf_path='yamls/mosaic_gpt/125m.yaml')
+    test_cfg.eval_subset_num_batches = 2
+    if logit_scale:
+        test_cfg.model.logit_scale = logit_scale
 
     if device == 'cpu':
         pytest.xfail(

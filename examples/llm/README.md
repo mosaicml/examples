@@ -19,7 +19,7 @@ You'll find in this folder:
 * `main.py` - a script that builds a [Composer](https://github.com/mosaicml/composer) Trainer and calls `trainer.fit()`.
 * `yamls/` - configs for training compute-optimal LLMs from 125M up to 70B parameters.
 * `throughput/` - data on the throughput of our models on different cluster configurations.
-* `mcloud/` - examples of how to use [MosaicML Cloud](https://www.mosaicml.com/cloud) to seamlessly launch training :)
+* `mcloud/` - examples of how to use [MosaicML platform](https://www.mosaicml.com/platform) to seamlessly launch training :)
 
 
 In the [common](../common) folder, you will also find:
@@ -127,7 +127,7 @@ If training on a single node, the `composer` launcher will autodetect the number
 composer main.py yamls/mosaic_gpt/125m.yaml
 ```
 
-To train with high performance on multi-node clusters, the easiest way is with MosaicML Cloud ;) Check out the `mcloud/` folder for examples!
+To train with high performance on multi-node clusters, the easiest way is with the MosaicML platform ;) Check out the `mcloud/` folder for examples!
 
 But if you really must try this manually on your own cluster, then just provide a few variables to `composer`
 either directly via CLI, or via environment variables that can be read. Then launch the appropriate command on each node:
@@ -209,8 +209,10 @@ because more memory will enable you to use larger microbatch sizes.
 
 # Optimizing Performance
 The YAMLs in this repo are relatively well tuned for medium-to-large NVIDIA A100-40GB clusters.
-On different devices with more / less GPU memory,
-you may wish to edit the `device_train_microbatch_size` or `fsdp_config` values.
+
+If you are running with a CUDA-compatible GPU and have installed the LLM requirements, we turn on by default a kernel fusion optimization for the Cross Entropy loss function at the end of the model. This should not affect your model convergence, but if you would like to disable this, you can set `model.loss_fn=torch_crossentropy`. To re-enable, set `model.loss_fn=fused_crossentropy` or omit it from your YAML.
+
+On devices with more / less GPU memory, you may wish to edit the `device_train_microbatch_size` or `fsdp_config` values.
 In general, larger microbatch sizes and disabling `activation_checkpointing` lead to higher throughput.
 
 Note that each YAML specifies a `global_train_batch_size`, which is an optimization choice, i.e. the **math** being performed,
@@ -230,4 +232,4 @@ and may not always work with Auto Grad Accum (but we are working on it!).
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.
 
-you want train LLMs on MosaicML Cloud, reach out to us at [llm-early-access@mosaicml.com](mailto:llm-early-access@mosaicml.com)!
+you want train LLMs on the MosaicML platform, reach out to us at [llm-early-access@mosaicml.com](mailto:llm-early-access@mosaicml.com)!
