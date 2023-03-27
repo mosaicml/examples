@@ -301,7 +301,7 @@ class MosaicGPT(PreTrainedModel):
         all_hidden_states = () if output_hidden_states else None
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
             if output_hidden_states:
-                assert all_hidden_states is not None
+                assert all_hidden_states is not None  # pyright
                 all_hidden_states = all_hidden_states + (x,)
             past_key_value = past_key_values[
                 b_idx] if past_key_values is not None else None
@@ -385,6 +385,11 @@ class MosaicGPT(PreTrainedModel):
 
     @staticmethod
     def _reorder_cache(past_key_values, beam_idx):
+        """Used by HuggingFace generate when using beam search with kv-caching.
+
+        See https://github.com/huggingface/transformers/blob/3ec7a47664ebe40c40f4b722f6bb1cd30c3821ec/src/transformers/models/gpt2/modeling_gpt2.py#L1122-L1133
+        for an example in transformers.
+        """
         reordered_past = []
         for layer_past in past_key_values:
             reordered_past += [
