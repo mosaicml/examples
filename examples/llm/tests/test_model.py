@@ -910,8 +910,6 @@ def test_tokenizer_max_length_load():
         test_cfg = om.load(f)
 
     test_cfg.max_seq_len = 2048
-    test_cfg.model.alibi = True
-    test_cfg.model.attn_impl = 'torch'
 
     model = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
                                                          test_cfg.tokenizer)
