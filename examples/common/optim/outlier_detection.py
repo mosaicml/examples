@@ -39,8 +39,7 @@ class OutlierDetector:
         self.intermediate_data_queue.append(obs)
         delayed_mva = self.get_delayed_mva()
         return delayed_mva is not None and obs > self.threshold * delayed_mva
-        
-    
+         
     def get_delayed_mva(self):
         if len(self.delayed_moving_average) > 0:
             return sum(self.delayed_moving_average) / len(self.delayed_moving_average)
