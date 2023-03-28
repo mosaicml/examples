@@ -4,7 +4,7 @@ integrations:
   git_branch: v0.0.3 # use your branch
   # git_commit: # OR use your commit hash
   pip_install: -e .[llm]
-  ssh_clone: false
+  ssh_clone: false # Should be true if using a private repo
 
 # We are fetching, converting, and training on the 'val' split
 # as it is small and quick to get going for this demo.
@@ -45,7 +45,7 @@ parameters:
     n_layers: 24
     mlp_ratio: 4
     max_seq_len: ${max_seq_len}
-    vocab_size: 50257
+    vocab_size: 50368
     init_std: 0.02
     attn_pdrop: 0.0
     resid_pdrop: 0.0

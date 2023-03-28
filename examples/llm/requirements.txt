@@ -6,8 +6,9 @@ flash-attn==0.2.8
 mosaicml-cli>=0.2.32,<1
 # need a newer version of triton
 triton==2.0.0.dev20221202
-transformers==4.25.1
+transformers==4.26.1
 omegaconf==2.2.3
 wandb==0.13.6
 pytest>=7.2.1,<8
 torchmetrics==0.11.3
+xentropy-cuda-lib@git+https://github.com/HazyResearch/flash-attention.git@v0.2.8#subdirectory=csrc/xentropy

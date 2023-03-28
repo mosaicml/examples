@@ -44,7 +44,6 @@ from composer import Trainer
 from composer.utils import get_device, maybe_create_object_store_from_uri
 from omegaconf import OmegaConf as om
 
-from examples.llm import TorchCausalAttention
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
 
 
@@ -64,13 +63,12 @@ def gen_random_batch(batch_size, cfg):
     return batch
 
 
-def build_composer_model(cfg):
+def build_composer_model(model_cfg, tokenizer_cfg):
     warnings.filterwarnings(
         action='ignore',
-        message='Torchmetrics v0.9 introduced a new argument class property',
-    )
+        message='Torchmetrics v0.9 introduced a new argument class property')
     try:
-        return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
+        return COMPOSER_MODEL_REGISTRY[model_cfg.name](model_cfg, tokenizer_cfg)
     except:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
 
@@ -107,7 +105,7 @@ def main(cfg):
 
     # Build Model
     print('Initializing model...')
-    orig_model = build_composer_model(cfg.model)
+    orig_model = build_composer_model(cfg.model, cfg.tokenizer)
 
     # Loading checkpoint using Trainer
     print('Loading model weights...')
@@ -121,24 +119,14 @@ def main(cfg):
             f'Replacing {cfg.model.attn_impl} attention with torch causal attention'
         )
         cfg.model.attn_impl = 'torch'
-        export_model = build_composer_model(cfg.model)
+        export_model = build_composer_model(cfg.model, cfg.tokenizer)
         trainer = Trainer(model=export_model,
                           load_path=load_path,
                           load_weights_only=True)
         # replace flash/triton attention with torch causal attention
         for idx in range(cfg.model.n_layers):
-            torch_causal_attn = TorchCausalAttention(cfg.model)
-            torch_causal_attn.mhsa.in_proj_weight = orig_model.model.transformer.blocks[
-                idx].causal_attn.mhsa.Wqkv.weight
-            torch_causal_attn.mhsa.in_proj_bias = orig_model.model.transformer.blocks[
-                idx].causal_attn.mhsa.Wqkv.bias
-            torch_causal_attn.mhsa.out_proj.weight = (
-                orig_model.model.transformer.blocks[idx].causal_attn.mhsa.
-                out_proj.weight)
-            torch_causal_attn.mhsa.out_proj.bias = orig_model.model.transformer.blocks[
-                idx].causal_attn.mhsa.out_proj.bias
-            export_model.model.transformer.blocks[
-                idx].causal_attn = torch_causal_attn
+            export_model.model.transformer.blocks[idx].attn.load_state_dict(
+                orig_model.model.transformer.blocks[idx].attn.state_dict())
     else:
         export_model = orig_model
 
