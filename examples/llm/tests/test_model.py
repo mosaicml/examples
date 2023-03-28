@@ -19,7 +19,6 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, ComposerHFCausalLM,
                           ComposerHFPrefixLM)
-from examples.llm.src.models.layers import attention
 from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 
 
