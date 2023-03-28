@@ -145,22 +145,25 @@ class MosaicGPT(PreTrainedModel):
         if self.attn_impl == 'flash':
             return self.attn_bias, attention_mask
 
-        # If using torch or triton, we incorporate the prefix_mask (if
-        # appropriate), then any attention_mask. This will output None
-        # in place of attention_mask since it will not be futher needed
-        # in the attention modules.
+        attn_bias = self.attn_bias
+
+        # If using torch or triton, we incorporate the prefix_mask (if appropriate)
         if self.prefix_lm:
-            assert isinstance(self.attn_bias, torch.Tensor)  # pyright
+            assert isinstance(attn_bias, torch.Tensor)  # pyright
             assert isinstance(prefix_mask, torch.Tensor)  # pyright
-            attn_bias = self._apply_prefix_mask(self.attn_bias, prefix_mask)
-        else:
-            attn_bias = self.attn_bias
+            attn_bias = self._apply_prefix_mask(attn_bias, prefix_mask)
+
+        # If using torch or triton, we incorporate attention_mask. This will output
+        # None in place of attention_mask since it will not be futher needed in the
+        # attention modules.
         if attention_mask is not None:
             s_k = attention_mask.shape[-1]
             if attn_bias is None:
                 attn_bias = torch.zeros((1, 1, 1, s_k),
                                         device=device,
                                         dtype=dtype)
+            else:
+                attn_bias = attn_bias[:, :, :, -s_k:]
             if prefix_mask is not None and (attention_mask.shape !=
                                             prefix_mask.shape):
                 raise ValueError(
@@ -228,9 +231,6 @@ class MosaicGPT(PreTrainedModel):
         if output_attentions:
             raise NotImplementedError(
                 'output_attentions is not implemented yet for MosaicGPT')
-        if output_hidden_states:
-            raise NotImplementedError(
-                'output_hidden_states is not implemented yet for MosaicGPT')
 
         if attention_mask is not None and attention_mask[:, 0].sum(
         ) != attention_mask.shape[0] and self.training:
@@ -301,7 +301,11 @@ class MosaicGPT(PreTrainedModel):
             past_key_values = [() for _ in range(self.config.n_layers)
                               ]  # type: ignore
 
+        all_hidden_states = () if output_hidden_states else None
         for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
+            if output_hidden_states:
+                assert all_hidden_states is not None  # pyright
+                all_hidden_states = all_hidden_states + (x,)
             past_key_value = past_key_values[
                 b_idx] if past_key_values is not None else None
             x, past_key_value = block(x,
@@ -327,7 +331,8 @@ class MosaicGPT(PreTrainedModel):
             logits *= self.logit_scale
 
         return CausalLMOutputWithPast(logits=logits,
-                                      past_key_values=past_key_values)
+                                      past_key_values=past_key_values,
+                                      hidden_states=all_hidden_states)
 
     # Param Initialization, needed for device='meta' fast initialization
     def param_init_fn(self, module):
@@ -381,6 +386,22 @@ class MosaicGPT(PreTrainedModel):
             'use_cache': kwargs.get('use_cache'),
         }
 
+    @staticmethod
+    def _reorder_cache(past_key_values, beam_idx):
+        """Used by HuggingFace generate when using beam search with kv-caching.
+
+        See https://github.com/huggingface/transformers/blob/3ec7a47664ebe40c40f4b722f6bb1cd30c3821ec/src/transformers/models/gpt2/modeling_gpt2.py#L1122-L1133
+        for an example in transformers.
+        """
+        reordered_past = []
+        for layer_past in past_key_values:
+            reordered_past += [
+                tuple(
+                    past_state.index_select(0, beam_idx)
+                    for past_state in layer_past)
+            ]
+        return reordered_past
+
 
 class ComposerMosaicGPT(HuggingFaceModel):
 
@@ -398,6 +419,12 @@ class ComposerMosaicGPT(HuggingFaceModel):
         tokenizer_name = resolved_om_tokenizer_config['name']  # type: ignore
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
                                                   **tokenizer_kwargs)
+
+        # HuggingFace does not respect the model_max_length kwarg, and overrides it with
+        # min(kwargs['model_max_length'], original_config['model_max_length']), so we explicitly
+        # set it here
+        if 'model_max_length' in tokenizer_kwargs:
+            tokenizer.model_max_length = tokenizer_kwargs['model_max_length']
 
         train_metrics = [
             LanguageCrossEntropy(hf_config.vocab_size),
