@@ -1,9 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright 2022 MosaicML Composer authors
-# SPDX-License-Identifier: Apache-2.0
-
 import logging
 from typing import Any, Dict, List, Mapping, Optional, Union
 
@@ -32,6 +29,8 @@ def build_finetuning_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
             - cfg.dataset.tokenizer_name (e.g. "gpt2")
             - cfg.dataset.max_seq_length (e.g., 512)
             - cfg.dataset.decoder_only_format (should be True for a GPT model)
+            - cfg.dataset.local (local location if using a streaming dataset)
+            - cfg.dataset.remote (remote location if using a streaming dataset)
             - cfg.drop_last (e.g. False)
             - cfg.shuffle (e.g. True for training, False for validation)
             - cfg.num_workers (e.g. 8)
@@ -55,27 +54,65 @@ def build_finetuning_dataloader(cfg: Mapping[str, Any], device_batch_size: int):
         tokenizer.pad_token = tokenizer.eos_token
 
     # custom for P3
-    dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
-                                        cfg.dataset.split)
-
-    return DataLoader(
-        dataset,
-        collate_fn=Seq2SeqFinetuningCollator(
+    if cfg.dataset.get('local') is not None:
+        dataset = dataset_constructor.build_from_streaming(
+            cfg.dataset.name,
             tokenizer,
-            max_seq_length=cfg.dataset.max_seq_length,
-            decoder_only_format=cfg.dataset.decoder_only_format,
-            allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
-        ),
-        batch_size=device_batch_size,
-        sampler=dist.get_sampler(dataset,
-                                 drop_last=cfg.drop_last,
-                                 shuffle=cfg.shuffle),
-        num_workers=cfg.num_workers,
-        pin_memory=cfg.pin_memory,
-        prefetch_factor=cfg.prefetch_factor,
-        persistent_workers=cfg.persistent_workers,
-        timeout=cfg.timeout,
-    )
+            cfg.dataset.split,
+            local=cfg.dataset.local,
+            remote=cfg.dataset.get('remote'),
+            shuffle=cfg.shuffle,
+            predownload=cfg.dataset.get('predownload', 100_000),
+            keep_zip=cfg.dataset.get('keep_zip', False),
+            download_retry=cfg.dataset.get('download_retry', 2),
+            download_timeout=cfg.dataset.get('download_timeout', 60),
+            validate_hash=cfg.dataset.get('validate_hash'),
+            shuffle_seed=cfg.dataset.get('shuffle_seed'),
+            num_canonical_nodes=cfg.dataset.get('num_canonical_nodes'),
+            batch_size=device_batch_size)
+
+        return DataLoader(
+            dataset,
+            collate_fn=Seq2SeqFinetuningCollator(
+                tokenizer,
+                max_seq_length=cfg.dataset.max_seq_length,
+                decoder_only_format=cfg.dataset.decoder_only_format,
+                allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
+            ),
+            batch_size=device_batch_size,
+            drop_last=cfg.drop_last,
+            num_workers=cfg.num_workers,
+            pin_memory=cfg.get('pin_memory', True),
+            prefetch_factor=cfg.get('prefetch_factor', 2),
+            persistent_workers=cfg.get('persistent_workers', False),
+            timeout=cfg.get('timeout', 0),
+        )
+
+    else:
+        if cfg.dataset.get('remote') is not None:
+            raise ValueError(
+                f'{cfg.dataset.remote=} but cfg.dataset.local is None.')
+        dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
+                                            cfg.dataset.split)
+
+        return DataLoader(
+            dataset,
+            collate_fn=Seq2SeqFinetuningCollator(
+                tokenizer,
+                max_seq_length=cfg.dataset.max_seq_length,
+                decoder_only_format=cfg.dataset.decoder_only_format,
+                allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
+            ),
+            batch_size=device_batch_size,
+            sampler=dist.get_sampler(dataset,
+                                     drop_last=cfg.drop_last,
+                                     shuffle=cfg.shuffle),
+            num_workers=cfg.num_workers,
+            pin_memory=cfg.pin_memory,
+            prefetch_factor=cfg.prefetch_factor,
+            persistent_workers=cfg.persistent_workers,
+            timeout=cfg.timeout,
+        )
 
 
 class Seq2SeqFinetuningCollator:
@@ -388,29 +425,29 @@ if __name__ == '__main__':
             print(f'--- Sample {j} ---')
             if cfg.dataset.decoder_only_format:
                 print(
-                    'INPUT IDS:',
+                    '\033[93m{}\033[00m\n'.format('INPUT IDS:'),
                     tokenizer.decode(
                         batch['input_ids'][j, batch['attention_mask'][j] == 1],
                         skip_special_tokens=False))
                 print(
-                    'CONTEXT:  ',
+                    '\033[92m{}\033[00m\n'.format('CONTEXT:  '),
                     tokenizer.decode(
                         batch['input_ids'][j,
                                            batch['bidirectional_mask'][j] == 1],
                         skip_special_tokens=False))
                 print(
-                    'TARGET:   ',
+                    '\033[91m{}\033[00m\n'.format('TARGET:   '),
                     tokenizer.decode(batch['input_ids'][
                         j, batch['labels'][j] != _HF_IGNORE_INDEX],
                                      skip_special_tokens=False))
             else:
                 print(
-                    'CONTEXT:  ',
+                    '\033[92m{}\033[00m\n'.format('CONTEXT:  '),
                     tokenizer.decode(
                         batch['input_ids'][j, batch['attention_mask'][j] == 1],
                         skip_special_tokens=False))
                 print(
-                    'TARGET:   ',
+                    '\033[91m{}\033[00m\n'.format('TARGET:   '),
                     tokenizer.decode(batch['labels'][
                         j, batch['decoder_attention_mask'][j] == 1],
                                      skip_special_tokens=False))

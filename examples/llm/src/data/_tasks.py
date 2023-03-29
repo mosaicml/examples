@@ -5,10 +5,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from functools import partial
-from typing import Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import datasets
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
+
+from examples.common.text_data import StreamingTextDataset
 
 __all__ = ['dataset_constructor']
 
@@ -37,6 +39,35 @@ class DatasetConstructor:
             batched=False,
             remove_columns=columns_to_remove,
         )
+        return dataset
+
+    def build_from_streaming(self,
+                             dataset_name: str,
+                             tokenizer: Union[PreTrainedTokenizer,
+                                              PreTrainedTokenizerFast],
+                             split: str,
+                             local: str,
+                             remote: Optional[str] = None,
+                             **kwargs: Dict[str, Any]):
+
+        tokenize_function = partial(
+            self._task_tokenization_registry[dataset_name], tokenizer=tokenizer)
+
+        class DynamicStreamingDataset(StreamingTextDataset):
+
+            def __getitem__(self, idx: int) -> Dict[str, Any]:
+                sample = super(StreamingTextDataset, self).__getitem__(idx)
+                return tokenize_function(sample)
+
+        dataset = DynamicStreamingDataset(
+            tokenizer_name='gpt2',  # This will be ignored. Just a placeholder.
+            remote=remote,
+            local=local,
+            split=split,
+            max_seq_len=32768,  # Seq length not relevant here, so set high.
+            **kwargs,
+        )
+
         return dataset
 
 
@@ -93,6 +124,29 @@ def p3_tokenize_function(inp, tokenizer):
     )
 
 
+def muennighoff_p3_tokenize_function(inp, tokenizer):
+    """Format the text string and simply tokenize."""
+    # `text` is the text the encoder receives (i.e. the prompt)
+    # `text_target` is the target output the decoder should produce
+    # In this dataset, there are only 2 columns: "inputs" and "targets"
+    try:
+        prompt: str = inp['inputs']
+        response: str = inp['targets']
+        # Put a space before the response if needed
+        transitions = (' ', '\n', ':')
+        if not (prompt.endswith(transitions) or
+                response.startswith(transitions)):
+            response = ' ' + response
+    except:
+        print(inp)
+        raise
+    return tokenizer(
+        text=prompt,
+        text_target=response,
+    )
+
+
 dataset_constructor.add('tatsu-lab/alpaca', alpaca_tokenize_function)
 dataset_constructor.add('laion/OIG', oig_tokenize_function)
 dataset_constructor.add('bigscience/P3', p3_tokenize_function)
+dataset_constructor.add('Muennighoff/P3', muennighoff_p3_tokenize_function)
