@@ -45,6 +45,7 @@ class MosaicGPTConfig(PretrainedConfig):
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = False,
         use_cache: bool = True,
+        output_vocab: bool = True,
         **kwargs,
     ):
         """The MosaicGPT configuration class.
@@ -88,6 +89,8 @@ class MosaicGPTConfig(PretrainedConfig):
             embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
             use_cache (bool): Whether or not the model should return the last key/values attentions
+            output_vocab (bool): Whether or not to output the vocab layer as logits.
+
         """
         self.d_model = d_model
         self.n_heads = n_heads
@@ -121,6 +124,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.embedding_fraction = embedding_fraction
         self.low_precision_layernorm = low_precision_layernorm
         self.use_cache = use_cache
+        self.output_vocab = output_vocab
         if 'name' in kwargs:
             del kwargs['name']
         if 'loss_fn' in kwargs:
@@ -153,4 +157,9 @@ class MosaicGPTConfig(PretrainedConfig):
                       str) and self.logit_scale != 'inv_sqrt_d_model':
             raise ValueError(
                 f"{self.logit_scale=} is not recognized as an option; use numeric value or 'inv_sqrt_d_model'."
+            )
+        
+        if not self.output_vocab and self.logit_scale:
+            raise ValueError(
+                'using logit scale and not outputting vocab is currently not supported.'
             )

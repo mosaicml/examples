@@ -318,10 +318,13 @@ class MosaicGPT(PreTrainedModel):
 
         x = self.transformer.ln_f(x)  # type: ignore
 
-        # output embedding weight tied to input embedding
-        assert isinstance(self.transformer.wte, nn.Module)  # pyright
-        assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
-        logits = F.linear(x, self.transformer.wte.weight, None)
+        if self.output_vocab:
+            logits = x
+        else:
+            # output embedding weight tied to input embedding
+            assert isinstance(self.transformer.wte, nn.Module)  # pyright
+            assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
+            logits = F.linear(x, self.transformer.wte.weight, None)
 
         if self.logit_scale is not None:
             if self.logit_scale == 0:
