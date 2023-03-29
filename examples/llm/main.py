@@ -15,7 +15,7 @@ from examples.common.builders import (build_algorithm, build_callback,
                                       build_optimizer, build_scheduler)
 from examples.common.config_utils import log_config, update_batch_size_info
 from examples.common.text_data import build_text_dataloader
-from examples.llm.src import (COMPOSER_MODEL_REGISTRY, TOKENIZER_REGISTRY,
+from examples.llm.src import (COMPOSER_MODEL_REGISTRY,
                               build_text_denoising_dataloader)
 
 
@@ -54,14 +54,15 @@ def validate_config(cfg):
             )
 
 
-def build_composer_model(cfg):
+def build_composer_model(model_cfg, tokenizer_cfg):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
     try:
-        return COMPOSER_MODEL_REGISTRY[cfg.name](cfg)
+        return COMPOSER_MODEL_REGISTRY[model_cfg.name](model_cfg, tokenizer_cfg)
     except:
-        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+        raise ValueError(
+            f'Not sure how to build model with name={model_cfg.name}')
 
 
 def build_dataloader(cfg, device_batch_size):
@@ -85,8 +86,10 @@ def main(cfg):
         f'torch.distributed.*_base is a private function and will be deprecated.*'
     )
 
+    cfg.dist_timeout = cfg.get('dist_timeout', 1800.0)
+
     reproducibility.seed_all(cfg.seed)
-    dist.initialize_dist(get_device(None))
+    dist.initialize_dist(get_device(None), timeout=cfg.dist_timeout)
 
     # Run Name
     if cfg.get('run_name') is None:
@@ -114,7 +117,7 @@ def main(cfg):
 
     # Build Model
     print('Initializing model...')
-    model = build_composer_model(cfg.model)
+    model = build_composer_model(cfg.model, cfg.tokenizer)
     cfg.n_params = sum(p.numel() for p in model.parameters())
     print(f'{cfg.n_params=:.2e}')
     if hasattr(model, 'num_fwd_flops'):
@@ -135,10 +138,7 @@ def main(cfg):
         evaluators.append(eval_loader)
 
     if 'icl_tasks' in cfg:
-        tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
-        icl_evaluators, _ = build_icl_evaluators(cfg, tokenizer)
-        for icl_evaluator in icl_evaluators:
-            model.add_eval_metrics(icl_evaluator)
+        icl_evaluators, _ = build_icl_evaluators(cfg, model.tokenizer)
         evaluators.extend(icl_evaluators)
 
     # Optimizer
@@ -195,10 +195,17 @@ def main(cfg):
         save_overwrite=cfg.get('save_overwrite', False),
         load_path=cfg.get('load_path', None),
         load_weights_only=cfg.get('load_weights_only', False),
+        load_ignore_keys=cfg.get('load_ignore_keys', None),
+        autoresume=cfg.get('autoresume', False),
+        python_log_level=cfg.get('python_log_level', None),
+        dist_timeout=cfg.dist_timeout,
     )
 
     print('Logging config...')
     log_config(cfg)
+
+    if cfg.get('eval_first', False):
+        trainer.eval()
 
     print('Starting training...')
     trainer.fit()

@@ -16,11 +16,11 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingWithWarmupScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
-from data import build_imagenet_dataspec
-from model import build_composer_resnet
 from omegaconf import OmegaConf
 
 from examples.common.config_utils import log_config
+from examples.resnet_imagenet.data import build_imagenet_dataspec
+from examples.resnet_imagenet.model import build_composer_resnet
 
 
 def build_logger(name: str, kwargs: Dict):
@@ -46,7 +46,8 @@ def main(config):
                 f'recipe_name={config.recipe_name}, but must be one of ["mild", "medium", "hot"]'
             )
         recipe_config = config[config.recipe_name]
-        config.update(recipe_config)
+        for key, value in recipe_config.items():
+            OmegaConf.update(config, key, value)
 
     # Divide batch sizes by number of devices if running multi-gpu training
     train_batch_size = config.train_dataset.batch_size
@@ -196,7 +197,9 @@ def main(config):
         device=device,
         precision=precision,
         grad_accum=config.grad_accum,
-        seed=config.seed)
+        seed=config.seed,
+        python_log_level=config.get('python_log_level', None),
+    )
     print('Built Trainer\n')
 
     print('Logging config')

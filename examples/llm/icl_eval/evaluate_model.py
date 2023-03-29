@@ -3,16 +3,17 @@
 
 import sys
 import time
+from typing import List
 
 import torch
-from composer.loggers import InMemoryLogger
+from composer.loggers import InMemoryLogger, LoggerDestination
 from composer.trainer import Trainer
+from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
-from examples.common.builders import build_icl_evaluators
+from examples.common.builders import build_icl_evaluators, build_logger
 from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
-from examples.llm.src.tokenizer import TOKENIZER_REGISTRY
 
 if __name__ == '__main__':
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
@@ -21,13 +22,19 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
 
-    composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model)
-    tokenizer = TOKENIZER_REGISTRY[cfg.tokenizer.type](**cfg.tokenizer.args)
-    evaluators, logger_keys = build_icl_evaluators(cfg, tokenizer)
-    for evaluator in evaluators:
-        composer_model.add_eval_metrics(evaluator)
+    reproducibility.seed_all(cfg.get('seed', 1234))
+
+    composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model,
+                                                             cfg.tokenizer)
+    evaluators, logger_keys = build_icl_evaluators(cfg,
+                                                   composer_model.tokenizer)
 
     in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
+    loggers: List[LoggerDestination] = [
+        build_logger(name, logger_cfg)
+        for name, logger_cfg in (cfg.get('loggers') or {}).items()
+    ]
+    loggers.append(in_memory_logger)
 
     fsdp_config = cfg.get('fsdp_config', None)
     fsdp_config = om.to_container(
@@ -37,7 +44,7 @@ if __name__ == '__main__':
 
     trainer = Trainer(
         model=composer_model,
-        loggers=in_memory_logger,
+        loggers=loggers,
         fsdp_config=fsdp_config,  # type: ignore
         load_path=load_path,
         load_weights_only=True,
