@@ -398,4 +398,4 @@ def build_stable_diffusion_model(model_name_or_path: str,
                            num_images_per_prompt=num_images_per_prompt,
                            image_key=image_key,
                            caption_key=caption_key,
-                           loss=partial(prior_preservation_loss, prior_loss_weight))
+                           loss_fn=partial(prior_preservation_loss, prior_loss_weight))
