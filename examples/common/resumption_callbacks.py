@@ -17,7 +17,8 @@ class GlobalLRScaling(Callback):
         self.wd_pct = wd_pct
        
     def fit_start(self, state: State, logger: Logger):
-        assert state.optimizers is not None, 'optimizers must be defined'
+        if state.optimizer is None:
+            raise Exception('No optimizers defined')
         for optimizer in state.optimizers:
             for group in optimizer.param_groups:
                 group['lr'] *= self.lr_scale

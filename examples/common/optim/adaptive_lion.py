@@ -8,8 +8,6 @@ from composer.utils import dist
 
 log = logging.getLogger(__name__)
 
-# functions
-
 class DecoupledAdaLRLion(Optimizer):
     """This class implements a variant of Lion which lowers the layerwise learning rate when the layer's moment becomes an outlier. A moment is an outlier if it is some multiple
     `outlier_threshold` times larger than the simple windowed moving average (MVA) of moment norms taken from steps T-1000 to T-500. If an outlier is detected, the LR is lowered by `lr_penalty` for `timeout` steps.
@@ -54,8 +52,10 @@ class DecoupledAdaLRLion(Optimizer):
         lr_penalty: float = .707,
         min_scale: float = 1e-4
     ):
-        assert lr > 0.
-        assert all([0. <= beta <= 1. for beta in betas])
+        if lr <= 0.:
+            raise Exception(f"Invalid LR: {lr}. LR must be > 0")
+        if not all([0. <= beta <= 1. for beta in betas]):
+            raise Exception(f"Invalid beta values: {betas} All betas must be between 0 and 1.")
         if weight_decay >= 1e-3:
             log.warning(
                 f'You are using a high value of `weight_decay={weight_decay}` for the `DecoupledLionW` optimizer. Are you sure you want to do this? '
