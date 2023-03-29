@@ -157,9 +157,9 @@ class MosaicGPT(PreTrainedModel):
             attn_bias = self._apply_prefix_mask(attn_bias, prefix_mask)
 
         # If using torch or triton, we incorporate sequence_id (if appropriate)
-        if self.attn_uses_sequence_id:
+        if self.attn_uses_sequence_id and sequence_id is not None:
             assert isinstance(attn_bias, torch.Tensor)  # pyright
-            assert isinstance(sequence_id, torch.Tensor)  # pyright
+            # assert isinstance(sequence_id, torch.Tensor)  # pyright
             attn_bias = self._apply_sequence_id(attn_bias, sequence_id)
 
         # If using torch or triton, we incorporate attention_mask. This will output
@@ -273,15 +273,15 @@ class MosaicGPT(PreTrainedModel):
                 'prefix_mask is a required argument when MosaicGPT is configured with prefix_lm=True.'
             )
 
-        if self.attn_uses_sequence_id and sequence_id is None:
-            raise ValueError(
-                'sequence_id is a required argument when MosaicGPT is configured with attn_uses_sequence_id=True.'
-            )
-        elif sequence_id is not None:
-            warnings.warn(
-                'MosaicGPT received non-None input for `sequence_id` but is configured with attn_uses_sequence_id=False. ' +\
-                'This input will be ignored. If you want the model to use `sequence_id`, set attn_uses_sequence_id to True.'
-            )
+        # if self.attn_uses_sequence_id and sequence_id is None:
+        #     raise ValueError(
+        #         'sequence_id is a required argument when MosaicGPT is configured with attn_uses_sequence_id=True.'
+        #     )
+        # elif sequence_id is not None:
+        #     warnings.warn(
+        #         'MosaicGPT received non-None input for `sequence_id` but is configured with attn_uses_sequence_id=False. ' +\
+        #         'This input will be ignored. If you want the model to use `sequence_id`, set attn_uses_sequence_id to True.'
+        #     )
 
         S = input_ids.size(1)
 
@@ -406,10 +406,10 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'MosaicGPT does not support generation with right padding.')
 
-        if self.attn_uses_sequence_id:
-            sequence_id = torch.zeros_like(input_ids)
-        else:
-            sequence_id = None
+        # if self.attn_uses_sequence_id:
+        #     sequence_id = torch.zeros_like(input_ids)
+        # else:
+        #     sequence_id = None
 
         if past_key_values is not None:
             input_ids = input_ids[:, -1].unsqueeze(-1)
@@ -429,7 +429,7 @@ class MosaicGPT(PreTrainedModel):
             'input_ids': input_ids,
             'attention_mask': attention_mask,
             'prefix_mask': prefix_mask,
-            'sequence_id': sequence_id,
+            # 'sequence_id': sequence_id,
             'past_key_values': past_key_values,
             'use_cache': kwargs.get('use_cache'),
         }
