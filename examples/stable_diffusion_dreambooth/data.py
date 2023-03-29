@@ -10,6 +10,7 @@ from functools import partial
 
 import torch
 import transformers
+from composer.core import DataSpec
 from composer.utils import dist
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
@@ -41,6 +42,7 @@ def build_dreambooth_dataloader(instance_data_root: str,
                               instance_prompt: str,
                               tokenizer: transformers.PreTrainedTokenizer,
                               resolution: int,
+                              use_prior_preservation: bool = False,
                               center_crop: Optional[bool] = False,
                               class_prompt: Optional[str] = None,
                               class_data_root: Optional[str] = None,
@@ -80,7 +82,9 @@ def build_dreambooth_dataloader(instance_data_root: str,
                 transforms.Normalize([0.5], [0.5]),
             ]
         )
-    
+    if not use_prior_preservation:
+        class_data_root = None
+        class_prompt = None
     dataset = DreamBoothDataset(instance_data_root=instance_data_root,
                                 instance_prompt=instance_prompt,
                                 class_data_root=class_data_root,
@@ -98,10 +102,9 @@ def build_dreambooth_dataloader(instance_data_root: str,
                       collate_fn=collate_fn, 
                       **dataloader_kwargs)
 
-
 def build_prompt_dataloader(prompts: list[str], batch_size: int,
                           **dataloader_kwargs):
-    """Builds a prompt dataloader from a list of strings for eval.
+    """Builds a prompt dataset from a list of strings for eval.
 
     Args:
         prompts (list[str]): A list of prompts.
@@ -109,11 +112,12 @@ def build_prompt_dataloader(prompts: list[str], batch_size: int,
     """
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
-    return DataLoader(dataset=dataset,
-                      batch_size=batch_size, 
-                      sampler=sampler,
-                      drop_last=False,
-                      **dataloader_kwargs) # composer will handle strings in the future.
+    return DataSpec(dataloader=DataLoader(dataset=dataset,
+                                        batch_size=batch_size,
+                                        sampler=sampler,
+                                        drop_last=False,
+                                        **dataloader_kwargs),
+                  get_num_samples_in_batch=lambda x: len(x['prompt']))
 
 
 class PromptDataset(Dataset):
@@ -127,8 +131,8 @@ class PromptDataset(Dataset):
 
     def __getitem__(self, index: int):
         example = {}
-        example["prompt"] = self.prompts[index]
-        example["index"] = index
+        example['prompt'] = self.prompts[index]
+        example['index'] = index
         return example
 
     def __len__(self):
