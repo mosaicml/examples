@@ -31,9 +31,7 @@ def main(config):
     model = COMPOSER_MODEL_REGISTRY[config.model.name](config.model, config.tokenizer)
     model.eval()
 
-    print ("model is: ", model)
     inference_model = deepspeed.init_inference(model, config=inf_config)
-    print ("inference model is: ", inference_model)
 
     # Checking if deepspeed casts dtypes correctly
     for n, p in inference_model.named_parameters():
@@ -48,12 +46,11 @@ def main(config):
                 times = []
                 batch = torch.ones((batch_size, input_length)).cuda() * 17
                 batch = batch.to(torch.long)
-                print ("output length is: ", output_length)
-                print ("type of inference model is: ", type(inference_model))
-                print ("batch is: ", batch)
                 for i in range(config.num_runs + 1):
                     start_time = time.time()
-                    inference_model.generate(batch, max_new_tokens=output_length, use_cache=True)
+                    with torch.no_grad():
+                        with get_precision_context(config.precision):
+                            inference_model.generate(batch, max_new_tokens=output_length, use_cache=True)
                     # We noticed there sometimes might be a small bit of startup time 
                     # so we only benchmark after the first iteration
                     if i > 0:
