@@ -17,6 +17,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.fdiff import FDiffMetrics
+from examples.common.generate_callback import Generate
 from examples.common.optim.lion import DecoupledLionW
 from examples.common.text_data import build_text_dataloader
 
@@ -39,6 +40,9 @@ def build_callback(name, kwargs):
             'log_optimizer_metrics', True),)
     elif name == 'health_checker':
         return HealthChecker(**kwargs)
+    elif name == 'generate_callback':
+        prompts = kwargs.pop('prompts')
+        return Generate(prompts=list(prompts), **kwargs)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
