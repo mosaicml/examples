@@ -40,4 +40,4 @@ precision: amp_bf16
 batch_sizes: [1, 2, 4, 8, 16, 32, 64]
 input_lengths: [128]
 output_lengths: [8]
-num_runs: 10
+num_runs: 5

@@ -20,7 +20,7 @@ def main(config):
 
     inf_config = {
         "replace_with_kernel_inject": True,
-        "dtype": torch.float16,
+        "dtype": torch.bfloat16,
         "replace_method": "auto",
         "enable_cuda_graph": False,
         "tensor_parallel": {"tp_size": 0},
@@ -60,13 +60,18 @@ def main(config):
                 mean_time = np.mean(times)
                 tokens_per_second = num_output_tokens / float(mean_time)
 
-                resu = (f'{config.benchmark_name}_{batch_size}_{input_length}_{output_length}', f"{tokens_per_second:.3f}")
+                resu = (f'{config.benchmark_name}_{batch_size}_{input_length}_{output_length}', f"{mean_time:.3f}", f"{tokens_per_second:.3f}")
 
-                run_name, tokens_per_second = resu
+                run_name, latency, tokens_per_second = resu
 
-                print (f"{run_name}, {tokens_per_second}")
+                print (f"{run_name}, {latency}, {tokens_per_second}")
 
                 stats.append(resu)
+    
+    print ("="*75)
+    print ("name, latency (s), tokens / s")
+    for val in stats:
+        print (val)
 
 if __name__ == "__main__":
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
