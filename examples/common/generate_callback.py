@@ -4,7 +4,7 @@
 # Copyright 2022 MosaicML Composer authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Monitor rate of change of loss."""
+"""Periodically log generations to wandb from a set of prompts."""
 from typing import List
 
 import wandb
@@ -69,5 +69,7 @@ class Generate(Callback):
                                          columns=['prompt', 'generation'])
                 artifact.add(text_table, 'predictions')
                 wandb.log_artifact(artifact)
+                wandb.log({'generations': text_table},
+                          step=state.timestamp.batch.value)
 
         tokenizer.padding_side = original_padding_side
