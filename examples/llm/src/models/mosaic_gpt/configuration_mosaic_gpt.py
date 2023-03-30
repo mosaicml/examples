@@ -72,8 +72,9 @@ class MosaicGPTConfig(PretrainedConfig):
                 extra `prefix_mask` argument which indicates which tokens belong to the prefix. Tokens in the prefix
                 can attend to one another bi-directionally. Tokens outside the prefix use causal attention.
             attn_uses_sequence_id (Optional[bool]): Whether to restrict attention to tokens that have the same sequence_id.
-                This requires passing an extra `sequence_id` argument which indicates which sub-sequence each token belongs
-                to. Defaults to ``False`` meaning any provided `sequence_id` will be ignored.
+                When the model is in `train` mode, this requires passing an extra `sequence_id` argument which indicates
+                which sub-sequence each token belongs to.
+                Defaults to ``False`` meaning any provided `sequence_id` will be ignored.
             alibi (bool): Whether to use the alibi bias instead of position embeddings.
             alibi_bias_max (int): The maximum value of the alibi bias.
             init_device (str): The device to use for parameter initialization.
