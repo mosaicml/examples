@@ -273,7 +273,7 @@ class MosaicGPT(PreTrainedModel):
                 'prefix_mask is a required argument when MosaicGPT is configured with prefix_lm=True.'
             )
 
-        if self.training():
+        if self.training:
             if self.attn_uses_sequence_id and sequence_id is None:
                 raise ValueError(
                     'sequence_id is a required argument when MosaicGPT is configured with attn_uses_sequence_id=True ' +\
@@ -409,7 +409,7 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'MosaicGPT does not support generation with right padding.')
 
-        if self.attn_uses_sequence_id and self.training():
+        if self.attn_uses_sequence_id and self.training:
             sequence_id = torch.zeros_like(input_ids[:1])
         else:
             sequence_id = None
