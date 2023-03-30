@@ -19,6 +19,12 @@ class Generate(Callback):
         self.prompts = prompts
         self.generate_kwargs = kwargs
 
+    def init(self, state: State, logger: Logger):
+        if dist.get_global_rank() == 0:
+            for destination in ensure_tuple(logger.destinations):
+                if isinstance(destination, WandBLogger):
+                    self.wandb_logger = destination
+
     def eval_end(self, state: State, logger: Logger):
         model = state.model
         tokenizer = state.model.tokenizer
@@ -44,24 +50,24 @@ class Generate(Callback):
         )
 
         if dist.get_global_rank() == 0:
-            wandb_artifact = wandb.Artifact('generate_samples_' +
-                                            str(wandb.run.id),
-                                            type='predictions')
-            for destination in ensure_tuple(logger.destinations):
-                if isinstance(destination, WandBLogger):
-                    rows = []
-                    for i in range(len(self.prompts)):
-                        prompt = self.prompts[i]
-                        output_tokens = output_token_ids[i][
-                            tokenized_input['input_ids'].shape[1]:]
-                        output_text = tokenizer.decode(output_tokens,
-                                                       skip_special_tokens=True)
+            if self.wandb_logger is not None:
+                artifact = wandb.Artifact('generate_samples_' +
+                                          str(wandb.run.id),
+                                          type='predictions')
 
-                        rows.append([prompt, output_text])
+                rows = []
+                for i in range(len(self.prompts)):
+                    prompt = self.prompts[i]
+                    output_tokens = output_token_ids[i][
+                        tokenized_input['input_ids'].shape[1]:]
+                    output_text = tokenizer.decode(output_tokens,
+                                                   skip_special_tokens=True)
 
-                    text_table = wandb.Table(data=rows,
-                                             columns=['prompt', 'generation'])
-                    wandb_artifact.add(text_table, 'predictions')
-                    wandb.log_artifact(wandb_artifact)
+                    rows.append([prompt, output_text])
+
+                text_table = wandb.Table(data=rows,
+                                         columns=['prompt', 'generation'])
+                artifact.add(text_table, 'predictions')
+                wandb.log_artifact(artifact)
 
         tokenizer.padding_side = original_padding_side
