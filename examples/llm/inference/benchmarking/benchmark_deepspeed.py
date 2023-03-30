@@ -7,6 +7,7 @@ import time
 import deepspeed
 import numpy as np
 import torch
+from transformers import AutoTokenizer
 import transformers
 # You can use this to load the model weights
 from composer.core import get_precision_context
@@ -30,6 +31,8 @@ def main(config):
                                                        config.tokenizer)
     model.eval()
 
+    tokenizer = AutoTokenizer.from_pretrained(config.tokenizer_name)
+
     inference_model = deepspeed.init_inference(model, config=inf_config)
 
     # Checking if deepspeed casts dtypes correctly
@@ -43,10 +46,15 @@ def main(config):
         for input_length in config.input_lengths:
             for output_length in config.output_lengths:
                 times = []
-                batch = torch.randint(
-                    0, config.model.vocab_size, size=(
-                        batch_size,
-                        input_length)).to(f'cuda:{torch.cuda.current_device()}')
+                eos_token = tokenizer.eos_token
+                # Make sure we are not generating a fake batch with a EOS token 
+                while True:
+                    batch = torch.randint(
+                        0, config.model.vocab_size-1, size=(
+                            batch_size,
+                            input_length)).to(f'cuda:{torch.cuda.current_device()}')
+                    if tokenizer.convert_tokens_to_ids(eos_token) not in batch:
+                        break
                 batch = batch.to(torch.long)
                 for i in range(config.num_runs + 1):
                     start_time = time.time()
