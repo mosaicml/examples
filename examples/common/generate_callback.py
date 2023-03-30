@@ -44,6 +44,9 @@ class Generate(Callback):
         )
 
         if dist.get_global_rank() == 0:
+            wandb_artifact = wandb.Artifact('generate_samples_' +
+                                            str(wandb.run.id),
+                                            type='predictions')
             for destination in ensure_tuple(logger.destinations):
                 if isinstance(destination, WandBLogger):
                     rows = []
@@ -58,7 +61,7 @@ class Generate(Callback):
 
                     text_table = wandb.Table(data=rows,
                                              columns=['prompt', 'generation'])
-                    wandb.log({'generations': text_table},
-                              step=state.timestamp.batch.value)
+                    wandb_artifact.add(text_table, 'predictions')
+                    wandb.log_artifact(wandb_artifact)
 
         tokenizer.padding_side = original_padding_side
