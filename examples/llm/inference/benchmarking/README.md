@@ -11,4 +11,4 @@ To run the benchmarking script, use the following command:
 
 `python benchmark_deepspeed.py config.yaml`
 
-To run the scripts on [The MosaicML platform](https://www.mosaicml.com/blog/mosaicml-cloud-demo) we've also included scripts an associated `.yaml` in the `mcloud` folder. 
+To run the scripts on [The MosaicML platform](https://www.mosaicml.com/blog/mosaicml-cloud-demo) we've also included scripts an associated `.yaml` in the `mcloud` folder.

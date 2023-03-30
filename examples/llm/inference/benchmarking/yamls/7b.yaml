@@ -9,7 +9,7 @@ tokenizer:
   kwargs:
     model_max_length: ${max_seq_len}
 
-# Important 
+# Important
 
 model:
   name: mosaic_gpt
