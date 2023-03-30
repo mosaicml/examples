@@ -44,10 +44,11 @@ class MosaicGPTConfig(PretrainedConfig):
         init_nonlinearity: str = 'leaky_relu',
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = False,
-        use_cache: bool = False,
+        use_cache: bool = True,
         **kwargs,
     ):
         """The MosaicGPT configuration class.
+        
         Args:
             d_model (int): The size of the embedding dimension of the model.
             n_heads (int): The number of attention heads.
