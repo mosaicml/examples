@@ -840,8 +840,8 @@ if __name__ == '__main__':
         'num_workers': 0,
     }
     cfg = om.create(cfg)
-    device_batch_size = 2
-    n_examples_to_pack = device_batch_size * 5
+    device_batch_size = 8
+    n_examples_to_pack = int(device_batch_size * 5)
 
     loader = build_text_denoising_dataloader(cfg, device_batch_size,
                                              n_examples_to_pack)
@@ -855,6 +855,12 @@ if __name__ == '__main__':
         tokenizer = loader.collate_fn.base_collator.tokenizer
     batch_ix = 0
     for batch in loader:
+        if batch_ix >= 50:
+            batch_ix += 1
+            break
+        if batch_ix >= 2:
+            batch_ix += 1
+            continue
         print('\n')
         print('#' * 20, f'Batch {batch_ix}', '#' * 20)
         for k, v in batch.items():
@@ -867,16 +873,22 @@ if __name__ == '__main__':
                 attn_full = batch['attention_mask'][sample_ix].to(torch.bool)
                 attn_labels = torch.logical_xor(attn_inputs, attn_full)
                 print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
-                print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
-                print('Target: ', tokenizer.decode(labels[attn_labels]))
+                print('\033[93m{}\033[00m\n'.format('Input:  '),
+                      tokenizer.decode(token_sample[attn_inputs]))
+                print('\033[92m{}\033[00m\n'.format('Target: '),
+                      tokenizer.decode(labels[attn_labels]))
             else:
                 labels = batch['labels'][sample_ix]
                 attn_inputs = batch['attention_mask'][sample_ix].to(torch.bool)
                 attn_labels = batch['decoder_attention_mask'][sample_ix].to(
                     torch.bool)
                 print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
-                print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
-                print('Target: ', tokenizer.decode(labels[attn_labels]))
+                print('\033[93m{}\033[00m\n'.format('Input:  '),
+                      tokenizer.decode(token_sample[attn_inputs]))
+                print('\033[92m{}\033[00m\n'.format('Target: '),
+                      tokenizer.decode(labels[attn_labels]))
         batch_ix += 1
-        if batch_ix >= 5:
-            break
+
+    if n_examples_to_pack is not None:
+        print(f'Efficiency = {loader.collate_fn.efficiency}')
+        print(f'Waste      = {loader.collate_fn.waste}')

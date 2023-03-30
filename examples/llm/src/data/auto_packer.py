@@ -26,10 +26,16 @@ class PackWrapper:
 
         self.n_packed_tokens = 0
         self.n_total_tokens = 0
+        self.n_packed_examples = 0
 
     @property
     def waste(self):
         return 1 - (self.n_packed_tokens / self.n_total_tokens)
+
+    @property
+    def efficiency(self):
+        return self.n_packed_tokens / (self.max_seq_len *
+                                       self.n_packed_examples)
 
     def __call__(
             self,
@@ -48,18 +54,27 @@ class PackWrapper:
             ]
 
         # Cut everything down to size
-        sizes_and_examples = [
-            extract_trim_batch_idx(batch, idx)
-            for idx in range(batch['attention_mask'].shape[0])
-        ]
+        sizes, trimmed_examples = [], []
+        for idx in range(batch['attention_mask'].shape[0]):
+            size, trimmed_example = extract_trim_batch_idx(batch, idx)
+            sizes.append(size)
+            trimmed_examples.append(trimmed_example)
 
-        # Pack greedily
-        packed_examples, n_packed_tokens, n_total_tokens = greedy_pack(
-            sizes_and_examples,
-            out_size=self.out_size,
-            max_seq_len=self.max_seq_len)
-        self.n_packed_tokens += n_packed_tokens
+        bin_examples, n_discarded_tokens, n_total_tokens = first_fit_bin_packing(
+            sizes=sizes, num_bins=self.out_size, max_bin_size=self.max_seq_len)
+        self.n_packed_tokens += (n_total_tokens - n_discarded_tokens)
         self.n_total_tokens += n_total_tokens
+        self.n_packed_examples += self.out_size
+
+        # Merge the examples within each bin
+        packed_examples = []
+        for example_indices in bin_examples:
+            first_bin_index = example_indices[0]
+            packed_example = trimmed_examples[first_bin_index]
+            for example_index in example_indices[1:]:
+                packed_example = combine_in_place(
+                    packed_example, trimmed_examples[example_index])
+            packed_examples.append(packed_example)
 
         # Re-pad to max_seq_len and batch
         batch = repad(packed_examples,
@@ -73,67 +88,87 @@ def extract_trim_batch_idx(batch: Dict[str, torch.Tensor], idx: int):
     example = {k: v[idx] for k, v in batch.items()}
 
     keep = example['attention_mask'] == 1
-    size = keep.sum()
+    size = int(keep.sum())
     trim_example = {k: v[keep] for k, v in example.items()}
     trim_example['sequence_id'] = torch.zeros_like(trim_example['input_ids'])
 
     return size, trim_example
 
 
-def greedy_pack(sizes_and_examples: List[Tuple[int, Dict[str, torch.Tensor]]],
-                out_size: int, max_seq_len: int):
-    sorted_sizes_and_examples = sorted(sizes_and_examples, key=lambda x: x[0])
-    assert len(sorted_sizes_and_examples) >= out_size
-    if len(sorted_sizes_and_examples) == out_size:
-        return sorted_sizes_and_examples
+def combine_in_place(example: Dict[str, torch.Tensor],
+                     add_on: Dict[str, torch.Tensor]):
+    if 'labels' in add_on:
+        # Prevents the last token in example from being trained to
+        # predict the first token in add_on, which would make no sense.
+        add_on['labels'][0] = -100
 
-    def combine_in_place(example: Dict[str, torch.Tensor],
-                         add_on: Dict[str, torch.Tensor]):
-        if 'labels' in add_on:
-            # Prevents the last token in example from being trained to
-            # predict the first token in add_on, which would make no sense.
-            add_on['labels'][0] = -100
-
-        for k in example.keys():
-            if k == 'sequence_id':
-                example[k] = torch.cat(
-                    [example[k], add_on[k] + 1 + torch.max(example[k])])
-            else:
-                example[k] = torch.cat([example[k], add_on[k]])
-        return example
-
-    packed_sizes_and_examples = []
-    n_sorted = len(sorted_sizes_and_examples)
-    n_packed = 0
-    while n_sorted + n_packed > out_size and n_sorted > 1:
-        shortest_length = sorted_sizes_and_examples[0][0]
-        longest_length = sorted_sizes_and_examples[-1][0]
-        if shortest_length + longest_length <= max_seq_len:
-            # Remove shortest examples from the list
-            shortest_length, shortest_example = sorted_sizes_and_examples.pop(0)
-            n_sorted -= 1
-            # And pack it into the longest example
-            longest_length, longest_example = sorted_sizes_and_examples.pop(-1)
-            longest_example = combine_in_place(longest_example,
-                                               shortest_example)
-            longest_length += shortest_length
-            assert longest_length <= max_seq_len
-            sorted_sizes_and_examples.append((longest_length, longest_example))
+    for k in example.keys():
+        if k == 'sequence_id':
+            example[k] = torch.cat(
+                [example[k], add_on[k] + 1 + torch.max(example[k])])
         else:
-            # Can't pack any more into the longest, so remove it from this list
-            packed_sizes_and_examples.append(sorted_sizes_and_examples.pop(-1))
-            n_sorted -= 1
-            n_packed += 1
+            example[k] = torch.cat([example[k], add_on[k]])
+    return example
 
-    combined = sorted(packed_sizes_and_examples + sorted_sizes_and_examples,
-                      key=lambda x: x[0])
-    packed_examples = [example for _, example in combined][-out_size:]
 
-    tokens = [tokens for tokens, _ in combined]
-    n_total_tokens = sum(tokens)
-    n_packed_tokens = sum(tokens[-out_size:])
+def first_fit_bin_packing(
+        sizes: List[int], num_bins: int,
+        max_bin_size: int) -> Tuple[List[List[int]], int, int]:
+    num_examples = len(sizes)
+    if num_examples < num_bins:
+        raise ValueError(f'Cannot pack {num_examples=} into {num_bins=}.')
 
-    return packed_examples, n_packed_tokens, n_total_tokens
+    sizes_and_indices = [(size, idx) for idx, size in enumerate(sizes)]
+    sorted_sizes_and_indices = sorted(sizes_and_indices,
+                                      key=lambda x: x[0],
+                                      reverse=True)
+
+    # Will contain tuples (total_size, [indices])
+    bins: List[Tuple(int, List[int])] = []
+
+    # Go through each item from longest to shortest.
+    # Note: all items will either go into an existing or new bin.
+    for i, (size, index) in enumerate(sorted_sizes_and_indices):
+        # If we can't keep packing, all remaining items get their own bin.
+        n_remaining = num_examples - i
+        assert n_remaining + len(bins) >= num_bins
+        if n_remaining + len(bins) == num_bins:
+            # Can't keep packing. All remaining items get their own bin.
+            bins.append((size, [index]))
+            continue
+
+        # Add it to the first bin it fits in
+        added = False
+        for bidx in range(len(bins)):
+            if bins[bidx][0] + size <= max_bin_size:
+                bin_size, bin_indices = bins.pop(bidx)
+                bin_size = bin_size + size
+                bin_indices.append(index)
+                bins.append((bin_size, bin_indices))
+                added = True
+                break
+        # If it didn't fit anywhere, open a new bin
+        if not added:
+            bins.append((size, [index]))
+
+    total_bin_sizes = sum([bin_size for bin_size, _ in bins])
+    total_example_sizes = sum(sizes)
+    if total_bin_sizes != total_example_sizes:
+        raise AssertionError(
+            f'Error in packing. {total_example_sizes=} does not equal {total_bin_sizes=}.'
+        )
+
+    sorted_bins = sorted(bins, key=lambda x: x[0], reverse=True)
+    bin_sizes, bin_indices = [], []
+    for bin_size, bin_indices_ in sorted_bins:
+        bin_sizes.append(bin_size)
+        bin_indices.append(bin_indices_)
+
+    # waste is the total size of discarded bins
+    waste = sum(bin_sizes[num_bins:])
+
+    # Return the num_bins largest bins, the "waste", and the total starting size
+    return bin_indices[:num_bins], waste, sum(sizes)
 
 
 def repad(packed_examples: List[Dict[str, torch.Tensor]], max_seq_len: int,
