@@ -48,9 +48,12 @@ def main(config):
                 times = []
                 batch = torch.ones((batch_size, input_length)).cuda() * 17
                 batch = batch.to(torch.long)
+                print ("output length is: ", output_length)
+                print ("type of inference model is: ", type(inference_model))
+                print ("batch is: ", batch)
                 for i in range(config.num_runs + 1):
                     start_time = time.time()
-                    out = inference_model.generate(batch, max_new_tokens=output_length, use_cache=True)
+                    inference_model.generate(batch, max_new_tokens=output_length, use_cache=True)
                     # We noticed there sometimes might be a small bit of startup time 
                     # so we only benchmark after the first iteration
                     if i > 0:
