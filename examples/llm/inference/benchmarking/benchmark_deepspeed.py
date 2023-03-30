@@ -11,7 +11,6 @@ from omegaconf import OmegaConf as om
 from composer import Trainer
 from composer.core import get_precision_context
 
-# from composer.utils import dist, get_device
 from examples.llm.src import COMPOSER_MODEL_REGISTRY
 
 
