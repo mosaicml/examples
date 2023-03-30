@@ -279,7 +279,8 @@ class MosaicGPT(PreTrainedModel):
                     'sequence_id is a required argument when MosaicGPT is configured with attn_uses_sequence_id=True ' +\
                     'and the model is in train mode.'
                 )
-            elif sequence_id is not None:
+            elif (self.attn_uses_sequence_id is False) and (sequence_id
+                                                            is not None):
                 warnings.warn(
                     'MosaicGPT received non-None input for `sequence_id` but is configured with attn_uses_sequence_id=False. ' +\
                     'This input will be ignored. If you want the model to use `sequence_id`, set attn_uses_sequence_id to True.'
