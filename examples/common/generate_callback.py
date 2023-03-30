@@ -16,6 +16,23 @@ from composer.utils import dist, ensure_tuple
 class Generate(Callback):
 
     def __init__(self, prompts: List[str], **kwargs):
+        """Periodically log generations to wandb from a set of prompts.
+
+        In the main view for a run, there will be a table that will show the _last_ logged generations.
+        To compare previous iterations of the generations, you need to
+        1. Click on the run
+        2. Click on "artifacts" in the menu on the left side of the screen
+        3. Click on one of the artifacts called "predictions"
+        4. Click on the "files" tab
+        5. Click on "predictions.table.json"
+        6. On the left hand side, there are different versions of the table produced throughout training. Select one of these.
+        7. Now, when you hover over other versions, there will be a "compare" button, which will allow you to compare the currently
+            selected version to the version you add via compare.
+
+        Args:
+            prompts (List[str]): The list of prompts you would like to produce generations for
+            kwargs: All kwargs well be passed along to the call to generate. This is for things like `do_sample`, `top_p`, etc
+        """
         self.prompts = prompts
         self.generate_kwargs = kwargs
 
