@@ -586,8 +586,8 @@ def test_advanced_mask_building(attention_impl):
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
 
-    prefix_mask = torch.tensor([[1, 1, 0, 0, 1, 1, 1, 0]]).bool()
-    sequence_id = torch.tensor([[0, 0, 0, 0, 1, 1, 1, 1]])
+    prefix_mask = torch.ByteTensor([[1, 1, 0, 0, 1, 1, 1, 0]])
+    sequence_id = torch.LongTensor([[0, 0, 0, 0, 1, 1, 1, 1]])
 
     attn_bias, _ = mosaic_gpt._attn_bias(device=mosaic_gpt.device,
                                          dtype=torch.float32,
@@ -595,6 +595,7 @@ def test_advanced_mask_building(attention_impl):
                                          prefix_mask=prefix_mask,
                                          sequence_id=sequence_id)
 
+    assert isinstance(attn_bias, torch.Tensor)
     assert attn_bias.shape == torch.Size([1, 1, 8, 8])
 
     # We'll construct the expected value of attn_bias and then compare.
