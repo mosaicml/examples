@@ -38,5 +38,5 @@ load_model_path: MosaicGPT.pt
 
 batch_sizes: [1, 2, 4, 8, 16, 32, 64]
 input_lengths: [128]
-output_lengths: [8]
-num_runs: 5
+output_lengths: [128]
+num_runs: 10

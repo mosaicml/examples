@@ -9,6 +9,7 @@ from omegaconf import OmegaConf as om
 
 # You can use this to load the model weights
 from composer import Trainer
+from composer.core import get_precision_context
 
 # from composer.utils import dist, get_device
 from examples.llm.src import COMPOSER_MODEL_REGISTRY
@@ -17,7 +18,6 @@ from examples.llm.src import COMPOSER_MODEL_REGISTRY
 def main(config):
     tokenizer_name = "gpt2"
 
-    # TODO: maybe move this?
     inf_config = {
         "replace_with_kernel_inject": True,
         "dtype": torch.float16,
@@ -31,7 +31,9 @@ def main(config):
     model = COMPOSER_MODEL_REGISTRY[config.model.name](config.model, config.tokenizer)
     model.eval()
 
+    print ("model is: ", model)
     inference_model = deepspeed.init_inference(model, config=inf_config)
+    print ("inference model is: ", inference_model)
 
     # Checking if deepspeed casts dtypes correctly
     for n, p in inference_model.named_parameters():
@@ -44,18 +46,20 @@ def main(config):
         for input_length in config.input_lengths:
             for output_length in config.output_lengths:
                 times = []
-                for _ in range(config.num_runs):
+                batch = torch.ones((batch_size, input_length)).cuda() * 17
+                batch = batch.to(torch.long)
+                for i in range(config.num_runs + 1):
                     start_time = time.time()
-                    batch = torch.ones((batch_size, input_length)).cuda() * 17
-                    batch = batch.to(torch.long)
                     out = inference_model.generate(batch, max_new_tokens=output_length, use_cache=True)
-                    times.append(time.time() - start_time)
+                    # We noticed there sometimes might be a small bit of startup time 
+                    # so we only benchmark after the first iteration
+                    if i > 0:
+                        times.append(time.time() - start_time)
                 
                 num_output_tokens = output_length * batch_size
                 mean_time = np.mean(times)
                 tokens_per_second = num_output_tokens / float(mean_time)
 
-                # TODO: make this an experiment param
                 resu = (f'{config.benchmark_name}_{batch_size}_{input_length}_{output_length}', f"{tokens_per_second:.3f}")
 
                 run_name, tokens_per_second = resu
