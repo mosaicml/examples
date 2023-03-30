@@ -44,7 +44,7 @@ def main(config):
         for input_length in config.input_lengths:
             for output_length in config.output_lengths:
                 times = []
-                batch = torch.ones((batch_size, input_length)).cuda() * 17
+                batch = torch.ones((batch_size, input_length)).to(f'cuda:{torch.cuda.current_device()}') * 17
                 batch = batch.to(torch.long)
                 for i in range(config.num_runs + 1):
                     start_time = time.time()
