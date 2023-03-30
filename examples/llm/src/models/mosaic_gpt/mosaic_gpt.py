@@ -122,6 +122,7 @@ class MosaicGPT(PreTrainedModel):
         if config.verbose and config.verbose > 2:
             print(self)
 
+    @torch.no_grad()
     def _attn_bias(self,
                    device,
                    dtype,
@@ -159,7 +160,6 @@ class MosaicGPT(PreTrainedModel):
         # If using torch or triton, we incorporate sequence_id (if appropriate)
         if self.attn_uses_sequence_id and sequence_id is not None:
             assert isinstance(attn_bias, torch.Tensor)  # pyright
-            # assert isinstance(sequence_id, torch.Tensor)  # pyright
             attn_bias = self._apply_sequence_id(attn_bias, sequence_id)
 
         # If using torch or triton, we incorporate attention_mask. This will output
@@ -334,13 +334,12 @@ class MosaicGPT(PreTrainedModel):
             assert isinstance(self.transformer.emb_drop, nn.Module)  # pyright
             x = self.transformer.emb_drop(x_shrunk)
 
-        with torch.no_grad():
-            attn_bias, attention_mask = self._attn_bias(
-                device=x.device,
-                dtype=x.dtype,
-                attention_mask=attention_mask,
-                prefix_mask=prefix_mask,
-                sequence_id=sequence_id)
+        attn_bias, attention_mask = self._attn_bias(
+            device=x.device,
+            dtype=x.dtype,
+            attention_mask=attention_mask,
+            prefix_mask=prefix_mask,
+            sequence_id=sequence_id)
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
