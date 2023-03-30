@@ -23,7 +23,7 @@ def main(config):
         "dtype": torch.float16,
         "replace_method": "auto",
         "enable_cuda_graph": False,
-        "tensor_parallel": {"tp_size": 1},
+        "tensor_parallel": {"tp_size": 0},
     }
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)

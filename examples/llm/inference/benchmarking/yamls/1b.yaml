@@ -1,4 +1,4 @@
-benchmark_name: MosaicDeepspeed_1xA100-40GB-fp16-GPT-1B
+benchmark_name: MosaicDeepspeed_1xA100-80GB-fp16-GPT-1B
 
 max_seq_len: 2048
 tokenizer_name: gpt2
