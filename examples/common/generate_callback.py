@@ -35,6 +35,7 @@ class Generate(Callback):
         """
         self.prompts = prompts
         self.generate_kwargs = kwargs
+        self.wandb_logger = None
 
     def init(self, state: State, logger: Logger):
         if dist.get_global_rank() == 0:
