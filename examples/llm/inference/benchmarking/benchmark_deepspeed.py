@@ -9,7 +9,6 @@ import numpy as np
 import torch
 import transformers
 # You can use this to load the model weights
-from composer import Trainer
 from composer.core import get_precision_context
 from omegaconf import OmegaConf as om
 
@@ -17,8 +16,6 @@ from examples.llm.src import COMPOSER_MODEL_REGISTRY
 
 
 def main(config):
-    tokenizer_name = 'gpt2'
-
     inf_config = {
         'replace_with_kernel_inject': True,
         'dtype': torch.bfloat16,
@@ -28,8 +25,6 @@ def main(config):
             'tp_size': 0
         },
     }
-
-    tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name)
 
     model = COMPOSER_MODEL_REGISTRY[config.model.name](config.model,
                                                        config.tokenizer)
@@ -48,20 +43,27 @@ def main(config):
         for input_length in config.input_lengths:
             for output_length in config.output_lengths:
                 times = []
-                batch = torch.ones(
-                    (batch_size, input_length
-                    )).to(f'cuda:{torch.cuda.current_device()}') * 17
+                batch = torch.randint(
+                    0, config.model.vocab_size, size=(
+                        batch_size,
+                        input_length)).to(f'cuda:{torch.cuda.current_device()}')
                 batch = batch.to(torch.long)
                 for i in range(config.num_runs + 1):
                     start_time = time.time()
                     with torch.no_grad():
-                        with get_precision_context(config.precision):
+                        if config.use_precision_context:
+                            with get_precision_context(config.precision):
+                                inference_model.generate(
+                                    batch,
+                                    max_new_tokens=output_length,
+                                    use_cache=True)
+                        else:
                             inference_model.generate(
                                 batch,
                                 max_new_tokens=output_length,
                                 use_cache=True)
                     # We noticed there sometimes might be a small bit of startup time
-                    # so we only benchmark after the first iteration
+                    # so we only start to benchmark after the first iteration
                     if i > 0:
                         times.append(time.time() - start_time)
 

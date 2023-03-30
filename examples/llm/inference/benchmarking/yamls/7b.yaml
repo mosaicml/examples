@@ -25,7 +25,7 @@ model:
   attn_pdrop: 0.0
   resid_pdrop: 0.0
   emb_pdrop: 0.0
-  attn_impl: flash
+  attn_impl: triton
 
 fsdp_config:
   sharding_strategy: FULL_SHARD
@@ -41,3 +41,5 @@ batch_sizes: [1, 2, 4, 8, 16, 32, 64]
 input_lengths: [128]
 output_lengths: [8]
 num_runs: 5
+
+use_precision_context: True
