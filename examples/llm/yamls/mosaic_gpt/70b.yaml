@@ -92,9 +92,11 @@ precision: amp_bf16
 # FSDP
 fsdp_config:
   sharding_strategy: FULL_SHARD
-  mixed_precision: PURE # Only needed for 40GB cards
+  mixed_precision: PURE
   activation_checkpointing: true
+  activation_checkpointing_reentrant: false
   activation_cpu_offload: false
+  limit_all_gathers: true
   verbose: false
 
 # Logging

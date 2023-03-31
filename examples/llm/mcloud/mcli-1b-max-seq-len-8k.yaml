@@ -123,7 +123,9 @@ parameters:
     sharding_strategy: FULL_SHARD
     mixed_precision: PURE
     activation_checkpointing: false
+    activation_checkpointing_reentrant: false
     activation_cpu_offload: false
+    limit_all_gathers: true
     verbose: false
 
   # Logging
