@@ -150,12 +150,7 @@ class MixtureOfDenoisersCollator:
         self._allow_pad_trimming = allow_pad_trimming
         self._seen_first_batch = False
 
-        if decoder_only_format:
-            if context_eos is None:
-                context_eos = False
-        else:
-            context_eos = True
-        self.context_eos = bool(context_eos)
+        self.context_eos = bool(context_eos) if decoder_only_format else True
 
         # Prepare the tokenizer for denoising tasks
         utils.adapt_tokenizer_for_denoising(self.tokenizer)
