@@ -9,7 +9,8 @@ import torch
 from omegaconf import OmegaConf as om
 
 from examples.common.text_data import build_text_dataloader
-from examples.llm.src import build_text_denoising_dataloader
+from examples.llm.src import (build_finetuning_dataloader,
+                              build_text_denoising_dataloader)
 
 
 def get_config(conf_path='yamls/mosaic_gpt/125m.yaml'):
@@ -121,4 +122,53 @@ def test_denoising_dataloader(decoder_only_format, pretokenize):
             assert t.shape[1] <= max_seq_len
         batch_ix += 1
         if batch_ix >= 5:
+            break
+
+
+@pytest.mark.parametrize('decoder_only_format', [True, False])
+@pytest.mark.parametrize('allow_pad_trimming', [True, False])
+def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming):
+    # Use the datasets just built in the last test
+    tokenizer_name = 'gpt2' if decoder_only_format else 't5-base'
+    max_seq_len = 2048 if decoder_only_format else 1024
+
+    cfg = {
+        'name': 'finetuning',
+        'dataset': {
+            'name': 'tatsu-lab/alpaca',
+            'split': 'train',
+            'tokenizer_name': tokenizer_name,
+            'max_seq_length': max_seq_len,
+            'decoder_only_format': decoder_only_format,
+            'allow_pad_trimming': allow_pad_trimming,
+        },
+        'drop_last': False,
+        'shuffle': True,
+        'num_workers': 0,
+        'pin_memory': False,
+        'prefetch_factor': 2,
+        'persistent_workers': False,
+        'timeout': 0
+    }
+
+    cfg = om.create(cfg)
+    device_batch_size = 2
+
+    expected_keys = ['input_ids', 'attention_mask', 'labels']
+    if decoder_only_format:
+        expected_keys += ['bidirectional_mask']
+    else:
+        expected_keys += ['decoder_attention_mask', 'decoder_input_ids']
+
+    loader = build_finetuning_dataloader(cfg, device_batch_size)
+    batch_ix = 0
+    for batch in loader:
+        for k in expected_keys:
+            assert k in batch
+            t = batch[k]
+            assert t.shape[
+                0] == device_batch_size, f'{k} has incorrect batch size'
+            assert t.shape[1] <= max_seq_len, f'{k} exceeds max_seq_len'
+        batch_ix += 1
+        if batch_ix >= 3:
             break
