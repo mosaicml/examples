@@ -7,11 +7,10 @@ import time
 import deepspeed
 import numpy as np
 import torch
-from transformers import AutoTokenizer
-import transformers
 # You can use this to load the model weights
 from composer.core import get_precision_context
 from omegaconf import OmegaConf as om
+from transformers import AutoTokenizer
 
 from examples.llm.src import COMPOSER_MODEL_REGISTRY
 
@@ -47,12 +46,13 @@ def main(config):
             for output_length in config.output_lengths:
                 times = []
                 eos_token = tokenizer.eos_token
-                # Make sure we are not generating a fake batch with a EOS token 
+                # Make sure we are not generating a fake batch with a EOS token
                 while True:
                     batch = torch.randint(
-                        0, config.model.vocab_size-1, size=(
-                            batch_size,
-                            input_length)).to(f'cuda:{torch.cuda.current_device()}')
+                        0,
+                        config.model.vocab_size - 1,
+                        size=(batch_size, input_length
+                             )).to(f'cuda:{torch.cuda.current_device()}')
                     if tokenizer.convert_tokens_to_ids(eos_token) not in batch:
                         break
                 batch = batch.to(torch.long)
