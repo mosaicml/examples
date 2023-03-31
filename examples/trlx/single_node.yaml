@@ -1,0 +1,19 @@
+run_name: trlx-single-node
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+gpu_num: 8
+cluster: # FILL IN
+
+integrations:
+- integration_type: git_repo
+  git_repo: dakinggg/trlx
+  git_commit: barrier # temporary until https://github.com/CarperAI/trlx/pull/406 or similar is merged
+  pip_install: .
+  path: /workspace/trlx
+
+command: |
+  cd /workspace/trlx/examples
+  accelerate launch \
+    --num_processes 8 \
+    --num_machines 1 \
+    --use_deepspeed \
+    simulacra.py
