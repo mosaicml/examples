@@ -85,7 +85,7 @@ precision: amp_bf16
 # FSDP
 fsdp_config:
   sharding_strategy: FULL_SHARD
-  mixed_precision: DEFAULT
+  mixed_precision: PURE
   activation_checkpointing: false
   activation_cpu_offload: false
   verbose: false
