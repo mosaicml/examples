@@ -828,7 +828,7 @@ if __name__ == '__main__':
         'dataset': {
             'local': local,
             'remote': remote,
-            'split': 'val_small',
+            'split': 'val',  # 'val_small',
             'shuffle': False,
             'tokenizer_name': 'gpt2' if decoder_only else 't5-base',
             'max_seq_len': 2048 if decoder_only else 1024,
@@ -879,12 +879,25 @@ if __name__ == '__main__':
                 attn_full = batch['attention_mask'][sample_ix].to(torch.bool)
                 attn_labels = torch.logical_xor(attn_inputs, attn_full)
                 print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
-                print('\033[91m{}\033[00m\n'.format('Full:   '),
-                      tokenizer.decode(token_sample[attn_full]))
-                print('\033[93m{}\033[00m\n'.format('Input:  '),
-                      tokenizer.decode(token_sample[attn_inputs]))
-                print('\033[92m{}\033[00m\n'.format('Target: '),
-                      tokenizer.decode(labels[attn_labels]))
+                if packing:
+                    for subseq in range(
+                            int(batch['sequence_id'][sample_ix].max()) + 1):
+                        is_subseq = batch['sequence_id'][sample_ix] == subseq
+                        print(
+                            '\033[93m{}\033[00m\n'.format('Input:  '),
+                            tokenizer.decode(token_sample[torch.logical_and(
+                                is_subseq, attn_inputs)]))
+                        print(
+                            '\033[92m{}\033[00m\n'.format('Target: '),
+                            tokenizer.decode(labels[torch.logical_and(
+                                is_subseq, attn_labels)]))
+                else:
+                    print('\033[91m{}\033[00m\n'.format('Full:   '),
+                          tokenizer.decode(token_sample[attn_full]))
+                    print('\033[93m{}\033[00m\n'.format('Input:  '),
+                          tokenizer.decode(token_sample[attn_inputs]))
+                    print('\033[92m{}\033[00m\n'.format('Target: '),
+                          tokenizer.decode(labels[attn_labels]))
             else:
                 labels = batch['labels'][sample_ix]
                 attn_inputs = batch['attention_mask'][sample_ix].to(torch.bool)
