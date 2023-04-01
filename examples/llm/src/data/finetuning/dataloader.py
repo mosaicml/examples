@@ -46,47 +46,39 @@ def build_finetuning_dataloader(cfg: DictConfig,
     Returns:
         A pytorch dataloader
     """
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        cfg.dataset.tokenizer_name,
-        model_max_length=cfg.dataset.max_seq_length,
-        padding_side='left' if cfg.dataset.decoder_only_format else
-        'right')  #type: ignore (thirdparty)
-
-    if tokenizer.pad_token is None:  # type: ignore
-        tokenizer.pad_token = tokenizer.eos_token
-
-    # custom for P3
     if cfg.dataset.get('local') is not None:
         dataset = dataset_constructor.build_from_streaming(
             cfg.dataset.name,
-            tokenizer,
-            cfg.dataset.split,
+            cfg.dataset.tokenizer_name,
             local=cfg.dataset.local,
-            remote=cfg.dataset.get('remote'),
-            shuffle=cfg.shuffle,
+            remote=cfg.dataset.get('remote', None),
+            split=cfg.dataset.get('split'),
+            shuffle=cfg.dataset.get('shuffle', False),
             predownload=cfg.dataset.get('predownload', 100_000),
-            keep_zip=cfg.dataset.get('keep_zip', False),
+            keep_zip=cfg.dataset.get('keep_zip', None),
             download_retry=cfg.dataset.get('download_retry', 2),
             download_timeout=cfg.dataset.get('download_timeout', 60),
-            validate_hash=cfg.dataset.get('validate_hash'),
-            shuffle_seed=cfg.dataset.get('shuffle_seed'),
-            num_canonical_nodes=cfg.dataset.get('num_canonical_nodes'),
+            validate_hash=cfg.dataset.get('validate_hash', None),
+            shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
+            num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
             batch_size=device_batch_size)
+
+        collate_fn = Seq2SeqFinetuningCollator(
+            dataset.tokenizer,
+            max_seq_length=cfg.dataset.max_seq_length,
+            decoder_only_format=cfg.dataset.decoder_only_format,
+            allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
+        )
 
         return DataLoader(
             dataset,
-            collate_fn=Seq2SeqFinetuningCollator(
-                tokenizer,
-                max_seq_length=cfg.dataset.max_seq_length,
-                decoder_only_format=cfg.dataset.decoder_only_format,
-                allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
-            ),
+            collate_fn=collate_fn,
             batch_size=device_batch_size,
             drop_last=cfg.drop_last,
             num_workers=cfg.num_workers,
             pin_memory=cfg.get('pin_memory', True),
             prefetch_factor=cfg.get('prefetch_factor', 2),
-            persistent_workers=cfg.get('persistent_workers', False),
+            persistent_workers=cfg.get('persistent_workers', True),
             timeout=cfg.get('timeout', 0),
         )
 
@@ -94,26 +86,35 @@ def build_finetuning_dataloader(cfg: DictConfig,
         if cfg.dataset.get('remote') is not None:
             raise ValueError(
                 f'{cfg.dataset.remote=} but cfg.dataset.local is None.')
+
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            cfg.dataset.tokenizer_name)
+
+        if tokenizer.pad_token is None:  # type: ignore
+            tokenizer.pad_token = tokenizer.eos_token
+
         dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
                                             cfg.dataset.split)
 
+        collate_fn = Seq2SeqFinetuningCollator(
+            tokenizer,
+            max_seq_length=cfg.dataset.max_seq_length,
+            decoder_only_format=cfg.dataset.decoder_only_format,
+            allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
+        )
+
         return DataLoader(
             dataset,
-            collate_fn=Seq2SeqFinetuningCollator(
-                tokenizer,
-                max_seq_length=cfg.dataset.max_seq_length,
-                decoder_only_format=cfg.dataset.decoder_only_format,
-                allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
-            ),
+            collate_fn=collate_fn,
             batch_size=device_batch_size,
             sampler=dist.get_sampler(dataset,
                                      drop_last=cfg.drop_last,
-                                     shuffle=cfg.shuffle),
+                                     shuffle=cfg.dataset.shuffle),
             num_workers=cfg.num_workers,
-            pin_memory=cfg.pin_memory,
-            prefetch_factor=cfg.prefetch_factor,
-            persistent_workers=cfg.persistent_workers,
-            timeout=cfg.timeout,
+            pin_memory=cfg.get('pin_memory', True),
+            prefetch_factor=cfg.get('prefetch_factor', 2),
+            persistent_workers=cfg.get('persistent_workers', True),
+            timeout=cfg.get('timeout', 0),
         )
 
 
@@ -128,22 +129,23 @@ if __name__ == '__main__':
             'decoder_only_format': True,
             'separator_text': False,
             'allow_pad_trimming': False,
+            'num_canonical_nodes': 472,
+            'shuffle': True,
         },
         'drop_last': False,
-        'shuffle': True,
-        'num_workers': 0,
-        'pin_memory': False,
+        'num_workers': 2,
+        'pin_memory': True,
         'prefetch_factor': 2,
-        'persistent_workers': False,
+        'persistent_workers': True,
         'timeout': 0
     })
-
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        cfg.dataset.tokenizer_name)
 
     device_batch_size = 2
 
     dataloader = build_finetuning_dataloader(cfg, device_batch_size)
+
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        cfg.dataset.tokenizer_name)
 
     import torch
     for i, batch in enumerate(dataloader):
