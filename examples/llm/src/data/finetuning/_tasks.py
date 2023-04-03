@@ -62,9 +62,9 @@ class StreamingFinetuningDataset(StreamingDataset):
                  shuffle_seed: int = 9176,
                  num_canonical_nodes: Optional[int] = 128,
                  batch_size: Optional[int] = None,
-                 **kwargs: Dict[str, Any]):
+                 **kwargs: Any):
 
-        if kwargs is not None and len(kwargs) > 0:
+        if len(kwargs) > 0:
             raise ValueError(
                 f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}'
             )
@@ -117,7 +117,7 @@ class DatasetConstructor:
     def __init__(self):
         self._task_tokenization_registry: Dict[str, Callable] = {}
 
-    def register(self, name: str):
+    def register(self, *names: str):
         """Decorator for registering tokenization functions."""
 
         def _register_func(name: str, func: Callable) -> None:
@@ -129,7 +129,8 @@ class DatasetConstructor:
             return
 
         def wrapper(func: Callable) -> Callable:
-            _register_func(name, func)
+            for name in names:
+                _register_func(name, func)
             return func
 
         return wrapper
@@ -151,7 +152,7 @@ class DatasetConstructor:
         return dataset
 
     def build_from_streaming(self, dataset_name: str, tokenizer_name: str,
-                             **kwargs):
+                             **kwargs: Any):
 
         tokenize_function = self._task_tokenization_registry[dataset_name]
 
@@ -220,8 +221,9 @@ def p3_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     )
 
 
-@dataset_constructor.register('Muennighoff/P3')
-def muennighoff_p3_tokenize_function(inp: Dict, tokenizer: Tokenizer):
+# Muennighoff's P3 and flan datasets share a similar convention
+@dataset_constructor.register('Muennighoff/P3', 'Muennighoff/flan')
+def muennighoff_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Format the text string and simply tokenize."""
     # `text` is the text the encoder receives (i.e. the prompt)
     # `text_target` is the target output the decoder should produce

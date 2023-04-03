@@ -92,6 +92,6 @@ def main(args: Namespace) -> None:
 if __name__ == '__main__':
     """Example for converting Muennighoff/P3:
 
-        >>> python convert_finetuning_dataset.py --dataset "Muennighoff/P3" --splits train validation --columns inputs targets --out_root s3://<bucket>/meunnighoff-p3
+        >>> python convert_finetuning_dataset.py --dataset "Muennighoff/P3" --splits train validation --columns inputs targets --out_root s3://<bucket>/muennighoff-p3
     """
     main(parse_args())
