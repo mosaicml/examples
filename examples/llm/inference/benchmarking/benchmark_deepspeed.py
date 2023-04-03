@@ -39,6 +39,9 @@ def main(config):
         print('n is: ', n, p)
         print('dtype is: ', p.dtype)
         break
+    
+    n_params = sum(p.numel() for p in model.parameters())
+    print ("n_params is: ", n_params)
 
     stats = []
     for batch_size in config.batch_sizes:
