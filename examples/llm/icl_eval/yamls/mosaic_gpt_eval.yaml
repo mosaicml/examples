@@ -13,11 +13,7 @@ model:
   n_layers: 12
   mlp_ratio: 4
   max_seq_len: 2048
-  vocab_size: 50257
-  init_std: 0.02
-  attn_pdrop: 0.0
-  resid_pdrop: 0.0
-  emb_pdrop: 0.0
+  vocab_size: 50368
   attn_impl: triton
 
 load_path: # Add your (optional) Composer checkpoint path here!
