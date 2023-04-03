@@ -1,5 +1,5 @@
 run_name: stable-diffusion-dreambooth
-cluster: r7z2    # Name of the cluster to use for this run
+cluster: r8z7    # Name of the cluster to use for this run
 gpu_type: a100_40gb   # Type of GPU to use
 gpu_num: 8    # Number of GPUs to use
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
@@ -9,13 +9,13 @@ integrations:
   git_repo: A-Jacobson/examples
   pip_install: .[stable-diffusion-dreambooth]
   git_branch: dreambooth
+  ssh_clone: false
 command: |
-  cd dreambooth-lab
-  pip install -r requirements.txt
+  cd examples/examples/stable_diffusion_dreambooth
   composer main.py /mnt/config/parameters.yaml
 parameters:
   # Name of the  training run used for checkpointing and other logging
-  run_name: stable-diffusion-dreambooth-examples-test-0
+  run_name: stable-diffusion-dreambooth-examples-test-1
 
   seed: 42 # Random seed
 
@@ -43,6 +43,8 @@ parameters:
     class_data_root: ./data/class_data
     resolution: 512 # training image size
     center_crop: false
+    dataloader_kwargs:
+      num_workers: 8
 
     eval_prompts: # a list of prompts to use for evaluation
     - ${dataset.instance_prompt} in Paris

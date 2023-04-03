@@ -5,8 +5,8 @@
   max_duration: 800ba # Duration to train specified as a Time string 800 default
   # eval_interval: 25ba # 50 default
 
-  global_train_batch_size: 16 # Training total batch size (4 per 40gb A100, 8 cards)
-  global_eval_batch_size: 8 # each prompt generates 4 images
+  global_train_batch_size: 2 # Training total batch size (2 per 40gb A100)
+  global_eval_batch_size: 1 # each prompt generates 4 images by default
 
   # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
   device: gpu # gpu, mps, cpu (mps is experimental)
