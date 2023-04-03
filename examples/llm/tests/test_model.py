@@ -752,6 +752,7 @@ def test_save_from_pretrained(tmp_path):
 
 
 @pytest.mark.parametrize('alibi', [True, False])
+@pytest.mark.parametrize('low_precision_layernorm', [True, False])
 def test_forward_with_cache_and_padding(alibi):
     # Tests that the result is the same with or without padding when using kv caching
     hf_config = MosaicGPTConfig(
@@ -765,6 +766,7 @@ def test_forward_with_cache_and_padding(alibi):
         resid_pdrop=0.2,
         attn_impl='torch',
         alibi=alibi,
+        low_precision_layernorm=low_precision_layernorm,
         use_cache=True,
     )
 
