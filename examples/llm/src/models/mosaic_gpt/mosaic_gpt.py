@@ -498,7 +498,7 @@ class ComposerMosaicGPT(HuggingFaceModel):
             allow_embedding_resizing=True,
         )
 
-        self.n_params = sum(p.numel() for p in self.parameters())
+        self.n_active_params = sum(p.numel() for p in self.parameters())
 
         loss_fn_config = om_model_config.get('loss_fn', 'fused_crossentropy')
         if loss_fn_config == 'fused_crossentropy':
@@ -548,7 +548,7 @@ class ComposerMosaicGPT(HuggingFaceModel):
         # assume the backward pass is approximately 2x the forward pass
 
         bs, msl = batch['input_ids'].shape[0:2]
-        params_flops_per_token = 2 * self.n_params
+        params_flops_per_token = 2 * self.n_active_params
         params_flops_per_seq = params_flops_per_token * msl
         attn_flops_per_seq = self.model.config.n_layers * 2 * 2 * (
             self.model.config.d_model * (msl**2))
