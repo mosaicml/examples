@@ -4,15 +4,14 @@
 import pytest
 import torch
 
-from examples.stable_diffusion_dreambooth.model import build_stable_diffusion_model
+from examples.stable_diffusion_dreambooth.model import \
+    build_stable_diffusion_model
 
 
-
-@pytest.mark.parametrize(
-    'model_name',
-    ['CompVis/stable-diffusion-v1-4', 
-    'stabilityai/stable-diffusion-2-1',
-    'runwayml/stable-diffusion-v1-5'])
+@pytest.mark.parametrize('model_name', [
+    'CompVis/stable-diffusion-v1-4', 'stabilityai/stable-diffusion-2-1',
+    'runwayml/stable-diffusion-v1-5'
+])
 def test_model_builder(model_name: str):
     # test that the StableDiffusion base class outputs the correct size outputs
     # for all popular model versions.

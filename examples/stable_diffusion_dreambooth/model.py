@@ -169,8 +169,8 @@ class StableDiffusion(ComposerModel):
                  guidance_scale: float = 7.5,
                  negative_prompt: Optional[list] = None,
                  num_images_per_prompt: Optional[int] = None,
-                 disable_progress_bar: bool = False,
-                 seed: int = None):
+                 disable_progress_bar: Optional[bool] = False,
+                 seed: Optional[int] = None):
         """Generates image from noise.
 
         Performs the backward diffusion process, each inference step takes
@@ -268,7 +268,7 @@ class StableDiffusion(ComposerModel):
                 self.unet.in_channels,  # type: ignore
                 height // vae_scale_factor,
                 width // vae_scale_factor),
-            device=device,
+            device=device, # type: ignore
             dtype=text_embeddings.dtype)  # type: ignore
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
@@ -413,4 +413,4 @@ def build_stable_diffusion_model(model_name_or_path: str,
                            image_key=image_key,
                            caption_key=caption_key,
                            loss_fn=partial(prior_preservation_loss,
-                                           prior_loss_weight=prior_loss_weight))
+                                           prior_loss_weight=prior_loss_weight)) # type: ignore
