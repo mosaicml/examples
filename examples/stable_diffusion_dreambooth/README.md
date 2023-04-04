@@ -43,9 +43,9 @@ composer main.py yamls/dreambooth.yaml
 ```
 
 # Results
-The default config is `yamls/dreambooth.yaml`. It trains only the Unet and language encoder of `Stable Diffusion v1-4` for `200 batches`. 
+The default config is `yamls/dreambooth.yaml`. It trains only the Unet and language encoder of `Stable Diffusion v1-4` for `200 batches`.
 
-A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `25 batches`. In the yaml, uncomment `eval_interval` and the `wandb` settings to enable this online evaluation. 
+A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `25 batches`. In the yaml, uncomment `eval_interval` and the `wandb` settings to enable this online evaluation.
 
 Results from the default config and the prompt  `"a photo of sks dog wearing a blue sweater"`:
 <p align="center">

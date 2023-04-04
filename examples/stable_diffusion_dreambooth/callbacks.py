@@ -4,12 +4,12 @@
 """Prompt and image visualization callback for diffusion models."""
 import hashlib
 from pathlib import Path
+
+import torchvision.transforms.functional as F
 from composer import Callback, Logger, State
 from composer.loggers import WandBLogger
 from composer.utils import ensure_tuple
 from torchvision.utils import make_grid
-import torchvision.transforms.functional as F
-
 
 
 class LogDiffusionImages(Callback):
@@ -48,7 +48,6 @@ class SaveClassImages(Callback):
         self.class_images_dir = Path(class_data_root)
         # check current class images incase there are already images in dir
         self.cur_class_images = len(list(self.class_images_dir.iterdir()))
-
 
     def eval_batch_end(self, state: State, logger: Logger):
         # Tensor of shape [len(prompts) * num_images_per_prompt, 3, 512, 512])

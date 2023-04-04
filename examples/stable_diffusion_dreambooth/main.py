@@ -3,32 +3,32 @@
 
 """Example script to finetune a Stable Diffusion Model."""
 
-from pathlib import Path
 import os
 import sys
+from pathlib import Path
 
 import torch
 from callbacks import LogDiffusionImages, SaveClassImages
 from composer import Trainer
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
+from composer.loggers import WandBLogger
 from composer.optim import ConstantScheduler
 from composer.utils import dist, reproducibility
-from data import build_prompt_dataloader, build_dreambooth_dataloader
+from data import build_dreambooth_dataloader, build_prompt_dataloader
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
-from composer.loggers import WandBLogger
-
 
 
 def main(config: DictConfig):  # type: ignore
     reproducibility.seed_all(config.seed)
 
-
-
-    if dist.get_world_size() != 0 and config.device == 'gpu':  # initialize the pytorch distributed process group if training on multiple gpus.
+    if dist.get_world_size(
+    ) != 0 and config.device == 'gpu':  # initialize the pytorch distributed process group if training on multiple gpus.
         dist.initialize_dist(config.device)
-        config.train_device_batch_size = config.global_train_batch_size // dist.get_world_size()
-        config.eval_device_batch_size = config.global_eval_batch_size // dist.get_world_size()
+        config.train_device_batch_size = config.global_train_batch_size // dist.get_world_size(
+        )
+        config.eval_device_batch_size = config.global_eval_batch_size // dist.get_world_size(
+        )
 
     else:
         config.train_device_batch_size = config.global_train_batch_size
@@ -55,13 +55,17 @@ def main(config: DictConfig):  # type: ignore
             # duplicate the class prompt * num class samples to generate class images
             images_to_generate = config.num_class_images - cur_class_images
             class_prompts = [config.dataset.class_prompt] * images_to_generate
-            prompt_dataloader = build_prompt_dataloader(class_prompts,
-                                                        batch_size=config.train_device_batch_size)
-            save_class_images = SaveClassImages(class_data_root=config.dataset.class_data_root)
+            prompt_dataloader = build_prompt_dataloader(
+                class_prompts, batch_size=config.train_device_batch_size)
+            save_class_images = SaveClassImages(
+                class_data_root=config.dataset.class_data_root)
 
-            model.num_images_per_prompt = 1 # set for prior preservation image generation
-            trainer = Trainer(model=model, eval_dataloader=prompt_dataloader, callbacks=save_class_images)
-            trainer.eval() # eval run will save images via the SaveClassImages callback
+            model.num_images_per_prompt = 1  # set for prior preservation image generation
+            trainer = Trainer(model=model,
+                              eval_dataloader=prompt_dataloader,
+                              callbacks=save_class_images)
+            trainer.eval(
+            )  # eval run will save images via the SaveClassImages callback
             model.num_images_per_prompt = config.model.num_images_per_prompt
 
     # Train dataset
@@ -70,8 +74,8 @@ def main(config: DictConfig):  # type: ignore
         instance_data_root=config.dataset.instance_data_root,
         instance_prompt=config.dataset.instance_prompt,
         use_prior_preservation=config.use_prior_preservation,
-        class_data_root=config.dataset.get("class_data_root"),
-        class_prompt=config.dataset.get("class_prompt"),
+        class_data_root=config.dataset.get('class_data_root'),
+        class_prompt=config.dataset.get('class_prompt'),
         resolution=config.dataset.resolution,
         center_crop=config.dataset.center_crop,
         tokenizer=model.tokenizer,
@@ -95,7 +99,7 @@ def main(config: DictConfig):  # type: ignore
     callbacks += [LRMonitor()]  # Logs the learning rate
     callbacks += [MemoryMonitor()]  # Logs memory utilization
 
-    eval_dataloader = None # we only need an eval dataloader if using w&b logging
+    eval_dataloader = None  # we only need an eval dataloader if using w&b logging
     loggers = None
     if config.get('wandb'):
         import wandb
@@ -106,7 +110,8 @@ def main(config: DictConfig):  # type: ignore
         callbacks += [LogDiffusionImages()]
 
         eval_dataloader = build_prompt_dataloader(
-        config.dataset.eval_prompts, batch_size=config.eval_device_batch_size)
+            config.dataset.eval_prompts,
+            batch_size=config.eval_device_batch_size)
 
     # Create the Trainer!
     print('Building Trainer')
@@ -114,15 +119,15 @@ def main(config: DictConfig):  # type: ignore
     fsdp_config = None
     if config.use_fsdp:
         fsdp_config = {
-        'sharding_strategy': 'FULL_SHARD',
-        'min_params': 1e9,
-        'cpu_offload': False, # Not supported yet
-        'mixed_precision': 'DEFAULT',
-        'backward_prefetch': 'BACKWARD_POST',
-        'activation_checkpointing': False,
-        'activation_cpu_offload': False,
-        'verbose': True
-    }
+            'sharding_strategy': 'FULL_SHARD',
+            'min_params': 1e9,
+            'cpu_offload': False,  # Not supported yet
+            'mixed_precision': 'DEFAULT',
+            'backward_prefetch': 'BACKWARD_POST',
+            'activation_checkpointing': False,
+            'activation_cpu_offload': False,
+            'verbose': True
+        }
 
     trainer = Trainer(
         run_name=config.run_name,
@@ -146,7 +151,6 @@ def main(config: DictConfig):  # type: ignore
         grad_accum=config.get('grad_accum'),
         seed=config.seed,
         fsdp_config=fsdp_config)
-
 
     print(OmegaConf.to_yaml(config))
 
