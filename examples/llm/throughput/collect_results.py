@@ -231,11 +231,11 @@ def main(args):
             f.write(fmt.format(*fieldnames))
             f.write(fmt.format(*['---' for _ in fieldnames]))
             if args.print_results:
-                print(fmt.format(*fieldnames))
-                print(fmt.format(*['---' for _ in fieldnames]))
+                print(fmt.format(*fieldnames), end='')
+                print(fmt.format(*['---' for _ in fieldnames]), end='')
             for result in results:
                 if args.print_results:
-                    print(fmt.format(*result.values()))
+                    print(fmt.format(*result.values()), end='')
                 f.write(fmt.format(*result.values()))
     else:
         print('WARNING: No results parsed.')

@@ -7,8 +7,8 @@ import os
 
 import requests
 import yaml
-from mcli.sdk import RunConfig, create_run, get_clusters
 from mcli.models.run_config import SchedulingConfig
+from mcli.sdk import RunConfig, create_run, get_clusters
 
 
 def _get_cluster_info():
@@ -77,8 +77,7 @@ def parse_args():
         type=int,
         default=[11, 11],
         nargs=2,
-        help=
-        'exponent of seq lengths to be tested (default: [11, 11] = 2048)')
+        help='exponent of seq lengths to be tested (default: [11, 11] = 2048)')
     parser.add_argument(
         '-b',
         '--batch_size_exp',
@@ -116,10 +115,8 @@ def parse_args():
                         ],
                         nargs='+',
                         help='model sizes to test')
-    
-    parser.add_argument('--attn_impl',
-                        type=str,
-                        default='triton')
+
+    parser.add_argument('--attn_impl', type=str, default='triton')
 
     parser.add_argument('-c',
                         '--clusters',
@@ -161,9 +158,7 @@ def parse_args():
                         const=True,
                         default=True)
 
-    parser.add_argument('--priority',
-                        type=str,
-                        default='low')
+    parser.add_argument('--priority', type=str, default='low')
 
     parser.add_argument('--RUN',
                         type=str_to_bool,
@@ -183,7 +178,7 @@ def get_global_train_batch_sizes(max_seq_len, pows, batch_sizes=[]):
         # global batch size in tokens (defualt: .5M thru 8M)
         global_train_token_counts = [2**n for n in range(pows[0], pows[1] + 1)]
         batch_sizes += [t // max_seq_len for t in global_train_token_counts
-                      ]  # global batch size in samples
+                       ]  # global batch size in samples
     return batch_sizes
 
 
@@ -304,7 +299,7 @@ def mod_parameters(parameters,
     if fsdp_config_activation_checkpointing is not None:
         parameters['fsdp_config'][
             'activation_checkpointing'] = fsdp_config_activation_checkpointing
-        
+
     parameters['fsdp_config']['activation_checkpointing_reentrant'] = False
     parameters['fsdp_config']['limit_all_gathers'] = True
 
@@ -394,7 +389,8 @@ def run_config(config, args):
         global_train_batch_size,
         precision,
         fsdp_config_mixed_precision=args.fsdp_config_mixed_precision,
-        fsdp_config_activation_checkpointing=args.fsdp_config_activation_checkpointing,
+        fsdp_config_activation_checkpointing=args.
+        fsdp_config_activation_checkpointing,
         run_name=name,
         data_remote=args.data_remote,
         microbatch_size=microbatch_size,
@@ -402,21 +398,19 @@ def run_config(config, args):
         pad_vocab_multiple=args.pad_vocab_multiple)
 
     # Create run config mcli sdk/api
-    config = RunConfig(
-        run_name=name,
-        name=name,
-        gpu_type=gpu_type,
-        gpu_num=gpu_num,
-        cpus=None,
-        platform=None,
-        cluster=cluster,
-        image=args.image,
-        optimization_level=0,
-        integrations=integrations,
-        command=command,
-        parameters=parameters,
-        scheduling=SchedulingConfig(priority=args.priority)
-    )
+    config = RunConfig(run_name=name,
+                       name=name,
+                       gpu_type=gpu_type,
+                       gpu_num=gpu_num,
+                       cpus=None,
+                       platform=None,
+                       cluster=cluster,
+                       image=args.image,
+                       optimization_level=0,
+                       integrations=integrations,
+                       command=command,
+                       parameters=parameters,
+                       scheduling=SchedulingConfig(priority=args.priority))
 
     if args.RUN:
         # Create the run from a config
@@ -469,9 +463,11 @@ if __name__ == '__main__':
                         max_seq_len, args.batch_size_exp, args.batch_sizes)
                     if not global_train_batch_sizes and args.microbatch_size is not None:
                         accum = args.accum or 1
-                        global_train_batch_sizes = [accum * gpu_num * args.microbatch_size]
-                    
-                    for global_train_batch_size in global_train_batch_sizes:    
+                        global_train_batch_sizes = [
+                            accum * gpu_num * args.microbatch_size
+                        ]
+
+                    for global_train_batch_size in global_train_batch_sizes:
                         for precision in args.precisions:
                             for model_yaml in args.model_yamls:
 
@@ -480,7 +476,9 @@ if __name__ == '__main__':
                                                          gpu_type,
                                                          p_multiplier=4)
                                 if args.microbatch_size is not None:
-                                    run = run and run_check_dtms(gpu_num, args.microbatch_size, global_train_batch_size)
+                                    run = run and run_check_dtms(
+                                        gpu_num, args.microbatch_size,
+                                        global_train_batch_size)
 
                                 if run:
                                     config = (model_yaml, max_seq_len,
