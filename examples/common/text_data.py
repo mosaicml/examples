@@ -12,8 +12,7 @@ import torch
 import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from streaming import StreamingDataset
-from streaming.base.stream import Stream
+from streaming import StreamingDataset, Stream
 from torch.utils.data import DataLoader
 
 
@@ -96,32 +95,34 @@ class StreamingTextDataset(StreamingDataset):
                 f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}'
             )
 
-        if remote is None or (local == remote):
-            if os.path.isdir(local):
-                contents = set(os.listdir(local))
-                if split not in contents:
-                    raise ValueError(
-                        f'local directory {local} does not contain split {split}'
-                    )
+        # if remote is None or (local == remote):
+        #     if os.path.isdir(local):
+        #         contents = set(os.listdir(local))
+        #         if split not in contents:
+        #             raise ValueError(
+        #                 f'local directory {local} does not contain split {split}'
+        #             )
 
         # Build Dataset
-        super().__init__(streams=streams,
-                         remote=remote,
-                         local=local,
-                         split=split,
-                         download_retry=download_retry,
-                         download_timeout=download_timeout,
-                         validate_hash=validate_hash,
-                         keep_zip=keep_zip,
-                         keep_raw=keep_raw,
-                         samples_per_epoch=samples_per_epoch,
-                         predownload=predownload,
-                         partition_algo=partition_algo,
-                         num_canonical_nodes=num_canonical_nodes,
-                         batch_size=batch_size,
-                         shuffle=shuffle,
-                         shuffle_algo=shuffle_algo,
-                         shuffle_seed=shuffle_seed)
+        super().__init__(
+            streams=streams,
+            remote=remote,
+            local=local,
+            split=split,
+            download_retry=download_retry,
+            download_timeout=download_timeout,
+            validate_hash=validate_hash,
+            keep_zip=keep_zip,
+            keep_raw=keep_raw,
+            samples_per_epoch=samples_per_epoch,
+            predownload=predownload,
+            partition_algo=partition_algo,
+            num_canonical_nodes=num_canonical_nodes,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            shuffle_algo=shuffle_algo,
+            shuffle_seed=shuffle_seed,
+        )
         self.max_seq_len = max_seq_len
 
         # Build tokenizer
@@ -215,10 +216,33 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
             'group_method is deprecated and has been removed.\nTo ' +
             'concatenate, use the --concat_tokens ' +
             'argument when creating your MDS dataset with convert_dataset.py')
+
+    # build streams
+    streams_dict = cfg.dataset.get('streams', None)
+    streams = None
+    if streams_dict is not None:
+        streams = []
+        for _, stream in streams_dict.items():
+            print(stream)
+            streams.append(Stream(
+                remote=stream.get('remote', None) or cfg.dataset.get('remote', None),
+                local=stream.get('local', None) or cfg.dataset.get('local', None),
+                split=stream.get('split', None) or cfg.dataset.get('split', None),
+                proportion=stream.get('proportion', None),
+                repeat=stream.get('repeat', None),
+                samples=stream.get('samples', None),
+                download_retry=stream.get('download_retry', None) or cfg.dataset.get('download_retry', 2),
+                download_timeout=stream.get('download_timeout', None) or cfg.dataset.get('download_timeout', 60),
+                validate_hash=stream.get('validate_hash', None) or cfg.dataset.get('validate_hash', None),
+                keep_zip=stream.get('keep_zip', None) or cfg.dataset.get('keep_zip', False),
+                keep_raw=stream.get('keep_raw', None) or cfg.dataset.get('keep_raw', True),
+            ))
+
+    # build dataset potentially with streams
     dataset = StreamingTextDataset(
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
-        streams=cfg.dataset.get('streams', None),
+        streams=streams,
         remote=cfg.dataset.get('remote', None),
         local=cfg.dataset.get('local', None),
         split=cfg.dataset.get('split', None),
