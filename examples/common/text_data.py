@@ -12,7 +12,7 @@ import torch
 import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from streaming import StreamingDataset, Stream
+from streaming import Stream, StreamingDataset
 from torch.utils.data import DataLoader
 
 
@@ -223,20 +223,28 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
     if streams_dict is not None:
         streams = []
         for _, stream in streams_dict.items():
-            print(stream)
-            streams.append(Stream(
-                remote=stream.get('remote', None) or cfg.dataset.get('remote', None),
-                local=stream.get('local', None) or cfg.dataset.get('local', None),
-                split=stream.get('split', None) or cfg.dataset.get('split', None),
-                proportion=stream.get('proportion', None),
-                repeat=stream.get('repeat', None),
-                samples=stream.get('samples', None),
-                download_retry=stream.get('download_retry', None) or cfg.dataset.get('download_retry', 2),
-                download_timeout=stream.get('download_timeout', None) or cfg.dataset.get('download_timeout', 60),
-                validate_hash=stream.get('validate_hash', None) or cfg.dataset.get('validate_hash', None),
-                keep_zip=stream.get('keep_zip', None) or cfg.dataset.get('keep_zip', False),
-                keep_raw=stream.get('keep_raw', None) or cfg.dataset.get('keep_raw', True),
-            ))
+            streams.append(
+                Stream(
+                    remote=stream.get('remote', None) or
+                    cfg.dataset.get('remote', None),
+                    local=stream.get('local', None) or
+                    cfg.dataset.get('local', None),
+                    split=stream.get('split', None) or
+                    cfg.dataset.get('split', None),
+                    proportion=stream.get('proportion', None),
+                    repeat=stream.get('repeat', None),
+                    samples=stream.get('samples', None),
+                    download_retry=stream.get('download_retry', None) or
+                    cfg.dataset.get('download_retry', 2),
+                    download_timeout=stream.get('download_timeout', None) or
+                    cfg.dataset.get('download_timeout', 60),
+                    validate_hash=stream.get('validate_hash', None) or
+                    cfg.dataset.get('validate_hash', None),
+                    keep_zip=stream.get('keep_zip', None) or
+                    cfg.dataset.get('keep_zip', False),
+                    keep_raw=stream.get('keep_raw', None) or
+                    cfg.dataset.get('keep_raw', True),
+                ))
 
     # build dataset potentially with streams
     dataset = StreamingTextDataset(
