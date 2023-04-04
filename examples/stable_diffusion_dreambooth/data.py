@@ -92,9 +92,10 @@ def build_dreambooth_dataloader(instance_data_root: str,
                                 class_prompt=class_prompt,
                                 tokenizer=tokenizer,
                                 image_transforms=image_transforms)
-    sampler = dist.get_sampler(dataset, 
-                               drop_last=drop_last, # type: ignore
-                               shuffle=shuffle)  # type: ignore
+    sampler = dist.get_sampler(
+        dataset,
+        drop_last=drop_last,  # type: ignore
+        shuffle=shuffle)  # type: ignore
     use_prior_preservation = True if class_prompt and class_data_root else False
     collate_fn = partial(dreambooth_collate_fn,
                          use_prior_preservation=use_prior_preservation)
