@@ -4,7 +4,6 @@
 try:
     import torch
 
-    from examples.llm.inference.inference import get_mosaicgpt_inference_model
     from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
     from examples.llm.src.models.hf import (ComposerHFCausalLM,
                                             ComposerHFPrefixLM, ComposerHFT5)
@@ -43,5 +42,4 @@ __all__ = [
     'MosaicGPT',
     'MosaicGPTConfig',
     'ComposerMosaicGPT',
-    'get_mosaicgpt_inference_model',
 ]

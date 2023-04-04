@@ -52,13 +52,9 @@ def get_hf_tokenizer_from_comopser_state_dict(
                         _tmp_file.write(s.serialized_model_proto())
             hf_tokenizer = AutoTokenizer.from_pretrained(_tmp_dir)
 
-            # we need to set the name_or_path back because otherwise it is the tmp dir we are loading from here
-            hf_tokenizer.name_or_path = None
-            hf_tokenizer.init_kwargs['name_or_path'] = None
-
-            # # for an unknown reason this key is missing when loading the saved tokenizer, but present with a value of None
-            # # for the original tokenizer, so we default it to None
-            # hf_tokenizer.init_kwargs['tokenizer_file'] = hf_tokenizer.init_kwargs.get('tokenizer_file', None)
+            # remove 'name_or_path'
+            hf_tokenizer.name_or_path = ''
+            hf_tokenizer.init_kwargs['name_or_path'] = ''
 
     return hf_tokenizer
 
