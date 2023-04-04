@@ -27,8 +27,8 @@ def dreambooth_collate_fn(examples: dict, use_prior_preservation: bool = False):
         image_tensor += [example['class_images'] for example in examples]
 
     image_tensor = torch.stack(image_tensor)
-    image_tensor = image_tensor.to( # type: ignore
-        memory_format=torch.contiguous_format).float() 
+    image_tensor = image_tensor.to(  # type: ignore
+        memory_format=torch.contiguous_format).float()
 
     input_ids = torch.cat(input_ids, dim=0)
 
@@ -92,16 +92,19 @@ def build_dreambooth_dataloader(instance_data_root: str,
                                 class_prompt=class_prompt,
                                 tokenizer=tokenizer,
                                 image_transforms=image_transforms)
-    sampler = dist.get_sampler(dataset, drop_last=drop_last, shuffle=shuffle) # type: ignore
+    sampler = dist.get_sampler(dataset, 
+                               drop_last=drop_last, # type: ignore
+                               shuffle=shuffle)  # type: ignore
     use_prior_preservation = True if class_prompt and class_data_root else False
     collate_fn = partial(dreambooth_collate_fn,
                          use_prior_preservation=use_prior_preservation)
-    return DataLoader(dataset=dataset,
-                      batch_size=batch_size,
-                      sampler=sampler,
-                      drop_last=drop_last,
-                      collate_fn=collate_fn, # type: ignore
-                      **dataloader_kwargs)
+    return DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        sampler=sampler,
+        drop_last=drop_last,  # type: ignore
+        collate_fn=collate_fn,  # type: ignore
+        **dataloader_kwargs)
 
 
 def build_prompt_dataloader(prompts: list[str], batch_size: int,
@@ -202,7 +205,8 @@ class DreamBoothDataset(Dataset):
             self.instance_images_path[index % self.num_instance_images])
         if not instance_image.mode == 'RGB':
             instance_image = instance_image.convert('RGB')
-        example['instance_images'] = self.image_transforms(instance_image) # type:ignore
+        example['instance_images'] = self.image_transforms(
+            instance_image)  # type:ignore
         example['instance_prompt_ids'] = self.tokenizer(
             self.instance_prompt,
             truncation=True,
@@ -216,7 +220,8 @@ class DreamBoothDataset(Dataset):
                 self.class_images_path[index % self.num_class_images])
             if not class_image.mode == 'RGB':
                 class_image = class_image.convert('RGB')
-            example['class_images'] = self.image_transforms(class_image) # type: ignore
+            example['class_images'] = self.image_transforms(
+                class_image)  # type: ignore
             example['class_prompt_ids'] = self.tokenizer(
                 self.class_prompt,
                 truncation=True,

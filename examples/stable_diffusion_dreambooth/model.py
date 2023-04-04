@@ -268,7 +268,7 @@ class StableDiffusion(ComposerModel):
                 self.unet.in_channels,  # type: ignore
                 height // vae_scale_factor,
                 width // vae_scale_factor),
-            device=device, # type: ignore
+            device=device,  # type: ignore
             dtype=text_embeddings.dtype)  # type: ignore
         self.inference_scheduler.set_timesteps(num_inference_steps)
 
@@ -401,16 +401,17 @@ def build_stable_diffusion_model(model_name_or_path: str,
                                                         subfolder='scheduler')
     tokenizer = CLIPTokenizer.from_pretrained(model_name_or_path,
                                               subfolder='tokenizer')
-    return StableDiffusion(unet=unet,
-                           vae=vae,
-                           text_encoder=text_encoder,
-                           train_unet=train_unet,
-                           tokenizer=tokenizer,
-                           noise_scheduler=noise_scheduler,
-                           inference_scheduler=inference_scheduler,
-                           train_text_encoder=train_text_encoder,
-                           num_images_per_prompt=num_images_per_prompt,
-                           image_key=image_key,
-                           caption_key=caption_key,
-                           loss_fn=partial(prior_preservation_loss,
-                                           prior_loss_weight=prior_loss_weight)) # type: ignore
+    return StableDiffusion(
+        unet=unet,
+        vae=vae,
+        text_encoder=text_encoder,
+        train_unet=train_unet,
+        tokenizer=tokenizer,
+        noise_scheduler=noise_scheduler,
+        inference_scheduler=inference_scheduler,
+        train_text_encoder=train_text_encoder,
+        num_images_per_prompt=num_images_per_prompt,
+        image_key=image_key,
+        caption_key=caption_key,
+        loss_fn=partial(prior_preservation_loss,
+                        prior_loss_weight=prior_loss_weight))  # type: ignore
