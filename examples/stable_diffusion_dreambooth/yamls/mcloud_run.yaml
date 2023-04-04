@@ -1,7 +1,7 @@
 run_name: stable-diffusion-dreambooth
-cluster: r8z7    # Name of the cluster to use for this run
+cluster:     # Name of the cluster to use for this run
 gpu_type: a100_40gb   # Type of GPU to use
-gpu_num: 8    # Number of GPUs to use
+gpu_num:     # Number of GPUs to use
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 integrations:
@@ -15,15 +15,15 @@ command: |
   composer main.py /mnt/config/parameters.yaml
 parameters:
   # Name of the  training run used for checkpointing and other logging
-  run_name: stable-diffusion-dreambooth-examples-test-1
+  run_name: stable-diffusion-dreambooth
 
   seed: 42 # Random seed
 
-  max_duration: 800ba # Duration to train specified as a Time string 800 default
-  # eval_interval: 25ba # 50 default
+  max_duration: 200ba # Duration to train specified as a Time string 800 default
+  # eval_interval: 25ba # uncomment to enable online eval
 
-  global_train_batch_size: 16 # Training total batch size (4 per 40gb A100, 8 cards)
-  global_eval_batch_size: 8 # each prompt generates 4 images
+  global_train_batch_size: 8 # example, Training total batch size (2 per 40gb A100, 8 cards)
+  global_eval_batch_size: 4 # each prompt generates 4 images
 
   # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
   device: gpu # gpu, mps, cpu (mps is experimental)
@@ -71,7 +71,7 @@ parameters:
 
   # wandb:     # Uncomment and fill below arguments to use WandB logger
   #   entity:  # Name of WandB entity, usually username or organization name
-  #   project: stable-diffusion-dreambooth-lab # Name of WandB project
+  #   project: stable-diffusion-dreambooth # Name of WandB project
   #   group:   # Name of WandB group
   #   rank_zero_only: false
 

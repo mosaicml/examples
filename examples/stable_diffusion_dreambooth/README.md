@@ -43,31 +43,41 @@ composer main.py yamls/dreambooth.yaml
 ```
 
 # Results
-The default config is `yamls/dreambooth.yaml`. It trains only the Unet and language encoder of `Stable Diffusion v1-4` for `800 batches`. A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `50 batches`.
+The default config is `yamls/dreambooth.yaml`. It trains only the Unet and language encoder of `Stable Diffusion v1-4` for `200 batches`. 
 
-Results from the default config and the prompt  `"a majestic shiba inu doge wearing a blue sweater"`:
+A default set of evaluation prompts are included in the yaml and will be logged to weights & baises every `25 batches`. In the yaml, uncomment `eval_interval` and the `wandb` settings to enable this online evaluation. 
+
+Results from the default config and the prompt  `"a photo of sks dog wearing a blue sweater"`:
 <p align="center">
   <picture>
-    <img alt="model outputs of a Shiba inu pokemon in a blue sweater" src="./assets/A_Majestic_Shiba_Inu_Doge_wearing_a_blue_sweater_2000_batches.png">
+    <img alt="model outputs of sks dog in a blue sweater" src="./assets/corgoinsweater.png">
   </picture>
 </p>
 
-Notes:
- - Low learning rates and short training times seem to work best. Training longer can quickly lead to overfitting.
+Training Notes:
+ - Low learning rates (between 1e-6 and 5e-6) and short training times seem to work best. Training longer can quickly lead to overfitting.
  - If the results don't look like your object, you may need to train longer.
- - If the results ONLY look like your object (no background or other objects), you've trained too much.
+ - If the results only look like your object (no background or other objects), you've trained too much.
 
 
 # To train on different data
 
 ## 1. Add your own images
-Replace the images in the `data/instance_data` directory with  5-15 images of your own subject. The images should be in png or jpg format. Images with varied poses and backgrounds work better.
+Replace the images in the `data/instance_data` directory with 5-15 images of your subject. The images should be in png or jpg format. Images with varied poses and backgrounds work better.
 
 ## 2. Adjust instance and class prompts as needed
 
-In `yamls/dreambooth.yaml` update:
--  `instance prompt: a photo of sks dog` to `instance prompt: a photo of sks <CLASS>` (for pictures of people: `person`, `man`, and `woman` work well)
--  `class_prompt: a photo of dog` to `class_prompt: a photo of <CLASS>`
+In `yamls/dreambooth.yaml`:
+-  Update `instance prompt` from a `photo of sks dog` to `a photo of sks <CLASS>` (for pictures of people: `person`, `man`, and `woman` work well as `<CLASS>`)
+-  Update `class_prompt` from  `a photo of dog` to `a photo of <CLASS>`
+
+# Saving and Loading checkpoints
+
+At the bottom of `yamls/dreambooth.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
+
+# Inference
+
+The `generate.ipynb` notebook can be used to load models weights and perform inference. Simply, set the proper `config_path`, `checkpoint_path` and `device` then run the notebook. The default prompt is set to work with `sks dog`. Adjust the prompt to the class specified in your yaml if you trained on something other than a dog. For example: `sks person` or `sks baby`. Be sure to try different guidance scales. Higher guidance scales make the output adhere to the prompt more strongly in exchange for image quality.
 
 # Using the MosaicML platform
 This example can be run with the MosaicML platform by configuring the `cluster` and `gpu_type` parameters in `yamls/mcloud_run.yaml` then running:
@@ -75,10 +85,6 @@ This example can be run with the MosaicML platform by configuring the `cluster` 
 ```bash
 mcli run -f yamls/mcloud_run.yaml
 ```
-
-# Saving and Loading checkpoints
-
-At the bottom of `yamls/dreambooth.yaml`, we provide arguments for saving and loading model weights. Please specify the `save_folder` or `load_path` arguments if you need to save or load checkpoints!
 
 # Contact Us
 If you run into any problems with the code, please file Github issues directly to this repo.

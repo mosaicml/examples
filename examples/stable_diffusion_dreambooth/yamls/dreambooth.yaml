@@ -2,8 +2,8 @@
 
   seed: 42 # Random seed
 
-  max_duration: 800ba # Duration to train specified as a Time string 800 default
-  # eval_interval: 25ba # 50 default
+  max_duration: 200ba # Duration to train specified as a Time string 800 default
+  # eval_interval: 25ba # uncomment to enable online eval
 
   global_train_batch_size: 2 # Training total batch size (2 per 40gb A100)
   global_eval_batch_size: 1 # each prompt generates 4 images by default

@@ -43,7 +43,7 @@ class LogDiffusionImages(Callback):
 
 class SaveClassImages(Callback):
 
-    def __init__(self, class_data_root):
+    def __init__(self, class_data_root: str):
         self.class_data_root = class_data_root
         self.class_images_dir = Path(class_data_root)
         # check current class images incase there are already images in dir
