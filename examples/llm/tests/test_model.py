@@ -828,7 +828,6 @@ def test_forward_with_cache(attention_impl, device, alibi):
         pytest.skip(f'alibi only implemented with torch and triton attention.')
 
     device = get_device(device)
-    dtype = torch.bfloat16
 
     hf_config = MosaicGPTConfig(
         init_device='cpu',
@@ -846,9 +845,9 @@ def test_forward_with_cache(attention_impl, device, alibi):
     reproducibility.seed_all(1234)
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
-    mosaic_gpt = device.module_to_device(mosaic_gpt).to(dtype)
+    mosaic_gpt = device.module_to_device(mosaic_gpt)
 
-    with torch.cuda.amp.autocast(enabled=True, dtype=dtype):
+    with get_precision_context('amp_bf16' if device.name == 'gpu' else 'fp32'):
         reproducibility.seed_all(1234)
         first_input_ids = torch.tensor([[11274, 16390, 11]])
         first_input_ids = device.tensor_to_device(first_input_ids)
