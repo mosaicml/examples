@@ -5,7 +5,7 @@
 
 import os
 from itertools import islice
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 import torch
@@ -13,6 +13,7 @@ import transformers
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from streaming import StreamingDataset
+from streaming.base.stream import Stream
 from torch.utils.data import DataLoader
 
 
@@ -20,46 +21,67 @@ class StreamingTextDataset(StreamingDataset):
     """Generic text dataset using MosaicML's StreamingDataset.
 
     Args:
-        local (str): Local dataset directory where shards are cached by split.
         tokenizer_name (str): The name of the HuggingFace tokenizer to use to
             tokenize samples.
         max_seq_len (int): The max sequence length of each sample.
-        remote (str, optional): Download shards from this remote path or directory. If None, this
-            rank and worker's partition of the dataset must all exist locally. Defaults to ``None``.
-        split (str, optional): Which dataset split to use, if any. Defaults to ``None``.
-        shuffle (bool): Whether to iterate over the samples in randomized order. Defaults to ``False``.
-        predownload (int, optional): Target number of samples ahead to download the shards of while
-            iterating. Defaults to ``100_000``.
-        keep_zip (bool, optional): Whether to keep or delete the compressed file when
-            decompressing downloaded shards. If set to None, keep if remote is local. Defaults to
-            ``None``.
+        streams (Sequence[Stream], optional): One or more Streams to stream/cache samples from,
+            which may be upsampled or downsampled. StreamingDataset uses either ``streams`` or
+            ``remote``/``local``. Defaults to ``None``.
+        remote (str, optional): Remote path or directory to download the dataset from. If ``None``,
+            its data must exist locally. StreamingDataset uses either ``streams`` or
+            ``remote``/``local``. Defaults to ``None``.
+        local (str, optional): Local working directory to download shards to. This is where shards
+            are cached while they are being used. Uses a temp directory if not set.
+            StreamingDataset uses either ``streams`` or ``remote``/``local``. Defaults to ``None``.
+        split (str, optional): Which dataset split to use, if any. If provided, we stream from/to
+            the ``split`` subdirs of  ``remote`` and ``local``. Defaults to ``None``.
         download_retry (int): Number of download re-attempts before giving up. Defaults to ``2``.
         download_timeout (float): Number of seconds to wait for a shard to download before raising
             an exception. Defaults to ``60``.
         validate_hash (str, optional): Optional hash or checksum algorithm to use to validate
             shards. Defaults to ``None``.
-        shuffle_seed (int): Seed for Deterministic data shuffling. Defaults to ``9176``.
-        num_canonical_nodes (int, optional): Canonical number of nodes for shuffling with resumption.
-            If ``None``, defaults to the number of nodes of the initial run. Defaults to 128.
+        keep_zip (bool): Whether to keep or delete the compressed form when decompressing
+            downloaded shards. If ``False``, keep iff remote is local or no remote. Defaults to
+            `False``.
+        keep_raw (bool): Whether to keep or delete the decompressed form (or only form)
+            of shards after all their samples have been yielded this epoch. If ``False``, keep iff
+            remote is local or no remote and no compression. Defaults to ``True``.
+        samples_per_epoch (int, optional): Provide this field iff you are weighting sub-datasets
+            proportionally. Defaults to ``None``.
+        predownload (int, optional): Target number of samples ahead to download the shards of while
+            iterating. Defaults to ``100_000``.
+        partition_algo (str): Which partitioning algorithm to use. Defaults to ``orig``.
+        num_canonical_nodes (int, optional): Canonical number of nodes for shuffling with
+            resumption. Defaults to ``None``, which is interpreted as the number of nodes of the
+            initial run.
         batch_size (int, optional): Batch size of its DataLoader, which affects how the dataset is
             partitioned over the workers. Defaults to ``None``.
+        shuffle (bool): Whether to iterate over the samples in randomized order. Defaults to
+            ``False``.
+        shuffle_algo (str): Which shuffling algorithm to use. Defaults to ``py1s``.
+        shuffle_seed (int): Seed for Deterministic data shuffling. Defaults to ``9176``.
     """
 
     def __init__(self,
-                 local: str,
                  tokenizer_name: str,
                  max_seq_len: int,
+                 streams: Optional[Sequence[Stream]] = None,
                  remote: Optional[str] = None,
+                 local: Optional[str] = None,
                  split: Optional[str] = None,
-                 shuffle: bool = False,
-                 predownload: Optional[int] = 100_000,
-                 keep_zip: Optional[bool] = None,
                  download_retry: int = 2,
                  download_timeout: float = 60,
                  validate_hash: Optional[str] = None,
-                 shuffle_seed: int = 9176,
-                 num_canonical_nodes: Optional[int] = 128,
+                 keep_zip: bool = False,
+                 keep_raw: bool = True,
+                 samples_per_epoch: Optional[int] = None,
+                 predownload: int = 100_000,
+                 partition_algo: str = 'orig',
+                 num_canonical_nodes: Optional[int] = None,
                  batch_size: Optional[int] = None,
+                 shuffle: bool = False,
+                 shuffle_algo: str = 'py1s',
+                 shuffle_seed: int = 9176,
                  **kwargs: Dict[str, Any]):
 
         group_method = kwargs.pop('group_method', None)
@@ -83,18 +105,23 @@ class StreamingTextDataset(StreamingDataset):
                     )
 
         # Build Dataset
-        super().__init__(local=local,
+        super().__init__(streams=streams,
                          remote=remote,
+                         local=local,
                          split=split,
-                         shuffle=shuffle,
-                         predownload=predownload,
-                         keep_zip=keep_zip,
                          download_retry=download_retry,
                          download_timeout=download_timeout,
                          validate_hash=validate_hash,
-                         shuffle_seed=shuffle_seed,
+                         keep_zip=keep_zip,
+                         keep_raw=keep_raw,
+                         samples_per_epoch=samples_per_epoch,
+                         predownload=predownload,
+                         partition_algo=partition_algo,
                          num_canonical_nodes=num_canonical_nodes,
-                         batch_size=batch_size)
+                         batch_size=batch_size,
+                         shuffle=shuffle,
+                         shuffle_algo=shuffle_algo,
+                         shuffle_seed=shuffle_seed)
         self.max_seq_len = max_seq_len
 
         # Build tokenizer
@@ -189,20 +216,26 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
             'concatenate, use the --concat_tokens ' +
             'argument when creating your MDS dataset with convert_dataset.py')
     dataset = StreamingTextDataset(
-        local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
         max_seq_len=cfg.dataset.max_seq_len,
+        streams=cfg.dataset.get('streams', None),
         remote=cfg.dataset.get('remote', None),
+        local=cfg.dataset.get('local', None),
         split=cfg.dataset.get('split', None),
-        shuffle=cfg.dataset.get('shuffle', False),
-        predownload=cfg.dataset.get('predownload', 100_000),
-        keep_zip=cfg.dataset.get('keep_zip', None),
         download_retry=cfg.dataset.get('download_retry', 2),
         download_timeout=cfg.dataset.get('download_timeout', 60),
         validate_hash=cfg.dataset.get('validate_hash', None),
-        shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
+        keep_zip=cfg.dataset.get('keep_zip', False),
+        keep_raw=cfg.dataset.get('keep_raw', True),
+        samples_per_epoch=cfg.dataset.get('samples_per_epoch', None),
+        predownload=cfg.dataset.get('predownload', 100_000),
+        partition_algo=cfg.dataset.get('partition_algo', 'orig'),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
-        batch_size=device_batch_size)
+        batch_size=device_batch_size,
+        shuffle=cfg.dataset.get('shuffle', False),
+        shuffle_algo=cfg.dataset.get('shuffle_algo', 'py1s'),
+        shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
+    )
 
     mlm_probability = cfg.dataset.get('mlm_probability', None)
     collate_fn = transformers.DataCollatorForLanguageModeling(

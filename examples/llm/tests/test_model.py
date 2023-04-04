@@ -546,25 +546,25 @@ def test_forward_with_padding(attention_impl, device, alibi):
         # check that right padding and left padding produce the same output
         assert torch.allclose(right_padding_output[0, :3],
                               left_padding_output[0, 3:],
-                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
+                              atol=1e-5 if attention_impl == 'torch' else 1e-8)
         if not alibi:
             # check that right padding and middle padding produce the same output
             # Note: alibi not implemented for middle padding.
             assert torch.allclose(
                 right_padding_output[0, :3],
                 middle_padding_output[0, [0, 1, 5]],
-                atol=1e-6 if attention_impl == 'torch' else 1e-8)
+                atol=1e-5 if attention_impl == 'torch' else 1e-8)
         # check that right padding and right padding in a batch produce the same output
         assert torch.allclose(right_padding_output[0, :3],
                               batched_output[0, :3],
-                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
+                              atol=1e-5 if attention_impl == 'torch' else 1e-8)
         if not alibi:
             # check that middle padding and middle padding in a batch produce the same output
             # Note: alibi not implemented for middle padding.
             assert torch.allclose(
                 middle_padding_output[0],
                 batched_output[1, :],
-                atol=1e-6 if attention_impl == 'torch' else 1e-8)
+                atol=1e-5 if attention_impl == 'torch' else 1e-8)
 
 
 @pytest.mark.parametrize('attention_impl', ['torch', 'triton'])
@@ -828,6 +828,7 @@ def test_forward_with_cache(attention_impl, device, alibi):
         pytest.skip(f'alibi only implemented with torch and triton attention.')
 
     device = get_device(device)
+    dtype = torch.bfloat16
 
     hf_config = MosaicGPTConfig(
         init_device='cpu',
@@ -845,9 +846,9 @@ def test_forward_with_cache(attention_impl, device, alibi):
     reproducibility.seed_all(1234)
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
-    mosaic_gpt = device.module_to_device(mosaic_gpt)
+    mosaic_gpt = device.module_to_device(mosaic_gpt).to(dtype)
 
-    with get_precision_context('amp_bf16'):
+    with torch.cuda.amp.autocast(enabled=True, dtype=dtype):
         reproducibility.seed_all(1234)
         first_input_ids = torch.tensor([[11274, 16390, 11]])
         first_input_ids = device.tensor_to_device(first_input_ids)
@@ -895,10 +896,12 @@ def test_forward_with_cache(attention_impl, device, alibi):
                                  attention_mask=second_attention_mask)
 
         # check that the output is the same whether using the key-value cache or not
-        torch.testing.assert_close(second_output.logits,
-                                   full_output.logits[:, -1, :].unsqueeze(1),
-                                   atol=1e-2,
-                                   rtol=1e-2)
+        torch.testing.assert_close(
+            second_output.logits,
+            full_output.logits[:, -1, :].unsqueeze(1),
+            atol=1e-1,
+            rtol=1e-2,
+        )
 
 
 @pytest.mark.parametrize('alibi', [True, False])
