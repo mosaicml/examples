@@ -24,7 +24,10 @@ def get_hf_config_from_composer_state_dict(
         'model']['config']['content']
 
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
-    return AutoConfig.for_model(**hf_config_dict)
+    hf_config = AutoConfig.for_model(**hf_config_dict)
+    # Always set init_device='cpu'
+    hf_config.init_device = 'cpu'
+    return hf_config
 
 
 def get_hf_tokenizer_from_comopser_state_dict(
