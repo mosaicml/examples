@@ -15,7 +15,6 @@ def test_model_builder(model_name: str):
     # test that the StableDiffusion base class outputs the correct size outputs
     # for all popular model versions.
     model = build_stable_diffusion_model(model_name, pretrained=False)
-    model.unet.disable_xformers_memory_efficient_attention()
     batch_size = 1
     H = 8
     W = 8
