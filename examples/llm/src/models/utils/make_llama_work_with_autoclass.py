@@ -81,11 +81,11 @@ class LlamaConfig(PretrainedConfig):
 class C4SentencePieceConfig(LlamaConfig):
 
     def __init__(self, *args, **kwargs):
+        kwargs['vocab_size'] = 65500
+        kwargs['pad_token_id'] = 3
+        kwargs['tie_word_embeddings'] = False
         super.__init__(
             *args,
-            vocab_size=65500,
-            pad_token_id=3,
-            tie_word_embeddings=False,
             **kwargs,
         )
 
@@ -224,9 +224,10 @@ class LlamaTokenizer(PreTrainedTokenizer):
         out_string += self.sp_model.decode(current_sub_tokens)
         return out_string
 
-    def save_vocabulary(self,
-                        save_directory,
-                        filename_prefix: Optional[str] = None) -> Tuple[str]:
+    def save_vocabulary(
+            self,
+            save_directory,
+            filename_prefix: Optional[str] = None) -> Optional[Tuple[str]]:
         """Save the vocabulary and special tokens file to a directory.
 
         Args:
