@@ -78,7 +78,7 @@ class LlamaConfig(PretrainedConfig):
         )
 
 
-class mC4SentencePieceConfig(LlamaConfig):
+class C4SentencePieceConfig(LlamaConfig):
 
     def __init__(self, *args, **kwargs):
         super.__init__(
@@ -319,7 +319,7 @@ class LlamaTokenizer(PreTrainedTokenizer):
 
 # as long as this line is invoked, you can call AutoTokenizer.from_pretrained on a
 # model that uses LlamaTokenizer
-AutoTokenizer.register(mC4SentencePieceConfig,
+AutoTokenizer.register(C4SentencePieceConfig,
                        slow_tokenizer_class=LlamaTokenizer)
 
 
