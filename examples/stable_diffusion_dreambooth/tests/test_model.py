@@ -17,8 +17,8 @@ def test_model_builder(model_name: str):
     # for all popular model versions.
     model = build_stable_diffusion_model(model_name, pretrained=False)
     batch_size = 1
-    H = 32
-    W = 32
+    H = 8
+    W = 8
     image = torch.randn(batch_size, 3, H, W)
     latent = torch.randn(batch_size, 4, H // 8, W // 8)
     caption = torch.randint(low=0,
