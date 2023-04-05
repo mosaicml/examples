@@ -19,6 +19,7 @@ class LogDiffusionImages(Callback):
 
     Requires Weights and Biases to be installed and setup.
     """
+
     def eval_batch_end(self, state: State, logger: Logger):
         prompts = state.batch['prompt']  # batch_size
         # Tensor of shape [len(prompts) * num_images_per_prompt, 3, 512, 512])
@@ -48,6 +49,7 @@ class SaveClassImages(Callback):
     Args:
         class_data_root (str): Directory to save images to.
     """
+
     def __init__(self, class_data_root: str):
         self.class_data_root = class_data_root
         self.class_images_dir = Path(class_data_root)

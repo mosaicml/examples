@@ -68,7 +68,8 @@ def build_dreambooth_dataloader(instance_data_root: str,
             If `False`, `RandomCrop` will be used. Default: `True`.
         use_prior_preservation (bool): Whether to use prior preservation images. Default: `False`.
         class_prompt (str): Prompt associate with prior presevation images. Default: `None`.
-        class_data_root (str): Path the image generated from the model for prior preservation. Default: `None`.
+        class_data_root (str): Path the image generated from the model for prior preservation.
+            Default: `None`.
         batch_size (int): Batch size per device.
         drop_last (bool): Whether to drop last samples. Default: ``True``.
         shuffle (bool): Whether to shuffle the dataset. Default: ``True``.
@@ -132,6 +133,7 @@ class PromptDataset(Dataset):
     Args:
         prompts (list[str]): A list of prompts.
     """
+
     def __init__(self, prompts: list):
         self.prompts = prompts
 
@@ -160,10 +162,10 @@ class DreamBoothDataset(Dataset):
             `CLIPTokenizer` from HuggingFace transformers.
         class_prompt (str): Prompt associate with prior presevation images. Default: `None`.
         class_data_root (str): Path the image generated from the model for prior preservation. Default: `None`.
-            dataloader (e.g. num_workers, etc.)
         image_transforms (torch.nn.Module): Torchvision transforms to apply to images.
             Default: `None`.
     """
+
     def __init__(self,
                  instance_data_root: str,
                  instance_prompt: str,

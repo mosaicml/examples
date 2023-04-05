@@ -59,6 +59,7 @@ class StableDiffusion(ComposerModel):
         caption_key (str): The name of the caption inputs in the dataloader batch.
             Default: `input_ids`.
     """
+
     def __init__(
             self,
             unet: torch.nn.Module,
