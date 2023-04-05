@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """Example script to finetune a Stable Diffusion Model."""
 
 import os

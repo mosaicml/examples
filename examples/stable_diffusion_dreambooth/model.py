@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """Stable Diffusion ComposerModel."""
 
 from functools import partial
@@ -128,13 +129,13 @@ class StableDiffusion(ComposerModel):
         # Sample the diffusion timesteps
         timesteps = torch.randint(0,
                                   len(self.noise_scheduler),
-                                  (latents.shape[0], ),
+                                  (latents.shape[0],),
                                   device=latents.device)
         # Add noise to the inputs (forward diffusion)
         noise = torch.randn_like(latents)
 
-        noised_latents = self.noise_scheduler.add_noise(
-            latents, noise, timesteps)
+        noised_latents = self.noise_scheduler.add_noise(latents, noise,
+                                                        timesteps)
 
         # Get the target for loss depending on the prediction type
         if self.noise_scheduler.config.prediction_type == 'epsilon':
@@ -231,8 +232,8 @@ class StableDiffusion(ComposerModel):
         # duplicate text embeddings for each generation per prompt
         bs_embed, seq_len, _ = text_embeddings.shape
         text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
-        text_embeddings = text_embeddings.view(
-            bs_embed * num_images_per_prompt, seq_len, -1)
+        text_embeddings = text_embeddings.view(bs_embed * num_images_per_prompt,
+                                               seq_len, -1)
 
         # classifier free guidance + negative prompts
         # negative prompt is given in place of the unconditional input in classifier free guidance
@@ -288,9 +289,9 @@ class StableDiffusion(ComposerModel):
                 latent_model_input, t)
 
             # predict the noise residual
-            noise_pred = self.unet(
-                latent_model_input, t,
-                encoder_hidden_states=text_embeddings).sample
+            noise_pred = self.unet(latent_model_input,
+                                   t,
+                                   encoder_hidden_states=text_embeddings).sample
 
             if do_classifier_free_guidance:
                 # perform guidance
@@ -388,8 +389,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
         unet = UNet2DConditionModel.from_pretrained(model_name_or_path,
                                                     subfolder='unet')
 
-        vae = AutoencoderKL.from_pretrained(model_name_or_path,
-                                            subfolder='vae')
+        vae = AutoencoderKL.from_pretrained(model_name_or_path, subfolder='vae')
         text_encoder = CLIPTextModel.from_pretrained(model_name_or_path,
                                                      subfolder='text_encoder')
 

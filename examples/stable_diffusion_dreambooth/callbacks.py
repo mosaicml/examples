@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+
 """Prompt and image visualization callback for diffusion models."""
 import hashlib
 from pathlib import Path
