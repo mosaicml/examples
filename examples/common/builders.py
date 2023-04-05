@@ -19,7 +19,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 from examples.common.fdiff import FDiffMetrics
 from examples.common.generate_callback import Generate
 from examples.common.optim import (DecoupledAdaLRLion, DecoupledClipLion,
-                                   DecoupledLionW)
+                                   DecoupledLionW, TwoBitLionW)
 from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 from examples.common.text_data import build_text_dataloader
 
@@ -88,9 +88,8 @@ def build_optimizer(cfg, model):
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
     elif cfg.name == 'two_bit_lion':
-        return DecoupledLionW(model.parameters(),
+        return TwoBitLionW(model.parameters(),
                               lr=cfg.lr,
-                              betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
     elif cfg.name == 'clip_lion':
         return DecoupledClipLion(model.parameters(),
