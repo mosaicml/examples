@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from composer.core.precision import get_precision_context
 from composer.optim import DecoupledAdamW
+from examples.common.optim.lion import TwoBitLionW
 from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
@@ -61,11 +62,11 @@ def get_objs(conf_path='yamls/mosaic_gpt/testing.yaml'):
     model = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
                                                          test_cfg.tokenizer)
     # Optimizer
-    assert test_cfg.optimizer.name == 'decoupled_adamw'
-    optimizer = DecoupledAdamW(model.parameters(),
+    # assert test_cfg.optimizer.name == 'decoupled_adamw'
+    optimizer = TwoBitLionW(model.parameters(),
                                lr=test_cfg.optimizer.lr,
-                               betas=test_cfg.optimizer.betas,
-                               eps=test_cfg.optimizer.eps,
+                            #    betas=test_cfg.optimizer.betas,
+                            #    eps=test_cfg.optimizer.eps,
                                weight_decay=test_cfg.optimizer.weight_decay)
 
     return test_cfg, model, optimizer
@@ -118,12 +119,13 @@ def test_full_forward_and_backward(batch_size=2):
         [batch_size, test_cfg.max_seq_len])
     model.train()
     original_params = next(model.parameters()).clone().data
-    outputs = model(batch)
-    loss = model.loss(outputs, batch)
-    loss.backward()
-    optimizer.step()
-    updated_params = next(model.parameters()).clone().data
-    assert not torch.equal(original_params, updated_params)
+    for _ in range(3):
+        outputs = model(batch)
+        loss = model.loss(outputs, batch)
+        loss.backward()
+        optimizer.step()
+        updated_params = next(model.parameters()).clone().data
+        assert not torch.equal(original_params, updated_params)
 
 
 def test_attention_mechanism(batch_size=2):

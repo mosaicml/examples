@@ -87,6 +87,11 @@ def build_optimizer(cfg, model):
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
+    elif cfg.name == 'two_bit_lion':
+        return DecoupledLionW(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              weight_decay=cfg.weight_decay)
     elif cfg.name == 'clip_lion':
         return DecoupledClipLion(model.parameters(),
                                  lr=cfg.lr,
