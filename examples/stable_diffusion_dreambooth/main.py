@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 """Example script to finetune a Stable Diffusion Model."""
 
 import os
@@ -25,8 +24,10 @@ def main(config: DictConfig):  # type: ignore
 
     if dist.get_world_size() != 0 and config.device == 'gpu':
         dist.initialize_dist(config.device)
-        config.train_device_batch_size = config.global_train_batch_size // dist.get_world_size()
-        config.eval_device_batch_size = config.global_eval_batch_size // dist.get_world_size()
+        config.train_device_batch_size = config.global_train_batch_size // dist.get_world_size(
+        )
+        config.eval_device_batch_size = config.global_eval_batch_size // dist.get_world_size(
+        )
 
     else:
         config.train_device_batch_size = config.global_train_batch_size
@@ -63,7 +64,7 @@ def main(config: DictConfig):  # type: ignore
                               eval_dataloader=prompt_dataloader,
                               callbacks=save_class_images)
             # eval run will save images via the SaveClassImages callback
-            trainer.eval()  
+            trainer.eval()
             model.num_images_per_prompt = config.model.num_images_per_prompt
 
     # Train dataset

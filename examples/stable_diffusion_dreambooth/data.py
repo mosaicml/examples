@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 """Image captioning dataset creation tools and preprocessing."""
 
 from functools import partial
@@ -16,7 +15,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
 
-def dreambooth_collate_fn(examples: dict, use_prior_preservation: bool = False):
+def dreambooth_collate_fn(examples: dict,
+                          use_prior_preservation: bool = False):
     input_ids = [example['instance_prompt_ids'] for example in examples]
     image_tensor = [example['instance_images'] for example in examples]
 
@@ -132,7 +132,6 @@ class PromptDataset(Dataset):
     Args:
         prompts (list[str]): A list of prompts.
     """
-
     def __init__(self, prompts: list):
         self.prompts = prompts
 
@@ -165,7 +164,6 @@ class DreamBoothDataset(Dataset):
         image_transforms (torch.nn.Module): Torchvision transforms to apply to images.
             Default: `None`.
     """
-
     def __init__(self,
                  instance_data_root: str,
                  instance_prompt: str,
