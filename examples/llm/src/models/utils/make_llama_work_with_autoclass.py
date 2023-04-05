@@ -83,7 +83,6 @@ class C4SentencePieceConfig(LlamaConfig):
     def __init__(self, *args, **kwargs):
         kwargs['vocab_size'] = 65500
         kwargs['pad_token_id'] = 3
-        kwargs['tie_word_embeddings'] = False
         super.__init__(
             *args,
             **kwargs,
