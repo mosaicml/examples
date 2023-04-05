@@ -1,6 +1,8 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+from make_llama_work_with_autoclass import make_llama_work
+
 from examples.llm.src.models.utils.adapt_tokenizer import (
     AutoTokenizerForMOD, adapt_tokenizer_for_denoising)
 from examples.llm.src.models.utils.hf_prefixlm_converter import (
@@ -13,5 +15,5 @@ __all__ = [
     'AutoTokenizerForMOD', 'adapt_tokenizer_for_denoising',
     'convert_hf_causal_lm_to_prefix_lm', 'init_empty_weights',
     'add_bidirectional_mask_if_missing', 'generic_param_init_fn_',
-    'MODEL_INIT_REGISTRY'
+    'MODEL_INIT_REGISTRY', 'make_llama_work'
 ]
