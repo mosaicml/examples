@@ -550,25 +550,25 @@ def test_forward_with_padding(attention_impl, device, alibi):
         # check that right padding and left padding produce the same output
         assert torch.allclose(right_padding_output[0, :3],
                               left_padding_output[0, 3:],
-                              atol=1e-5 if attention_impl == 'torch' else 1e-8)
+                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
         if not alibi:
             # check that right padding and middle padding produce the same output
             # Note: alibi not implemented for middle padding.
             assert torch.allclose(
                 right_padding_output[0, :3],
                 middle_padding_output[0, [0, 1, 5]],
-                atol=1e-5 if attention_impl == 'torch' else 1e-8)
+                atol=1e-6 if attention_impl == 'torch' else 1e-8)
         # check that right padding and right padding in a batch produce the same output
         assert torch.allclose(right_padding_output[0, :3],
                               batched_output[0, :3],
-                              atol=1e-5 if attention_impl == 'torch' else 1e-8)
+                              atol=1e-6 if attention_impl == 'torch' else 1e-8)
         if not alibi:
             # check that middle padding and middle padding in a batch produce the same output
             # Note: alibi not implemented for middle padding.
             assert torch.allclose(
                 middle_padding_output[0],
                 batched_output[1, :],
-                atol=1e-5 if attention_impl == 'torch' else 1e-8)
+                atol=1e-6 if attention_impl == 'torch' else 1e-8)
 
 
 @pytest.mark.parametrize('attention_impl', ['torch', 'triton'])
@@ -906,7 +906,7 @@ def test_forward_with_cache(attention_impl, device, alibi):
         torch.testing.assert_close(
             second_output.logits,
             full_output.logits[:, -1, :].unsqueeze(1),
-            atol=1e-1,
+            atol=1e-2,
             rtol=1e-2,
         )
 
