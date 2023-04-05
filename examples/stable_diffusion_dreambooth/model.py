@@ -397,7 +397,7 @@ def build_stable_diffusion_model(model_name_or_path: str,
         try:
             unet.enable_xformers_memory_efficient_attention()
         except Exception as e:
-            print(f"Building without xformers, {e}.")
+            print(f'Building without xformers, {e}.')
     noise_scheduler = DDPMScheduler.from_pretrained(model_name_or_path,
                                                     subfolder='scheduler')
     inference_scheduler = DDIMScheduler.from_pretrained(model_name_or_path,
