@@ -21,14 +21,12 @@ from omegaconf import DictConfig, OmegaConf
 
 def main(config: DictConfig):  # type: ignore
     reproducibility.seed_all(config.seed)
+    # initialize the pytorch distributed process group if training on multiple gpus.
 
-    if dist.get_world_size(
-    ) != 0 and config.device == 'gpu':  # initialize the pytorch distributed process group if training on multiple gpus.
+    if dist.get_world_size() != 0 and config.device == 'gpu':
         dist.initialize_dist(config.device)
-        config.train_device_batch_size = config.global_train_batch_size // dist.get_world_size(
-        )
-        config.eval_device_batch_size = config.global_eval_batch_size // dist.get_world_size(
-        )
+        config.train_device_batch_size = config.global_train_batch_size // dist.get_world_size()
+        config.eval_device_batch_size = config.global_eval_batch_size // dist.get_world_size()
 
     else:
         config.train_device_batch_size = config.global_train_batch_size
@@ -64,8 +62,8 @@ def main(config: DictConfig):  # type: ignore
             trainer = Trainer(model=model,
                               eval_dataloader=prompt_dataloader,
                               callbacks=save_class_images)
-            trainer.eval(
-            )  # eval run will save images via the SaveClassImages callback
+            # eval run will save images via the SaveClassImages callback
+            trainer.eval()  
             model.num_images_per_prompt = config.model.num_images_per_prompt
 
     # Train dataset

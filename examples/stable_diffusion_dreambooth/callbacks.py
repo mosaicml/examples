@@ -42,6 +42,14 @@ class LogDiffusionImages(Callback):
 
 
 class SaveClassImages(Callback):
+    """Logger for saving images on eval batch end.
+
+    Saves images to specified directory, created to build a dataset 
+    of generated images for prior preservation in Dreambooth training.
+
+    Args:
+        class_data_root (str): Directory to save images to.
+    """
 
     def __init__(self, class_data_root: str):
         self.class_data_root = class_data_root
