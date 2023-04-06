@@ -1,16 +1,25 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+import random
 import time
 import warnings
-from argparse import ArgumentParser, Namespace
-from contextlib import nullcontext
+from argparse import ArgumentParser, ArgumentTypeError, Namespace
 
 import torch
-from composer.core import get_precision_context
-from composer.utils import get_device, reproducibility
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.llm import MosaicGPT, MosaicGPTConfig
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise ArgumentTypeError('Boolean value expected.')
 
 
 def parse_args() -> Namespace:
@@ -30,18 +39,40 @@ def parse_args() -> Namespace:
     parser.add_argument('--temperature', type=float, default=1.0)
     parser.add_argument('--top_k', type=int, default=50)
     parser.add_argument('--top_p', type=float, default=1.0)
+    parser.add_argument('--do_sample',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=True)
+    parser.add_argument('--use_cache',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=True)
+    parser.add_argument('--eos_token_id', type=str, default=None)
     parser.add_argument('--dtype',
                         type=str,
                         choices=['fp32', 'fp16', 'bf16'],
                         default='bf16')
-    parser.add_argument('--autocast', action='store_true')
+    parser.add_argument('--autocast',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=True)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
     return parser.parse_args()
 
 
+def maybe_synchronize():
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+
 def main(args: Namespace) -> None:
-    reproducibility.seed_all(args.seed)
+    # Seed randomness
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
@@ -65,12 +96,13 @@ def main(args: Namespace) -> None:
         'temperature': args.temperature,
         'top_p': args.top_p,
         'top_k': args.top_k,
-        'use_cache': True,
-        'do_sample': True,
+        'use_cache': args.use_cache,
+        'do_sample': args.do_sample,
+        'eos_token_id': args.eos_token_id or tokenizer.eos_token_id
     }
     print(f'\nGenerate kwargs:\n{generate_kwargs}')
 
-    device = get_device(args.device)._device
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     dtype = {
         'fp16': torch.float16,
         'bf16': torch.bfloat16,
@@ -78,35 +110,39 @@ def main(args: Namespace) -> None:
     }[args.dtype]
     print(f'\nMoving model and inputs to device={device} and dtype={dtype}...')
     model.to(device, dtype)
+
+    print(f'\nTokenizing prompts...')
+    maybe_synchronize()
+    encode_start = time.time()
     encoded_inp = tokenizer(args.prompts, return_tensors='pt', padding=True)
+    for key, value in encoded_inp.items():
+        encoded_inp[key] = value.to(device)
+    maybe_synchronize()
+    encode_end = time.time()
     input_tokens = torch.sum(encoded_inp['input_ids'] != tokenizer.pad_token_id,
                              axis=1).numpy(force=True)
 
-    for key, value in encoded_inp.items():
-        encoded_inp[key] = value.to(device)
-
-    if args.autocast and args.dtype != 'fp32':
-        print(f'\nUsing autocast...')
-        context_manager = lambda: get_precision_context(f'amp_{args.dtype}')
-    else:
-        print(f'\nNOT using autocast...')
-        context_manager = nullcontext
-
     # Run HF generate
-    if device.type == 'cuda':
-        torch.cuda.synchronize()
-    start = time.time()
+    if args.autocast:
+        print(f'Using autocast amp_{args.dtype}...')
+    else:
+        print('NOT using autocast...')
+    maybe_synchronize()
+    gen_start = time.time()
     with torch.no_grad():
-        with context_manager():
+        with torch.autocast(device, dtype, enabled=args.autocast):
             encoded_gen = model.generate(
                 input_ids=encoded_inp['input_ids'],
                 attention_mask=encoded_inp['attention_mask'],
                 **generate_kwargs,
             )
+    maybe_synchronize()
+    gen_end = time.time()
+
+    decode_start = time.time()
     decoded_gen = tokenizer.batch_decode(encoded_gen, skip_special_tokens=True)
-    if device.type == 'cuda':
-        torch.cuda.synchronize()
-    end = time.time()
+    maybe_synchronize()
+    decode_end = time.time()
     gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
                            axis=1).numpy(force=True)
 
@@ -121,16 +157,22 @@ def main(args: Namespace) -> None:
     # Print timing info
     bs = len(args.prompts)
     output_tokens = gen_tokens - input_tokens
-    total_input_tokens, total_output_tokens = input_tokens.sum(
-    ), output_tokens.sum()
-    latency = end - start
-    output_tok_per_sec = total_output_tokens / latency
-    ms_per_output_tok = 1000 / output_tok_per_sec
+    total_input_tokens = input_tokens.sum()
+    total_output_tokens = output_tokens.sum()
+    encode_latency = 1000 * (encode_end - encode_start)
+    gen_latency = 1000 * (gen_end - gen_start)
+    decode_latency = 1000 * (decode_end - decode_start)
+    total_latency = encode_latency + gen_latency + decode_latency
+
+    latency_per_output_token = total_latency / total_output_tokens
+    output_tok_per_sec = 1000 / latency_per_output_token
     print(f'{bs=}, {input_tokens=}, {output_tokens=}')
     print(f'{total_input_tokens=}, {total_output_tokens=}')
     print(
-        f'{latency=:.2f}s, {output_tok_per_sec=:.2f}, {ms_per_output_tok=:.2f}ms'
+        f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
     )
+    print(f'{latency_per_output_token=:.2f}ms/tok')
+    print(f'{output_tok_per_sec=:.2f}tok/sec')
 
 
 if __name__ == '__main__':
