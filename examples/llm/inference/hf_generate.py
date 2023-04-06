@@ -57,7 +57,7 @@ def main(args: Namespace) -> None:
         warnings.warn(
             'pad_token_id is not set for the tokenizer. Using eos_token_id as pad_token_id.'
         )
-        tokenizer.pad_token_id = tokenizer.eos_token_id
+        tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
 
     generate_kwargs = {
@@ -93,6 +93,8 @@ def main(args: Namespace) -> None:
         context_manager = nullcontext
 
     # Run HF generate
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
     start = time.time()
     with torch.no_grad():
         with context_manager():
@@ -102,6 +104,8 @@ def main(args: Namespace) -> None:
                 **generate_kwargs,
             )
     decoded_gen = tokenizer.batch_decode(encoded_gen, skip_special_tokens=True)
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
     end = time.time()
     gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
                            axis=1).numpy(force=True)
