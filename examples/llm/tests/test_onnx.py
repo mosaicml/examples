@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-from composer.utils import (maybe_create_object_store_from_uri, parse_uri,
-                            reproducibility)
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from composer.utils import reproducibility
+from transformers import AutoConfig, AutoModelForCausalLM
 
 from examples.llm import MosaicGPT, MosaicGPTConfig
 
@@ -26,6 +25,7 @@ def gen_random_batch(batch_size: int, vocab_size: int, max_seq_len: int):
 
 
 def test_onnx_export(tmp_path):
+    reproducibility.seed_all(42)
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
@@ -86,7 +86,7 @@ def test_onnx_export(tmp_path):
     torch.testing.assert_close(
         orig_out.logits.detach().numpy(),
         loaded_model_out[0],
-        rtol=1e-2,
-        atol=1e-2,
+        rtol=1e-5,
+        atol=1e-5,
         msg=f'output mismatch between the orig and onnx exported model',
     )
