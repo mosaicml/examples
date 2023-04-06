@@ -3,8 +3,27 @@
 
 """Basic HuggingFace -> ONNX export script.
 
-This scripts show a basic HuggingFace -> ONNX export workflow. For more details and examples
+This scripts show a basic HuggingFace -> ONNX export workflow. This works for a MosaicGPT model
+that has been saved using `MosaicGPT.save_pretrained`. For more details and examples
 of exporting and working with HuggingFace models with ONNX, see https://huggingface.co/docs/transformers/serialization#export-to-onnx.
+
+Example usage:
+
+    1) Local export
+
+    python inference/convert_hf_to_onnx.py --pretrained_model_name_or_path local/path/to/huggingface/folder --output_folder local/folder
+
+    2) Remote export
+
+    python inference/convert_hf_to_onnx.py --pretrained_model_name_or_path local/path/to/huggingface/folder --output_folder s3://bucket/remote/folder
+
+    3) Verify the exported model
+
+    python inference/convert_hf_to_onnx.py --pretrained_model_name_or_path local/path/to/huggingface/folder --output_folder local/folder --verify_export
+
+    4) Change the batch size or max sequence length
+
+    python inference/convert_hf_to_onnx.py --pretrained_model_name_or_path local/path/to/huggingface/folder --output_folder local/folder --export_batch_size 1 --max_seq_len 32000
 """
 
 import argparse
