@@ -9,10 +9,8 @@ integrations:
 command: |
   cd examples/examples/llm/inference
   python convert_composer_to_hf.py \
-    --composer_ckpt s3://bucket/folder/checkpoint-path.pt \
-    --hf_folder local_hf_folder
-  pip install awscli
-  aws s3 cp --recursive local_hf_folder s3://bucket/folder/hf/
+    --composer_path s3://bucket/folder/checkpoint-path.pt \
+    --hf_path s3://bucket/folder/hf/
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
