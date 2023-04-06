@@ -1,6 +1,12 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+"""Basic HuggingFace -> ONNX export script.
+
+This scripts show a basic HuggingFace -> ONNX export workflow. For more details and examples
+of exporting and working with HuggingFace models with ONNX, see https://huggingface.co/docs/transformers/serialization#export-to-onnx.
+"""
+
 import argparse
 import os
 from pathlib import Path
