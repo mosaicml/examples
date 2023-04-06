@@ -78,17 +78,6 @@ class LlamaConfig(PretrainedConfig):
         )
 
 
-class C4SentencePieceConfig(LlamaConfig):
-
-    def __init__(self, *args, **kwargs):
-        kwargs['vocab_size'] = 65500
-        kwargs['pad_token_id'] = 3
-        super.__init__(
-            *args,
-            **kwargs,
-        )
-
-
 ##
 # tokenizer
 ##
@@ -319,8 +308,7 @@ class LlamaTokenizer(PreTrainedTokenizer):
 
 # as long as this line is invoked, you can call AutoTokenizer.from_pretrained on a
 # model that uses LlamaTokenizer
-AutoTokenizer.register(C4SentencePieceConfig,
-                       slow_tokenizer_class=LlamaTokenizer)
+AutoTokenizer.register(LlamaConfig, slow_tokenizer_class=LlamaTokenizer)
 
 
 def make_llama_work():
