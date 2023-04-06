@@ -7,6 +7,7 @@ from pathlib import Path
 from composer.core.state import fsdp_state_dict_type_context
 import torch
 import os
+from composer.utils import dist
 
 
 class MonolithicCheckpointSaver(Callback):
@@ -39,7 +40,7 @@ class MonolithicCheckpointSaver(Callback):
                 state.callbacks.append(new_remote_ud)
 
     def batch_checkpoint(self, state: State, logger: Logger):
-        if state.timestamp.batch.value % self.batch_interval == 0:
+        if state.timestamp.batch.value % self.batch_interval == 0 and dist.get_global_rank() == 0:
             filename = format_name_with_dist_and_time(self.filename_format_str, state.run_name, state.timestamp)
             save_dir = format_name_with_dist_and_time(self.save_dir_format_str, state.run_name, state.timestamp)
             if self.upload_to_object_store:
