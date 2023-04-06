@@ -59,6 +59,8 @@ def export_to_onnx(
     elif max_seq_len is None:
         max_seq_len = model.config.max_seq_len
 
+    assert isinstance(max_seq_len, int)  # pyright
+
     print('Creating random batch...')
     sample_input = gen_random_batch(
         export_batch_size,
@@ -74,7 +76,7 @@ def export_to_onnx(
     print('Exporting the model with ONNX...')
     torch.onnx.export(
         model,
-        sample_input,
+        (sample_input,),
         str(output_file),
         input_names=['input_ids', 'attention_mask'],
         output_names=['output'],
@@ -110,7 +112,10 @@ def export_to_onnx(
         print('exported model ouptut matches with unexported model!!')
 
     if save_object_store is not None:
-        save_object_store.upload_object(output_file, output_file)
+        print('Uploading files to object storage...')
+        for filename in os.listdir(parsed_save_path):
+            full_path = str(Path(parsed_save_path) / filename)
+            save_object_store.upload_object(full_path, full_path)
 
 
 def parse_args():

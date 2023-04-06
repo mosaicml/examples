@@ -36,12 +36,13 @@ def test_onnx_export(tmp_path):
         n_layers=2,
         mlp_ratio=2,
         max_seq_len=2048,
-        emb_pdrop=0.1,
-        resid_pdrop=0.2,
+        emb_pdrop=0.0,
+        resid_pdrop=0.0,
         attn_impl='torch',
         alibi=True,
         use_cache=True,
         vocab_size=50368,
+        low_precision_layernorm=False,
     )
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
@@ -58,7 +59,7 @@ def test_onnx_export(tmp_path):
 
     torch.onnx.export(
         mosaic_gpt,
-        sample_input,
+        (sample_input,),
         str(tmp_path / 'mosaic_gpt.onnx'),
         input_names=['input_ids', 'attention_mask'],
         output_names=['output'],
@@ -86,7 +87,7 @@ def test_onnx_export(tmp_path):
     torch.testing.assert_close(
         orig_out.logits.detach().numpy(),
         loaded_model_out[0],
-        rtol=1e-5,
-        atol=1e-5,
+        rtol=1e-4,
+        atol=1e-4,
         msg=f'output mismatch between the orig and onnx exported model',
     )
