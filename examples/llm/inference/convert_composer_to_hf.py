@@ -186,7 +186,7 @@ def parse_args() -> Namespace:
         'Convert Composer checkpoint and Omegaconf model config into a standard HuggingFace checkpoint folder.'
     )
     parser.add_argument('--composer_path', type=str, required=True)
-    parser.add_argument('--hf_path', type=str, required=True)
+    parser.add_argument('--hf_output_path', type=str, required=True)
     parser.add_argument('--local_checkpoint_save_location',
                         type=str,
                         default=None)
@@ -197,7 +197,7 @@ def parse_args() -> Namespace:
 def main(args: Namespace) -> None:
     write_huggingface_pretrained_from_composer_checkpoint(
         checkpoint_path=args.composer_path,
-        output_path=args.hf_path,
+        output_path=args.hf_output_path,
         local_checkpoint_save_location=args.local_checkpoint_save_location)
 
 
