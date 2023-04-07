@@ -25,10 +25,9 @@ parameters:
   max_seq_len: 2048
 
   tokenizer:
-    type: hftokenizer
-    args:
-      tokenizer_name: ${tokenizer_name}
-      max_seq_len: ${max_seq_len}
+    name: ${tokenizer_name}
+    kwargs:
+      model_max_length: ${max_seq_len}
 
   model:
     name: mosaic_gpt
@@ -74,4 +73,4 @@ parameters:
     - InContextLearningLMAccuracy
     prompt_string: '' # this goes at the beginning of each input
     example_delimiter: '\n' # this goes between fewshot examples
-    continuation_delimiter: '' # this separates contexts from continuations
+    continuation_delimiter: ' ' # this separates contexts from continuations
