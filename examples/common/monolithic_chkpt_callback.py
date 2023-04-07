@@ -40,7 +40,7 @@ class MonolithicCheckpointSaver(Callback):
                 state.callbacks.append(new_remote_ud)
 
     def batch_checkpoint(self, state: State, logger: Logger):
-        if state.timestamp.batch.value % self.batch_interval == 0 and dist.get_global_rank() == 0:
+        if state.timestamp.batch.value % self.batch_interval == 0:
             filename = format_name_with_dist_and_time(self.filename_format_str, state.run_name, state.timestamp)
             save_dir = format_name_with_dist_and_time(self.save_dir_format_str, state.run_name, state.timestamp)
             if self.upload_to_object_store:
@@ -50,7 +50,8 @@ class MonolithicCheckpointSaver(Callback):
                         state_dict = {'state': {'model': state.model.state_dict()}, 'rng': reproducibility.get_rng_state()}
                         torch.save(state_dict, temp_save_path)
                     remote_file_name = str(Path(save_dir) / Path(filename))
-                    logger.upload_file(remote_file_name=remote_file_name, file_path=temp_save_path)
+                    if dist.get_global_rank() == 0:
+                        logger.upload_file(remote_file_name=remote_file_name, file_path=temp_save_path)
             else:
                 save_path = str(Path(save_dir) / Path(filename))
                 dirname = os.path.dirname(save_path)
@@ -58,7 +59,8 @@ class MonolithicCheckpointSaver(Callback):
                     os.makedirs(dirname, exist_ok=True)
                 with fsdp_state_dict_type_context(state.model, state_dict_type='full'):
                     state_dict = {'state': {'model': state.model.state_dict()}}
-                    torch.save(state_dict, save_path)
+                    if dist.get_global_rank() == 0:
+                        torch.save(state_dict, save_path)
 
 
 
