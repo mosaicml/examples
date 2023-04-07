@@ -59,6 +59,11 @@ def parse_args() -> Namespace:
                         nargs='?',
                         const=True,
                         default=True)
+    parser.add_argument('--warmup',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=True)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
     return parser.parse_args()
@@ -70,10 +75,6 @@ def maybe_synchronize():
 
 
 def main(args: Namespace) -> None:
-    # Seed randomness
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
-
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
@@ -122,11 +123,28 @@ def main(args: Namespace) -> None:
     input_tokens = torch.sum(encoded_inp['input_ids'] != tokenizer.pad_token_id,
                              axis=1).numpy(force=True)  # type: ignore
 
-    # Run HF generate
+    # Autocast
     if args.autocast:
         print(f'Using autocast amp_{args.dtype}...')
     else:
         print('NOT using autocast...')
+
+    # Warmup
+    if args.warmup:
+        print('Warming up...')
+        with torch.no_grad():
+            with torch.autocast(device, dtype, enabled=args.autocast):
+                encoded_gen = model.generate(
+                    input_ids=encoded_inp['input_ids'],
+                    attention_mask=encoded_inp['attention_mask'],
+                    **generate_kwargs,
+                )
+
+    # Seed randomness
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
+    # Run HF generate
     maybe_synchronize()
     gen_start = time.time()
     with torch.no_grad():
