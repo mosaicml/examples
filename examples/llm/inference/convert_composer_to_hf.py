@@ -118,7 +118,7 @@ def write_huggingface_pretrained_from_composer_checkpoint(
             tmp_dir.name) / 'local-composer-checkpoint.pt'
 
     # create object store if output_path
-    object_store = maybe_create_object_store_from_uri(output_path)
+    object_store = maybe_create_object_store_from_uri(str(output_path))
     if object_store is not None:
         local_output_path = tempfile.TemporaryDirectory().name
     else:
@@ -149,8 +149,11 @@ def write_huggingface_pretrained_from_composer_checkpoint(
     print('Saving HF Tokenizer...')
     hf_tokenizer = get_hf_tokenizer_from_composer_state_dict(
         composer_state_dict)
-    hf_tokenizer.save_pretrained(local_output_path)
-    print(hf_tokenizer)
+    if hf_tokenizer is not None:
+        hf_tokenizer.save_pretrained(local_output_path)
+        print(hf_tokenizer)
+    else:
+        print('Warning! No HF Tokenizer found!')
 
     # Extract and save the HF model weights
     print('#' * 30)
@@ -171,7 +174,7 @@ def write_huggingface_pretrained_from_composer_checkpoint(
             f'Uploading HF checkpoint folder from {local_output_path} -> {output_path}'
         )
         for file in os.listdir(local_output_path):
-            _, _, prefix = parse_uri(output_path)
+            _, _, prefix = parse_uri(str(output_path))
             remote_file = os.path.join(prefix, file)
             local_file = os.path.join(local_output_path, file)
             object_store.upload_object(remote_file, local_file)

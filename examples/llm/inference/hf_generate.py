@@ -120,7 +120,7 @@ def main(args: Namespace) -> None:
     maybe_synchronize()
     encode_end = time.time()
     input_tokens = torch.sum(encoded_inp['input_ids'] != tokenizer.pad_token_id,
-                             axis=1).numpy(force=True)
+                             axis=1).numpy(force=True)  # type: ignore
 
     # Run HF generate
     if args.autocast:
@@ -144,7 +144,7 @@ def main(args: Namespace) -> None:
     maybe_synchronize()
     decode_end = time.time()
     gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
-                           axis=1).numpy(force=True)
+                           axis=1).numpy(force=True)  # type: ignore
 
     # Print generations
     delimiter = '#' * 100
