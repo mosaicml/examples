@@ -45,6 +45,9 @@ class MonolithicCheckpointSaver(Callback):
             if self.upload_to_object_store:
                 with tempfile.TemporaryDirectory() as tempdir:
                     temp_save_path = str(Path(tempdir) / Path(filename))
+                    dirname = os.path.dirname(temp_save_path)
+                    if dirname:
+                        os.makedirs(dirname, exist_ok=True)
                     with fsdp_state_dict_type_context(state.model, state_dict_type='full'):
                         state_dict = {'state': {'model': state.model.state_dict()}, 'rng': reproducibility.get_rng_state()}
                         torch.save(state_dict, temp_save_path)
