@@ -18,7 +18,7 @@ class MonolithicCheckpointSaver(Callback):
         filename (str): Filename to save checkpoints to.
         batch_interval (int): Number of batches between checkpoints.
     """
-    def __init__(self, save_folder: str, batch_interval: int, filename: str='ep{epoch}-ba{batch}-rank{rank}.pt', overwrite: bool = False):
+    def __init__(self, save_folder: str, batch_interval: int, filename: str='ep{epoch}-ba{batch}.pt', overwrite: bool = False):
         self.backend, self.bucket_name, self.save_dir_format_str = parse_uri(save_folder)
         self.filename_format_str = filename
         self.batch_interval = batch_interval
