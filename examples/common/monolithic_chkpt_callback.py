@@ -18,26 +18,25 @@ class MonolithicCheckpointSaver(Callback):
         filename (str): Filename to save checkpoints to.
         batch_interval (int): Number of batches between checkpoints.
     """
-    def __init__(self, save_folder: str, batch_interval: int, filename: str='ep{epoch}-ba{batch}-rank{rank}.pt'):
+    def __init__(self, save_folder: str, batch_interval: int, filename: str='ep{epoch}-ba{batch}-rank{rank}.pt', overwrite: bool = False):
         self.backend, self.bucket_name, self.save_dir_format_str = parse_uri(save_folder)
         self.filename_format_str = filename
         self.batch_interval = batch_interval
         self.upload_to_object_store = (self.backend != '')
+        self.overwrite = overwrite
+        if self.upload_to_object_store:
+            self.remote_ud = RemoteUploaderDownloader(bucket_uri=f'{self.backend}://{self.bucket_name}')
+        else:
+            self.remote_ud = None
+        
+
 
     def init(self, state: State, logger: Logger):
         if self.upload_to_object_store:
-            remote_ud_exists = False
-            remote_uploader_downloaders = [ld for ld in logger.destinations if isinstance(ld, RemoteUploaderDownloader)]
-            for remote_ud in remote_uploader_downloaders:
-                if remote_ud.remote_backend_name == self.backend and remote_ud.remote_bucket_name == self.bucket_name:
-                    remote_ud_exists = True
-                    break
-            if not remote_ud_exists:
-                new_remote_ud = RemoteUploaderDownloader(bucket_uri=f'{self.backend}://{self.bucket_name}')
-                new_remote_ud.init(state, logger)
-                updated_logger_destinations = [*logger.destinations, new_remote_ud]
-                logger.destinations = tuple(updated_logger_destinations)
-                state.callbacks.append(new_remote_ud)
+            self.remote_ud.init(state, logger)
+            # updated_logger_destinations = [*logger.destinations, new_remote_ud]
+            # logger.destinations = tuple(updated_logger_destinations)
+            state.callbacks.append(self.remote_ud)
 
     def batch_checkpoint(self, state: State, logger: Logger):
         if state.timestamp.batch.value % self.batch_interval == 0:
@@ -51,7 +50,7 @@ class MonolithicCheckpointSaver(Callback):
                         torch.save(state_dict, temp_save_path)
                     remote_file_name = str(Path(save_dir) / Path(filename))
                     if dist.get_global_rank() == 0:
-                        logger.upload_file(remote_file_name=remote_file_name, file_path=temp_save_path)
+                        self.remote_ud.upload_file(remote_file_name=remote_file_name, file_path=temp_save_path, overwrite=self.overwrite)
             else:
                 save_path = str(Path(save_dir) / Path(filename))
                 dirname = os.path.dirname(save_path)
