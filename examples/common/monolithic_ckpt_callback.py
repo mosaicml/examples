@@ -57,7 +57,8 @@ class MonolithicCheckpointSaver(Callback):
             self._save_checkpoint(state, logger)
 
     def fit_end(self, state: State, logger: Logger):
-        self._save_checkpoint(state, logger)
+        if state.timestamp.batch.value % self.batch_interval != 0:
+            self._save_checkpoint(state, logger)
 
     def _save_checkpoint(self, state: State, logger: Logger):
         filename = format_name_with_dist_and_time(self.filename_format_str,
