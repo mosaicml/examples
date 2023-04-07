@@ -46,7 +46,7 @@ class MonolithicCheckpointSaver(Callback):
             self.remote_ud = None
 
     def init(self, state: State, logger: Logger):
-        if self.upload_to_object_store:
+        if self.upload_to_object_store and self.remote_ud is not None:
             self.remote_ud.init(state, logger)
             # updated_logger_destinations = [*logger.destinations, new_remote_ud]
             # logger.destinations = tuple(updated_logger_destinations)
@@ -85,9 +85,10 @@ class MonolithicCheckpointSaver(Callback):
                 state_dict['state']['model'] = state.model.state_dict()
                 if dist.get_global_rank() == 0:
                     torch.save(state_dict, save_path)
-            if self.upload_to_object_store and dist.get_global_rank() == 0:
+            if self.upload_to_object_store and self.remote_ud is not None and dist.get_global_rank(
+            ) == 0:
                 remote_file_name = str(Path(save_dir) / Path(filename))
                 self.remote_ud.upload_file(state=state,
                                            remote_file_name=remote_file_name,
-                                           file_path=save_path,
+                                           file_path=Path(save_path),
                                            overwrite=self.overwrite)
