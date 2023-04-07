@@ -58,7 +58,7 @@ def parse_args() -> Namespace:
                         type=str2bool,
                         nargs='?',
                         const=True,
-                        default=True)
+                        default=False)
     parser.add_argument('--warmup',
                         type=str2bool,
                         nargs='?',
@@ -145,6 +145,7 @@ def main(args: Namespace) -> None:
     torch.manual_seed(args.seed)
 
     # Run HF generate
+    print('Generating responses...')
     maybe_synchronize()
     gen_start = time.time()
     with torch.no_grad():
