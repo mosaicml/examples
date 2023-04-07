@@ -57,7 +57,7 @@ class MonolithicCheckpointSaver(Callback):
                 if dirname:
                     os.makedirs(dirname, exist_ok=True)
                 with fsdp_state_dict_type_context(state.model, state_dict_type='full'):
-                    state_dict = {'state': {'model': state.model.state_dict()}}
+                    state_dict = {'state': {'model': state.model.state_dict(), 'rng': reproducibility.get_rng_state()}}
                     if dist.get_global_rank() == 0:
                         torch.save(state_dict, save_path)
 
