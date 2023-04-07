@@ -54,35 +54,40 @@ class MonolithicCheckpointSaver(Callback):
 
     def batch_checkpoint(self, state: State, logger: Logger):
         if state.timestamp.batch.value % self.batch_interval == 0:
-            filename = format_name_with_dist_and_time(self.filename_format_str,
-                                                      state.run_name,
-                                                      state.timestamp)
-            save_dir = format_name_with_dist_and_time(self.save_dir_format_str,
-                                                      state.run_name,
-                                                      state.timestamp)
-            dir_context_mgr = tempfile.TemporaryDirectory(
-            ) if self.upload_to_object_store else contextlib.nullcontext(
-                enter_result=save_dir)
-            with dir_context_mgr as temp_save_dir:
-                save_path = str(Path(temp_save_dir) / Path(filename))
-                dirname = os.path.dirname(save_path)
-                if dirname:
-                    os.makedirs(dirname, exist_ok=True)
-                state_dict = {
-                    'state': state.state_dict(),
-                    'rng': reproducibility.get_rng_state()
-                }
-                if not self.keep_optimizers:
-                    state_dict['state'].pop('optimizers')
-                with fsdp_state_dict_type_context(state.model,
-                                                  state_dict_type='full'):
-                    state_dict['state']['model'] = state.model.state_dict()
-                    if dist.get_global_rank() == 0:
-                        torch.save(state_dict, save_path)
-                if self.upload_to_object_store and dist.get_global_rank() == 0:
-                    remote_file_name = str(Path(save_dir) / Path(filename))
-                    self.remote_ud.upload_file(
-                        state=state,
-                        remote_file_name=remote_file_name,
-                        file_path=save_path,
-                        overwrite=self.overwrite)
+            self._save_checkpoint(state, logger)
+
+    def fit_end(self, state: State, logger: Logger):
+        self._save_checkpoint(state, logger)
+
+    def _save_checkpoint(self, state: State, logger: Logger):
+        filename = format_name_with_dist_and_time(self.filename_format_str,
+                                                  state.run_name,
+                                                  state.timestamp)
+        save_dir = format_name_with_dist_and_time(self.save_dir_format_str,
+                                                  state.run_name,
+                                                  state.timestamp)
+        dir_context_mgr = tempfile.TemporaryDirectory(
+        ) if self.upload_to_object_store else contextlib.nullcontext(
+            enter_result=save_dir)
+        with dir_context_mgr as temp_save_dir:
+            save_path = str(Path(temp_save_dir) / Path(filename))
+            dirname = os.path.dirname(save_path)
+            if dirname:
+                os.makedirs(dirname, exist_ok=True)
+            state_dict = {
+                'state': state.state_dict(),
+                'rng': reproducibility.get_rng_state()
+            }
+            if not self.keep_optimizers:
+                state_dict['state'].pop('optimizers')
+            with fsdp_state_dict_type_context(state.model,
+                                              state_dict_type='full'):
+                state_dict['state']['model'] = state.model.state_dict()
+                if dist.get_global_rank() == 0:
+                    torch.save(state_dict, save_path)
+            if self.upload_to_object_store and dist.get_global_rank() == 0:
+                remote_file_name = str(Path(save_dir) / Path(filename))
+                self.remote_ud.upload_file(state=state,
+                                           remote_file_name=remote_file_name,
+                                           file_path=save_path,
+                                           overwrite=self.overwrite)
