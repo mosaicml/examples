@@ -18,10 +18,10 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
 
 from examples.common.fdiff import FDiffMetrics
 from examples.common.generate_callback import Generate
+from examples.common.monolithic_ckpt_callback import MonolithicCheckpointSaver
 from examples.common.optim import (DecoupledAdaLRLion, DecoupledClipLion,
                                    DecoupledLionW)
 from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
-from examples.common.monolithic_chkpt_callback import MonolithicCheckpointSaver
 from examples.common.text_data import build_text_dataloader
 
 
@@ -50,7 +50,7 @@ def build_callback(name, kwargs):
         return GlobalLRScaling(**kwargs)
     elif name == 'layer_freezing':
         return LayerFreezing(**kwargs)
-    elif name == 'mono_chkpt_saver':
+    elif name == 'mono_ckpt_saver':
         return MonolithicCheckpointSaver(**kwargs)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
