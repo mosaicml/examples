@@ -50,7 +50,7 @@ class MonolithicCheckpointSaver(Callback):
                         torch.save(state_dict, temp_save_path)
                     remote_file_name = str(Path(save_dir) / Path(filename))
                     if dist.get_global_rank() == 0:
-                        self.remote_ud.upload_file(remote_file_name=remote_file_name, file_path=temp_save_path, overwrite=self.overwrite)
+                        self.remote_ud.upload_file(state=state, remote_file_name=remote_file_name, file_path=temp_save_path, overwrite=self.overwrite)
             else:
                 save_path = str(Path(save_dir) / Path(filename))
                 dirname = os.path.dirname(save_path)
