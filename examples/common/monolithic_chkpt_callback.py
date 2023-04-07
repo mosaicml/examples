@@ -31,8 +31,6 @@ class MonolithicCheckpointSaver(Callback):
         else:
             self.remote_ud = None
         
-
-
     def init(self, state: State, logger: Logger):
         if self.upload_to_object_store:
             self.remote_ud.init(state, logger)
