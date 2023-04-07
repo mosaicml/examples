@@ -58,6 +58,3 @@ class MonolithicCheckpointSaver(Callback):
                 if self.upload_to_object_store and dist.get_global_rank() == 0:
                     remote_file_name = str(Path(save_dir) / Path(filename))
                     self.remote_ud.upload_file(state=state, remote_file_name=remote_file_name, file_path=save_path, overwrite=self.overwrite)
-
-
-
