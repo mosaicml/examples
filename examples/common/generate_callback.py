@@ -7,6 +7,7 @@
 """Periodically log generations to wandb from a set of prompts."""
 from typing import List
 
+import torch
 import wandb
 from composer.core import Callback, State
 from composer.loggers import Logger, WandBLogger
@@ -67,6 +68,12 @@ class Generate(Callback):
 
         for k, v in tokenized_input.items():
             tokenized_input[k] = device.tensor_to_device(v)
+
+        # dummy forward call needed for FSDP to work consistently
+        dummy_input = torch.tensor([[0]], dtype=torch.long)
+        dummy_input = device.tensor_to_device(dummy_input)
+        with torch.no_grad():
+            _ = model.model(input_ids=dummy_input)
 
         output_token_ids = model.model.generate(
             input_ids=tokenized_input['input_ids'],
