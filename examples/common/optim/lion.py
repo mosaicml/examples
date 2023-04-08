@@ -233,7 +233,7 @@ class TwoBitLionW(Optimizer):
 
         grad_bool = (grad > 0.0).bool()
         if step > 1:
-            update_bool = grad_bool.bitwise_and(prev_grad).bitwise_or_(update.bitwise_and(maj_vote)).bitwise_or_(prev_grad.bitwise_and(maj_vote))
+            update_bool = grad_bool.bitwise_and(prev_grad).bitwise_or_(grad_bool.bitwise_and(maj_vote)).bitwise_or_(prev_grad.bitwise_and(maj_vote))
         else:
             update_bool = grad_bool
 
@@ -275,77 +275,3 @@ class TwoBitLionW(Optimizer):
                 state['step'] += 1
 
         return loss
-
-    def dist_reduce_metrics(self, optimizer_metrics):
-        for metric in optimizer_metrics:
-            if metric.startswith('l2_norm'):
-                reduced = optimizer_metrics[metric]
-                if dist.get_world_size() > 1:
-                    dist.all_reduce(reduced, reduce_operation='SUM')
-
-                optimizer_metrics[metric] = math.sqrt(reduced)
-            elif metric.startswith('cosine'):
-                reduced = optimizer_metrics[metric]
-                if dist.get_world_size() > 1:
-                    dist.all_reduce(reduced, reduce_operation='SUM')
-
-                _, vectors, layer = tuple(metric.split('/'))
-
-                A, B = tuple(vectors.split('_'))
-
-                A_reduced_norm = optimizer_metrics[f'l2_norm/{A}/{layer}']
-                B_reduced_norm = optimizer_metrics[f'l2_norm/{B}/{layer}']
-                optimizer_metrics[metric] = reduced / (A_reduced_norm *
-                                                       B_reduced_norm)
-            else:
-                reduced = optimizer_metrics[metric]
-                if dist.get_world_size() > 1:
-                    dist.all_reduce(reduced, reduce_operation='SUM')
-                optimizer_metrics[metric] = reduced / dist.get_world_size()
-
-        return optimizer_metrics
-
-    def pre_reduce_metrics(self, optimizer_metrics):
-        """Preprocess metrics to reduce across ranks correctly."""
-        # Sort L2 norms first so they are squared before other metrics, which depend on squared values
-        metrics = optimizer_metrics.keys()
-        metrics = sorted(metrics,
-                         key=lambda metric: 0 if 'l2_norm' in metric else 1)
-        for metric in metrics:
-            if metric.startswith('l2_norm'):
-                # L2 norms need to be squared, before they are reduced via summation
-                optimizer_metrics[metric] = optimizer_metrics[metric]**2
-            elif metric.startswith('cosine'):
-                _, vectors, layer = tuple(metric.split('/'))
-
-                A, B = tuple(vectors.split('_'))
-
-                # L2 norm would've been squared in previous branch
-                A_rank_subset_norm = math.sqrt(
-                    optimizer_metrics[f'l2_norm/{A}/{layer}'])
-                B_rank_subset_norm = math.sqrt(
-                    optimizer_metrics[f'l2_norm/{B}/{layer}'])
-
-                optimizer_metrics[
-                    metric] *= A_rank_subset_norm * B_rank_subset_norm
-
-        return optimizer_metrics
-
-    def report_per_parameter_metrics(self, param: torch.Tensor, name: str,
-                                     optimizer_metrics: dict):
-        lr = self.param_groups[0]['lr']
-        weight_decay = self.param_groups[0]['weight_decay']
-        initial_lr = self.param_groups[0]['initial_lr']
-
-        beta1, _ = self.param_groups[0]['betas']
-        if param in self.state:
-            param_optim_state = self.state[param]
-            step_tensor = param_optim_state['exp_avg'].clone().lerp_(
-                param.grad, 1 - beta1).sign_().mul_(lr)
-            decay_factor = (lr / initial_lr) if initial_lr else 1.0
-            step_tensor.add_(param, alpha=-weight_decay * decay_factor)
-            for metric in self.metric_functions:
-                optimizer_metrics[f'{metric}/{name}'] = self.metric_functions[
-                    metric](param, param_optim_state, step_tensor)
-
-        return optimizer_metrics
