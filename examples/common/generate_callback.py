@@ -46,6 +46,9 @@ class Generate(Callback):
                     self.wandb_logger = destination
 
     def batch_checkpoint(self, state: State, logger: Logger):
+        if (state.timestamp.batch.value % self.batch_save_interval) != 0:
+            return
+
         model = state.model
         tokenizer = state.model.tokenizer
         device = state.device
