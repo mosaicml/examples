@@ -15,7 +15,7 @@ from composer.utils import dist, ensure_tuple
 
 class Generate(Callback):
 
-    def __init__(self, prompts: List[str], batch_save_interval: int, **kwargs):
+    def __init__(self, prompts: List[str], batch_log_interval: int, **kwargs):
         """Periodically log generations to wandb from a set of prompts.
 
         In the main view for a run, there will be a table that will show the _last_ logged generations.
@@ -31,11 +31,11 @@ class Generate(Callback):
 
         Args:
             prompts (List[str]): The list of prompts you would like to produce generations for
-            batch_save_interval (int): The interval (in batches) at which this callback runs
+            batch_log_interval (int): The interval (in batches) at which this callback runs
             kwargs: All kwargs well be passed along to the call to generate. This is for things like `do_sample`, `top_p`, etc
         """
         self.prompts = prompts
-        self.batch_save_interval = batch_save_interval
+        self.batch_log_interval = batch_log_interval
         self.generate_kwargs = kwargs
         self.wandb_logger = None
 
@@ -46,7 +46,7 @@ class Generate(Callback):
                     self.wandb_logger = destination
 
     def batch_checkpoint(self, state: State, logger: Logger):
-        if (state.timestamp.batch.value % self.batch_save_interval) == 0:
+        if (state.timestamp.batch.value % self.batch_log_interval) == 0:
             self.generate(state, logger)
 
     def fit_end(self, state: State, logger: Logger):
