@@ -55,6 +55,8 @@ class Generate(Callback):
 
     def generate(self, state: State, logger: Logger):
         model = state.model
+        original_mode = model.training
+        model.eval()
         tokenizer = state.model.tokenizer
         device = state.device
 
@@ -101,3 +103,4 @@ class Generate(Callback):
                           step=state.timestamp.batch.value)
 
         tokenizer.padding_side = original_padding_side
+        model.train(mode=original_mode)
