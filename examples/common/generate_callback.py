@@ -50,9 +50,10 @@ class Generate(Callback):
             self.generate(state, logger)
 
     def fit_end(self, state: State, logger: Logger):
-        self.generate(state, logger)
+        if (state.timestamp.batch.value % self.batch_log_interval) != 0:
+            self.generate(state, logger)
 
-    def generate(state: State, logger: Logger):
+    def generate(self, state: State, logger: Logger):
         model = state.model
         tokenizer = state.model.tokenizer
         device = state.device
