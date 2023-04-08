@@ -49,10 +49,6 @@ class Generate(Callback):
         if (state.timestamp.batch.value % self.batch_log_interval) == 0:
             self.generate(state, logger)
 
-    def fit_end(self, state: State, logger: Logger):
-        if (state.timestamp.batch.value % self.batch_log_interval) != 0:
-            self.generate(state, logger)
-
     def generate(self, state: State, logger: Logger):
         model = state.model
         original_mode = model.training
