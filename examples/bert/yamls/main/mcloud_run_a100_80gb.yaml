@@ -30,8 +30,7 @@ command: |
   cd examples/examples/bert
   python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
   composer main.py /mnt/config/parameters.yaml \
-    train_loader.dataset.split=train_small \
-    data_local=./my-copy-c4
+    train_loader.dataset.split=train_small
 
 # Starting `parameters` copied from `yamls/main/mosaic-bert-base-uncased.yaml`.
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
@@ -41,7 +40,7 @@ parameters:
   run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 
   # Supply a path to your remote data path
-  data_local: /tmp/mds-cache/
+  data_local: ./my-copy-c4
   data_remote: # If blank, files must be present in data_local
 
   max_seq_len: 128
