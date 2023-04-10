@@ -16,9 +16,9 @@ We even packed in a few tricks (e.g. [FlashAttention](https://github.com/HazyRes
 
 You'll find in this folder:
 * `src/models/mosaic_gpt/` - a simple PyTorch GPT model, wrapped in `ComposerModel`, that can scale up to 70B+ parameters
-* `main.py` - a training script that builds a [Composer](https://github.com/mosaicml/composer) Trainer and calls `trainer.fit()`.
+* `main.py` - a training script that builds a [Composer](https://github.com/mosaicml/composer) `Trainer` and calls `trainer.fit()`.
 * `yamls/` - configs for training compute-optimal LLMs from 125M up to 70B parameters.
-* `throughput/` - data on the training throughput of our models on different cluster configurations.
+* `throughput/` - data on the training throughput of MosaicGPT on different cluster configurations.
 * `inference/` - TBD
 * `mcloud/` - examples of how to use [MosaicML platform](https://www.mosaicml.com/platform) to seamlessly launch training, eval, and inference jobs :)
 
@@ -196,7 +196,7 @@ by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/t
 
 # How many GPUs do I need to train a LLM?
 This is a complicated question in general, but if we assume that you are using FSDP with `FULL_SHARD`,
-activation checkpointing, and DecoupledAdamW, then a good rule of thumb is:
+activation checkpointing, and `DecoupledAdamW`, then a good rule of thumb is:
 
 > Your total cluster memory in GB should be larger than  16 * N (# billions of params).
 

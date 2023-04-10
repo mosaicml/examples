@@ -108,7 +108,7 @@ def write_huggingface_pretrained_from_composer_checkpoint(
             supported by :meth:`composer.utils.maybe_create_object_store_from_uri`.
         output_path (Union[Path, str]): Path to the folder to write the output to. Can be a local path, or a remote path beginning with ``s3://``, or another backend
             supported by :meth:`composer.utils.maybe_create_object_store_from_uri`.
-        output_precision (str, optional): The precision of the output weights saved to `pytorch_model.bin`. Can be one of ``fp32``, ``fp16``, or ``fp32``.
+        output_precision (str, optional): The precision of the output weights saved to `pytorch_model.bin`. Can be one of ``fp32``, ``fp16``, or ``bf16``.
         local_checkpoint_save_location (Optional[Union[Path, str]], optional): If specified, where to save the checkpoint file to locally.
                                                                                 If the input ``checkpoint_path`` is already a local path, this will be a symlink.
                                                                                 Defaults to None, which will use a temporary file.

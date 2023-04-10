@@ -1,13 +1,13 @@
 # LLM Inference
 
-This folder contains helper scripts for exporting and generating outputs with  your Composer-trained LLMs.
+This folder contains helper scripts for exporting and generating outputs with your Composer-trained LLMs.
 
 
-## Converting a Composer checkpoint to a HF checkpoint folder
+## Converting a Composer checkpoint to an HF checkpoint folder
 
-The LLMs trained with this codebase are all HuggingFace (HF) PretrainedModels, which we wrap with a `HuggingFaceModel` wrapper class to make compatible with Composer. See details [here](https://docs.mosaicml.com/en/latest/examples/pretrain_finetune_huggingface.html).
+The LLMs trained with this codebase are all HuggingFace (HF) `PreTrainedModel`s, which we wrap with a `HuggingFaceModel` wrapper class to make compatible with Composer. See [docs](https://docs.mosaicml.com/en/latest/api_reference/generated/composer.models.HuggingFaceModel.html) and an [example](https://docs.mosaicml.com/en/latest/examples/pretrain_finetune_huggingface.html) for more details.
 
-At the end of your training runs, you will see a collection of Composer trainer checkpoints such as `ep0-ba2000-rank0.pt`. These checkpoints contain the entire training state, including the model, tokenizer, optimizer state, schedulers, timestamp, metrics, etc. Though these Composer checkpoints are useful during training, at inference time we usually just want the model, tokenizer, and metadata.
+At the end of your training runs, you will see a collection of Composer `Trainer` checkpoints such as `ep0-ba2000-rank0.pt`. These checkpoints contain the entire training state, including the model, tokenizer, optimizer state, schedulers, timestamp, metrics, etc. Though these Composer checkpoints are useful during training, at inference time we usually just want the model, tokenizer, and metadata.
 
 To extract these pieces, we provide a script `convert_composer_to_hf.py` that converts a Composer checkpoint directly to a standard HF checkpoint folder. For example:
 ```bash
@@ -34,7 +34,7 @@ If you trained and saved a custom HF model such as `MosaicGPT`, then in any exte
 
 ```python
 # MosaicGPT, MosaicGPTConfig source code live in this repo
-# pip install mosaicml-examples
+# pip install <my-awesome-repo>
 
 from examples.llm import MosaicGPT, MosaicGPTConfig
 
@@ -92,7 +92,7 @@ The answer to life, the universe, and happiness is to love.
 
 ...
 ##################################################################
-MosaicML is an ML training efficiency starup that is known for its efficient and efficient strategies.
+MosaicML is an ML training efficiency startup that is known for its efficient and efficient strategies.
 
 ...
 ##################################################################
@@ -133,4 +133,4 @@ python inference/convert_hf_to_onnx.py --pretrained_model_name_or_path local/pat
 python inference/convert_hf_to_onnx.py --pretrained_model_name_or_path local/path/to/huggingface/folder --output_folder local/folder --export_batch_size 1 --max_seq_len 32000
 ```
 
-Please raise a Github issue if you discover any problems!
+Please open a Github issue if you discover any problems!
