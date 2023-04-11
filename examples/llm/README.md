@@ -19,14 +19,14 @@ You'll find in this folder:
 * `main.py` - a training script that builds a [Composer](https://github.com/mosaicml/composer) `Trainer` and calls `trainer.fit()`.
 * `yamls/` - configs for training compute-optimal LLMs from 125M up to 70B parameters.
 * `throughput/` - data on the training throughput of MosaicGPT on different cluster configurations.
-* `inference/` - TBD
+* `inference/` - scripts to convert models to HuggingFace or ONNX format, and view generations.
 * `mcloud/` - examples of how to use [MosaicML platform](https://www.mosaicml.com/platform) to seamlessly launch training, eval, and inference jobs :)
 
 
 In the [common](../common) folder, you will also find:
-* `common/builders.py`-
+* `common/builders.py`- A collection of convenient string-to-object mappings used to create objects that get passed to `Trainer`.
 * `common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
-* `common/convert_dataset.py`- an example of converting generic text data into StreamingDataset `.mds` shard files.
+* `common/convert_dataset.py`- an example of converting generic text data into `StreamingDataset` `.mds` shard files.
 
 At all model scales, we are training the exact same [vanilla PyTorch GPT model](./src/mosaic_gpt.py#L106), with no special parallelism strategies.
 Composer + FSDP does all the heavy lifting to make sure we can scale up without running out of memory and while maintaining high performance.

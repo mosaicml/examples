@@ -57,12 +57,12 @@ python hf_generate.py \
     --temperature 1.0 \
     --top_p 0.95 \
     --top_k 50 \
-    --seed 1 \
+    --seed 17 \
     --max_new_tokens 256 \
     --prompts \
       "The answer to life, the universe, and happiness is" \
-      "MosaicML is an ML training efficiency starup that is known for" \
-      "My name is" \
+      "MosaicML is an ML training efficiency startup that is known for" \
+      "Here's a quick recipe for baking chocolate chip cookies: Start by" \
       "The best 5 cities to visit in Europe are"
 ```
 
@@ -75,6 +75,8 @@ n_params=124439808
 Loading HF tokenizer...
 /mnt/workdisk/abhi/examples/examples/llm/inference/hf_generate.py:89: UserWarning: pad_token_id is not set for the tokenizer. Using eos_token_id as pad_token_id.
   warnings.warn(
+Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
+Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
 
 Generate kwargs:
 {'max_new_tokens': 256, 'temperature': 1.0, 'top_p': 0.95, 'top_k': 50, 'use_cache': True, 'do_sample': True, 'eos_token_id': 50256}
@@ -84,31 +86,21 @@ Moving model and inputs to device=cuda and dtype=torch.bfloat16...
 Tokenizing prompts...
 NOT using autocast...
 Warming up...
-Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
 Generating responses...
-Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
-##################################################################
-The answer to life, the universe, and happiness is to love.
-
-...
-##################################################################
-MosaicML is an ML training efficiency startup that is known for its efficient and efficient strategies.
-
-...
-##################################################################
-My name is Eulogy Jackson, and I am the mother of nine children.
-
-...
-##################################################################
-The best 5 cities to visit in Europe are the one in Spain (Spain) and the one in Holland (Belgium).
-
-...
-##################################################################
-bs=4, input_tokens=array([11, 15,  3,  9]), output_tokens=array([256, 256, 256, 256])
-total_input_tokens=38, total_output_tokens=1024
-encode_latency=78.04ms, gen_latency=2615.56ms, decode_latency=2.28ms, total_latency=2695.89ms
-latency_per_output_token=2.63ms/tok
-output_tok_per_sec=379.84tok/sec
+####################################################################################################
+The answer to life, the universe, and happiness is to love...
+####################################################################################################
+MosaicML is an ML training efficiency startup that is known for designing and developing applications to improve training and performance efficiency...
+####################################################################################################
+Here\'s a quick recipe for baking chocolate chip cookies: Start by making an apple crumble by yourself or bake in the microwave for 40 minutes to melt and get melted...
+####################################################################################################
+The best 5 cities to visit in Europe are the one in Spain (Spain) and the one in Holland (Belgium)...
+####################################################################################################
+bs=4, input_tokens=array([11, 14, 13,  9]), output_tokens=array([256, 256, 256,  41])
+total_input_tokens=47, total_output_tokens=809
+encode_latency=9.56ms, gen_latency=2759.02ms, decode_latency=1.72ms, total_latency=2770.31ms
+latency_per_output_token=3.42ms/tok
+output_tok_per_sec=292.03tok/sec
 ```
 
 The argument for `--name_or_path` can be either the name of a model that exists on the HF Hub, such as `gpt2`, `facebook/opt-350m`, etc. or the path to a HF checkpoint folder, such as `my_hf_model/` like we exported above.
