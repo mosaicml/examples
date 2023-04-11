@@ -12,7 +12,7 @@ class ScheduledGarbageCollector(Callback):
 
     Args:
         batch_interval (int): Number of batches between checkpoints call to gc.collect()
-        eval_keep_disabled (bool): keep gc disabled durring eval (default: False)
+        eval_keep_disabled (bool): keep gc disabled during eval (default: False)
     """
 
     def __init__(
