@@ -57,7 +57,7 @@ python hf_generate.py \
     --temperature 1.0 \
     --top_p 0.95 \
     --top_k 50 \
-    --seed 17 \
+    --seed 1 \
     --max_new_tokens 256 \
     --prompts \
       "The answer to life, the universe, and happiness is" \
