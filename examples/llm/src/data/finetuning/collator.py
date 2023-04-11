@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+import warnings
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -98,6 +99,9 @@ class Seq2SeqFinetuningCollator:
                 self.separator_tokens = tokenizer(
                     separator_text, add_special_tokens=False).input_ids
 
+        self._warned_context = False
+        self._warned_target = False
+
     def __call__(self, examples: List[Dict[str,
                                            Any]]) -> Dict[str, torch.Tensor]:
         for check_key in ['input_ids', 'labels', 'attention_mask']:
@@ -111,6 +115,8 @@ class Seq2SeqFinetuningCollator:
                 x = list(x.flatten())
             assert isinstance(x, list)
             return x
+
+        processed_examples = []
 
         # The encoder-decoder case is has some gotchas.
         # Steps are explained in comments.
@@ -132,29 +138,44 @@ class Seq2SeqFinetuningCollator:
                             ] * (self.max_seq_length - len(target))
                     target = target + i_pad
                 else:
-                    raise ValueError(
-                        f'max_seq_length={self.max_seq_length} is too small to fit ' +\
-                        f'the target token sequence of length={len(target)}.')
+                    if not self._warned_target:
+                        warnings.warn(
+                            f'Truncating TARGET sequence of length={len(target)} ' +\
+                            f'to max_seq_length={self.max_seq_length}. If truncation is ' +\
+                            f'a problem, consider increasing max_seq_length.')
+                        self._warned_target = True
+                    target = target[:self.max_seq_length -
+                                    1] + [self.tokenizer.eos_token_id]
 
-                # We might need to truncate the context. Preserve the end.
-                context = context[-self.max_seq_length:]
+                # We might need to truncate the context. Preserve the beginning.
+                if len(context) > self.max_seq_length:
+                    if not self._warned_context:
+                        warnings.warn(
+                            f'Truncating CONTEXT sequence of length={len(context)} ' +\
+                            f'to max_seq_length={self.max_seq_length}. If truncation is ' +\
+                            f'a problem, consider increasing max_seq_length.')
+                        self._warned_context = True
+                    context = context[:self.max_seq_length -
+                                      1] + [self.tokenizer.eos_token_id]
 
                 # Back into the example
                 example['input_ids'] = context
                 example['attention_mask'] = [1] * len(context)
                 example['labels'] = target
 
+                processed_examples.append(example)
+
             # Batch examples into a single dict (this also pads)
             batch = self.tokenizer.pad(
-                examples,
+                processed_examples,
                 padding='max_length',
                 max_length=self.max_seq_length,
                 return_tensors='pt',
             )
             # We're still missing decoder_input_ids and decoder_attention_mask
             batch['decoder_input_ids'] = torch.cat([
-                torch.full((len(examples), 1), self.tokenizer.pad_token_id),
-                batch['labels'][:, :-1]
+                torch.full((len(processed_examples), 1),
+                           self.tokenizer.pad_token_id), batch['labels'][:, :-1]
             ],
                                                    dim=1)
             batch['decoder_input_ids'].masked_fill_(
@@ -210,10 +231,16 @@ class Seq2SeqFinetuningCollator:
             n_context = len(context)
             n_target = len(target)
 
-            if n_target > self.max_seq_length:
-                raise ValueError(
-                    f'max_seq_length={self.max_seq_length} is too small to fit ' +\
-                    f'the target token sequence of length={n_target}.')
+            if n_context > self.max_seq_length:
+                if not self._warned_context:
+                    warnings.warn(
+                        f'Skipping example because CONTEXT length={n_context} exceeds ' +\
+                        f'max_seq_length={self.max_seq_length}. If this causes downstream ' +\
+                        f'issues because of inconsistent batch sizes, consider increasing ' +\
+                        f'max_seq_length or using example packing.'
+                    )
+                    self._warned_context = True
+                continue
 
             if self.format_for_generation:
                 # When formatting for generation, we need to keep input_ids and
@@ -238,10 +265,18 @@ class Seq2SeqFinetuningCollator:
             else:
                 # We need to concatenate the context and target to get the
                 # full input sequence, cutting off any excess tokens from the
-                # start of the context
+                # end of the target
                 if n_context + n_target > self.max_seq_length:
-                    n_context = self.max_seq_length - n_target
-                    context = context[-n_context:]
+                    old_n_target = int(n_target)
+                    n_target = self.max_seq_length - n_context
+                    if not self._warned_target:
+                        warnings.warn(
+                            f'Truncating TARGET sequence of length={old_n_target} to length={n_target}, ' +\
+                            f'so context+target fit max_seq_length={self.max_seq_length}. If truncation is ' +\
+                            f'a problem, consider increasing max_seq_length.')
+                        self._warned_target = True
+                    target = target[-n_target:]
+                    target[-1] = self.tokenizer.eos_token_id
                 n_total = n_context + n_target
 
                 input_ids = context + target
@@ -267,8 +302,10 @@ class Seq2SeqFinetuningCollator:
             example['attention_mask'] = attention_mask
             example['bidirectional_mask'] = bidirectional_mask
 
+            processed_examples.append(example)
+
         batch = self.tokenizer.pad(
-            examples,
+            processed_examples,
             padding='max_length',
             max_length=self.max_seq_length,
             return_tensors='pt',

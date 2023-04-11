@@ -177,11 +177,19 @@ if __name__ == '__main__':
             'name': 'tatsu-lab/alpaca',
             'split': 'train',
             'packing_ratio': 18.0,
+            #
             # 'name': 'Muennighoff/P3',
             # 'split': 'validation',
             # 'remote': 's3://mosaicml-internal-checkpoints-shared/alex/muennighoff-p3/',
             # 'local': '/tmp/mds-cache/mp3/',
             # 'packing_ratio': 12.0,
+            #
+            # 'name': 'Muennighoff/flan',
+            # 'split': 'validation',
+            # 'remote': 's3://mosaicml-internal-checkpoints-shared/alex/muennighoff-flan/',
+            # 'local': '/tmp/mds-cache/mflan/',
+            # 'packing_ratio': 13.5,
+            #
             'tokenizer_name': 'gpt2',
             'max_seq_length': 2048,
             'decoder_only_format': True,
