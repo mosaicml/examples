@@ -8,7 +8,7 @@ You’ll find in this folder:
 
 ## Prerequisites
 
-All you will need to get started is a docker image (we recommend `mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04`)!
+All you will need to get started is a Docker image (we recommend `mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04`)!
 
 ## Starting Training
 For this example, we will be running the [`simulacra`](https://github.com/CarperAI/trlx/blob/main/examples/simulacra.py) example from TRLX. We include the `.yaml` files required to run single or multi-node TRLX on the Mosaic platform. You just need to fill in the `cluster` field in the `.yaml` files. The provided yamls use either 8 or 16 GPUs, but all you have to do to use more is change the `gpu_num` field, and modify the `--num_processes` and `--num_machines` arguments to the `accelerate launch` command. See the [TRLX README](https://github.com/CarperAI/trlx/blob/main/README.md) for more information.
