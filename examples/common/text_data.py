@@ -270,7 +270,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         shuffle=cfg.dataset.get('shuffle', False),
         shuffle_algo=cfg.dataset.get('shuffle_algo', 'py1b'),
         shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
-        shuffle_block_size=cfg.dataset.get('shuffle_block_size', 1 << 18),
+        shuffle_block_size=int(cfg.dataset.get('shuffle_block_size', 1 << 18)),
     )
 
     mlm_probability = cfg.dataset.get('mlm_probability', None)
