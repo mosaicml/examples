@@ -45,6 +45,7 @@ class MosaicGPTConfig(PretrainedConfig):
         init_nonlinearity: str = 'relu',
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = True,
+        multiquery_attention: bool = False,
         use_cache: bool = False,
         **kwargs,
     ):
@@ -92,6 +93,7 @@ class MosaicGPTConfig(PretrainedConfig):
             init_nonlinearity (str): The nonlinearity to use for parameter initialization with kaiming initialization schemes.
             embedding_fraction (float): The fraction to scale the gradients of the embedding layer by.
             low_precision_layernorm (bool): Whether to use low precision layer normalization.
+            multiquery_attention (bool): Whether to use multiquery attention implementation.
             use_cache (bool): Whether or not the model should return the last key/values attentions
         """
         self.d_model = d_model
@@ -126,6 +128,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.init_nonlinearity = init_nonlinearity
         self.embedding_fraction = embedding_fraction
         self.low_precision_layernorm = low_precision_layernorm
+        self.multiquery_attention = multiquery_attention
         self.use_cache = use_cache
         if 'name' in kwargs:
             del kwargs['name']

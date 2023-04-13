@@ -10,7 +10,8 @@ import torch.nn as nn
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
 
-from examples.llm.src.models.layers.attention import MultiheadAttention
+from examples.llm.src.models.layers.attention import (MultiheadAttention,
+                                                      MultiQueryAttention)
 
 
 class GPTMLP(nn.Module):
@@ -43,15 +44,17 @@ class GPTBlock(nn.Module):
                  alibi: bool = False,
                  resid_pdrop: float = 0.0,
                  low_precision_layernorm: bool = False,
+                 multiquery_attention: bool = False,
                  device: Optional[str] = None,
                  **kwargs):
         del kwargs  # unused, just to capture any extra args from the config
         super().__init__()
 
         layernorm_class = LPLayerNorm if low_precision_layernorm else nn.LayerNorm
+        attn_class = MultiQueryAttention if multiquery_attention else MultiheadAttention
 
         self.ln_1 = layernorm_class(d_model, device=device)
-        self.attn = MultiheadAttention(
+        self.attn = attn_class(
             attn_impl=attn_impl,
             attn_clip_qkv=attn_clip_qkv,
             attn_qk_ln=attn_qk_ln,
