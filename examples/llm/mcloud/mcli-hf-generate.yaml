@@ -16,7 +16,7 @@ command: |
   # # oci commands
   # pip install oci-cli
   # oci os object bulk-download \
-  # -bn YOUR_BUCKET_HERE  --region BUCKET_REGION \
+  # -bn bucket --region bucket_region \
   # --prefix folder/hf/ --dest-dir ./
   # # oci downloads the full prefix path, this extracts the innermost folder
   # # into local_hf_folder
