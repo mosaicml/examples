@@ -1,0 +1,37 @@
+run_name: pile-of-law-2k-pre-tokenized-toy
+# gpu_type: a100_40gb
+gpu_num: 8
+cluster: vision-cluster # Update with your cluster here!
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+integrations:
+- integration_type: pip_packages
+  # Install necessary oci-cli
+  packages:
+  - oci-cli
+
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  git_branch: sasha/starter-proj 
+  # git_commit: # OR use your commit hash
+  pip_install: '.'
+  ssh_clone: false # Should be true if using a private repo
+
+command: |
+  cd examples/examples/common
+
+  # Run the dataset conversion
+
+  python convert_dataset_pile_of_law.py \
+       --out_root ./pile-of-law \
+       --concat_tokens=2048 \
+       --splits train_small val_small \
+       --data_subset all \
+       --tokenizer "EleutherAI/gpt-neox-20b" \
+       --eos_text '<|endoftext|>'
+
+  # Upload the dataset to OCI
+  oci os object bulk-upload \
+    -bn mosaicml-internal-datasets --region us-phoenix-1 \
+    --object-prefix pile-of-law/small-1m-train/pretok-gpt-neox-20b/ \
+    --src-dir ./pile-of-law/

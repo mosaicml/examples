@@ -130,7 +130,7 @@ pileoflawconstants.splits['train_small'] = DataSplitConstants(
     hf_split='train',
     folder_split='train_small',
     raw_samples=None,
-    truncated_samples=100000)
+    truncated_samples=1000000)
 pileoflawconstants.splits['val'] = DataSplitConstants(hf_split='validation',
                                                folder_split='val',
                                                raw_samples=None,
