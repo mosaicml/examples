@@ -5,20 +5,22 @@ integrations:
   # git_commit: # OR use your commit hash
   pip_install: -e .[llm]
   ssh_clone: false # Should be true if using a private repo
-- integration_type: pip_packages
-  # Install necessary oci-cli
-  packages:
-  - oci-cli
 
 
 command: |
   cd examples/examples/llm/inference
+  # # s3 commands
+  # pip install awscli
+  # aws s3 cp --recursive s3://bucket/folder/hf/ local_hf_folder
 
+  # oci commands
+  pip install oci-cli
   oci os object bulk-download \
-  -bn mosaicml-internal-checkpoints  --region us-phoenix-1 \
-  --prefix sasha/mosaic-gpt-350m-gpus-8-dARIoy/hf/ --dest-dir local_hf_folder_tmp
-
-  mv local_hf_folder_tmp/sasha/mosaic-gpt-350m-gpus-8-dARIoy/hf/ local_hf_folder
+  -bn  mosaicml-internal-checkpoints --region us-phoenix-1 \
+  --prefix sasha/mosaic-gpt-350m-gpus-8-r6Qq5q/hf/ --dest-dir ./
+  # oci downloads the full prefix path, this extracts the innermost folder
+  # into local_hf_folder
+  mv sasha/mosaic-gpt-350m-gpus-8-r6Qq5q/hf/ local_hf_folder
 
   python hf_generate.py \
     --name_or_path local_hf_folder/ \
