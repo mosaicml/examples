@@ -35,6 +35,7 @@ def parse_args() -> Namespace:
             'My name is',
             'This is an explanation of deep learning to a five year old. Deep learning is',
         ])
+    parser.add_argument('-bio', '--batch-input-output', nargs='+', default=None)
     parser.add_argument('--max_new_tokens', type=int, default=100)
     parser.add_argument('--temperature', type=float, default=1.0)
     parser.add_argument('--top_k', type=int, default=50)
@@ -117,7 +118,29 @@ def main(args: Namespace) -> None:
     print(f'\nTokenizing prompts...')
     maybe_synchronize()
     encode_start = time.time()
-    encoded_inp = tokenizer(args.prompts, return_tensors='pt', padding=True)
+    if args.batch_input_output is not None:
+        if len(args.batch_input_output) != 3:
+            raise ValueError(
+                f'args.batch_input_output={args.batch_input_output} must have len=3.'
+            )
+        batch_size, input_tok_per_seq, output_tok_per_seq = [
+            int(x) for x in args.batch_input_output
+        ]
+        print(
+            'args.batch_input_output specified, using dummy data instead of prompts'
+        )
+        print('args.batch_input_output specified, overriding generate_kwargs')
+        print(f'{batch_size=}, {input_tok_per_seq=}, {output_tok_per_seq=}')
+        generate_kwargs['eos_token_id'] = None
+        generate_kwargs['pad_token_id'] = None
+        generate_kwargs['max_new_tokens'] = output_tok_per_seq
+        encoded_inp = {
+            'input_ids': torch.ones(batch_size, input_tok_per_seq),
+            'attention_mask': torch.ones(batch_size, input_tok_per_seq),
+        }
+    else:
+        encoded_inp = tokenizer(args.prompts, return_tensors='pt', padding=True)
+
     for key, value in encoded_inp.items():
         encoded_inp[key] = value.to(device)
     maybe_synchronize()
@@ -168,15 +191,16 @@ def main(args: Namespace) -> None:
                            axis=1).numpy(force=True)  # type: ignore
 
     # Print generations
-    delimiter = '#' * 100
-    for prompt, gen in zip(args.prompts, decoded_gen):
-        continuation = gen[len(prompt):]
+    if args.batch_input_output is None:
+        delimiter = '#' * 100
+        for prompt, gen in zip(args.prompts, decoded_gen):
+            continuation = gen[len(prompt):]
+            print(delimiter)
+            print('\033[92m' + prompt + '\033[0m' + continuation)
         print(delimiter)
-        print('\033[92m' + prompt + '\033[0m' + continuation)
-    print(delimiter)
 
     # Print timing info
-    bs = len(args.prompts)
+    bs = decoded_gen.shape[0]
     output_tokens = gen_tokens - input_tokens
     total_input_tokens = input_tokens.sum()
     total_output_tokens = output_tokens.sum()
