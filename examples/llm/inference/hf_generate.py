@@ -200,7 +200,7 @@ def main(args: Namespace) -> None:
         print(delimiter)
 
     # Print timing info
-    bs = decoded_gen.shape[0]
+    bs = len(decoded_gen)
     output_tokens = gen_tokens - input_tokens
     total_input_tokens = input_tokens.sum()
     total_output_tokens = output_tokens.sum()
