@@ -8,7 +8,7 @@ integrations:
 
 command: |
   cd examples/examples/llm/inference
-  
+
   # s3 commands
   pip install awscli
   aws s3 cp --recursive s3://bucket/folder/hf/ local_hf_folder
