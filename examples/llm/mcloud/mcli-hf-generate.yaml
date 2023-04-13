@@ -13,7 +13,7 @@ command: |
   pip install awscli
   aws s3 cp --recursive s3://bucket/folder/hf/ local_hf_folder
 
-  # # oci commands
+  # oci commands
   # pip install oci-cli
   # oci os object bulk-download \
   # -bn bucket --region bucket_region \
