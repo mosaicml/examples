@@ -1,14 +1,14 @@
-run_name: c4-2k-pre-tokenized
-gpu_type: a100_40gb
+run_name: pile-of-law-2k-pre-tokenized
+# gpu_type: a100_40gb
 gpu_num: 8
-cluster: r1z1 # Update with your cluster here!
+cluster: vision-cluster # Update with your cluster here!
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 integrations:
 - integration_type: pip_packages
   # Install necessary oci-cli
   packages:
-  - oci-cli==3.23.2
+  - oci-cli
 
 - integration_type: git_repo
   git_repo: mosaicml/examples
@@ -25,7 +25,7 @@ command: |
   python convert_dataset_pile_of_law.py \
        --out_root ./pile-of-law \
        --concat_tokens=2048 \
-       --splits val_small \
+       --splits train_small val_small train val \
        --data_subset all \
        --tokenizer "EleutherAI/gpt-neox-20b" \
        --eos_text '<|endoftext|>'

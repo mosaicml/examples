@@ -15,18 +15,24 @@ integrations:
 # to convert and host the full 'train' dataset.
 command: |
   cd examples/examples/llm
-  composer main.py yamls/mosaic_gpt/125m.yaml \
+  composer main.py yamls/mosaic_gpt/350m.yaml \
     train_loader.dataset.split=train_small \
     eval_loader.dataset.split=val_small \
     data_local=./pile-of-law \
-    max_duration=100ba \
+    max_duration=100000ba \
     eval_interval=0 \
-    data_remote=oci://mosaicml-internal-datasets/pile-of-law/small-1m-train/pretok-gpt-neox-20b/
+    data_remote=oci://mosaicml-internal-datasets/pile-of-law/small-1m-train/pretok-gpt-neox-20b/ \
+    save_interval=1000ba \
+    save_num_checkpoints_to_keep=1 \
+    save_folder=oci://mosaicml-internal-checkpoints/sasha/{run_name}/checkpoints \
+    loggers.wandb="{}" \
+    tokenizer_name="EleutherAI/gpt-neox-20b"
+
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 # Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
-run_name: mosaic-gpt-125m-gpus-8
+run_name: mosaic-gpt-350m-gpus-8
 
 gpu_num: 8
 # gpu_type: a100_40gb

@@ -1,0 +1,43 @@
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  git_branch: sasha/starter-proj # use your branch
+  # git_commit: # OR use your commit hash
+  pip_install: -e .[llm]
+  ssh_clone: false # Should be true if using a private repo
+- integration_type: pip_packages
+  # Install necessary oci-cli
+  packages:
+  - oci-cli
+
+
+command: |
+  cd examples/examples/llm/inference
+
+  oci os object bulk-download \
+  -bn mosaicml-internal-checkpoints  --region us-phoenix-1 \
+  --prefix sasha/mosaic-gpt-350m-gpus-8-dARIoy/hf/ --dest-dir local_hf_folder_tmp
+
+  mv local_hf_folder_tmp/sasha/mosaic-gpt-350m-gpus-8-dARIoy/hf/ local_hf_folder
+
+  python hf_generate.py \
+    --name_or_path local_hf_folder/ \
+    --temperature 1.0 \
+    --top_p 0.95 \
+    --top_k 50 \
+    --seed 1 \
+    --max_new_tokens 256 \
+    --prompts \
+      "Paragraph 4. Buyer agrees to accept the goods and pay for them according to the terms further set out below." \
+      "MosaicML is an ML training efficiency startup that is known for" \
+      "Here's a quick recipe for baking chocolate chip cookies: Start by" \
+      "The best 5 cities to visit in Europe are"
+
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+optimization_level: 0
+
+# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
+run_name: hf-generate
+
+gpu_num: 8
+cluster: vision-cluster # replace with your cluster here!
