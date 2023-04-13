@@ -8,7 +8,6 @@ from composer.core import Callback, State
 from composer.loggers import Logger
 
 
-# from: https://github.com/BlackHC/toma/blob/10cfe70efaba59ea669c50c0060cfddef65d0b16/toma/torch_cuda_memory.py#L10
 def gc_cuda():
     """Gargage collect Torch (CUDA) memory."""
     gc.collect()
