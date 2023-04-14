@@ -21,7 +21,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 # may be necessary due to bad json
 # see: https://github.com/huggingface/datasets/pull/2838
-STREAMING_HF = False
+STREAMING_HF = True
 
 class ConcatMode(Enum):
     NO_CONCAT = 'NO_CONCAT'
