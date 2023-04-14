@@ -12,17 +12,28 @@ from composer.algorithms.low_precision_layernorm.low_precision_layernorm import 
 
 from examples.llm.src.models.layers.attention import MultiheadAttention
 
+try:
+    import transformer_engine.pytorch as te
+    te_installed = True
+except ImportError:
+    te_installed = False
 
 class GPTMLP(nn.Module):
 
     def __init__(self,
                  d_model: int,
                  mlp_ratio: int,
+                 te_linears: bool = False,
                  device: Optional[str] = None):
         super().__init__()
-        self.mlp_up = nn.Linear(d_model, mlp_ratio * d_model, device=device)
+        if te_installed and te_linears:
+             # init device is currently not supported with TransformerEngine
+             self.mlp_up = te.Linear(cfg.d_model, mlp_ratio * d_model)
+             self.mlp_down = te.Linear(mlp_ratio * d_model, d_model)
+        else:
+            self.mlp_up = nn.Linear(d_model, mlp_ratio * d_model, device=device)
+            self.mlp_down = nn.Linear(mlp_ratio * d_model, d_model, device=device)
         self.mlp_act = nn.GELU(approximate='none')
-        self.mlp_down = nn.Linear(mlp_ratio * d_model, d_model, device=device)
         self.mlp_down._is_residual = True  # type: ignore
 
     def forward(self, x):
@@ -43,6 +54,7 @@ class GPTBlock(nn.Module):
                  alibi: bool = False,
                  resid_pdrop: float = 0.0,
                  low_precision_layernorm: bool = False,
+                 te_linears: bool = False,
                  device: Optional[str] = None,
                  **kwargs):
         del kwargs  # unused, just to capture any extra args from the config
@@ -65,6 +77,7 @@ class GPTBlock(nn.Module):
         self.mlp = GPTMLP(
             d_model=d_model,
             mlp_ratio=mlp_ratio,
+            te_linears=te_linears,
             device=device,
         )
         self.resid_attn_dropout = nn.Dropout(resid_pdrop)

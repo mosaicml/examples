@@ -9,6 +9,12 @@ from typing import Optional, Tuple, Union
 import torch
 from torch import nn
 
+try:
+    import transformer_engine.pytorch as te
+    te_installed = True
+except ImportError:
+    te_installed = False
+
 
 def torch_default_param_init_fn_(
     module: nn.Module,
@@ -91,7 +97,7 @@ def generic_param_init_fn_(
                 f'set `init_div_is_residual: false` in model config to disable this.'
             )
 
-    if isinstance(module, nn.Linear):
+    if isinstance(module, nn.Linear) or (te_installed and isinstance(module, te.Linear)):
         # Linear
         if hasattr(module, '_fused'):
             fused_init_helper_(module, init_fn_)

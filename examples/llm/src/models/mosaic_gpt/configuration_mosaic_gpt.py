@@ -46,6 +46,8 @@ class MosaicGPTConfig(PretrainedConfig):
         embedding_fraction: float = 1.0,
         low_precision_layernorm: bool = True,
         use_cache: bool = False,
+        te_tx_layer: bool = False,
+        te_linears: bool = False,
         **kwargs,
     ):
         """The MosaicGPT configuration class.

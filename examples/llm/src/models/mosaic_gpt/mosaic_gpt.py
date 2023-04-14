@@ -31,6 +31,11 @@ from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
 from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
                                            add_bidirectional_mask_if_missing)
 
+try:
+    import transformer_engine.pytorch as te
+    te_installed = True
+except ImportError:
+    te_installed = False
 
 class MosaicGPT(PreTrainedModel):
     config_class = MosaicGPTConfig
@@ -46,6 +51,7 @@ class MosaicGPT(PreTrainedModel):
         self.alibi_bias_max = config.alibi_bias_max
 
         layernorm_class = LPLayerNorm if config.low_precision_layernorm else nn.LayerNorm
+        self.use_te = te_installed and config.te_tx_layer and not config.te_linears
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
@@ -65,13 +71,23 @@ class MosaicGPT(PreTrainedModel):
                                  device=config.init_device)
             })
         self.transformer.update({'emb_drop': nn.Dropout(config.emb_pdrop)})
-        self.transformer.update({
-            'blocks':
-                nn.ModuleList([
-                    gpt_blocks.GPTBlock(device=config.init_device,
-                                        **config.to_dict())
-                    for _ in range(config.n_layers)
+        if self.use_te:
+            layers = nn.ModuleList([
+                te.TransformerLayer(
+                    hidden_size=cfg.d_model,
+                    ffn_hidden_size=cfg.mlp_ratio * cfg.d_model,
+                    num_attention_heads=cfg.n_heads,
+                    layernorm_epsilon=1e-5,
+                    attention_dropout=cfg.attn_pdrop,
+                    hidden_dropout=cfg.resid_pdrop) for _ in range(cfg.n_layers)])
+        else:
+            layers = nn.ModuleList([
+                gpt_blocks.GPTBlock(device=config.init_device,
+                    **config.to_dict())
+                for _ in range(config.n_layers)
                 ])
+        self.transformer.update({
+            'blocks': layers
         })
         self.transformer.update({
             'ln_f': layernorm_class(config.d_model, device=config.init_device)
@@ -347,19 +363,27 @@ class MosaicGPT(PreTrainedModel):
                               ]  # type: ignore
 
         all_hidden_states = () if output_hidden_states else None
-        for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
-            if output_hidden_states:
-                assert all_hidden_states is not None  # pyright
-                all_hidden_states = all_hidden_states + (x,)
-            past_key_value = past_key_values[
-                b_idx] if past_key_values is not None else None
-            x, past_key_value = block(x,
-                                      past_key_value=past_key_value,
-                                      attn_bias=attn_bias,
-                                      attention_mask=attention_mask,
-                                      is_causal=self.is_causal)
-            if past_key_values is not None:
-                past_key_values[b_idx] = past_key_value
+        if self.use_te:
+            # Transformer engine expects inputs in [seq_len, batch_size, hidden_size]
+            # format and currently doesn't work if the input is not contiguous
+            x = x.permute((1, 0, 2)).contiguous()
+            for block in self.transformer.blocks:  # type: ignore
+                x = block(x, attn_mask)
+            x = x.permute((1, 0, 2)).contiguous()
+        else:
+            for b_idx, block in enumerate(self.transformer.blocks):  # type: ignore
+                if output_hidden_states:
+                    assert all_hidden_states is not None  # pyright
+                    all_hidden_states = all_hidden_states + (x,)
+                past_key_value = past_key_values[
+                    b_idx] if past_key_values is not None else None
+                x, past_key_value = block(x,
+                                          past_key_value=past_key_value,
+                                          attn_bias=attn_bias,
+                                          attention_mask=attention_mask,
+                                          is_causal=self.is_causal)
+                if past_key_values is not None:
+                    past_key_values[b_idx] = past_key_value
 
         x = self.transformer.ln_f(x)  # type: ignore
 
