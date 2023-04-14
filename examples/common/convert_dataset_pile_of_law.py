@@ -325,12 +325,16 @@ def build_dataloader(dataset, batch_size) -> DataLoader:
     else:
         num_workers = 0
 
+
+    num_workers = 16
+    print(f"num workers: {num_workers}")
+
     # If using multiple workers, configure each worker to prefetch as many samples as it can, up to
     # the aggregate device batch size
     # If not using workers, the torch DataLoader expects the default value for prefetch_factor,
     # which non-intuitively must be 2.
     if num_workers == 0:
-        prefetch_factor = None
+        prefetch_factor = 2
     else:
         prefetch_factor = max(1, 2 * batch_size //
                             num_workers) if num_workers > 0 else 2
