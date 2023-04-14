@@ -184,11 +184,29 @@ def alpaca_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     )
 
 
+@dataset_constructor.register('HuggingFaceH4/databricks_dolly_15k')
+def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
+    """Format the text string and simply tokenize."""
+    PROMPT_FORMAT = 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Response:\n'
+    try:
+        if inp['input'] != '':
+            instruction = inp['instruction'] + '\n' + inp['input']
+        else:
+            instruction = inp['instruction']
+        prompt = PROMPT_FORMAT.format(instruction=instruction)
+        response = inp['output']
+    except:
+        print(inp)
+        raise
+    return tokenizer(
+        text=prompt,
+        text_target=response,
+    )
+
+
 @dataset_constructor.register('sam-mosaic/dolly_chatml')
 def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Format the text string and simply tokenize."""
-    # `text` is the text the encoder receives (i.e. the prompt)
-    # `text_target` is the target output the decoder should produce
     try:
         if '<|im_start|>system assistant:internal' in inp['text']:
             # when the assistant retrieves from corpus it uses this
