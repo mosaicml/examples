@@ -94,6 +94,17 @@ def main(args: Namespace) -> None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    dtype = {
+        'fp16': torch.float16,
+        'bf16': torch.bfloat16,
+        'fp32': torch.float32,
+    }[args.dtype]
+    print(f'\nMoving model and inputs to device={device} and dtype={dtype}...')
+    model.to(device, dtype)
+
+    # Generate kwargs
+    # May be modified based on `args.batch_input_output` below
     generate_kwargs = {
         'max_new_tokens': args.max_new_tokens,
         'temperature': args.temperature,
@@ -104,16 +115,6 @@ def main(args: Namespace) -> None:
         'eos_token_id': args.eos_token_id or tokenizer.eos_token_id,
         'pad_token_id': args.pad_token_id or tokenizer.pad_token_id,
     }
-    print(f'\nGenerate kwargs:\n{generate_kwargs}')
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    dtype = {
-        'fp16': torch.float16,
-        'bf16': torch.bfloat16,
-        'fp32': torch.float32,
-    }[args.dtype]
-    print(f'\nMoving model and inputs to device={device} and dtype={dtype}...')
-    model.to(device, dtype)
 
     print(f'\nTokenizing prompts...')
     maybe_synchronize()
@@ -135,8 +136,10 @@ def main(args: Namespace) -> None:
         generate_kwargs['pad_token_id'] = None
         generate_kwargs['max_new_tokens'] = output_tok_per_seq
         encoded_inp = {
-            'input_ids': torch.ones(batch_size, input_tok_per_seq),
-            'attention_mask': torch.ones(batch_size, input_tok_per_seq),
+            'input_ids':
+                torch.ones(batch_size, input_tok_per_seq, dtype=torch.long),
+            'attention_mask':
+                torch.ones(batch_size, input_tok_per_seq, dtype=torch.long),
         }
     else:
         encoded_inp = tokenizer(args.prompts, return_tensors='pt', padding=True)
@@ -147,6 +150,7 @@ def main(args: Namespace) -> None:
     encode_end = time.time()
     input_tokens = torch.sum(encoded_inp['input_ids'] != tokenizer.pad_token_id,
                              axis=1).numpy(force=True)  # type: ignore
+    print(f'\nGenerate kwargs:\n{generate_kwargs}')
 
     # Autocast
     if args.autocast:
