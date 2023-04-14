@@ -4,11 +4,12 @@
 import sys
 import time
 from typing import List
+from composer.utils.device import get_device
 
 import torch
 from composer.loggers import InMemoryLogger, LoggerDestination
 from composer.trainer import Trainer
-from composer.utils import reproducibility
+from composer.utils import reproducibility, dist
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
@@ -22,13 +23,16 @@ if __name__ == '__main__':
     cli_cfg = om.from_cli(args_list)
     cfg = DictConfig(om.merge(yaml_cfg, cli_cfg))
 
-    reproducibility.seed_all(cfg.get('seed', 1234))
+    cfg.dist_timeout = cfg.get('dist_timeout', 1800.0)
 
+    reproducibility.seed_all(cfg.get('seed', 1234))
+    dist.initialize_dist(get_device(None), timeout=cfg.dist_timeout)
+    
     composer_model = COMPOSER_MODEL_REGISTRY[cfg.model.name](cfg.model,
                                                              cfg.tokenizer)
     evaluators, logger_keys = build_icl_evaluators(cfg,
                                                    composer_model.tokenizer)
-
+    
     in_memory_logger = InMemoryLogger()  # track metrics in the in_memory_logger
     loggers: List[LoggerDestination] = [
         build_logger(name, logger_cfg)
