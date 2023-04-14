@@ -185,7 +185,7 @@ def alpaca_tokenize_function(inp: Dict, tokenizer: Tokenizer):
 
 
 @dataset_constructor.register('sam-mosaic/dolly_chatml')
-def alpaca_tokenize_function(inp: Dict, tokenizer: Tokenizer):
+def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Format the text string and simply tokenize."""
     # `text` is the text the encoder receives (i.e. the prompt)
     # `text_target` is the target output the decoder should produce
