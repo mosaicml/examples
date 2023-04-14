@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 
 from examples.llm.src.data.finetuning._tasks import dataset_constructor
 from examples.llm.src.data.finetuning.collator import Seq2SeqFinetuningCollator
+from examples.llm.src.data.packing import BinPackWrapper
 
 log = logging.getLogger(__name__)
 
@@ -70,6 +71,31 @@ def build_finetuning_dataloader(cfg: DictConfig,
             allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
         )
 
+        if cfg.dataset.get('packing_ratio'):
+            n_examples_to_pack = int(device_batch_size *
+                                     cfg.dataset.packing_ratio)
+            if n_examples_to_pack < device_batch_size:
+                raise ValueError('packing_ratio must be >= 1, if supplied')
+            if not cfg.dataset.decoder_only_format:
+                raise NotImplementedError(
+                    'On-the-fly packing is currently only supported for decoder-only formats.'
+                )
+            collate_fn = BinPackWrapper(
+                collator=collate_fn,
+                target_batch_size=device_batch_size,
+                max_seq_len=cfg.dataset.max_seq_length,
+                pad_token_id=dataset.tokenizer.pad_token_id,
+                padding_side=dataset.tokenizer.padding_side,
+                max_leftover_bins_to_keep=cfg.dataset.get(
+                    'max_leftover_bins_to_keep'),
+            )
+            device_batch_size = n_examples_to_pack
+        elif cfg.dataset.get('max_leftover_bins_to_keep') is not None:
+            raise ValueError(
+                'cfg.dataset.max_leftover_bins_to_keep has been defined, ' +\
+                'but cfg.dataset.packing_ratio has not been set. Please set ' +\
+                'the latter to turn on packing or remove the former from the config.')
+
         return DataLoader(
             dataset,
             collate_fn=collate_fn,
@@ -103,6 +129,31 @@ def build_finetuning_dataloader(cfg: DictConfig,
             allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
         )
 
+        if cfg.dataset.get('packing_ratio'):
+            n_examples_to_pack = int(device_batch_size *
+                                     cfg.dataset.packing_ratio)
+            if n_examples_to_pack < device_batch_size:
+                raise ValueError('packing_ratio must be >= 1, if supplied')
+            if not cfg.dataset.decoder_only_format:
+                raise NotImplementedError(
+                    'On-the-fly packing is currently only supported for decoder-only formats.'
+                )
+            collate_fn = BinPackWrapper(
+                collator=collate_fn,
+                target_batch_size=device_batch_size,
+                max_seq_len=cfg.dataset.max_seq_length,
+                pad_token_id=tokenizer.pad_token_id,
+                padding_side=tokenizer.padding_side,
+                max_leftover_bins_to_keep=cfg.dataset.get(
+                    'max_leftover_bins_to_keep'),
+            )
+            device_batch_size = n_examples_to_pack
+        elif cfg.dataset.get('max_leftover_bins_to_keep') is not None:
+            raise ValueError(
+                'cfg.dataset.max_leftover_bins_to_keep has been defined, ' +\
+                'but cfg.dataset.packing_ratio has not been set. Please set ' +\
+                'the latter to turn on packing or remove the former from the config.')
+
         return DataLoader(
             dataset,
             collate_fn=collate_fn,
@@ -119,11 +170,26 @@ def build_finetuning_dataloader(cfg: DictConfig,
 
 
 if __name__ == '__main__':
+    import torch
     from omegaconf import OmegaConf as om
     cfg = om.create({
         'dataset': {
             'name': 'tatsu-lab/alpaca',
             'split': 'train',
+            'packing_ratio': 18.0,
+            #
+            # 'name': 'Muennighoff/P3',
+            # 'split': 'validation',
+            # 'remote': 's3://mosaicml-internal-checkpoints-shared/alex/muennighoff-p3/',
+            # 'local': '/tmp/mds-cache/mp3/',
+            # 'packing_ratio': 12.0,
+            #
+            # 'name': 'Muennighoff/flan',
+            # 'split': 'validation',
+            # 'remote': 's3://mosaicml-internal-checkpoints-shared/alex/muennighoff-flan/',
+            # 'local': '/tmp/mds-cache/mflan/',
+            # 'packing_ratio': 13.5,
+            #
             'tokenizer_name': 'gpt2',
             'max_seq_length': 2048,
             'decoder_only_format': True,
@@ -133,22 +199,29 @@ if __name__ == '__main__':
             'shuffle': True,
         },
         'drop_last': False,
-        'num_workers': 2,
-        'pin_memory': True,
+        'num_workers': 0,
+        'pin_memory': False,
         'prefetch_factor': 2,
-        'persistent_workers': True,
+        'persistent_workers': False,
         'timeout': 0
     })
 
-    device_batch_size = 2
+    device_batch_size = 8
 
     dataloader = build_finetuning_dataloader(cfg, device_batch_size)
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         cfg.dataset.tokenizer_name)
 
-    import torch
+    packing = cfg.dataset.get('packing_ratio') is not None
+
     for i, batch in enumerate(dataloader):
+        if i >= 100:
+            break
+        if i >= 1:
+            if not packing:
+                break
+            continue
         print(f'-----Batch {i}-----')
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
@@ -158,22 +231,50 @@ if __name__ == '__main__':
         for j in range(device_batch_size):
             print(f'--- Sample {j} ---')
             if cfg.dataset.decoder_only_format:
-                print(
-                    '\033[93m{}\033[00m\n'.format('INPUT IDS:'),
-                    tokenizer.decode(
-                        batch['input_ids'][j, batch['attention_mask'][j] == 1],
-                        skip_special_tokens=False))
-                print(
-                    '\033[92m{}\033[00m\n'.format('CONTEXT:  '),
-                    tokenizer.decode(
-                        batch['input_ids'][j,
-                                           batch['bidirectional_mask'][j] == 1],
-                        skip_special_tokens=False))
-                print(
-                    '\033[91m{}\033[00m\n'.format('TARGET:   '),
-                    tokenizer.decode(batch['input_ids'][
-                        j, batch['labels'][j] != _HF_IGNORE_INDEX],
-                                     skip_special_tokens=False))
+                if packing:
+                    for subseq in range(int(batch['sequence_id'][j].max()) + 1):
+                        is_subseq = batch['sequence_id'][j] == subseq
+                        print(
+                            '\033[93m{}\033[00m\n'.format('INPUT IDS:'),
+                            tokenizer.decode(batch['input_ids'][
+                                j,
+                                torch.logical_and(
+                                    is_subseq, batch['attention_mask'][j] ==
+                                    1)],
+                                             skip_special_tokens=False))
+                        print(
+                            '\033[92m{}\033[00m\n'.format('CONTEXT:  '),
+                            tokenizer.decode(batch['input_ids'][
+                                j,
+                                torch.logical_and(
+                                    is_subseq, batch['bidirectional_mask'][j] ==
+                                    1)],
+                                             skip_special_tokens=False))
+                        print(
+                            '\033[91m{}\033[00m\n'.format('TARGET:   '),
+                            tokenizer.decode(batch['input_ids'][
+                                j,
+                                torch.logical_and(
+                                    is_subseq,
+                                    batch['labels'][j] != _HF_IGNORE_INDEX)],
+                                             skip_special_tokens=False))
+                else:
+                    print(
+                        '\033[93m{}\033[00m\n'.format('INPUT IDS:'),
+                        tokenizer.decode(
+                            batch['input_ids'][j,
+                                               batch['attention_mask'][j] == 1],
+                            skip_special_tokens=False))
+                    print(
+                        '\033[92m{}\033[00m\n'.format('CONTEXT:  '),
+                        tokenizer.decode(batch['input_ids'][
+                            j, batch['bidirectional_mask'][j] == 1],
+                                         skip_special_tokens=False))
+                    print(
+                        '\033[91m{}\033[00m\n'.format('TARGET:   '),
+                        tokenizer.decode(batch['input_ids'][
+                            j, batch['labels'][j] != _HF_IGNORE_INDEX],
+                                         skip_special_tokens=False))
             else:
                 print(
                     '\033[92m{}\033[00m\n'.format('CONTEXT:  '),
@@ -186,5 +287,6 @@ if __name__ == '__main__':
                         j, batch['decoder_attention_mask'][j] == 1],
                                      skip_special_tokens=False))
         print('   ')
-        if i >= 5:
-            break
+    if packing:
+        print(f'Padding = {100*(1-dataloader.collate_fn.efficiency):5.2f}%')
+        print(f'Waste   = {100*dataloader.collate_fn.waste:5.2f}%')
