@@ -21,7 +21,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 # may be necessary due to bad json
 # see: https://github.com/huggingface/datasets/pull/2838
-STREAMING_HF = True
+STREAMING_HF = False
 
 class ConcatMode(Enum):
     NO_CONCAT = 'NO_CONCAT'
@@ -412,9 +412,13 @@ def main(args: Namespace) -> None:
                                    eos_text=args.eos_text,
                                    no_wrap=args.no_wrap,
                                    tokenizer=tokenizer)
+        print("building dataloader")
         loader = build_dataloader(dataset=dataset, batch_size=512)
+        print("done building dataloader")
+        print("building samples")
         samples = generate_samples(loader,
                                    truncate_num_samples=truncate_num_samples)
+        print("done building samples")
 
         if expected_num_samples is not None:
             denominator = truncate_num_samples if truncate_num_samples is not None else _est_progress_denominator(
