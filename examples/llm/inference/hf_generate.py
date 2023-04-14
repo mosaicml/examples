@@ -8,7 +8,7 @@ from argparse import ArgumentParser, ArgumentTypeError, Namespace
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from examples.llm import MosaicGPT, MosaicGPTConfig
+# from examples.llm import MosaicGPT, MosaicGPTConfig
 
 
 def str2bool(v):
@@ -77,8 +77,8 @@ def maybe_synchronize():
 
 
 def main(args: Namespace) -> None:
-    AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
-    AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
+    # AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
+    # AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
     model = AutoModelForCausalLM.from_pretrained(args.name_or_path)
@@ -132,8 +132,8 @@ def main(args: Namespace) -> None:
         )
         print('args.batch_input_output specified, overriding generate_kwargs')
         print(f'{batch_size=}, {input_tok_per_seq=}, {output_tok_per_seq=}')
-        generate_kwargs['eos_token_id'] = None
-        generate_kwargs['pad_token_id'] = None
+        generate_kwargs.pop('eos_token_id')
+        generate_kwargs.pop('pad_token_id')
         generate_kwargs['max_new_tokens'] = output_tok_per_seq
         encoded_inp = {
             'input_ids':
@@ -220,6 +220,11 @@ def main(args: Namespace) -> None:
     print(
         f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
     )
+    if args.batch_input_output:
+        print(
+            f'latency_per_seq_output_token={total_latency / output_tok_per_seq:.2f}ms/tok'
+        )
+
     print(f'{latency_per_output_token=:.2f}ms/tok')
     print(f'{output_tok_per_sec=:.2f}tok/sec')
 
