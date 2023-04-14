@@ -326,7 +326,7 @@ def build_dataloader(dataset, batch_size) -> DataLoader:
         num_workers = 0
 
 
-    num_workers = 16
+    # num_workers = 16
     print(f"num workers: {num_workers}")
 
     # If using multiple workers, configure each worker to prefetch as many samples as it can, up to
