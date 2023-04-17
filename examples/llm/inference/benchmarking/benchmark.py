@@ -11,7 +11,6 @@ import torch
 # You can use this to load the model weights
 from composer.core import get_precision_context
 from omegaconf import OmegaConf as om
-from transformers import AutoTokenizer
 
 from examples.llm.src import COMPOSER_MODEL_REGISTRY
 
@@ -46,7 +45,7 @@ def main(config):
         model = deepspeed.init_inference(model, config=inference_config)
 
         # Checking if deepspeed casts dtypes correctly
-        for n, p in model.named_parameters():
+        for _, p in model.named_parameters():
             compare_precision(config.precision, p.dtype)
             break
     else:
