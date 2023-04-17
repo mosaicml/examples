@@ -28,8 +28,10 @@ jobs:
         - llm
         - resnet_imagenet
         - stable_diffusion
+        - stable_diffusion_dreambooth
         - nemo
         - gpt_neox
+        - trlx
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
