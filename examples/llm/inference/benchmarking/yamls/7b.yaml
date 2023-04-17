@@ -1,4 +1,4 @@
-benchmark_name: MosaicDeepspeed_1xA100-40GB-fp16-GPT-7B
+benchmark_name: MosaicDeepspeed_1xA100-40GB-bf16-GPT-7B
 
 max_seq_len: 2048
 tokenizer_name: gpt2
@@ -8,8 +8,7 @@ tokenizer:
   name: ${tokenizer_name}
   kwargs:
     model_max_length: ${max_seq_len}
-
-# Important
+  non_eos_token_id: 17
 
 model:
   name: mosaic_gpt
@@ -27,14 +26,6 @@ model:
   emb_pdrop: 0.0
   attn_impl: triton
 
-fsdp_config:
-  sharding_strategy: FULL_SHARD
-  mixed_precision: DEFAULT
-  activation_checkpointing: false
-  activation_cpu_offload: false
-  verbose: false
-
-load_model_path: MosaicGPT.pt
 precision: amp_bf16
 
 batch_sizes: [1, 2, 4, 8, 16, 32, 64]
@@ -42,4 +33,7 @@ input_lengths: [128]
 output_lengths: [8]
 num_runs: 5
 
-use_precision_context: True
+num_warmup_batches: 3
+
+use_precision_context: False
+use_deepspeed: True

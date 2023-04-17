@@ -1,24 +1,13 @@
 run_name: deepspeed-inference
 gpu_num: 8
 cluster: r0z0 # Update with your cluster here!
-image: mosaicml/composer:0.13.2
+image: mosaicml/composer:0.13.4
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   pip_install: '.[llm]'
 
-- integration_type: git_repo
-  git_repo: mosaicml/composer
-  # Right now composer 0.13.2 might not have the right HF changes right now
-  # So this is the current commit hash
-  git_commit: 0c704d31ead5963f57b3d5361a19666937a7e2d9
-  pip_install: '.[all]'
-
 command: |
   cd examples/examples/llm/inference/benchmarking/
 
-  # For now since we are in the single GPU setting
-  # we should just use python. The composer launcher leads
-  # deepspeed to do something hidden under the hood that leads to
-  # performance degredation right now.
   python benchmark_deepspeed.py yamls/1b.yaml
