@@ -14,7 +14,7 @@ integrations:
   # We will remove this install when we have a release
   # with the appropriate changes.
   git_commit: 20fb86b476d91749528a989265c3e211eb1d774d
-  pip_install: ".[all]"
+  pip_install: '.[all]'
 
 command: |
   cd examples/examples/llm/inference/benchmarking/
