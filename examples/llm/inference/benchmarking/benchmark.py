@@ -15,12 +15,15 @@ from transformers import AutoTokenizer
 
 from examples.llm.src import COMPOSER_MODEL_REGISTRY
 
+
 def compare_precision(precision, param_dtype):
-    if ((precision == "amp_bf16" and param_dtype != torch.bfloat16) or 
-       (precision == "amp_fp16" and param_dtype != torch.float16) or 
-       (precision == "fp32" and param_dtype != torch.float32)):
-        raise ValueError (f"Precision type is: {precision} but model dtype is: {param_dtype}. "
-                          f"The expected precision and model precision don't match.")
+    if ((precision == 'amp_bf16' and param_dtype != torch.bfloat16) or
+        (precision == 'amp_fp16' and param_dtype != torch.float16) or
+        (precision == 'fp32' and param_dtype != torch.float32)):
+        raise ValueError(
+            f'Precision type is: {precision} but model dtype is: {param_dtype}. '
+            f"The expected precision and model precision don't match.")
+
 
 def main(config):
     inference_config = {
@@ -48,11 +51,11 @@ def main(config):
             break
     else:
         model.to(torch.cuda.current_device())
-    
-    n_params = sum(p.numel() for p in model.parameters())
-    print ("n_params is: ", n_params)
 
-    print ("Run name, latency (s), tokens per second")
+    n_params = sum(p.numel() for p in model.parameters())
+    print('n_params is: ', n_params)
+
+    print('Run name, latency (s), tokens per second')
     print('=' * 75)
 
     stats = []
@@ -60,20 +63,23 @@ def main(config):
         for input_length in config.input_lengths:
             for output_length in config.output_lengths:
                 times = []
-                
+
                 batch = torch.randint(
                     0,
                     config.model.vocab_size - 1,
-                    size=(batch_size, input_length
-                            )).to(f'cuda:{torch.cuda.current_device()}')
+                    size=(
+                        batch_size,
+                        input_length)).to(f'cuda:{torch.cuda.current_device()}')
 
                 # Make sure we are not generating a fake batch with a EOS token
                 eos_mask = batch == tokenizer.eos_token_id
-                batch = batch.masked_fill(eos_mask, config.tokenizer.non_eos_token_id)
+                batch = batch.masked_fill(eos_mask,
+                                          config.tokenizer.non_eos_token_id)
 
                 batch = batch.to(torch.long)
 
-                attention_mask = torch.logical_not(torch.eq(batch, tokenizer.eos_token_id))
+                attention_mask = torch.logical_not(
+                    torch.eq(batch, tokenizer.eos_token_id))
 
                 torch.cuda.synchronize()
 
@@ -82,14 +88,14 @@ def main(config):
                     with torch.no_grad():
                         precision_context = contextlib.nullcontext()
                         if config.use_precision_context:
-                            precision_context = get_precision_context(config.precision)
+                            precision_context = get_precision_context(
+                                config.precision)
 
                         with precision_context:
-                            model.generate(
-                                batch,
-                                max_new_tokens=output_length,
-                                use_cache=True,
-                                attention_mask=attention_mask)
+                            model.generate(batch,
+                                           max_new_tokens=output_length,
+                                           use_cache=True,
+                                           attention_mask=attention_mask)
 
                     # We noticed there sometimes might be a small bit of startup time
                     # so we only start to benchmark after some number of batches
