@@ -17,7 +17,10 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.fdiff import FDiffMetrics
-from examples.common.optim.lion import DecoupledLionW
+from examples.common.generate_callback import Generate
+from examples.common.optim import (DecoupledAdaLRLion, DecoupledClipLion,
+                                   DecoupledLionW)
+from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 from examples.common.text_data import build_text_dataloader
 
 
@@ -39,6 +42,13 @@ def build_callback(name, kwargs):
             'log_optimizer_metrics', True),)
     elif name == 'health_checker':
         return HealthChecker(**kwargs)
+    elif name == 'generate_callback':
+        prompts = kwargs.pop('prompts')
+        return Generate(prompts=list(prompts), **kwargs)
+    elif name == 'global_lr_scaling':
+        return GlobalLRScaling(**kwargs)
+    elif name == 'layer_freezing':
+        return LayerFreezing(**kwargs)
     else:
         raise ValueError(f'Not sure how to build callback: {name}')
 
@@ -77,7 +87,21 @@ def build_optimizer(cfg, model):
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
-
+    elif cfg.name == 'clip_lion':
+        return DecoupledClipLion(model.parameters(),
+                                 lr=cfg.lr,
+                                 betas=cfg.betas,
+                                 weight_decay=cfg.weight_decay,
+                                 outlier_threshold=cfg.outlier_threshold)
+    elif cfg.name == 'adalr_lion':
+        return DecoupledAdaLRLion(model.parameters(),
+                                  lr=cfg.lr,
+                                  betas=cfg.betas,
+                                  weight_decay=cfg.weight_decay,
+                                  outlier_threshold=cfg.outlier_threshold,
+                                  timeout=cfg.timeout,
+                                  lr_penalty=cfg.lr_penalty,
+                                  min_scale=cfg.min_scale)
     else:
         raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
