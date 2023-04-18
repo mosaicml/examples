@@ -103,6 +103,12 @@ def main(cfg):
     fsdp_config = om.to_container(fsdp_config,
                                   resolve=True) if fsdp_config else None
 
+    mup_config = cfg.get('mup_config', None)
+    if mup_config:
+        mup_config.d_model_scale_ratio = cfg.model.d_model / mup_config.base_d_model
+        mup_config.ffn_scale_ratio = mup_config.d_model_scale_ratio * cfg.model.mlp_ratio / mup_config.base_mlp_ratio
+        print(mup_config)
+
     # Restrict model init_device to 'meta' and 'cpu',
     # using 'cuda' vs. 'cuda:id' is tricky and can lead to common user errors
     # when multiple GPUs are available.
