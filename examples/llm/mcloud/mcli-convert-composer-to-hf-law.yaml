@@ -9,8 +9,8 @@ integrations:
 command: |
   cd examples/examples/llm/inference
   python convert_composer_to_hf.py \
-    --composer_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-350m-gpus-8-r6Qq5q/checkpoints/ep0-ba2000-rank0.pt \
-    --hf_output_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-350m-gpus-8-r6Qq5q/hf/ \
+    --composer_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-1b-gpus-8-kc9Yuo/checkpoints/ep1-ba12000-rank0.pt \
+    --hf_output_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-1b-gpus-8-kc9Yuo/hf/ \
     --output_precision bf16 \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
