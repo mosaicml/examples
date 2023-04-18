@@ -108,6 +108,11 @@ def main(cfg):
         mup_config.d_model_scale_ratio = cfg.model.d_model / mup_config.base_d_model
         mup_config.ffn_scale_ratio = mup_config.d_model_scale_ratio * cfg.model.mlp_ratio / mup_config.base_mlp_ratio
         print(mup_config)
+        
+        # TODO (sasha): do this less hacky in the future, but for now this is to avoid modifying composer
+        cfg.model.mup = mup_config
+        cfg.optimizer.mup = mup_config
+        
 
     # Restrict model init_device to 'meta' and 'cpu',
     # using 'cuda' vs. 'cuda:id' is tricky and can lead to common user errors
