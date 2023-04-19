@@ -25,6 +25,7 @@ from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 from examples.common.scheduled_gc_callback import ScheduledGarbageCollector
 from examples.common.text_data import build_text_dataloader
 
+from examples.common.mup_helpers import mup_setup_lrs_for_params
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -82,14 +83,25 @@ def build_algorithm(name, kwargs):
 
 
 def build_optimizer(cfg, model):
+
+    #TODO (sasha): this will break with FSDP
+    param_groups_or_params = model.parameters()
+
+    if cfg.mup:
+        assert cfg.name == "decoupled_adamw" or "decoupled_lionw", "Not supported for muP"
+        print("using mup in optimizer")
+        param_groups_or_params = mup_setup_lrs_for_params(model.named_parameters(), cfg.mup, cfg.lr)
+
+    
+
     if cfg.name == 'decoupled_adamw':
-        return DecoupledAdamW(model.parameters(),
+        return DecoupledAdamW(param_groups_or_params,
                               lr=cfg.lr,
                               betas=cfg.betas,
                               eps=cfg.eps,
                               weight_decay=cfg.weight_decay)
     elif cfg.name == 'decoupled_lionw':
-        return DecoupledLionW(model.parameters(),
+        return DecoupledLionW(param_groups_or_params,
                               lr=cfg.lr,
                               betas=cfg.betas,
                               weight_decay=cfg.weight_decay)
