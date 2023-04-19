@@ -84,7 +84,7 @@ def build_algorithm(name, kwargs):
 
 def build_optimizer(cfg, model):
 
-    #TODO (sasha): this will break with FSDP
+    #TODO (sasha): using param groups will break with FSDP, until torch 2.0
     param_groups_or_params = model.parameters()
 
     if cfg.mup:
