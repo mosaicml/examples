@@ -51,6 +51,14 @@ class MosaicGPT(PreTrainedModel):
         # both report this helping with stabilizing training
         self.embedding_fraction = config.embedding_fraction
 
+        #TODO (sasha): why is this om.create needed?
+        self.mup = om.create(config.mup) if config.mup else None
+
+        if self.mup:
+            print("overriding logit scaling!")
+            self.logit_scale = self.mup.alpha_out / self.mup.d_model_scale_ratio
+            print(f"{self.logit_scale=}")
+
         self.transformer = nn.ModuleDict({
             'wte':
                 nn.Embedding(config.vocab_size,

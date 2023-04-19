@@ -11,6 +11,8 @@ run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 mup_config:
   base_d_model: 128
   base_mlp_ratio: 4
+  alpha_out: 1.0
+  alpha_attn: 1.0
 
 
 # Model
@@ -25,6 +27,7 @@ model:
   max_seq_len: ${max_seq_len}
   vocab_size: 50368
   attn_impl: triton
+  no_bias: True
 
 # Tokenizer
 tokenizer:
