@@ -26,7 +26,8 @@ model:
   emb_pdrop: 0.0
   attn_impl: triton
 
-precision: amp_bf16
+autocast_precision: amp_bf16
+model_dtype: amp_bf16
 
 batch_sizes: [1, 2, 4, 8, 16, 32, 64]
 input_lengths: [128]
@@ -35,5 +36,4 @@ num_runs: 5
 
 num_warmup_batches: 3
 
-use_precision_context: False
 use_deepspeed: True

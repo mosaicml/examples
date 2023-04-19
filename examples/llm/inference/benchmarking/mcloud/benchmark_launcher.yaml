@@ -19,4 +19,4 @@ integrations:
 command: |
   cd examples/examples/llm/inference/benchmarking/
 
-  python benchmark_deepspeed.py yamls/1b.yaml
+  python benchmark.py yamls/1b.yaml
