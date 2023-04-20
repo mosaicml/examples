@@ -231,13 +231,13 @@ class Seq2SeqFinetuningCollator:
             n_context = len(context)
             n_target = len(target)
 
-            if n_context > self.max_seq_length:
+            if n_context >= self.max_seq_length:
                 if not self._warned_context:
                     warnings.warn(
-                        f'Skipping example because CONTEXT length={n_context} exceeds ' +\
-                        f'max_seq_length={self.max_seq_length}. If this causes downstream ' +\
-                        f'issues because of inconsistent batch sizes, consider increasing ' +\
-                        f'max_seq_length or using example packing.'
+                        f'Skipping example because CONTEXT length={n_context} leaves no room ' +\
+                        f'for TARGET tokens because max_seq_length={self.max_seq_length}. ' +\
+                        f'If this causes downstream issues because of inconsistent batch sizes, ' +\
+                        f'consider increasing max_seq_length or using example packing.'
                     )
                     self._warned_context = True
                 continue
