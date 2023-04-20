@@ -112,6 +112,9 @@ def main(cfg):
         # TODO (sasha): do this less hacky in the future, but for now this is to avoid modifying composer
         cfg.model.mup = mup_config
         cfg.optimizer.mup = mup_config
+    else:
+        cfg.model.mup = None
+        cfg.optimizer.mup = None
         
 
     # Restrict model init_device to 'meta' and 'cpu',

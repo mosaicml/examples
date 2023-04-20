@@ -56,8 +56,11 @@ class MosaicGPT(PreTrainedModel):
 
         if self.mup:
             print("overriding logit scaling!")
-            self.logit_scale = self.mup.alpha_out / self.mup.d_model_scale_ratio
-            print(f"{self.logit_scale=}")
+            config.logit_scale = self.mup.alpha_out / self.mup.d_model_scale_ratio
+            print(f"{config.logit_scale=}")
+            #TODO (sasha): not totally clear on whether this is the correct scale
+            print("overriding softmax scale! (replace with 1/d instead of 1/sqrt(d))")
+            config.softmax_scale = 1. / (config.d_model / config.n_heads)
 
         self.transformer = nn.ModuleDict({
             'wte':

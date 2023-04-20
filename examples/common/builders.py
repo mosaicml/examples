@@ -25,7 +25,7 @@ from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 from examples.common.scheduled_gc_callback import ScheduledGarbageCollector
 from examples.common.text_data import build_text_dataloader
 
-from examples.common.mup_helpers import mup_setup_lrs_for_params
+from examples.common.mup_helpers import mup_setup_lrs_for_params, GetParamNorms
 
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
@@ -43,6 +43,8 @@ def build_callback(name, kwargs):
     elif name == 'optimizer_monitor':
         return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
             'log_optimizer_metrics', True),)
+    elif name == "mup_params_norm":
+        return GetParamNorms()
     elif name == 'health_checker':
         return HealthChecker(**kwargs)
     elif name == 'generate_callback':
@@ -91,8 +93,6 @@ def build_optimizer(cfg, model):
         assert cfg.name == "decoupled_adamw" or "decoupled_lionw", "Not supported for muP"
         print("using mup in optimizer")
         param_groups_or_params = mup_setup_lrs_for_params(model.named_parameters(), cfg.mup, cfg.lr)
-
-    
 
     if cfg.name == 'decoupled_adamw':
         return DecoupledAdamW(param_groups_or_params,
