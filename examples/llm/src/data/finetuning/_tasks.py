@@ -204,6 +204,15 @@ def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     )
 
 
+@dataset_constructor.register('sam-mosaic/vicuna_alpaca_hc3_chatml')
+def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
+    """Already split, just tokenize."""
+    return tokenizer(
+        text=inp['prompt'],
+        text_target=inp['response'],
+    )
+
+
 @dataset_constructor.register('sam-mosaic/dolly_chatml')
 def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Format the text string and simply tokenize."""
