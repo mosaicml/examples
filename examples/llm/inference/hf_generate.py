@@ -4,11 +4,12 @@ import random
 import time
 import warnings
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
+from contextlib import nullcontext
 
 import torch
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from examples.llm import MosaicGPT, MosaicGPTConfig
+# from examples.llm import MosaicGPT, MosaicGPTConfig
 
 
 def str2bool(v):
@@ -65,7 +66,19 @@ def parse_args() -> Namespace:
                         nargs='?',
                         const=True,
                         default=True)
+    parser.add_argument('--trust_remote_code',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=True)
+    parser.add_argument('--use_auth_token',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=False)
+    parser.add_argument('--revision', type=str, default=None)
     parser.add_argument('--device', type=str, default=None)
+    parser.add_argument('--attn_impl', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
     return parser.parse_args()
 
@@ -76,16 +89,28 @@ def maybe_synchronize():
 
 
 def main(args: Namespace) -> None:
-    AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
-    AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
+    # AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
+    # AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
-    model = AutoModelForCausalLM.from_pretrained(args.name_or_path)
+    from_pretrained_kwargs = {
+        'use_auth_token': args.use_auth_token,
+        'trust_remote_code': args.trust_remote_code,
+        'revision': args.revision,
+    }
+    model_kwargs = {
+        'attn_impl': args.attn_impl
+    } if args.attn_impl is not None else {}
+
+    model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
+                                                 **from_pretrained_kwargs,
+                                                 **model_kwargs)
     model.eval()
     print(f'n_params={sum(p.numel() for p in model.parameters())}')
 
     print('\nLoading HF tokenizer...')
-    tokenizer = AutoTokenizer.from_pretrained(args.name_or_path)
+    tokenizer = AutoTokenizer.from_pretrained(args.name_or_path,
+                                              **from_pretrained_kwargs)
     if tokenizer.pad_token_id is None:
         warnings.warn(
             'pad_token_id is not set for the tokenizer. Using eos_token_id as pad_token_id.'
@@ -105,7 +130,10 @@ def main(args: Namespace) -> None:
     }
     print(f'\nGenerate kwargs:\n{generate_kwargs}')
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if args.device is not None:
+        device = args.device
+    else:
+        device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     dtype = {
         'fp16': torch.float16,
         'bf16': torch.bfloat16,
@@ -127,20 +155,26 @@ def main(args: Namespace) -> None:
 
     # Autocast
     if args.autocast:
+        autocast_context = torch.autocast(device, dtype)
         print(f'Using autocast amp_{args.dtype}...')
     else:
+        autocast_context = nullcontext()
         print('NOT using autocast...')
 
-    # Warmup
-    if args.warmup:
-        print('Warming up...')
+    # Generate function with correct context managers
+    def _generate(encoded_inp):
         with torch.no_grad():
-            with torch.autocast(device, dtype, enabled=args.autocast):
-                encoded_gen = model.generate(
+            with autocast_context:
+                return model.generate(
                     input_ids=encoded_inp['input_ids'],
                     attention_mask=encoded_inp['attention_mask'],
                     **generate_kwargs,
                 )
+
+    # Warmup
+    if args.warmup:
+        print('Warming up...')
+        _ = _generate(encoded_inp)
 
     # Seed randomness
     random.seed(args.seed)
@@ -150,13 +184,7 @@ def main(args: Namespace) -> None:
     print('Generating responses...')
     maybe_synchronize()
     gen_start = time.time()
-    with torch.no_grad():
-        with torch.autocast(device, dtype, enabled=args.autocast):
-            encoded_gen = model.generate(
-                input_ids=encoded_inp['input_ids'],
-                attention_mask=encoded_inp['attention_mask'],
-                **generate_kwargs,
-            )
+    encoded_gen = _generate(encoded_inp)
     maybe_synchronize()
     gen_end = time.time()
 
