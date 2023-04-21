@@ -37,6 +37,7 @@ def parse_args() -> Namespace:
             'This is an explanation of deep learning to a five year old. Deep learning is',
         ])
     parser.add_argument('--max_new_tokens', type=int, default=100)
+    parser.add_argument('--max_seq_len', type=int, default=None)
     parser.add_argument('--temperature', type=float, default=1.0)
     parser.add_argument('--top_k', type=int, default=50)
     parser.add_argument('--top_p', type=float, default=1.0)
@@ -99,8 +100,10 @@ def main(args: Namespace) -> None:
         'revision': args.revision,
     }
     model_kwargs = {
-        'attn_impl': args.attn_impl
-    } if args.attn_impl is not None else {}
+        'attn_impl': args.attn_impl,
+        'max_seq_len': args.max_seq_len,
+    }
+    model_kwargs = {k: v for k, v in model_kwargs.items() if v is not None}
 
     model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
                                                  **from_pretrained_kwargs,
