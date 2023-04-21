@@ -110,111 +110,24 @@ class Seq2SeqFinetuningCollator:
                     f'Examples returned by dataset do not include required key: {check_key}'
                 )
 
-        def ensure_list(x: Union[List, torch.Tensor]):
-            if isinstance(x, torch.Tensor):
-                x = list(x.flatten())
-            assert isinstance(x, list)
-            return x
+        if self.decoder_only_format:
+            batch = self._process_and_batch_decoder_only(examples)
+        else:
+            batch = self._process_and_batch_encoder_decoder(examples)
 
+        # Add any batch_metadata
+        batch_size = batch['input_ids'].shape[0]
+        batch.update({
+            k: torch.tensor([v] * batch_size)
+            for k, v in self.batch_metadata.items()
+        })
+
+        return batch
+
+    def _process_and_batch_decoder_only(
+            self, examples: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+        # Steps explained in comments
         processed_examples = []
-
-        # The encoder-decoder case is has some gotchas.
-        # Steps are explained in comments.
-        if not self.decoder_only_format:
-            for example in examples:
-                context = ensure_list(example['input_ids'])
-                target = ensure_list(example['labels'])
-                # ... first, get rid of any padding that was already applied
-                context = [
-                    t for t in context if t != self.tokenizer.pad_token_id
-                ]
-                target = [t for t in target if t != self.tokenizer.pad_token_id]
-                # ... second, ensure that the target text ends with an eos tag
-                if target[-1] != self.tokenizer.eos_token_id:
-                    target = target + [self.tokenizer.eos_token_id]
-                # ... third, we need to pad labels ourselves. Because HF.
-                if len(target) < self.max_seq_len:
-                    i_pad = [_HF_IGNORE_INDEX
-                            ] * (self.max_seq_len - len(target))
-                    target = target + i_pad
-                else:
-                    if not self._warned_target:
-                        warnings.warn(
-                            f'Truncating TARGET sequence of length={len(target)} ' +\
-                            f'to max_seq_len={self.max_seq_len}. If truncation is ' +\
-                            f'a problem, consider increasing max_seq_len.')
-                        self._warned_target = True
-                    target = target[:self.max_seq_len -
-                                    1] + [self.tokenizer.eos_token_id]
-
-                # We might need to truncate the context. Preserve the beginning.
-                if len(context) > self.max_seq_len:
-                    if not self._warned_context:
-                        warnings.warn(
-                            f'Truncating CONTEXT sequence of length={len(context)} ' +\
-                            f'to max_seq_len={self.max_seq_len}. If truncation is ' +\
-                            f'a problem, consider increasing max_seq_len.')
-                        self._warned_context = True
-                    context = context[:self.max_seq_len -
-                                      1] + [self.tokenizer.eos_token_id]
-
-                # Back into the example
-                example['input_ids'] = context
-                example['attention_mask'] = [1] * len(context)
-                example['labels'] = target
-
-                processed_examples.append(example)
-
-            # Batch examples into a single dict (this also pads)
-            batch = self.tokenizer.pad(
-                processed_examples,
-                padding='max_length',
-                max_length=self.max_seq_len,
-                return_tensors='pt',
-            )
-            # We're still missing decoder_input_ids and decoder_attention_mask
-            batch['decoder_input_ids'] = torch.cat([
-                torch.full((len(processed_examples), 1),
-                           self.tokenizer.pad_token_id), batch['labels'][:, :-1]
-            ],
-                                                   dim=1)
-            batch['decoder_input_ids'].masked_fill_(
-                batch['decoder_input_ids'] == _HF_IGNORE_INDEX,
-                self.tokenizer.pad_token_id)
-            batch['decoder_attention_mask'] = torch.not_equal(
-                batch['labels'], _HF_IGNORE_INDEX)
-
-            # This logic prevents trimming on at least the first batch
-            if not (self._allow_pad_trimming and self._seen_first_batch):
-                self._seen_first_batch = True
-                return batch
-            self._seen_first_batch = True
-
-            # The batch is now valid, but we can trim padding for efficiency
-            multiple_of = 8
-            # (first for the encoder)
-            n_non_padding = batch['attention_mask'].sum(dim=1).max()
-            keep_tokens = int(multiple_of *
-                              torch.ceil(n_non_padding / multiple_of))
-            for k in ['input_ids', 'attention_mask']:
-                batch[k] = batch[k][:, :keep_tokens].contiguous()
-            # (then for the decoder)
-            n_non_padding = batch['decoder_attention_mask'].sum(dim=1).max()
-            keep_tokens = int(multiple_of *
-                              torch.ceil(n_non_padding / multiple_of))
-            for k in ['decoder_input_ids', 'decoder_attention_mask', 'labels']:
-                batch[k] = batch[k][:, :keep_tokens].contiguous()
-
-            # Add batch_metadata
-            batch_size = batch['input_ids'].shape[0]
-            batch.update({
-                k: torch.tensor([v] * batch_size)
-                for k, v in self.batch_metadata.items()
-            })
-
-            return batch
-
-        # The decoder-only case is also somewhat involved...
         for example in examples:
             context = ensure_list(example['input_ids'])
             target = ensure_list(example['labels'])
@@ -332,11 +245,97 @@ class Seq2SeqFinetuningCollator:
             else:
                 batch[k] = v[:, :keep_tokens].contiguous()
 
-        # Add batch_metadata
-        batch_size = batch['input_ids'].shape[0]
-        batch.update({
-            k: torch.tensor([v] * batch_size)
-            for k, v in self.batch_metadata.items()
-        })
+        return batch
+
+    def _process_and_batch_encoder_decoder(
+            self, examples: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+        # The encoder-decoder case is has some gotchas.
+        # Steps are explained in comments.
+        processed_examples = []
+        for example in examples:
+            context = ensure_list(example['input_ids'])
+            target = ensure_list(example['labels'])
+            # ... first, get rid of any padding that was already applied
+            context = [t for t in context if t != self.tokenizer.pad_token_id]
+            target = [t for t in target if t != self.tokenizer.pad_token_id]
+            # ... second, ensure that the target text ends with an eos tag
+            if target[-1] != self.tokenizer.eos_token_id:
+                target = target + [self.tokenizer.eos_token_id]
+            # ... third, we need to pad labels ourselves. Because HF.
+            if len(target) < self.max_seq_len:
+                i_pad = [_HF_IGNORE_INDEX] * (self.max_seq_len - len(target))
+                target = target + i_pad
+            else:
+                if not self._warned_target:
+                    warnings.warn(
+                        f'Truncating TARGET sequence of length={len(target)} ' +\
+                        f'to max_seq_len={self.max_seq_len}. If truncation is ' +\
+                        f'a problem, consider increasing max_seq_len.')
+                    self._warned_target = True
+                target = target[:self.max_seq_len -
+                                1] + [self.tokenizer.eos_token_id]
+
+            # We might need to truncate the context. Preserve the beginning.
+            if len(context) > self.max_seq_len:
+                if not self._warned_context:
+                    warnings.warn(
+                        f'Truncating CONTEXT sequence of length={len(context)} ' +\
+                        f'to max_seq_len={self.max_seq_len}. If truncation is ' +\
+                        f'a problem, consider increasing max_seq_len.')
+                    self._warned_context = True
+                context = context[:self.max_seq_len -
+                                  1] + [self.tokenizer.eos_token_id]
+
+            # Back into the example
+            example['input_ids'] = context
+            example['attention_mask'] = [1] * len(context)
+            example['labels'] = target
+
+            processed_examples.append(example)
+
+        # Batch examples into a single dict (this also pads)
+        batch = self.tokenizer.pad(
+            processed_examples,
+            padding='max_length',
+            max_length=self.max_seq_len,
+            return_tensors='pt',
+        )
+        # We're still missing decoder_input_ids and decoder_attention_mask
+        batch['decoder_input_ids'] = torch.cat([
+            torch.full((len(processed_examples), 1),
+                       self.tokenizer.pad_token_id), batch['labels'][:, :-1]
+        ],
+                                               dim=1)
+        batch['decoder_input_ids'].masked_fill_(
+            batch['decoder_input_ids'] == _HF_IGNORE_INDEX,
+            self.tokenizer.pad_token_id)
+        batch['decoder_attention_mask'] = torch.not_equal(
+            batch['labels'], _HF_IGNORE_INDEX)
+
+        # This logic prevents trimming on at least the first batch
+        if not (self._allow_pad_trimming and self._seen_first_batch):
+            self._seen_first_batch = True
+            return batch
+        self._seen_first_batch = True
+
+        # The batch is now valid, but we can trim padding for efficiency
+        multiple_of = 8
+        # (first for the encoder)
+        n_non_padding = batch['attention_mask'].sum(dim=1).max()
+        keep_tokens = int(multiple_of * torch.ceil(n_non_padding / multiple_of))
+        for k in ['input_ids', 'attention_mask']:
+            batch[k] = batch[k][:, :keep_tokens].contiguous()
+        # (then for the decoder)
+        n_non_padding = batch['decoder_attention_mask'].sum(dim=1).max()
+        keep_tokens = int(multiple_of * torch.ceil(n_non_padding / multiple_of))
+        for k in ['decoder_input_ids', 'decoder_attention_mask', 'labels']:
+            batch[k] = batch[k][:, :keep_tokens].contiguous()
 
         return batch
+
+
+def ensure_list(x: Union[List, torch.Tensor]):
+    if isinstance(x, torch.Tensor):
+        x = list(x.flatten())
+    assert isinstance(x, list)
+    return x
