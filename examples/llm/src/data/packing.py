@@ -372,15 +372,10 @@ if __name__ == '__main__':
         return batches
 
     def profile_packing(raw_batch_size: int) -> Tuple[float, float]:
-        max_seq_len = dataloader_cfg.dataset.get('max_seq_len')
-        if max_seq_len is None:
-            max_seq_len = dataloader_cfg.dataset.get('max_seq_length')
-        if max_seq_len is None:
-            raise ValueError('Could not identify the maximum sequence length.')
         packer = BinPackWrapper(
             collator=lambda x: x,
             target_batch_size=device_batch_size,
-            max_seq_len=max_seq_len,
+            max_seq_len=dataloader_cfg.dataset.max_seq_len,
             pad_token_id=0,  # <-- Doesn't need to be correct for profiling
             padding_side='left',  # <-- Doesn't need to be correct for profiling
             max_leftover_bins_to_keep=max_leftovers_to_keep)

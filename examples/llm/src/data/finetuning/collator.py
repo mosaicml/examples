@@ -19,14 +19,14 @@ class Seq2SeqFinetuningCollator:
 
     Args:
         tokenizer: A HuggingFace tokenizer. Must have a pad_token set.
-        max_seq_length (int): The maximum sequence length of the combined
+        max_seq_len (int): The maximum sequence length of the combined
             context/target sequence (decoder-only format) or of each the
             context sequence and target sequence (encoder-decoder format).
         decoder_only_format (bool): Whether to format the batches for a
             decoder-only model (if True) or an encoder-decoder model (if False).
         allow_pad_trimming (bool, optional): Whether to allow the collator
             to trim padding, which may result in smaller but inconsistent batch
-            sizes. Default: ``False`` ensures that all sequences are max_seq_length.
+            sizes. Default: ``False`` ensures that all sequences are max_seq_len.
         separator_text (str | bool, optional): If a string is provided, it will
             be used to separate the context and target sequences (appended to end
             of context). If True, will use the tokenizer's sep_token, which must
@@ -42,7 +42,7 @@ class Seq2SeqFinetuningCollator:
     def __init__(
         self,
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
-        max_seq_length: int,
+        max_seq_len: int,
         decoder_only_format: bool,
         allow_pad_trimming: bool = False,
         separator_text: Optional[Union[str, bool]] = None,
@@ -50,7 +50,7 @@ class Seq2SeqFinetuningCollator:
         batch_metadata: Optional[Dict[str, Any]] = None,
     ):
         self.tokenizer = tokenizer
-        self.max_seq_length = max_seq_length
+        self.max_seq_len = max_seq_len
         self.decoder_only_format = decoder_only_format
         self.format_for_generation = format_for_generation
         self.batch_metadata = batch_metadata or {}
@@ -74,9 +74,9 @@ class Seq2SeqFinetuningCollator:
         if self.format_for_generation:
             self.batch_metadata['generate_output'] = True
 
-        if (max_seq_length % 8) != 0:
+        if (max_seq_len % 8) != 0:
             log.warning(
-                'For performance, a max_seq_length as a multiple of 8 is recommended.'
+                'For performance, a max_seq_len as a multiple of 8 is recommended.'
             )
 
         if self.tokenizer.pad_token_id is None:
@@ -133,29 +133,29 @@ class Seq2SeqFinetuningCollator:
                 if target[-1] != self.tokenizer.eos_token_id:
                     target = target + [self.tokenizer.eos_token_id]
                 # ... third, we need to pad labels ourselves. Because HF.
-                if len(target) < self.max_seq_length:
+                if len(target) < self.max_seq_len:
                     i_pad = [_HF_IGNORE_INDEX
-                            ] * (self.max_seq_length - len(target))
+                            ] * (self.max_seq_len - len(target))
                     target = target + i_pad
                 else:
                     if not self._warned_target:
                         warnings.warn(
                             f'Truncating TARGET sequence of length={len(target)} ' +\
-                            f'to max_seq_length={self.max_seq_length}. If truncation is ' +\
-                            f'a problem, consider increasing max_seq_length.')
+                            f'to max_seq_len={self.max_seq_len}. If truncation is ' +\
+                            f'a problem, consider increasing max_seq_len.')
                         self._warned_target = True
-                    target = target[:self.max_seq_length -
+                    target = target[:self.max_seq_len -
                                     1] + [self.tokenizer.eos_token_id]
 
                 # We might need to truncate the context. Preserve the beginning.
-                if len(context) > self.max_seq_length:
+                if len(context) > self.max_seq_len:
                     if not self._warned_context:
                         warnings.warn(
                             f'Truncating CONTEXT sequence of length={len(context)} ' +\
-                            f'to max_seq_length={self.max_seq_length}. If truncation is ' +\
-                            f'a problem, consider increasing max_seq_length.')
+                            f'to max_seq_len={self.max_seq_len}. If truncation is ' +\
+                            f'a problem, consider increasing max_seq_len.')
                         self._warned_context = True
-                    context = context[:self.max_seq_length -
+                    context = context[:self.max_seq_len -
                                       1] + [self.tokenizer.eos_token_id]
 
                 # Back into the example
@@ -169,7 +169,7 @@ class Seq2SeqFinetuningCollator:
             batch = self.tokenizer.pad(
                 processed_examples,
                 padding='max_length',
-                max_length=self.max_seq_length,
+                max_length=self.max_seq_len,
                 return_tensors='pt',
             )
             # We're still missing decoder_input_ids and decoder_attention_mask
@@ -231,13 +231,13 @@ class Seq2SeqFinetuningCollator:
             n_context = len(context)
             n_target = len(target)
 
-            if n_context >= self.max_seq_length:
+            if n_context >= self.max_seq_len:
                 if not self._warned_context:
                     warnings.warn(
                         f'Skipping example because CONTEXT length={n_context} leaves no room ' +\
-                        f'for TARGET tokens because max_seq_length={self.max_seq_length}. ' +\
+                        f'for TARGET tokens because max_seq_len={self.max_seq_len}. ' +\
                         f'If this causes downstream issues because of inconsistent batch sizes, ' +\
-                        f'consider increasing max_seq_length or using example packing.'
+                        f'consider increasing max_seq_len or using example packing.'
                     )
                     self._warned_context = True
                 continue
@@ -246,15 +246,15 @@ class Seq2SeqFinetuningCollator:
                 # When formatting for generation, we need to keep input_ids and
                 # labels separate. The input_ids (context) will be fed into the
                 # generator and the labels will be used by the eval metric.
-                input_ids = context[-self.max_seq_length:]
+                input_ids = context[-self.max_seq_len:]
                 n_context = len(input_ids)
                 attention_mask = [1] * n_context
                 bidirectional_mask = [1] * n_context
                 # Annoyingly, we need to pad the everything but input_ids
                 # and attention_mask ourselves
                 i_pad = [self.tokenizer.pad_token_id
-                        ] * (self.max_seq_length - n_target)
-                z_pad = [0] * (self.max_seq_length - n_context)
+                        ] * (self.max_seq_len - n_target)
+                z_pad = [0] * (self.max_seq_len - n_context)
                 if self.tokenizer.padding_side == 'left':
                     labels = i_pad + target
                     bidirectional_mask = z_pad + bidirectional_mask
@@ -266,14 +266,14 @@ class Seq2SeqFinetuningCollator:
                 # We need to concatenate the context and target to get the
                 # full input sequence, cutting off any excess tokens from the
                 # end of the target
-                if n_context + n_target > self.max_seq_length:
+                if n_context + n_target > self.max_seq_len:
                     old_n_target = int(n_target)
-                    n_target = self.max_seq_length - n_context
+                    n_target = self.max_seq_len - n_context
                     if not self._warned_target:
                         warnings.warn(
                             f'Truncating TARGET sequence of length={old_n_target} to length={n_target}, ' +\
-                            f'so context+target fit max_seq_length={self.max_seq_length}. If truncation is ' +\
-                            f'a problem, consider increasing max_seq_length.')
+                            f'so context+target fit max_seq_len={self.max_seq_len}. If truncation is ' +\
+                            f'a problem, consider increasing max_seq_len.')
                         self._warned_target = True
                     target = target[-n_target:]
                     target[-1] = self.tokenizer.eos_token_id
@@ -287,8 +287,8 @@ class Seq2SeqFinetuningCollator:
 
                 # Annoyingly, we need to pad the everything but input_ids
                 # and attention_mask ourselves
-                i_pad = [_HF_IGNORE_INDEX] * (self.max_seq_length - n_total)
-                z_pad = [0] * (self.max_seq_length - n_total)
+                i_pad = [_HF_IGNORE_INDEX] * (self.max_seq_len - n_total)
+                z_pad = [0] * (self.max_seq_len - n_total)
                 if self.tokenizer.padding_side == 'left':
                     labels = i_pad + labels
                     bidirectional_mask = z_pad + bidirectional_mask
@@ -307,7 +307,7 @@ class Seq2SeqFinetuningCollator:
         batch = self.tokenizer.pad(
             processed_examples,
             padding='max_length',
-            max_length=self.max_seq_length,
+            max_length=self.max_seq_len,
             return_tensors='pt',
         )
 

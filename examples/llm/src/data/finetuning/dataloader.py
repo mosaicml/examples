@@ -30,7 +30,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
                 registered in `dataset_constructor` -- see `./_tasks.py` for details)
             - cfg.dataset.split (e.g. "train" or "validation")
             - cfg.dataset.tokenizer_name (e.g. "gpt2")
-            - cfg.dataset.max_seq_length (e.g., 512)
+            - cfg.dataset.max_seq_len (e.g., 512)
             - cfg.dataset.decoder_only_format (should be True for a GPT model)
             - cfg.dataset.local (local location if using a streaming dataset)
             - cfg.dataset.remote (remote location if using a streaming dataset)
@@ -66,7 +66,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
 
         collate_fn = Seq2SeqFinetuningCollator(
             dataset.tokenizer,
-            max_seq_length=cfg.dataset.max_seq_length,
+            max_seq_len=cfg.dataset.max_seq_len,
             decoder_only_format=cfg.dataset.decoder_only_format,
             allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
         )
@@ -83,7 +83,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
             collate_fn = BinPackWrapper(
                 collator=collate_fn,
                 target_batch_size=device_batch_size,
-                max_seq_len=cfg.dataset.max_seq_length,
+                max_seq_len=cfg.dataset.max_seq_len,
                 pad_token_id=dataset.tokenizer.pad_token_id,
                 padding_side=dataset.tokenizer.padding_side,
                 max_leftover_bins_to_keep=cfg.dataset.get(
@@ -124,7 +124,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
 
         collate_fn = Seq2SeqFinetuningCollator(
             tokenizer,
-            max_seq_length=cfg.dataset.max_seq_length,
+            max_seq_len=cfg.dataset.max_seq_len,
             decoder_only_format=cfg.dataset.decoder_only_format,
             allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
         )
@@ -141,7 +141,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
             collate_fn = BinPackWrapper(
                 collator=collate_fn,
                 target_batch_size=device_batch_size,
-                max_seq_len=cfg.dataset.max_seq_length,
+                max_seq_len=cfg.dataset.max_seq_len,
                 pad_token_id=tokenizer.pad_token_id,
                 padding_side=tokenizer.padding_side,
                 max_leftover_bins_to_keep=cfg.dataset.get(
@@ -191,7 +191,7 @@ if __name__ == '__main__':
             # 'packing_ratio': 13.5,
             #
             'tokenizer_name': 'gpt2',
-            'max_seq_length': 2048,
+            'max_seq_len': 2048,
             'decoder_only_format': True,
             'separator_text': False,
             'allow_pad_trimming': False,
