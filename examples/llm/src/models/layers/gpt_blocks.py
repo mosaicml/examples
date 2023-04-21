@@ -63,6 +63,7 @@ class GPTBlock(nn.Module):
             d_model=d_model,
             n_heads=n_heads,
             device=device,
+            mup_debug=mup_debug
         )
         self.ln_2 = layernorm_class(d_model, device=device)
         self.mlp = GPTMLP(

@@ -9,11 +9,12 @@ global_seed: 17
 
 
 mup_config:
-  base_d_model: 128
+  base_d_model: 256
   base_mlp_ratio: 4
   alpha_out: 1.0
   alpha_attn: 1.0
   debug: True
+  scale_logits_by_ratio: True
 
 # Model
 model:
@@ -22,12 +23,13 @@ model:
   tokenizer_name: ${tokenizer_name}
   # d_model: 1024
   # n_heads: 16
-  n_layers: 2
+  n_layers: 1
   mlp_ratio: 4
   max_seq_len: ${max_seq_len}
   vocab_size: 50368
   attn_impl: triton
   no_bias: True
+  alibi: True
 
 # Tokenizer
 tokenizer:
@@ -63,14 +65,17 @@ eval_loader:
   num_workers: 8
 
 # Optimization
+# scheduler: 
+#   name: cosine_with_warmup
+#   t_warmup: 1ba
+#   alpha_f: 1.0
 scheduler: 
-  name: cosine_with_warmup
-  t_warmup: 1ba
-  alpha_f: 1.0
+  name: constant_with_warmup
+  t_warmup: 0ba
 
 optimizer:
   name: decoupled_adamw
-  lr: 6.0e-3
+  lr: 6.0e-1
   betas:
   - 0.9
   - 0.95

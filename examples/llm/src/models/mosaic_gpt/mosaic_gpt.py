@@ -56,11 +56,17 @@ class MosaicGPT(PreTrainedModel):
 
         if self.mup:
             print("overriding logit scaling!")
-            config.logit_scale = self.mup.alpha_out / self.mup.d_model_scale_ratio
+            if self.mup.scale_logits_by_ratio:
+                print("scaling by d_model ratio!")
+                config.logit_scale = self.mup.alpha_out / self.mup.d_model_scale_ratio
+            else:
+                print("scaling by d_model!")
+                config.logit_scale = self.mup.alpha_out / config.d_model
             print(f"{config.logit_scale=}")
             #TODO (sasha): not totally clear on whether this is the correct scale
             print("overriding softmax scale! (replace with 1/d instead of 1/sqrt(d))")
             config.softmax_scale = 1. / (config.d_model / config.n_heads)
+            print(f"{config.softmax_scale=}")
 
         self.transformer = nn.ModuleDict({
             'wte':
@@ -80,6 +86,7 @@ class MosaicGPT(PreTrainedModel):
             'blocks':
                 nn.ModuleList([
                     gpt_blocks.GPTBlock(device=config.init_device,
+                                        mup_debug=self.mup.debug if self.mup and hasattr(self.mup, "debug") else False,
                                         **config.to_dict())
                     for _ in range(config.n_layers)
                 ])
@@ -106,6 +113,7 @@ class MosaicGPT(PreTrainedModel):
             print(
                 f'You are using {config.init_device=}, but you can also use config.init_device="meta" with Composer + FSDP for fast initialization.'
             )
+            print(self.config.param_init_fn)
             self.apply(self.param_init_fn)
 
         self.is_causal = not self.prefix_lm
@@ -384,6 +392,7 @@ class MosaicGPT(PreTrainedModel):
                 warnings.warn(
                     f'Multiplying logits by {self.logit_scale=}. This will produce uniform (uninformative) outputs.'
                 )
+            print(self.logit_scale)
             logits *= self.logit_scale
 
         return CausalLMOutputWithPast(logits=logits,
