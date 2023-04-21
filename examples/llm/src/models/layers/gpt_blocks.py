@@ -21,9 +21,11 @@ class GPTMLP(nn.Module):
                  device: Optional[str] = None):
         super().__init__()
         self.mlp_up = nn.Linear(d_model, mlp_ratio * d_model, device=device)
+        print(f"{self.mlp_up.weight.shape=}")
         self.mlp_act = nn.GELU(approximate='none')
         self.mlp_down = nn.Linear(mlp_ratio * d_model, d_model, device=device)
-        self.mlp_down._is_residual = True  # type: ignore
+        print(f"{self.mlp_down.weight.shape=}")
+        # self.mlp_down._is_residual = True  # type: ignore
 
     def forward(self, x):
         return self.mlp_down(self.mlp_act(self.mlp_up(x)))
@@ -44,6 +46,7 @@ class GPTBlock(nn.Module):
                  resid_pdrop: float = 0.0,
                  low_precision_layernorm: bool = False,
                  device: Optional[str] = None,
+                 mup_debug: Optional[bool] = False,
                  **kwargs):
         del kwargs  # unused, just to capture any extra args from the config
         super().__init__()

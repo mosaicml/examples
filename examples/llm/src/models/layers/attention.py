@@ -251,6 +251,7 @@ class MultiheadAttention(nn.Module):
         attn_pdrop: float = 0.0,
         low_precision_layernorm: bool = False,
         device: Optional[str] = None,
+        mup_debug: bool = False
     ):
         super().__init__()
 
@@ -263,9 +264,13 @@ class MultiheadAttention(nn.Module):
         self.softmax_scale = softmax_scale
         if self.softmax_scale is None:
             self.softmax_scale = 1 / math.sqrt(self.d_model / self.n_heads)
+        print(f"{self.softmax_scale=}")
         self.attn_dropout_p = attn_pdrop
 
         self.Wqkv = nn.Linear(self.d_model, 3 * self.d_model, device=device)
+        if mup_debug:
+            self.Wqkv.weight.data[:self.d_model, :] = 0
+
         # for param init fn; enables shape based init of fused layers
         fuse_splits = (d_model, 2 * d_model)
         self.Wqkv._fused = (0, fuse_splits)  # type: ignore

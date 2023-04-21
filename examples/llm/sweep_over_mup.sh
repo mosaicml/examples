@@ -1,4 +1,5 @@
 set -e
+set -o xtrace
 source /mnt/workdisk/sasha/examples/venv-llm/bin/activate
 source /secrets/secrets.env
 for d_model in 256 512 1024 2048 
