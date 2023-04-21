@@ -26,16 +26,20 @@ def build_finetuning_dataloader(cfg: DictConfig,
     Args:
         cfg (Mapping): The config for your dataset/dataloader. The config needs
             to define the following:
+
             - cfg.dataset.name (e.g. "tatsu-lab/alpaca"; must be
                 registered in `dataset_constructor` -- see `./_tasks.py` for details)
+            - cfg.dataset.local (local location if using a streaming dataset, optional)
+            - cfg.dataset.remote (remote location if using a streaming dataset, optional)
             - cfg.dataset.split (e.g. "train" or "validation")
             - cfg.dataset.tokenizer_name (e.g. "gpt2")
             - cfg.dataset.max_seq_len (e.g., 512)
             - cfg.dataset.decoder_only_format (should be True for a GPT model)
-            - cfg.dataset.local (local location if using a streaming dataset)
-            - cfg.dataset.remote (remote location if using a streaming dataset)
+            - cfg.dataset.allow_pad_trimming (default is False)
+            - cfg.dataset.packing_ratio (set to >1.0 to activate packing)
+            - cfg.dataset.shuffle (e.g. True for training, False for validation)
+
             - cfg.drop_last (e.g. False)
-            - cfg.shuffle (e.g. True for training, False for validation)
             - cfg.num_workers (e.g. 8)
             - cfg.pin_memory (e.g. True)
             - cfg.prefetch_factor (e.g. 2)
@@ -46,6 +50,10 @@ def build_finetuning_dataloader(cfg: DictConfig,
 
     Returns:
         A pytorch dataloader
+
+    Note:
+        You can run the script inside `src/data/packing.py` to quickly test the padding/waste
+        rate for different `cfg.dataset.packing_ratio` choices, given a starting workload YAML.
     """
     if cfg.dataset.get('local') is not None:
         dataset = dataset_constructor.build_from_streaming(
@@ -177,19 +185,6 @@ if __name__ == '__main__':
             'name': 'tatsu-lab/alpaca',
             'split': 'train',
             'packing_ratio': 18.0,
-            #
-            # 'name': 'Muennighoff/P3',
-            # 'split': 'validation',
-            # 'remote': 's3://mosaicml-internal-checkpoints-shared/alex/muennighoff-p3/',
-            # 'local': '/tmp/mds-cache/mp3/',
-            # 'packing_ratio': 12.0,
-            #
-            # 'name': 'Muennighoff/flan',
-            # 'split': 'validation',
-            # 'remote': 's3://mosaicml-internal-checkpoints-shared/alex/muennighoff-flan/',
-            # 'local': '/tmp/mds-cache/mflan/',
-            # 'packing_ratio': 13.5,
-            #
             'tokenizer_name': 'gpt2',
             'max_seq_len': 2048,
             'decoder_only_format': True,

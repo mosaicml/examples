@@ -159,10 +159,15 @@ def test_denoising_dataloader(decoder_only_format, pretokenize, packing_ratio):
 
 @pytest.mark.parametrize('decoder_only_format', [True, False])
 @pytest.mark.parametrize('allow_pad_trimming', [True, False])
-def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming):
+@pytest.mark.parametrize('packing_ratio', [10.0, None])
+def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming,
+                               packing_ratio):
     # Use the datasets just built in the last test
     tokenizer_name = 'gpt2' if decoder_only_format else 't5-base'
     max_seq_len = 2048 if decoder_only_format else 1024
+
+    if (decoder_only_format is False) and (packing_ratio is not None):
+        pytest.xfail('packing_ratio only supported for decoder-only format.')
 
     cfg = {
         'name': 'finetuning',
@@ -170,12 +175,13 @@ def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming):
             'name': 'tatsu-lab/alpaca',
             'split': 'train',
             'tokenizer_name': tokenizer_name,
-            'max_seq_length': max_seq_len,
+            'max_seq_len': max_seq_len,
             'decoder_only_format': decoder_only_format,
             'allow_pad_trimming': allow_pad_trimming,
+            'packing_ratio': packing_ratio,
+            'shuffle': True,
         },
         'drop_last': False,
-        'shuffle': True,
         'num_workers': 0,
         'pin_memory': False,
         'prefetch_factor': 2,
