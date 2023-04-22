@@ -51,8 +51,8 @@ def parse_args() -> Namespace:
                         nargs='?',
                         const=True,
                         default=True)
-    parser.add_argument('--eos_token_id', type=str, default=None)
-    parser.add_argument('--pad_token_id', type=str, default=None)
+    parser.add_argument('--eos_token_id', type=int, default=None)
+    parser.add_argument('--pad_token_id', type=int, default=None)
     parser.add_argument('--dtype',
                         type=str,
                         choices=['fp32', 'fp16', 'bf16'],
