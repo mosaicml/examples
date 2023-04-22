@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Optional, Union
 
 import datasets
 import transformers
+from omegaconf import DictConfig
 from streaming import StreamingDataset
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
@@ -135,10 +136,18 @@ class DatasetConstructor:
 
         return wrapper
 
-    def build(self, dataset_name: str, tokenizer: Tokenizer, split: str):
-        assert dataset_name in self._task_tokenization_registry
-        # UPDATE THIS LINE TO LOAD YOUR RAW DATASET
-        dataset = datasets.load_dataset(dataset_name, split=split)
+    def build(self, cfg: DictConfig, tokenizer: Tokenizer):
+        dataset_name = cfg.name
+        split = cfg.split
+        kwargs = cfg.get('kwargs', {})
+
+        if dataset_name not in self._task_tokenization_registry:
+            raise ValueError(
+                f'{dataset_name} is not a registered dataset. ' +
+                f'Available datasets: {self._task_tokenization_registry.keys()}'
+            )
+
+        dataset = datasets.load_dataset(dataset_name, split=split, **kwargs)
 
         tokenize_function = partial(
             self._task_tokenization_registry[dataset_name], tokenizer=tokenizer)

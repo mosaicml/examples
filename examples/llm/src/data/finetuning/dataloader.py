@@ -31,6 +31,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
                 registered in `dataset_constructor` -- see `./_tasks.py` for details)
             - cfg.dataset.local (local location if using a streaming dataset, optional)
             - cfg.dataset.remote (remote location if using a streaming dataset, optional)
+            - cfg.dataset.kwargs (optional kwargs to pass to load_dataset if using datasets library)
             - cfg.dataset.split (e.g. "train" or "validation")
             - cfg.dataset.tokenizer_name (e.g. "gpt2")
             - cfg.dataset.max_seq_len (e.g., 512)
@@ -127,8 +128,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
         if tokenizer.pad_token is None:  # type: ignore
             tokenizer.pad_token = tokenizer.eos_token
 
-        dataset = dataset_constructor.build(cfg.dataset.name, tokenizer,
-                                            cfg.dataset.split)
+        dataset = dataset_constructor.build(cfg.dataset, tokenizer)
 
         collate_fn = Seq2SeqFinetuningCollator(
             tokenizer,
