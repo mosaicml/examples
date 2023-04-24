@@ -21,7 +21,7 @@ train_loader:
 
 **IMPORTANT:** The subfield `dataset.name` has a special meaning. It tells the dataloader what function to use when tokenizing each example into the input and output texts.
 - "input" refers to the text that you feed into the model, e.g. *Tell me a few facts about dogs.*
-- "output" refers to the text that the model is trained to produce in response to the input, e.g. *Dogs are great pets. They love to play fetch...*
+- "output" refers to the text that the model is trained to produce in response to the input, e.g. *Dogs are great pets. They love to play fetch. They are better than cats...*
 
 `dataset.name` must refer to a function in `_tasks.py` that you have registered under that name. For example:
 ```python
