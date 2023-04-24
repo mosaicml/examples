@@ -29,6 +29,7 @@ model:
   attn_impl: triton
   no_bias: True
   alibi: True
+  mup_official_config: null
 
 # Tokenizer
 tokenizer:

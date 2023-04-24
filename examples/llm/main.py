@@ -4,6 +4,7 @@
 import os
 import sys
 import warnings
+import pickle
 
 from composer import Trainer
 from composer.core import Evaluator
@@ -17,7 +18,11 @@ from examples.common.config_utils import log_config, update_batch_size_info
 from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY,
                               build_text_denoising_dataloader)
+from mup import make_base_shapes, set_base_shapes, get_shapes, get_infshapes
+# from examples.common.mup_helpers import 
 
+def get_infshapes_custom(model):
+    return {name: param.infshape.width_mult() for name, param in model.named_parameters()}
 
 def validate_config(cfg):
     """Validates compatible model and dataloader selection."""
@@ -132,6 +137,26 @@ def main(cfg):
     # Build Model
     print('Initializing model...')
     model = build_composer_model(cfg.model, cfg.tokenizer)
+
+    mup_official_config = cfg.model.get("mup_official_config", None)
+    if mup_official_config:
+        if mup_official_config.save_shapes:
+            model_shapes = get_shapes(model)
+            print(model_shapes)
+            print(f"Saving to {mup_official_config.load_path}")
+            with open(mup_official_config.load_path, 'wb') as handle:
+                pickle.dump(model_shapes, handle) 
+            import sys; sys.exit()
+        else:
+            with open(mup_official_config.load_path, 'rb') as handle:
+                base_shape = pickle.load(handle)
+
+            print("setting base shapes in model!")
+            print(base_shape)
+            set_base_shapes(model, base_shape)
+            print(get_infshapes_custom(model))
+            
+    model.apply(model.model.param_init_fn) 
     cfg.n_params = sum(p.numel() for p in model.parameters())
     print(f'{cfg.n_params=:.2e}')
 

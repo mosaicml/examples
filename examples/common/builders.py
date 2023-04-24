@@ -27,6 +27,8 @@ from examples.common.text_data import build_text_dataloader
 
 from examples.common.mup_helpers import mup_setup_lrs_for_params, GetParamNorms
 
+from mup import optim
+
 def build_callback(name, kwargs):
     if name == 'lr_monitor':
         return LRMonitor()
@@ -100,6 +102,15 @@ def build_optimizer(cfg, model):
                               betas=cfg.betas,
                               eps=cfg.eps,
                               weight_decay=cfg.weight_decay)
+    elif cfg.name == 'mup_decoupled_adamw':
+        return optim.MuAdam(
+            model.parameters(),
+            impl=DecoupledAdamW,
+            decoupled_wd=True,
+            lr=cfg.lr,
+            betas=cfg.betas,
+            eps=cfg.eps,
+            weight_decay=cfg.weight_decay)
     elif cfg.name == 'decoupled_lionw':
         return DecoupledLionW(param_groups_or_params,
                               lr=cfg.lr,

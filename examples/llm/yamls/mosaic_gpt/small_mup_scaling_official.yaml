@@ -8,13 +8,8 @@ global_seed: 17
 # run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 
 
-mup_config:
-  base_d_model: 256
-  base_mlp_ratio: 4
-  alpha_out: 1.0
-  alpha_attn: 1.0
-  debug: False
-  scale_logits_by_ratio: True
+
+
 
 # Model
 model:
@@ -30,7 +25,10 @@ model:
   attn_impl: triton
   no_bias: True
   alibi: True
-  mup_official_config: null
+
+  mup_official_config:
+    save_shapes: False
+    load_path: /root/base_shape.pickle
 
 # Tokenizer
 tokenizer:
@@ -75,7 +73,7 @@ scheduler:
   t_warmup: 0ba
 
 optimizer:
-  name: decoupled_adamw
+  name: mup_decoupled_adamw
   lr: 6.0e-1
   betas:
   - 0.9
