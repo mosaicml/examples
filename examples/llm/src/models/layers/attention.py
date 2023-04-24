@@ -270,6 +270,7 @@ class MultiheadAttention(nn.Module):
         self.Wqkv = nn.Linear(self.d_model, 3 * self.d_model, device=device)
         if mup_debug:
             self.Wqkv.weight.data[:self.d_model, :] = 0
+        print(self.Wqkv.weight.data[:3, :5])
 
         # for param init fn; enables shape based init of fused layers
         fuse_splits = (d_model, 2 * d_model)

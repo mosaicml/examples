@@ -13,7 +13,7 @@ mup_config:
   base_mlp_ratio: 4
   alpha_out: 1.0
   alpha_attn: 1.0
-
+  debug: True
 
 # Model
 model:
@@ -63,10 +63,10 @@ eval_loader:
   num_workers: 8
 
 # Optimization
-scheduler:
+scheduler: 
   name: cosine_with_warmup
-  t_warmup: 100ba
-  alpha_f: 0.1
+  t_warmup: 1ba
+  alpha_f: 1.0
 
 optimizer:
   name: decoupled_adamw
@@ -82,7 +82,7 @@ algorithms:
     clipping_type: norm
     clipping_threshold: 1.0
 
-max_duration: 4800ba # ~ 2.5B tokens
+max_duration: 10ba # ~ 2.5B tokens
 eval_interval: 500ba
 eval_first: false
 eval_subset_num_batches: -1
@@ -116,6 +116,8 @@ callbacks:
   lr_monitor: {}
   memory_monitor: {}
   runtime_estimator: {}
+  optimizer_monitor:
+    log_optimizer_metrics: true
 
 # loggers:
 #   wandb: {}

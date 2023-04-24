@@ -22,13 +22,12 @@ model:
   tokenizer_name: ${tokenizer_name}
   # d_model: 1024
   # n_heads: 16
-  n_layers: 1
+  n_layers: 12
   mlp_ratio: 4
   max_seq_len: ${max_seq_len}
   vocab_size: 50368
   attn_impl: triton
   no_bias: True
-  alibi: True
 
 # Tokenizer
 tokenizer:
@@ -64,17 +63,14 @@ eval_loader:
   num_workers: 8
 
 # Optimization
-# scheduler: 
-#   name: cosine_with_warmup
-#   t_warmup: 1ba
-#   alpha_f: 1.0
 scheduler: 
-  name: constant_with_warmup
-  t_warmup: 0ba
+  name: cosine_with_warmup
+  t_warmup: 1ba
+  alpha_f: 1.0
 
 optimizer:
   name: decoupled_adamw
-  lr: 6.0e-1
+  lr: 6.0e-3
   betas:
   - 0.9
   - 0.95
