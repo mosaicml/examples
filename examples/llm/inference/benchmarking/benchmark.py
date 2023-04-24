@@ -57,7 +57,7 @@ def main(config):
     model.eval()
 
     if config.use_deepspeed:
-        import deepspeed  # type: ignore(reportMissingImports)
+        import deepspeed  # type: ignore
         model = deepspeed.init_inference(model, config=inference_config)
 
         # Checking if deepspeed casts dtypes correctly
