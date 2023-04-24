@@ -51,7 +51,7 @@ parameters:
     kwargs:
       model_max_length: ${max_seq_len}
 
-  load_path: s3://mosaicml-internal-checkpoints-shared/nlp-hero/v003-03-09-23-7b/checkpoints/ep2-ba76300-rank0.pt  # Add your (optional) Composer checkpoint path here!
+  load_path: s3://mosaicml-internal-checkpoints-shared/jfrankle/data-mixes/1b-hero-041823-llamamix-redpajama/ep0-ba47000-rank0.pt  # Add your (optional) Composer checkpoint path here!
 
   # FSDP config for model sharding
   fsdp_config:
