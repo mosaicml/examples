@@ -214,30 +214,11 @@ def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
 
 
 @dataset_constructor.register('sam-mosaic/vicuna_alpaca_hc3_chatml')
-def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
+def simple_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Already split, just tokenize."""
     return tokenizer(
         text=inp['prompt'],
         text_target=inp['response'],
-    )
-
-
-@dataset_constructor.register('sam-mosaic/dolly_chatml')
-def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
-    """Format the text string and simply tokenize."""
-    try:
-        if '<|im_start|>system assistant:internal' in inp['text']:
-            # when the assistant retrieves from corpus it uses this
-            split_text = '<|im_start|>system assistant:internal'
-        else:
-            split_text = '<|im_start|>assistant'
-        prompt, response = inp['text'].split(split_text)
-    except:
-        print(inp)
-        raise
-    return tokenizer(
-        text=prompt + split_text,
-        text_target=response,
     )
 
 
