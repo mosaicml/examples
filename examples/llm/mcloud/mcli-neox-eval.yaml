@@ -13,7 +13,7 @@ command: |
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 # Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
-run_name: mosaic-gpt-7b-eval
+run_name: gptneox-eval
 
 gpu_num: 8
 gpu_type: a100_80gb
@@ -21,38 +21,20 @@ cluster: r1z1 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 parameters:
-  tokenizer_name: EleutherAI/gpt-neox-20b
   max_seq_len: 2048
 
-  model:
-    name: mosaic_gpt
-    init_device: meta
-    tokenizer_name: ${tokenizer_name}
-    d_model: 4096
-    n_heads: 32
-    n_layers: 32
-    mlp_ratio: 4
-    max_seq_len: ${max_seq_len}
-    vocab_size: 50432
-    attn_pdrop: 0.0
-    resid_pdrop: 0.0
-    emb_pdrop: 0.0
-    attn_impl: triton
-    alibi: true
-    attn_clip_qkv: 6
-    no_bias: true
-    low_precision_layernorm: true
-    param_init_fn: kaiming_normal_
-    init_nonlinearity: relu
-    attn_uses_sequence_id: true
-
-  # Tokenizer
   tokenizer:
-    name: ${tokenizer_name}
+    name: EleutherAI/gpt-neox-20b
     kwargs:
-      model_max_length: ${max_seq_len}
+      model_max_length: 2048
 
-  load_path: s3://mosaicml-internal-checkpoints-shared/nlp-hero/v004-04-11-2023-HERO/v004-04-11-2023-HERO-7b/checkpoints/mono/ep0-ba120000/ckpt.pt # Add your (optional) Composer checkpoint path here!
+  model:
+    name: hf_causal_lm
+    pretrained_model_name_or_path: EleutherAI/gpt-neox-20b
+    device: meta
+    pretrained: true
+
+  # load_path: s3://mosaicml-internal-checkpoints-shared/nlp-hero/v004-04-11-2023-HERO/v004-04-11-2023-HERO-7b/checkpoints/mono/ep0-ba120000/ckpt.pt # Add your (optional) Composer checkpoint path here!
 
   # FSDP config for model sharding
   fsdp_config:
@@ -66,8 +48,9 @@ parameters:
     label: mmlu
     dataset_uri: oci://mosaicml-internal-datasets/icl/original/mmlu.jsonl # ADD YOUR OWN DATASET URI
     num_fewshot:
+    - 0
     - 5
-    batch_size: 16
+    batch_size: 1
     icl_task_type: multiple_choice
     metric_names:
     - InContextLearningMultipleChoiceAccuracy

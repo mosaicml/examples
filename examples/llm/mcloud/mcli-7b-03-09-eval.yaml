@@ -21,9 +21,9 @@ cluster: r1z1 # replace with your cluster here!
 
 # The below is injected as a YAML file: /mnt/config/parameters.yaml
 parameters:
-  tokenizer_name: EleutherAI/gpt-neox-20b
   max_seq_len: 2048
-
+  tokenizer_name: gpt2
+  # Model
   model:
     name: mosaic_gpt
     init_device: meta
@@ -33,18 +33,17 @@ parameters:
     n_layers: 32
     mlp_ratio: 4
     max_seq_len: ${max_seq_len}
-    vocab_size: 50432
+    vocab_size: 50304
     attn_pdrop: 0.0
     resid_pdrop: 0.0
     emb_pdrop: 0.0
-    attn_impl: triton
-    alibi: true
-    attn_clip_qkv: 6
-    no_bias: true
+    attn_impl: flash
     low_precision_layernorm: true
+    attn_qk_ln: true
+    no_bias: true
     param_init_fn: kaiming_normal_
     init_nonlinearity: relu
-    attn_uses_sequence_id: true
+
 
   # Tokenizer
   tokenizer:
@@ -52,7 +51,7 @@ parameters:
     kwargs:
       model_max_length: ${max_seq_len}
 
-  load_path: s3://mosaicml-internal-checkpoints-shared/nlp-hero/v004-04-11-2023-HERO/v004-04-11-2023-HERO-7b/checkpoints/mono/ep0-ba120000/ckpt.pt # Add your (optional) Composer checkpoint path here!
+  load_path: s3://mosaicml-internal-checkpoints-shared/nlp-hero/v003-03-09-23-7b/checkpoints/ep2-ba76300-rank0.pt  # Add your (optional) Composer checkpoint path here!
 
   # FSDP config for model sharding
   fsdp_config:

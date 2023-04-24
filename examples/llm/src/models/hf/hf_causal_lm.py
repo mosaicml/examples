@@ -45,6 +45,7 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
     def __init__(self,
                  om_model_config: DictConfig,
                  om_tokenizer_config: Optional[DictConfig] = None):
+        print(om_model_config.get('config_overrides', {}))
         config = AutoConfig.from_pretrained(
             om_model_config.pretrained_model_name_or_path,
             **om_model_config.get('config_overrides', {}))

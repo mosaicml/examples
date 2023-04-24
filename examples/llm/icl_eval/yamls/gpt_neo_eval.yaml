@@ -1,12 +1,12 @@
 # Tokenizer
 tokenizer:
-  name: gpt2
-  kwargs:
-    model_max_length: 2048
+    name: decapoda-research/llama-7b-hf
+    kwargs:
+      model_max_length: 2048
 
 model:
   name: hf_causal_lm
-  pretrained_model_name_or_path: EleutherAI/gpt-neo-125M
+  pretrained_model_name_or_path: decapoda-research/llama-7b-hf
   device: cpu
   pretrained: true
 
