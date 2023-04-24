@@ -5,11 +5,9 @@ import contextlib
 import sys
 import time
 
-import deepspeed
 import numpy as np
 import torch
 # You can use this to load the model weights
-from composer.core import get_precision_context
 from omegaconf import OmegaConf as om
 
 from examples.llm.src import COMPOSER_MODEL_REGISTRY
@@ -18,9 +16,9 @@ from examples.llm.src import COMPOSER_MODEL_REGISTRY
 def get_precision(precision):
     if precision == "fp32":
         return torch.float32
-    elif precision in ["amp_fp16", "fp16"]:
+    elif precision == "fp16":
         return torch.float16
-    elif precision in ["amp_bf16", "bf16"]:
+    elif precision == "bf16":
         return torch.bfloat16
     else:
         raise NotImplementedError(f"Precision of type {precision} is not supported. "
@@ -60,6 +58,7 @@ def main(config):
     tokenizer = composer_model.tokenizer
 
     if config.use_deepspeed:
+        import deepspeed # type: ignore(reportMissingImports)
         model = deepspeed.init_inference(model, config=inference_config)
 
         # Checking if deepspeed casts dtypes correctly
@@ -100,9 +99,8 @@ def main(config):
                     start_time = time.time()
                     with torch.no_grad():
                         precision_context = contextlib.nullcontext()
-                        if autocast_precision is not None:
-                            precision_context = get_precision_context(
-                                config.autocast_precision)
+                        if autocast_precision is not None and autocast_precision in ['fp16', 'bf16']:
+                            precision_context = torch.cuda.amp.autocast(True, dtype=autocast_precision)
 
                         with precision_context:
                             model.generate(batch,
