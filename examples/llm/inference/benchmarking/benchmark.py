@@ -14,15 +14,16 @@ from examples.llm.src import COMPOSER_MODEL_REGISTRY
 
 
 def get_precision(precision):
-    if precision == "fp32":
+    if precision == 'fp32':
         return torch.float32
-    elif precision == "fp16":
+    elif precision == 'fp16':
         return torch.float16
-    elif precision == "bf16":
+    elif precision == 'bf16':
         return torch.bfloat16
     else:
-        raise NotImplementedError(f"Precision of type {precision} is not supported. "
-                                  f"We only support fp32, amp_fp16, and amp_bf16 currently")
+        raise NotImplementedError(
+            f'Precision of type {precision} is not supported. '
+            f'We only support fp32, amp_fp16, and amp_bf16 currently')
 
 
 def compare_precision(precision, param_dtype):
@@ -48,17 +49,15 @@ def main(config):
         },
     }
 
-    composer_model = COMPOSER_MODEL_REGISTRY[config.model.name](config.model,
-                                                       config.tokenizer)
+    composer_model = COMPOSER_MODEL_REGISTRY[config.model.name](
+        config.model, config.tokenizer)
 
     model = composer_model.model
 
     model.eval()
 
-    tokenizer = composer_model.tokenizer
-
     if config.use_deepspeed:
-        import deepspeed # type: ignore(reportMissingImports)
+        import deepspeed  # type: ignore(reportMissingImports)
         model = deepspeed.init_inference(model, config=inference_config)
 
         # Checking if deepspeed casts dtypes correctly
@@ -99,8 +98,11 @@ def main(config):
                     start_time = time.time()
                     with torch.no_grad():
                         precision_context = contextlib.nullcontext()
-                        if autocast_precision is not None and autocast_precision in ['fp16', 'bf16']:
-                            precision_context = torch.cuda.amp.autocast(True, dtype=autocast_precision)
+                        if autocast_precision is not None and autocast_precision in [
+                                'fp16', 'bf16'
+                        ]:
+                            precision_context = torch.cuda.amp.autocast(
+                                True, dtype=autocast_precision)
 
                         with precision_context:
                             model.generate(batch,
@@ -120,15 +122,19 @@ def main(config):
                 num_output_tokens = output_length * batch_size
                 mean_time = np.mean(times)
                 tokens_per_second = num_output_tokens / float(mean_time)
-                ms_per_seq_output_token = float(mean_time) * 1000 / num_output_tokens
+                ms_per_seq_output_token = float(
+                    mean_time) * 1000 / num_output_tokens
 
                 result = (
                     f'{config.benchmark_name}_{batch_size}_{input_length}_{output_length}',
-                    f'{mean_time:.3f}', f'{tokens_per_second:.3f}', f'{ms_per_seq_output_token:.3f}')
+                    f'{mean_time:.3f}', f'{tokens_per_second:.3f}',
+                    f'{ms_per_seq_output_token:.3f}')
 
                 run_name, latency, tokens_per_second, ms_per_seq_output_token = result
 
-                print(f'{run_name}, {latency}, {tokens_per_second}, {ms_per_seq_output_token}')
+                print(
+                    f'{run_name}, {latency}, {tokens_per_second}, {ms_per_seq_output_token}'
+                )
 
                 stats.append(result)
 
@@ -136,8 +142,9 @@ def main(config):
     print('name, latency (s), tokens / s, output token time (ms)')
     for val in stats:
         run_name, latency, tokens_per_second, ms_per_seq_output_token = val
-        print(f'{run_name}, latency (s) {latency}, tokens per second {tokens_per_second}, output token time (ms) {ms_per_seq_output_token}')
-
+        print(
+            f'{run_name}, latency (s) {latency}, tokens per second {tokens_per_second}, output token time (ms) {ms_per_seq_output_token}'
+        )
 
 
 if __name__ == '__main__':
