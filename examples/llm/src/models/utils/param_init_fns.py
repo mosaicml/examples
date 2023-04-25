@@ -149,9 +149,9 @@ def generic_param_init_fn_(
                 f'Norm weights are set to 1. If the layer has a bias it is initialized to 0.'
             )
         if hasattr(module, 'weight') and module.weight is not None:
-            torch.nn.init.ones_(module.weight)
+            torch.nn.init.ones_(module.weight)  # type: ignore
         if hasattr(module, 'bias') and module.bias is not None:
-            torch.nn.init.zeros_(module.bias)
+            torch.nn.init.zeros_(module.bias)  # type: ignore
 
     elif isinstance(module, nn.MultiheadAttention):
         # torch's MultiheadAttention
