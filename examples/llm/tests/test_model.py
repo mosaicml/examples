@@ -19,8 +19,8 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, ComposerHFCausalLM,
                           ComposerHFPrefixLM)
-from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 from examples.llm.src.models.layers import NORM_CLASS_REGISTRY
+from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 
 
 def get_config(conf_path='yamls/mosaic_gpt/testing.yaml') -> DictConfig:
