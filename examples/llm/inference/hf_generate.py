@@ -81,7 +81,7 @@ def maybe_synchronize():
 
 def main(args: Namespace) -> None:
     prompts = []
-    prompt = args.prompt
+    prompt = args.prompts
     if not os.path.isfile(prompt):
         raise FileNotFoundError(f'{prompt=} does not match any file.')
     with open(prompt.strip('.txt') + '.txt', 'r') as f:
