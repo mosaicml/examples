@@ -84,7 +84,7 @@ def main(args: Namespace) -> None:
     prompt = args.prompts
     if not os.path.isfile(prompt):
         raise FileNotFoundError(f'{prompt=} does not match any file.')
-    with open(prompt.strip('.txt') + '.txt', 'r') as f:
+    with open(prompt, 'r') as f:
         prompts.append(''.join(f.readlines()))
 
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
