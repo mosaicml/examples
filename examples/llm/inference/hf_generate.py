@@ -31,7 +31,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '-p',
         '--prompts',
-        type='str',
+        type=str,
         default='the_great_gatsby_epi.txt',
         # default=[
         #     'My name is',
