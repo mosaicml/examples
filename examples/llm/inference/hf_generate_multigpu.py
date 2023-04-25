@@ -7,7 +7,9 @@ import warnings
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
 
 import torch
+from composer.core import Precision
 from composer.trainer.dist_strategy import prepare_fsdp_module
+from composer.utils import dist, get_device
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.llm import MosaicGPT, MosaicGPTConfig
@@ -87,13 +89,19 @@ def main(args: Namespace) -> None:
         raise FileNotFoundError(f'{prompt=} does not match any file.')
     with open(prompt, 'r') as f:
         prompts.append(''.join(f.readlines()))
+    prompts = ['This is a book about a dog named Samwise.']
+
+    dist.initialize_dist(get_device(None), timeout=1800)
 
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
-    model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
-                                                 max_seq_len=args.max_seq_len)
+    config = AutoConfig.from_pretrained(args.name_or_path,
+                                        max_seq_len=args.max_seq_len)
+    model = AutoModelForCausalLM.from_config(config)
+    # model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
+    #                                              max_seq_len=args.max_seq_len)
     model.eval()
     print(f'n_params={sum(p.numel() for p in model.parameters())}')
 
@@ -127,9 +135,9 @@ def main(args: Namespace) -> None:
         'fp32': torch.float32,
     }[args.dtype]
     precision = {
-        'fp16': 'amp_fp16',
-        'bf16': 'amp_bf16',
-        'fp32': 'fp32',
+        'fp16': Precision('amp_fp16'),
+        'bf16': Precision('amp_bf16'),
+        'fp32': Precision('fp32'),
     }[args.dtype]
     print(f'\nMoving model and inputs to GPU and dtype={dtype}... FSDP Go!')
 
