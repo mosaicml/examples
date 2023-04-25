@@ -48,7 +48,9 @@ class MosaicGPT(PreTrainedModel):
 
         if config.norm_type.lower() not in NORM_CLASS_REGISTRY.keys():
             norm_options = ' | '.join(NORM_CLASS_REGISTRY.keys())
-            raise NotImplementedError(f'Requested norm type ({config.norm_type}) is not implemented within this repo (Options: {norm_options}).')
+            raise NotImplementedError(
+                f'Requested norm type ({config.norm_type}) is not implemented within this repo (Options: {norm_options}).'
+            )
         norm_class = NORM_CLASS_REGISTRY[config.norm_type.lower()]
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
@@ -77,9 +79,8 @@ class MosaicGPT(PreTrainedModel):
                     for _ in range(config.n_layers)
                 ])
         })
-        self.transformer.update({
-            'norm_f': norm_class(config.d_model, device=config.init_device)
-        })
+        self.transformer.update(
+            {'norm_f': norm_class(config.d_model, device=config.init_device)})
 
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(config.d_model)

@@ -1,10 +1,9 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 import torch
-from torch import nn
-
 from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
     LPLayerNorm
+from torch import nn
 
 
 def rms_norm(x, weight=None, eps=1e-5):
@@ -15,11 +14,20 @@ def rms_norm(x, weight=None, eps=1e-5):
 
 
 class RMSNorm(torch.nn.Module):
-    def __init__(self, normalized_shape, eps=1e-5, weight=True, dtype=None, device=None):
+
+    def __init__(
+        self,
+        normalized_shape,
+        eps=1e-5,
+        weight=True,
+        dtype=None,
+        device=None,
+    ):
         super().__init__()
         self.eps = eps
         if weight:
-            self.weight = nn.Parameter(torch.ones(normalized_shape, dtype=dtype, device=device))
+            self.weight = nn.Parameter(
+                torch.ones(normalized_shape, dtype=dtype, device=device))
         else:
             self.register_parameter('weight', None)
 
@@ -41,7 +49,14 @@ def _cast_if_autocast_enabled(tensor):
 
 class LPRMSNorm(RMSNorm):
 
-    def __init__(self, normalized_shape, eps=1e-5, weight=True, dtype=None, device=None):
+    def __init__(
+        self,
+        normalized_shape,
+        eps=1e-5,
+        weight=True,
+        dtype=None,
+        device=None,
+    ):
         super().__init__(
             normalized_shape=normalized_shape,
             eps=eps,
@@ -52,9 +67,11 @@ class LPRMSNorm(RMSNorm):
 
     def forward(self, x):
         downcast_x = _cast_if_autocast_enabled(x)
-        downcast_weight = _cast_if_autocast_enabled(self.weight) if self.weight is not None else self.weight
+        downcast_weight = _cast_if_autocast_enabled(
+            self.weight) if self.weight is not None else self.weight
         with torch.autocast(enabled=False, device_type=x.device.type):
-            return rms_norm(downcast_x, downcast_weight, self.eps).to(dtype=x.dtype)
+            return rms_norm(downcast_x, downcast_weight,
+                            self.eps).to(dtype=x.dtype)
 
 
 NORM_CLASS_REGISTRY = {

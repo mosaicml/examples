@@ -7,7 +7,6 @@ from examples.llm.src.models.layers.attention import (
 from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
 from examples.llm.src.models.layers.norm import NORM_CLASS_REGISTRY
 
-
 __all__ = [
     'scaled_multihead_dot_product_attention',
     'flash_attn_fn',
