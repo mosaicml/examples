@@ -31,6 +31,7 @@ from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
 from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
                                            add_bidirectional_mask_if_missing)
 
+from mup import MuSharedReadout
 
 class MosaicGPT(PreTrainedModel):
     config_class = MosaicGPTConfig
@@ -46,10 +47,17 @@ class MosaicGPT(PreTrainedModel):
         self.alibi_bias_max = config.alibi_bias_max
 
         layernorm_class = LPLayerNorm if config.low_precision_layernorm else nn.LayerNorm
+        self.mup = config.mup
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
         self.embedding_fraction = config.embedding_fraction
+
+
+        if self.mup:
+            print("overriding softmax scale! (replace with 1/d instead of 1/sqrt(d))")
+            config.softmax_scale = 1. / (config.d_model / config.n_heads)
+            print(f"{config.softmax_scale=}")
 
         self.transformer = nn.ModuleDict({
             'wte':
@@ -76,6 +84,11 @@ class MosaicGPT(PreTrainedModel):
         self.transformer.update({
             'ln_f': layernorm_class(config.d_model, device=config.init_device)
         })
+
+        if self.mup:
+           self.transformer.update({
+               'tied_output': MuSharedReadout(self.transformer['wte'].weight)
+           }) 
 
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(config.d_model)
@@ -366,7 +379,11 @@ class MosaicGPT(PreTrainedModel):
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
         assert isinstance(self.transformer.wte.weight, torch.Tensor)  # pyright
-        logits = F.linear(x, self.transformer.wte.weight, None)
+        
+        if self.mup:
+            logits = self.transformer.tied_output(x)
+        else:
+            logits = F.linear(x, self.transformer.wte.weight, None)
 
         if self.logit_scale is not None:
             if self.logit_scale == 0:

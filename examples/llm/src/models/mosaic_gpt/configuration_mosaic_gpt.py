@@ -40,6 +40,7 @@ class MosaicGPTConfig(PretrainedConfig):
         emb_init_std: Optional[float] = None,
         emb_init_uniform_lim: Optional[Union[Tuple[float, float],
                                              float]] = None,
+        mup: Optional[dict] = None,
         init_gain: float = 0,
         fan_mode: str = 'fan_in',
         init_nonlinearity: str = 'relu',
@@ -120,6 +121,7 @@ class MosaicGPTConfig(PretrainedConfig):
         self.init_std = init_std
         self.emb_init_std = emb_init_std
         self.emb_init_uniform_lim = emb_init_uniform_lim
+        self.mup = mup
         self.init_std = init_std
         self.init_gain = init_gain
         self.fan_mode = fan_mode
