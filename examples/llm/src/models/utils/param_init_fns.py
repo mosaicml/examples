@@ -45,7 +45,6 @@ def fused_init_helper_(module: nn.Module, init_fn_, mup=False):
         slice_indices = [slice(None)] * module.weight.ndim  # type: ignore
         slice_indices[dim] = slice(s, e)
         w = module.weight[slice_indices]
-        print(slice_indices)
         if mup:
             # TODO: make this work with the actual indices
             base_infshape = list(module.parameters())[0].infshape
@@ -53,7 +52,6 @@ def fused_init_helper_(module: nn.Module, init_fn_, mup=False):
             coord_1 = base_infshape[1].dim
             w.infshape = InfShape([InfDim(None, coord_0 // 3), 
                                     InfDim(None, coord_1)])
-            print(w.infshape)
         init_fn_(w)  # type: ignore
 
 
@@ -391,6 +389,10 @@ def kaiming_normal_param_init_fn_(
                                 a=init_gain,
                                 mode=fan_mode,
                                 nonlinearity=init_nonlinearity)
+    for name, param in module.named_parameters():
+        print(name)
+        print(param.infshape)
+
     generic_param_init_fn_(
         module=module,
         init_fn_=kaiming_normal_,
