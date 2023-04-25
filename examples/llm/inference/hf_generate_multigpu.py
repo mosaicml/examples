@@ -176,8 +176,7 @@ def main(args: Namespace) -> None:
     dummy_input = torch.tensor([[0]], dtype=torch.long, device=device)
     # dummy_input = device.tensor_to_device(dummy_input)
     with torch.no_grad():
-        with torch.autocast('cuda', dtype, enabled=args.autocast):
-            _ = model(input_ids=dummy_input)
+        _ = model.forward(input_ids=dummy_input)
 
     # Warmup
     if args.warmup:
