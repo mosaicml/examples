@@ -141,7 +141,10 @@ def main(args: Namespace) -> None:
         'verbose': False,
     }
 
-    prepare_fsdp_module(model, fsdp_config=fsdp_config, precision=precision)
+    prepare_fsdp_module(model,
+                        optimizers=None,
+                        fsdp_config=fsdp_config,
+                        precision=precision)
 
     print(f'\nTokenizing prompts...')
     maybe_synchronize()
