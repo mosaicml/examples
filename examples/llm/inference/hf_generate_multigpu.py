@@ -172,8 +172,8 @@ def main(args: Namespace) -> None:
         print('NOT using autocast...')
 
     # dummy forward call needed for FSDP to work consistently
-    dummy_input = torch.tensor([[0]], dtype=torch.long)
-    dummy_input = device.tensor_to_device(dummy_input)
+    dummy_input = torch.tensor([[0]], dtype=torch.long, device=device)
+    # dummy_input = device.tensor_to_device(dummy_input)
     with torch.no_grad():
         with torch.autocast(device, dtype, enabled=args.autocast):
             _ = model.model(input_ids=dummy_input)
