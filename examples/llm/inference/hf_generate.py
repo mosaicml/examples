@@ -31,7 +31,8 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '-p',
         '--prompts',
-        nargs='+',
+        type='str',
+        default='the_great_gatsby_epi.txt',
         # default=[
         #     'My name is',
         #     'This is an explanation of deep learning to a five year old. Deep learning is',
@@ -80,11 +81,11 @@ def maybe_synchronize():
 
 def main(args: Namespace) -> None:
     prompts = []
-    for prompt in args.prompts:
-        if not os.path.isfile(prompt):
-            raise FileNotFoundError(f'{prompt=} does not match any file.')
-        with open(prompt.strip('.txt') + '.txt', 'r') as f:
-            prompts.append(''.join(f.readlines()))
+    prompt = args.prompt
+    if not os.path.isfile(prompt):
+        raise FileNotFoundError(f'{prompt=} does not match any file.')
+    with open(prompt.strip('.txt') + '.txt', 'r') as f:
+        prompts.append(''.join(f.readlines()))
 
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
