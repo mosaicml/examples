@@ -108,11 +108,7 @@ class LPRMSNorm(RMSNorm):
 
 NORM_CLASS_REGISTRY = {
     'layernorm': torch.nn.LayerNorm,
-    'ln': torch.nn.LayerNorm,  # alias
     'low_precision_layernorm': LPLayerNorm,
-    'lplayernorm': LPLayerNorm,  # alias
-    'lpln': LPLayerNorm,  # alias
-    'rmsorm': RMSNorm,
-    'low_precision_rmsorm': LPRMSNorm,
-    'lprmsorm': LPRMSNorm,  # alias
+    'rmsnorm': RMSNorm,
+    'low_precision_rmsnorm': LPRMSNorm,
 }
