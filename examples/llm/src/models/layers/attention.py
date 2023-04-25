@@ -388,11 +388,11 @@ def attn_bias(attn_impl,
         raise ValueError(f'{attn_impl=} is an invalid setting.')
 
 
-def gen_slopes(n_heads, alibi_bias_max=8, device=None, dtype=None):
+def gen_slopes(n_heads, alibi_bias_max=8, device=None):
     _n_heads = 2**math.ceil(math.log2(n_heads))
-    m = torch.arange(1, _n_heads + 1, dtype=torch.int32, device=device)
+    m = torch.arange(1, _n_heads + 1, dtype=torch.float32, device=device)
     m = m.mul(alibi_bias_max / _n_heads)
-    slopes = (1. / (2**m))
+    slopes = (1. / torch.pow(2, m))
 
     if _n_heads != n_heads:
         # if n_heads is not a power of two,
@@ -409,15 +409,16 @@ def alibi_bias(n_heads,
                alibi_bias_max=8,
                device=None,
                dtype=None):
-    alibi_bias = torch.arange(1 - seq_len, 1, dtype=dtype,
+    alibi_bias = torch.arange(1 - seq_len, 1, dtype=torch.int32,
                               device=device).view(1, 1, 1, seq_len)
     if full:
         # generate 1 x Heads x SeqLen x SeqLen alibi bias mask
         # otherwise the mask is 1 x Heads x 1 x SeqLen (which is broadcast to the appropriate size)
         alibi_bias = alibi_bias - torch.arange(
-            1 - seq_len, 1, dtype=dtype, device=device).view(1, 1, seq_len, 1)
+            1 - seq_len, 1, dtype=torch.int32, device=device).view(
+                1, 1, seq_len, 1)
         alibi_bias = alibi_bias.abs().mul(-1)
 
-    slopes = gen_slopes(n_heads, alibi_bias_max, device=device, dtype=dtype)
+    slopes = gen_slopes(n_heads, alibi_bias_max, device=device)
     alibi_bias = alibi_bias * slopes
-    return alibi_bias
+    return alibi_bias.to(dtype=dtype)

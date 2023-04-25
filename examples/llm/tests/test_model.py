@@ -16,9 +16,11 @@ from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from transformers.modeling_outputs import CausalLMOutputWithPast
+from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, ComposerHFCausalLM,
                           ComposerHFPrefixLM)
+from examples.llm.src.models.layers import alibi_bias
 from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 
 
@@ -1073,3 +1075,20 @@ def test_model_to(attention_impl, alibi):
 
     # verify the model still works
     _ = mosaic_gpt(input_ids, attention_mask=attention_mask)
+
+
+def test_alibi_vs_hf():
+    # compare alibi-bias generation vs HF Bloom model alibi-bias for diff seq len and n_heads
+    for n_heads in range(1, 64):
+        for seq_len in [1, 2, 8, 13, 64, 195, 256]:
+            # hf bloom alibi bais
+            alibi_bias_hf = build_alibi_tensor(
+                torch.ones(seq_len)[None, ...], n_heads, torch.float32)
+            alibi_bias_hf = alibi_bias_hf - alibi_bias_hf.max(
+                dim=2, keepdim=True).values
+
+            # mosaicml alibi bais
+            alibi_bias_m = alibi_bias(n_heads, seq_len, dtype=torch.float32)
+            alibi_bias_m = alibi_bias_m[0]
+
+            torch.testing.assert_close(alibi_bias_hf, alibi_bias_m)
