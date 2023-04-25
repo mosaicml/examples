@@ -32,11 +32,11 @@ def parse_args() -> Namespace:
         '-p',
         '--prompts',
         nargs='+',
-        default=[
-            'the_great_gatsby_plus.txt',
-            # 'My name is',
-            # 'This is an explanation of deep learning to a five year old. Deep learning is',
-        ])
+        # default=[
+        #     'My name is',
+        #     'This is an explanation of deep learning to a five year old. Deep learning is',
+        # ]
+    )
     parser.add_argument('--max_seq_len', type=int, default=81920)
     parser.add_argument('--max_new_tokens', type=int, default=2048)
     parser.add_argument('--temperature', type=float, default=1.0)
