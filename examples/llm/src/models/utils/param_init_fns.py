@@ -9,6 +9,8 @@ from typing import Optional, Tuple, Union
 import torch
 from torch import nn
 
+import mup.init as mup_init
+from mup.infshape import InfShape, InfDim
 
 def torch_default_param_init_fn_(
     module: nn.Module,
@@ -24,7 +26,7 @@ def torch_default_param_init_fn_(
         module.reset_parameters()  # type: ignore
 
 
-def fused_init_helper_(module: nn.Module, init_fn_):
+def fused_init_helper_(module: nn.Module, init_fn_, mup=False):
     # parameter initialization is often based on the parameters shape.
     # If a layer is fused, initialization should be based on the shapes
     # of the original tensor instead of the shape of the fused tensor.
@@ -42,7 +44,17 @@ def fused_init_helper_(module: nn.Module, init_fn_):
     for s, e in zip(splits[:-1], splits[1:]):
         slice_indices = [slice(None)] * module.weight.ndim  # type: ignore
         slice_indices[dim] = slice(s, e)
-        init_fn_(module.weight[slice_indices])  # type: ignore
+        w = module.weight[slice_indices]
+        print(slice_indices)
+        if mup:
+            # TODO: make this work with the actual indices
+            base_infshape = list(module.parameters())[0].infshape
+            coord_0 = base_infshape[0].dim
+            coord_1 = base_infshape[1].dim
+            w.infshape = InfShape([InfDim(None, coord_0 // 3), 
+                                    InfDim(None, coord_1)])
+            print(w.infshape)
+        init_fn_(w)  # type: ignore
 
 
 def generic_param_init_fn_(
@@ -54,6 +66,7 @@ def generic_param_init_fn_(
     emb_init_std: Optional[float] = None,
     emb_init_uniform_lim: Optional[Union[Tuple[float, float], float]] = None,
     verbose: int = 0,
+    mup: bool = False,
     **kwargs,
 ):
     del kwargs  # unused, just to capture any extra args from the config
@@ -94,12 +107,13 @@ def generic_param_init_fn_(
     if isinstance(module, nn.Linear):
         # Linear
         if hasattr(module, '_fused'):
-            fused_init_helper_(module, init_fn_)
+            fused_init_helper_(module, init_fn_, mup=mup)
         else:
             init_fn_(module.weight)
         if module.bias is not None:
             torch.nn.init.zeros_(module.bias)
 
+        #TODO (Sasha): is this still correct under muP?
         if init_div_is_residual is not False and getattr(
                 module, '_is_residual', False):
             with torch.no_grad():
@@ -111,7 +125,7 @@ def generic_param_init_fn_(
             std = emb_init_std
             if std == 0:
                 warnings.warn(f'Embedding layer initialized to 0.')
-            emb_init_fn_ = partial(torch.nn.init.normal_, mean=0.0, std=std)
+            emb_init_fn_ = partial(torch.nn.init.normal_ if not mup else mup_init.normal_, mean=0.0, std=std)
             if verbose > 1:
                 warnings.warn(
                     f'Embedding layer initialized using normal distribution with mean=0 and {std=}.'
@@ -130,7 +144,7 @@ def generic_param_init_fn_(
                     warnings.warn(f'Embedding layer initialized to 0.')
                 lim = [-lim, lim]
             a, b = lim
-            emb_init_fn_ = partial(torch.nn.init.uniform_, a=a, b=b)
+            emb_init_fn_ = partial(torch.nn.init.uniform_ if not mup else mup_init.uniform_, a=a, b=b)
             if verbose > 1:
                 warnings.warn(
                     f'Embedding layer initialized using uniform distribution in range {lim}.'
@@ -362,6 +376,7 @@ def kaiming_normal_param_init_fn_(
     fan_mode: str = 'fan_in',
     init_nonlinearity: str = 'leaky_relu',
     verbose: int = 0,
+    mup: bool = False,
     **kwargs,
 ):
     del kwargs  # unused, just to capture any extra args from the config
@@ -372,11 +387,10 @@ def kaiming_normal_param_init_fn_(
             f'a={init_gain}, mode={fan_mode}, nonlinearity={init_nonlinearity}'
         )
 
-    kaiming_normal_ = partial(torch.nn.init.kaiming_normal_,
-                              a=init_gain,
-                              mode=fan_mode,
-                              nonlinearity=init_nonlinearity)
-
+    kaiming_normal_ = partial(torch.nn.init.kaiming_normal_ if not mup else mup_init.kaiming_normal_,
+                                a=init_gain,
+                                mode=fan_mode,
+                                nonlinearity=init_nonlinearity)
     generic_param_init_fn_(
         module=module,
         init_fn_=kaiming_normal_,
@@ -386,6 +400,7 @@ def kaiming_normal_param_init_fn_(
         emb_init_std=emb_init_std,
         emb_init_uniform_lim=emb_init_uniform_lim,
         verbose=verbose,
+        mup=mup
     )
 
 

@@ -104,11 +104,11 @@ class MosaicGPT(PreTrainedModel):
                     )
             self.logit_scale = logit_scale
 
-        if config.init_device != 'meta':
-            print(
-                f'You are using {config.init_device=}, but you can also use config.init_device="meta" with Composer + FSDP for fast initialization.'
-            )
-            self.apply(self.param_init_fn)
+        # if config.init_device != 'meta':
+        #     print(
+        #         f'You are using {config.init_device=}, but you can also use config.init_device="meta" with Composer + FSDP for fast initialization.'
+        #     )
+        #     self.apply(self.param_init_fn)
 
         self.is_causal = not self.prefix_lm
 
@@ -401,6 +401,7 @@ class MosaicGPT(PreTrainedModel):
         init_fn_name = self.config.param_init_fn
         if self.config.verbose > 1:
             warnings.warn(f'Using {init_fn_name} initialization.')
+        print(module)
         MODEL_INIT_REGISTRY[init_fn_name](module=module,
                                           **self.config.to_dict())
 
