@@ -89,7 +89,7 @@ def main(args: Namespace) -> None:
         raise FileNotFoundError(f'{prompt=} does not match any file.')
     with open(prompt, 'r') as f:
         prompts.append(''.join(f.readlines()))
-    prompts = ['This is a book about a dog named Samwise.']
+    # prompts = ['This is a book about a dog named Samwise.']
 
     dist.initialize_dist(get_device(None), timeout=1800)
 
@@ -97,11 +97,11 @@ def main(args: Namespace) -> None:
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
-    config = AutoConfig.from_pretrained(args.name_or_path,
-                                        max_seq_len=args.max_seq_len)
-    model = AutoModelForCausalLM.from_config(config)
-    # model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
-    #                                              max_seq_len=args.max_seq_len)
+    # config = AutoConfig.from_pretrained(args.name_or_path,
+    #                                     max_seq_len=args.max_seq_len)
+    # model = AutoModelForCausalLM.from_config(config)
+    model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
+                                                 max_seq_len=args.max_seq_len)
     model.eval()
     print(f'n_params={sum(p.numel() for p in model.parameters())}')
 
@@ -140,6 +140,7 @@ def main(args: Namespace) -> None:
         'fp32': Precision('fp32'),
     }[args.dtype]
     print(f'\nMoving model and inputs to GPU and dtype={dtype}... FSDP Go!')
+    model.to('cuda', dtype)
 
     fsdp_config = {
         'sharding_strategy': 'FULL_SHARD',
@@ -176,7 +177,7 @@ def main(args: Namespace) -> None:
     # dummy_input = device.tensor_to_device(dummy_input)
     with torch.no_grad():
         with torch.autocast('cuda', dtype, enabled=args.autocast):
-            _ = model.model(input_ids=dummy_input)
+            _ = model(input_ids=dummy_input)
 
     # Warmup
     if args.warmup:
