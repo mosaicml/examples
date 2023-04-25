@@ -148,7 +148,7 @@ class MosaicGPT(PreTrainedModel):
         # attention_mask inside the attention module
         if self.attn_impl == 'flash':
             return self.attn_bias, attention_mask
-        
+
         if self.attn_bias is not None:
             # .to(*args, **kwargs) is a no-op if tensor is already on
             # specified device or of specificed dtype

@@ -1007,9 +1007,7 @@ def test_tokenizer_max_length_load(max_seq_len=2048):
 
 
 @pytest.mark.gpu
-@pytest.mark.parametrize('attention_impl', ['torch',
-                                            'flash',
-                                            'triton'])
+@pytest.mark.parametrize('attention_impl', ['torch', 'flash', 'triton'])
 @pytest.mark.parametrize('alibi', [True, False])
 def test_model_to(attention_impl, alibi):
     # test that moving the model to diff devices and dtypes in diff ways does not break the model
@@ -1052,7 +1050,8 @@ def test_model_to(attention_impl, alibi):
 
     # verify the model still works
     if attention_impl == 'torch':
-        _ = mosaic_gpt(input_ids.to('cpu'), attention_mask=attention_mask.to('cpu'))
+        _ = mosaic_gpt(input_ids.to('cpu'),
+                       attention_mask=attention_mask.to('cpu'))
 
     mosaic_gpt = mosaic_gpt.cuda()
 
@@ -1065,10 +1064,11 @@ def test_model_to(attention_impl, alibi):
 
     # verify the model still works
     if attention_impl == 'torch':
-        _ = mosaic_gpt(input_ids.to('cpu'), attention_mask=attention_mask.to('cpu'))
+        _ = mosaic_gpt(input_ids.to('cpu'),
+                       attention_mask=attention_mask.to('cpu'))
 
     mosaic_gpt = mosaic_gpt.half()
-    mosaic_gpt = mosaic_gpt.to(0) # move to rank0
+    mosaic_gpt = mosaic_gpt.to(0)  # move to rank0
     mosaic_gpt = mosaic_gpt.bfloat16()
 
     # verify the model still works
