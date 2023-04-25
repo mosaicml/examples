@@ -175,14 +175,14 @@ def main(args: Namespace) -> None:
     dummy_input = torch.tensor([[0]], dtype=torch.long, device=device)
     # dummy_input = device.tensor_to_device(dummy_input)
     with torch.no_grad():
-        with torch.autocast(device, dtype, enabled=args.autocast):
+        with torch.autocast('cuda', dtype, enabled=args.autocast):
             _ = model.model(input_ids=dummy_input)
 
     # Warmup
     if args.warmup:
         print('Warming up...')
         with torch.no_grad():
-            with torch.autocast(device, dtype, enabled=args.autocast):
+            with torch.autocast('cuda', dtype, enabled=args.autocast):
                 encoded_gen = model.generate(
                     input_ids=encoded_inp['input_ids'],
                     attention_mask=encoded_inp['attention_mask'],
@@ -198,7 +198,7 @@ def main(args: Namespace) -> None:
     maybe_synchronize()
     gen_start = time.time()
     with torch.no_grad():
-        with torch.autocast(device, dtype, enabled=args.autocast):
+        with torch.autocast('cuda', dtype, enabled=args.autocast):
             encoded_gen = model.generate(
                 input_ids=encoded_inp['input_ids'],
                 attention_mask=encoded_inp['attention_mask'],
