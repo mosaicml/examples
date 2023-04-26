@@ -87,6 +87,12 @@ def main(args: Namespace) -> None:
         with open(prompt_file, 'r') as f:
             prompts.append(''.join(f.readlines()))
 
+    if len(prompts) > 1:
+        print(
+            f'\n\nONLY USING THE FIRST PROMPT SOURCE: {args.prompt_files[0]}\n\n'
+        )
+    prompt = prompts[0]
+
     # Seed randomness
     random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -180,8 +186,9 @@ def main(args: Namespace) -> None:
     #                 **generate_kwargs,
     #             )
 
-    for idx, prompt in enumerate(prompts):
-        print(f'\n\nTokenizing prompt ({idx+1} / {len(prompts)})...')
+    idx = 0
+    while True:
+        print(f'\n\nTokenizing prompt ({idx+1})...')
         maybe_synchronize()
         encode_start = time.time()
         encoded_inp = tokenizer([prompt], return_tensors='pt', padding=True)
@@ -194,7 +201,7 @@ def main(args: Namespace) -> None:
             axis=1).numpy(force=True)  # type: ignore
 
         # Run HF generate
-        print(f'Generating responses ({idx+1} / {len(prompts)})...')
+        print(f'Generating responses ({idx+1})...')
         maybe_synchronize()
         gen_start = time.time()
         with torch.no_grad():
@@ -223,6 +230,7 @@ def main(args: Namespace) -> None:
         print(delimiter)
 
         # Print timing info
+        bs = len(prompts)
         output_tokens = gen_tokens - input_tokens
         total_input_tokens = input_tokens.sum()
         total_output_tokens = output_tokens.sum()
@@ -233,13 +241,17 @@ def main(args: Namespace) -> None:
 
         latency_per_output_token = total_latency / total_output_tokens
         output_tok_per_sec = 1000 / latency_per_output_token
-        print(f'{input_tokens=}, {output_tokens=}')
+        print(f'{bs=}, {input_tokens=}, {output_tokens=}')
         print(f'{total_input_tokens=}, {total_output_tokens=}')
         print(
             f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
         )
         print(f'{latency_per_output_token=:.2f}ms/tok')
         print(f'{output_tok_per_sec=:.2f}tok/sec')
+
+        # Keep generating.
+        idx += 1
+        prompt = str(decoded_gen)
 
         gc_cuda()
 
