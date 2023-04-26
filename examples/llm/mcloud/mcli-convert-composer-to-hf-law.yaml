@@ -7,10 +7,13 @@ integrations:
   ssh_clone: false # Should be true if using a private repo
 
 command: |
+  # pip install oci-cli
+  # oci os bucket get -bn mosaicml-internal-checkpoints/
+
   cd examples/examples/llm/inference
   python convert_composer_to_hf.py \
-    --composer_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-1b-gpus-8-kc9Yuo/checkpoints/ep1-ba12000-rank0.pt \
-    --hf_output_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-1b-gpus-8-kc9Yuo/hf/ \
+    --composer_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-1b-gpus-8-Fuj0Wh/checkpoints/ep2-ba15000-rank0.pt \
+    --hf_output_path oci://mosaicml-internal-checkpoints/sasha/mosaic-gpt-1b-gpus-8-Fuj0Wh/hf/ \
     --output_precision bf16 \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
@@ -20,4 +23,4 @@ optimization_level: 0
 run_name: convert-composer-hf
 
 gpu_num: 8
-cluster: vision-cluster # replace with your cluster here!
+cluster: r1z1 # replace with your cluster here!

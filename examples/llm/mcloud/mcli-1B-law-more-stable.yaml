@@ -28,8 +28,8 @@ command: |
     loggers.wandb="{}" \
     tokenizer_name="EleutherAI/gpt-neox-20b" \
     model.alibi=true \
-    model.attn_clip_qkv=6
-    
+    model.attn_clip_qkv=6 \
+    max_seq_len=4096
 
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
