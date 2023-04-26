@@ -1,6 +1,5 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-import os
 import random
 import time
 import warnings
@@ -31,15 +30,12 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '-p',
         '--prompts',
-        type=str,
-        default='the_great_gatsby_epi.txt',
-        # default=[
-        #     'My name is',
-        #     'This is an explanation of deep learning to a five year old. Deep learning is',
-        # ]
-    )
-    parser.add_argument('--max_seq_len', type=int, default=81920)
-    parser.add_argument('--max_new_tokens', type=int, default=2048)
+        nargs='+',
+        default=[
+            'My name is',
+            'This is an explanation of deep learning to a five year old. Deep learning is',
+        ])
+    parser.add_argument('--max_new_tokens', type=int, default=100)
     parser.add_argument('--temperature', type=float, default=1.0)
     parser.add_argument('--top_k', type=int, default=50)
     parser.add_argument('--top_p', type=float, default=1.0)
@@ -80,19 +76,11 @@ def maybe_synchronize():
 
 
 def main(args: Namespace) -> None:
-    prompts = []
-    prompt = args.prompts
-    if not os.path.isfile(prompt):
-        raise FileNotFoundError(f'{prompt=} does not match any file.')
-    with open(prompt, 'r') as f:
-        prompts.append(''.join(f.readlines()))
-
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
-    model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
-                                                 max_seq_len=args.max_seq_len)
+    model = AutoModelForCausalLM.from_pretrained(args.name_or_path)
     model.eval()
     print(f'n_params={sum(p.numel() for p in model.parameters())}')
 
@@ -129,7 +117,7 @@ def main(args: Namespace) -> None:
     print(f'\nTokenizing prompts...')
     maybe_synchronize()
     encode_start = time.time()
-    encoded_inp = tokenizer(prompts, return_tensors='pt', padding=True)
+    encoded_inp = tokenizer(args.prompts, return_tensors='pt', padding=True)
     for key, value in encoded_inp.items():
         encoded_inp[key] = value.to(device)
     maybe_synchronize()
@@ -181,14 +169,14 @@ def main(args: Namespace) -> None:
 
     # Print generations
     delimiter = '#' * 100
-    for prompt, gen in zip(prompts, decoded_gen):
+    for prompt, gen in zip(args.prompts, decoded_gen):
         continuation = gen[len(prompt):]
         print(delimiter)
         print('\033[92m' + prompt + '\033[0m' + continuation)
     print(delimiter)
 
     # Print timing info
-    bs = len(prompts)
+    bs = len(args.prompts)
     output_tokens = gen_tokens - input_tokens
     total_input_tokens = input_tokens.sum()
     total_output_tokens = output_tokens.sum()

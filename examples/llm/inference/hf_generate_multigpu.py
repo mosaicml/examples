@@ -34,9 +34,8 @@ def parse_args() -> Namespace:
     parser.add_argument('-n', '--name_or_path', type=str, required=True)
     parser.add_argument(
         '-p',
-        '--prompts',
-        type=str,
-        default='the_great_gatsby_epi.txt',
+        '--prompt_files',
+        nargs='+',
     )
     parser.add_argument('--max_seq_len', type=int, default=81920)
     parser.add_argument('--max_new_tokens', type=int, default=2048)
@@ -81,12 +80,11 @@ def maybe_synchronize():
 
 def main(args: Namespace) -> None:
     prompts = []
-    prompt = args.prompts
-    if not os.path.isfile(prompt):
-        raise FileNotFoundError(f'{prompt=} does not match any file.')
-    with open(prompt, 'r') as f:
-        prompts.append(''.join(f.readlines()))
-    # prompts = ['This is a book about a dog named Samwise.']
+    for prompt_file in args.prompt_files:
+        if not os.path.isfile(prompt_file):
+            raise FileNotFoundError(f'{prompt_file=} does not match any file.')
+        with open(prompt_file, 'r') as f:
+            prompts.append(''.join(f.readlines()))
 
     # Seed randomness
     random.seed(args.seed)
@@ -158,17 +156,6 @@ def main(args: Namespace) -> None:
                         fsdp_config=fsdp_config,
                         precision=precision)
 
-    print(f'\nTokenizing prompts...')
-    maybe_synchronize()
-    encode_start = time.time()
-    encoded_inp = tokenizer(prompts, return_tensors='pt', padding=True)
-    for key, value in encoded_inp.items():
-        encoded_inp[key] = value.to(device)
-    maybe_synchronize()
-    encode_end = time.time()
-    input_tokens = torch.sum(encoded_inp['input_ids'] != tokenizer.pad_token_id,
-                             axis=1).numpy(force=True)  # type: ignore
-
     # Autocast
     if args.autocast:
         print(f'Using autocast amp_{args.dtype}...')
@@ -176,13 +163,39 @@ def main(args: Namespace) -> None:
         print('NOT using autocast...')
 
     # dummy forward call needed for FSDP to work consistently
+    print('Dummy input...')
     dummy_input = torch.tensor([[0]], dtype=torch.long, device=device)
     with torch.no_grad():
         _ = model.model(input_ids=dummy_input)
 
-    # Warmup
-    if args.warmup:
-        print('Warming up...')
+    # # Warmup
+    # if args.warmup:
+    #     print('Warming up...')
+    #     with torch.no_grad():
+    #         with torch.autocast('cuda', dtype, enabled=args.autocast):
+    #             encoded_gen = model.model.generate(
+    #                 input_ids=encoded_inp['input_ids'],
+    #                 attention_mask=encoded_inp['attention_mask'],
+    #                 **generate_kwargs,
+    #             )
+
+    for idx, prompt in enumerate(prompts):
+        print(f'\n\nTokenizing prompt ({idx+1} / {len(prompts)+1})...')
+        maybe_synchronize()
+        encode_start = time.time()
+        encoded_inp = tokenizer([prompt], return_tensors='pt', padding=True)
+        for key, value in encoded_inp.items():
+            encoded_inp[key] = value.to(device)
+        maybe_synchronize()
+        encode_end = time.time()
+        input_tokens = torch.sum(
+            encoded_inp['input_ids'] != tokenizer.pad_token_id,
+            axis=1).numpy(force=True)  # type: ignore
+
+        # Run HF generate
+        print(f'Generating responses ({idx+1} / {len(prompts)+1})...')
+        maybe_synchronize()
+        gen_start = time.time()
         with torch.no_grad():
             with torch.autocast('cuda', dtype, enabled=args.autocast):
                 encoded_gen = model.model.generate(
@@ -190,55 +203,43 @@ def main(args: Namespace) -> None:
                     attention_mask=encoded_inp['attention_mask'],
                     **generate_kwargs,
                 )
+        maybe_synchronize()
+        gen_end = time.time()
 
-    # Run HF generate
-    print('Generating responses...')
-    maybe_synchronize()
-    gen_start = time.time()
-    with torch.no_grad():
-        with torch.autocast('cuda', dtype, enabled=args.autocast):
-            encoded_gen = model.model.generate(
-                input_ids=encoded_inp['input_ids'],
-                attention_mask=encoded_inp['attention_mask'],
-                **generate_kwargs,
-            )
-    maybe_synchronize()
-    gen_end = time.time()
+        decode_start = time.time()
+        decoded_gen = tokenizer.batch_decode(encoded_gen,
+                                             skip_special_tokens=True)[0]
+        maybe_synchronize()
+        decode_end = time.time()
+        gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
+                               axis=1).numpy(force=True)  # type: ignore
 
-    decode_start = time.time()
-    decoded_gen = tokenizer.batch_decode(encoded_gen, skip_special_tokens=True)
-    maybe_synchronize()
-    decode_end = time.time()
-    gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
-                           axis=1).numpy(force=True)  # type: ignore
-
-    # Print generations
-    delimiter = '#' * 100
-    for prompt, gen in zip(prompts, decoded_gen):
-        continuation = gen[len(prompt):]
+        # Print generations
+        delimiter = '#' * 100
+        continuation = decoded_gen[len(prompt):]
         print(delimiter)
         print('\033[92m' + prompt + '\033[0m' + continuation)
-    print(delimiter)
+        print(delimiter)
 
-    # Print timing info
-    bs = len(prompts)
-    output_tokens = gen_tokens - input_tokens
-    total_input_tokens = input_tokens.sum()
-    total_output_tokens = output_tokens.sum()
-    encode_latency = 1000 * (encode_end - encode_start)
-    gen_latency = 1000 * (gen_end - gen_start)
-    decode_latency = 1000 * (decode_end - decode_start)
-    total_latency = encode_latency + gen_latency + decode_latency
+        # Print timing info
+        bs = len(prompts)
+        output_tokens = gen_tokens - input_tokens
+        total_input_tokens = input_tokens.sum()
+        total_output_tokens = output_tokens.sum()
+        encode_latency = 1000 * (encode_end - encode_start)
+        gen_latency = 1000 * (gen_end - gen_start)
+        decode_latency = 1000 * (decode_end - decode_start)
+        total_latency = encode_latency + gen_latency + decode_latency
 
-    latency_per_output_token = total_latency / total_output_tokens
-    output_tok_per_sec = 1000 / latency_per_output_token
-    print(f'{bs=}, {input_tokens=}, {output_tokens=}')
-    print(f'{total_input_tokens=}, {total_output_tokens=}')
-    print(
-        f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
-    )
-    print(f'{latency_per_output_token=:.2f}ms/tok')
-    print(f'{output_tok_per_sec=:.2f}tok/sec')
+        latency_per_output_token = total_latency / total_output_tokens
+        output_tok_per_sec = 1000 / latency_per_output_token
+        print(f'{bs=}, {input_tokens=}, {output_tokens=}')
+        print(f'{total_input_tokens=}, {total_output_tokens=}')
+        print(
+            f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
+        )
+        print(f'{latency_per_output_token=:.2f}ms/tok')
+        print(f'{output_tok_per_sec=:.2f}tok/sec')
 
 
 if __name__ == '__main__':
