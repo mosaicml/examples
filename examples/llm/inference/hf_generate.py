@@ -9,7 +9,7 @@ from contextlib import nullcontext
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# from examples.llm import MosaicGPT, MosaicGPTConfig
+from examples.llm import MosaicGPT, MosaicGPTConfig
 
 
 def str2bool(v):
@@ -90,8 +90,8 @@ def maybe_synchronize():
 
 
 def main(args: Namespace) -> None:
-    # AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
-    # AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
+    AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
+    AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
     from_pretrained_kwargs = {
