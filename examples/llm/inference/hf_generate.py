@@ -7,7 +7,7 @@ from argparse import ArgumentParser, ArgumentTypeError, Namespace
 from contextlib import nullcontext
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from examples.llm import MosaicGPT, MosaicGPTConfig
 
