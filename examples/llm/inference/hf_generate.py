@@ -23,6 +23,17 @@ def str2bool(v):
         raise ArgumentTypeError('Boolean value expected.')
 
 
+def str_or_bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        return v
+
+
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(
@@ -73,10 +84,10 @@ def parse_args() -> Namespace:
                         const=True,
                         default=True)
     parser.add_argument('--use_auth_token',
-                        type=str2bool,
+                        type=str_or_bool,
                         nargs='?',
                         const=True,
-                        default=False)
+                        default=None)
     parser.add_argument('--revision', type=str, default=None)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--attn_impl', type=str, default=None)
@@ -105,9 +116,17 @@ def main(args: Namespace) -> None:
     }
     model_kwargs = {k: v for k, v in model_kwargs.items() if v is not None}
 
-    model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
-                                                 **from_pretrained_kwargs,
-                                                 **model_kwargs)
+    try:
+        model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
+                                                     **from_pretrained_kwargs,
+                                                     **model_kwargs)
+    except Exception as e:
+        raise RuntimeError(
+            'If you are having auth problems, try logging in via `huggingface-cli login` '
+            'or by setting the environment variable `export HUGGING_FACE_HUB_TOKEN=... '
+            'using your access token from https://huggingface.co/settings/tokens.'
+        ) from e
+
     model.eval()
     print(f'n_params={sum(p.numel() for p in model.parameters())}')
 
