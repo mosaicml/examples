@@ -25,7 +25,7 @@ from examples.llm.src import (COMPOSER_MODEL_REGISTRY,
 from examples.common.mup_helpers import get_infshapes_custom
 from mup import make_base_shapes, set_base_shapes, get_shapes, get_infshapes
 from composer.utils import (get_file, maybe_create_object_store_from_uri,
-                            parse_uri, safe_torch_load)
+                            parse_uri)
 
 def validate_config(cfg):
     """Validates compatible model and dataloader selection."""
