@@ -8,6 +8,7 @@ from argparse import ArgumentParser, ArgumentTypeError, Namespace
 
 import torch
 from composer.core import Precision
+from composer.models import HuggingFaceModel
 from composer.trainer.dist_strategy import prepare_fsdp_module
 from composer.utils import dist, get_device
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
@@ -36,10 +37,6 @@ def parse_args() -> Namespace:
         '--prompts',
         type=str,
         default='the_great_gatsby_epi.txt',
-        # default=[
-        #     'My name is',
-        #     'This is an explanation of deep learning to a five year old. Deep learning is',
-        # ]
     )
     parser.add_argument('--max_seq_len', type=int, default=81920)
     parser.add_argument('--max_new_tokens', type=int, default=2048)
@@ -91,15 +88,16 @@ def main(args: Namespace) -> None:
         prompts.append(''.join(f.readlines()))
     # prompts = ['This is a book about a dog named Samwise.']
 
+    # Seed randomness
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
     dist.initialize_dist(get_device(None), timeout=1800)
 
     AutoConfig.register('mosaic_gpt', MosaicGPTConfig)
     AutoModelForCausalLM.register(MosaicGPTConfig, MosaicGPT)
 
     print('Loading HF model...')
-    # config = AutoConfig.from_pretrained(args.name_or_path,
-    #                                     max_seq_len=args.max_seq_len)
-    # model = AutoModelForCausalLM.from_config(config)
     model = AutoModelForCausalLM.from_pretrained(args.name_or_path,
                                                  max_seq_len=args.max_seq_len)
     model.eval()
@@ -113,6 +111,11 @@ def main(args: Namespace) -> None:
         )
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
+
+    model = HuggingFaceModel(model,
+                             tokenizer,
+                             use_logits=True,
+                             shift_labels=True)
 
     generate_kwargs = {
         'max_new_tokens': args.max_new_tokens,
@@ -174,24 +177,19 @@ def main(args: Namespace) -> None:
 
     # dummy forward call needed for FSDP to work consistently
     dummy_input = torch.tensor([[0]], dtype=torch.long, device=device)
-    # dummy_input = device.tensor_to_device(dummy_input)
     with torch.no_grad():
-        _ = model.forward(input_ids=dummy_input)
+        _ = model.model(input_ids=dummy_input)
 
     # Warmup
     if args.warmup:
         print('Warming up...')
         with torch.no_grad():
             with torch.autocast('cuda', dtype, enabled=args.autocast):
-                encoded_gen = model.generate(
+                encoded_gen = model.model.generate(
                     input_ids=encoded_inp['input_ids'],
                     attention_mask=encoded_inp['attention_mask'],
                     **generate_kwargs,
                 )
-
-    # Seed randomness
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
 
     # Run HF generate
     print('Generating responses...')
@@ -199,7 +197,7 @@ def main(args: Namespace) -> None:
     gen_start = time.time()
     with torch.no_grad():
         with torch.autocast('cuda', dtype, enabled=args.autocast):
-            encoded_gen = model.generate(
+            encoded_gen = model.model.generate(
                 input_ids=encoded_inp['input_ids'],
                 attention_mask=encoded_inp['attention_mask'],
                 **generate_kwargs,
