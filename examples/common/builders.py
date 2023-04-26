@@ -102,6 +102,14 @@ def build_optimizer(cfg, model):
             betas=cfg.betas,
             eps=cfg.eps,
             weight_decay=cfg.weight_decay)
+    elif cfg.name == 'mup_decoupled_lionw':
+        return optim.MuAdam(
+            model.parameters(),
+            impl=DecoupledLionW,
+            decoupled_wd=True,
+            lr=cfg.lr,
+            betas=cfg.betas,
+            weight_decay=cfg.weight_decay)
     elif cfg.name == 'decoupled_lionw':
         return DecoupledLionW(model.parameters(),
                               lr=cfg.lr,
