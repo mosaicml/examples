@@ -13,7 +13,6 @@ from composer.trainer.dist_strategy import prepare_fsdp_module
 from composer.utils import dist, get_device
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from examples.common.scheduled_gc_callback import gc_cuda
 from examples.llm import MosaicGPT, MosaicGPTConfig
 
 
@@ -71,6 +70,7 @@ def parse_args() -> Namespace:
                         default=True)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--tokens', type=int)
     return parser.parse_args()
 
 
@@ -187,73 +187,70 @@ def main(args: Namespace) -> None:
     #             )
 
     idx = 0
-    while True:
-        print(f'\n\nTokenizing prompt ({idx+1})...')
-        maybe_synchronize()
-        encode_start = time.time()
-        encoded_inp = tokenizer([prompt], return_tensors='pt', padding=True)
-        for key, value in encoded_inp.items():
-            encoded_inp[key] = value.to(device)
-        maybe_synchronize()
-        encode_end = time.time()
-        input_tokens = torch.sum(
-            encoded_inp['input_ids'] != tokenizer.pad_token_id,
-            axis=1).numpy(force=True)  # type: ignore
+    print(f'\n\nTokenizing prompt ({idx+1})...')
+    maybe_synchronize()
+    encode_start = time.time()
+    encoded_inp = tokenizer([prompt], return_tensors='pt', padding=True)
+    for key, value in encoded_inp.items():
+        encoded_inp[key] = value.to(device)
+    while encoded_inp['input_ids'].shape[1] < args.tokens:
+        n_to_copy = args.tokens - encoded_inp['input_ids'].shape[1]
+        encoded_inp['input_ids'] = torch.cat(
+            [encoded_inp['input_ids'], encoded_inp['input_ids'][:, :n_to_copy]],
+            dim=1)
+    maybe_synchronize()
+    encode_end = time.time()
+    input_tokens = torch.sum(encoded_inp['input_ids'] != tokenizer.pad_token_id,
+                             axis=1).numpy(force=True)  # type: ignore
 
-        # Run HF generate
-        print(f'Generating responses ({idx+1})...')
-        maybe_synchronize()
-        gen_start = time.time()
-        with torch.no_grad():
-            with torch.autocast('cuda', dtype, enabled=args.autocast):
-                encoded_gen = model.model.generate(
-                    input_ids=encoded_inp['input_ids'],
-                    attention_mask=encoded_inp['attention_mask'],
-                    **generate_kwargs,
-                )
-        maybe_synchronize()
-        gen_end = time.time()
+    # Run HF generate
+    print(f'Generating responses ({idx+1})...')
+    maybe_synchronize()
+    gen_start = time.time()
+    with torch.no_grad():
+        with torch.autocast('cuda', dtype, enabled=args.autocast):
+            encoded_gen = model.model.generate(
+                input_ids=encoded_inp['input_ids'],
+                # attention_mask=encoded_inp['attention_mask'],
+                **generate_kwargs,
+            )
+    maybe_synchronize()
+    gen_end = time.time()
 
-        decode_start = time.time()
-        decoded_gen = tokenizer.batch_decode(encoded_gen,
-                                             skip_special_tokens=True)[0]
-        maybe_synchronize()
-        decode_end = time.time()
-        gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
-                               axis=1).numpy(force=True)  # type: ignore
+    decode_start = time.time()
+    decoded_gen = tokenizer.batch_decode(encoded_gen,
+                                         skip_special_tokens=True)[0]
+    maybe_synchronize()
+    decode_end = time.time()
+    gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
+                           axis=1).numpy(force=True)  # type: ignore
 
-        # Print generations
-        delimiter = '#' * 100
-        continuation = decoded_gen[len(prompt):]
-        print(delimiter)
-        print('\033[92m' + prompt + '\033[0m' + continuation)
-        print(delimiter)
+    # Print generations
+    delimiter = '#' * 100
+    continuation = decoded_gen[len(prompt):]
+    print(delimiter)
+    print('\033[92m' + prompt + '\033[0m' + continuation)
+    print(delimiter)
 
-        # Print timing info
-        bs = len(prompts)
-        output_tokens = gen_tokens - input_tokens
-        total_input_tokens = input_tokens.sum()
-        total_output_tokens = output_tokens.sum()
-        encode_latency = 1000 * (encode_end - encode_start)
-        gen_latency = 1000 * (gen_end - gen_start)
-        decode_latency = 1000 * (decode_end - decode_start)
-        total_latency = encode_latency + gen_latency + decode_latency
+    # Print timing info
+    bs = len(prompts)
+    output_tokens = gen_tokens - input_tokens
+    total_input_tokens = input_tokens.sum()
+    total_output_tokens = output_tokens.sum()
+    encode_latency = 1000 * (encode_end - encode_start)
+    gen_latency = 1000 * (gen_end - gen_start)
+    decode_latency = 1000 * (decode_end - decode_start)
+    total_latency = encode_latency + gen_latency + decode_latency
 
-        latency_per_output_token = total_latency / total_output_tokens
-        output_tok_per_sec = 1000 / latency_per_output_token
-        print(f'{bs=}, {input_tokens=}, {output_tokens=}')
-        print(f'{total_input_tokens=}, {total_output_tokens=}')
-        print(
-            f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
-        )
-        print(f'{latency_per_output_token=:.2f}ms/tok')
-        print(f'{output_tok_per_sec=:.2f}tok/sec')
-
-        # Keep generating.
-        idx += 1
-        prompt = str(decoded_gen)
-
-        gc_cuda()
+    latency_per_output_token = total_latency / total_output_tokens
+    output_tok_per_sec = 1000 / latency_per_output_token
+    print(f'{bs=}, {input_tokens=}, {output_tokens=}')
+    print(f'{total_input_tokens=}, {total_output_tokens=}')
+    print(
+        f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
+    )
+    print(f'{latency_per_output_token=:.2f}ms/tok')
+    print(f'{output_tok_per_sec=:.2f}tok/sec')
 
 
 if __name__ == '__main__':
