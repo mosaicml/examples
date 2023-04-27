@@ -169,7 +169,7 @@ def main(args: Namespace) -> None:
     else:
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
-    if args.dtype is not None:
+    if args.model_dtype is not None:
         model_dtype = get_dtype(args.model_dtype)
     else:
         model_dtype = model.config.torch_dtype or torch.float32
@@ -194,7 +194,7 @@ def main(args: Namespace) -> None:
     if args.autocast_dtype is not None:
         autocast_dtype = get_dtype(args.autocast_dtype)
         autocast_context = torch.autocast(device, autocast_dtype)
-        print(f'Using autocast amp_{args.dtype}...')
+        print(f'Using autocast with dtype={autocast_dtype}...')
     else:
         autocast_context = nullcontext()
         print('NOT using autocast...')
