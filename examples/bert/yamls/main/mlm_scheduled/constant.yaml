@@ -35,7 +35,7 @@ parameters:
   tokenizer_name: &tokenizer_name bert-base-uncased
 
   # Run Name
-  run_name: schedule-constant-${train_loader.dataset.mlm_schedule.initial_mlm_rate}-${train_loader.dataset.mlm_schedule.final_mlm_rate}-seed-${seed}
+  run_name: schedule-constant-${train_loader.dataset.mlm_schedule.initial_mlm_rate}-${train_loader.dataset.mlm_schedule.final_mlm_rate}
 
   # Model
   model:
@@ -57,8 +57,8 @@ parameters:
       shuffle: true
       mlm_schedule:
         name: constant
-        initial_mlm_rate: 0.3
-        final_mlm_rate: 0.3
+        initial_mlm_rate: 0.15
+        final_mlm_rate: 0.15
     drop_last: true
     num_workers: 8
 
@@ -125,7 +125,7 @@ parameters:
 
   save_interval: 1000ba
   save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
-  save_folder: s3://mosaicml-internal-checkpoints-shared/zack/paper-mlm-schedule/${run_name} # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
+  save_folder: s3://mosaicml-internal-checkpoints-shared/zack/paper-mlm-schedule/${run_name}-seed-${seed} # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
 #   (Optional) Load from local filesystem or remote object store to
 #  start from an existing model checkpoint;
 #   e.g. './ckpt/latest-rank{rank}.pt' (local), or
