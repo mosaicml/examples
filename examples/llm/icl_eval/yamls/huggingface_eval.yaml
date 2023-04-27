@@ -81,6 +81,23 @@ icl_tasks:
     example_delimiter: '\n' # this goes between fewshot examples
     continuation_delimiter: 'Answer: ' # this separates questions from answers
   -
+    label: arc_challenge
+    dataset_uri: local_data/arc_challenge.jsonl # ADD YOUR OWN DATASET URI
+    num_fewshot:
+    - 0
+    - 1
+    - 5
+    - 10
+    batch_size: 4
+    icl_task_type: multiple_choice
+    metric_names:
+    - InContextLearningMultipleChoiceAccuracy
+    - InContextLearningMCExpectedCalibrationError
+
+    prompt_string: '' # this goes at the beginning of each input
+    example_delimiter: '\n' # this goes between fewshot examples
+    continuation_delimiter: 'Answer: ' # this separates questions from answers
+  -
     label: copa
     dataset_uri: local_data/copa.jsonl # ADD YOUR OWN DATASET URI
     num_fewshot:
