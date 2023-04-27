@@ -3,12 +3,12 @@
 import time
 import warnings
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple
 
 import torch
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
-                          PreTrainedTokenizer, PreTrainedTokenizerFast)
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
+from examples.common import Tokenizer
 from examples.llm import MosaicGPT, MosaicGPTConfig
 
 
@@ -82,9 +82,8 @@ def maybe_synchronize():
         torch.cuda.synchronize()
 
 
-def conversation(model: MosaicGPT, tokenizer: Union[PreTrainedTokenizer,
-                                                    PreTrainedTokenizerFast],
-                 user_inp: str, history: str,
+def conversation(model: MosaicGPT, tokenizer: Tokenizer, user_inp: str,
+                 history: str,
                  **generate_kwargs: Dict[str, Any]) -> Tuple[str, str, float]:
     if history != '':
         user_inp = USER_MSG_FMT.format(user_inp)
@@ -106,9 +105,7 @@ def conversation(model: MosaicGPT, tokenizer: Union[PreTrainedTokenizer,
     return output_text, conversation, end - start
 
 
-def have_conversation(model: MosaicGPT,
-                      tokenizer: Union[PreTrainedTokenizer,
-                                       PreTrainedTokenizerFast],
+def have_conversation(model: MosaicGPT, tokenizer: Tokenizer,
                       **generate_kwargs: Dict[str, Any]) -> None:
     history = ''
     while True:

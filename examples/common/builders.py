@@ -16,10 +16,8 @@ from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
-from omegaconf import DictConfig
-from omegaconf import OmegaConf as om
-from transformers import (AutoTokenizer, PreTrainedTokenizer,
-                          PreTrainedTokenizerFast)
+from omegaconf import DictConfig, OmegaConf as om
+from transformers import AutoTokenizer
 
 from examples.common.fdiff import FDiffMetrics
 from examples.common.generate_callback import Generate
@@ -28,7 +26,7 @@ from examples.common.optim import (DecoupledAdaLRLion, DecoupledClipLion,
                                    DecoupledLionW)
 from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 from examples.common.scheduled_gc_callback import ScheduledGarbageCollector
-from examples.common.text_data import build_text_dataloader
+from examples.common.text_data import Tokenizer, build_text_dataloader
 
 
 def build_callback(name, kwargs):
@@ -130,9 +128,7 @@ def build_scheduler(cfg):
         raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 
-def build_tokenizer(
-    om_tokenizer_config: DictConfig,
-) -> Union[PreTrainedTokenizer, PreTrainedTokenizerFast]:
+def build_tokenizer(om_tokenizer_config: DictConfig,) -> Union[Tokenizer]:
     os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 

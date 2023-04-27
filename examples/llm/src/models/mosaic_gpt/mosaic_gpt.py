@@ -8,7 +8,7 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 
 import math
 import warnings
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -21,18 +21,16 @@ from composer.metrics.nlp import LanguageCrossEntropy, LanguagePerplexity
 from composer.models import HuggingFaceModel
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from transformers import (PreTrainedModel, PreTrainedTokenizer,
-                          PreTrainedTokenizerFast)
+from transformers import PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
+from examples.common import Tokenizer
 from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
     MosaicGPTConfig
 from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
                                            add_bidirectional_mask_if_missing)
-
-Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 
 class MosaicGPT(PreTrainedModel):

@@ -5,14 +5,15 @@ try:
     from examples.common.builders import (build_algorithm, build_callback,
                                           build_dataloader,
                                           build_icl_evaluators, build_logger,
-                                          build_optimizer, build_scheduler)
+                                          build_optimizer, build_scheduler,
+                                          build_tokenizer)
     from examples.common.config_utils import (calculate_batch_size_info,
                                               log_config,
                                               update_batch_size_info)
     from examples.common.hf_fsdp import (prepare_hf_causal_lm_model_for_fsdp,
                                          prepare_hf_enc_dec_model_for_fsdp,
                                          prepare_hf_model_for_fsdp)
-    from examples.common.text_data import (StreamingTextDataset,
+    from examples.common.text_data import (StreamingTextDataset, Tokenizer,
                                            build_text_dataloader)
 except ImportError as e:
     raise ImportError(
@@ -27,11 +28,13 @@ __all__ = [
     'build_scheduler',
     'build_dataloader',
     'build_icl_evaluators',
+    'build_tokenizer',
     'calculate_batch_size_info',
     'update_batch_size_info',
     'log_config',
     'StreamingTextDataset',
     'build_text_dataloader',
+    'Tokenizer',
     'prepare_hf_causal_lm_model_for_fsdp',
     'prepare_hf_enc_dec_model_for_fsdp',
     'prepare_hf_model_for_fsdp',
