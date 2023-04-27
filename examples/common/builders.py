@@ -147,8 +147,10 @@ def build_tokenizer(
     # HuggingFace does not respect the model_max_length kwarg, and overrides it with
     # min(kwargs['model_max_length'], original_config['model_max_length']), so we
     # explicitly set it here
-    tokenizer.model_max_length = om_tokenizer_config.get(
-        'model_max_length', int(1e30))
+    tokenizer.model_max_length = tokenizer_kwargs.get(
+        'model_max_length',
+        int(1e30),
+    )
 
     return tokenizer
 
