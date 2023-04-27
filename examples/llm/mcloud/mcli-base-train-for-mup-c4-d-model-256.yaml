@@ -1,0 +1,155 @@
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  git_branch: sasha/mup-from-library # use your branch
+  # git_commit: # OR use your commit hash
+  pip_install: -e .[llm]
+  ssh_clone: false # Should be true if using a private repo
+- integration_type: pip_packages
+  # Install muP from main
+  packages:
+  - git+https://github.com/microsoft/mup.git@main
+- integration_type: wandb
+  project: sasha-mup
+  entity: mosaic-ml
+# We are fetching, converting, and training on the 'val' split
+# as it is small and quick to get going for this demo.
+# For real training runs, follow the instructions in `examples/llm/README.md`
+# to convert and host the full 'train' dataset.
+command: |
+  cd examples/examples/llm
+  composer main.py  /mnt/config/parameters.yaml \
+    max_duration=8000ba \
+    eval_interval=0 \
+    data_remote=oci://mosaicml-internal-datasets/c4/base/pretok-gpt2-2k/ \
+    tokenizer_name=gpt2 \
+    train_loader.dataset.split=train \
+    eval_loader.dataset.split=val \
+    save_interval=1000ba \
+    save_num_checkpoints_to_keep=1 \
+    save_folder: oci://mosaicml-internal-checkpoints/sasha/{run_name}/checkpoints
+
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
+
+gpu_num: 8
+# gpu_type: a100_40gb
+cluster: r1z1 # replace with your cluster here!
+
+scheduling:
+  priority: low
+  resumable: true
+
+# The below is injected as a YAML file: /mnt/config/parameters.yaml
+# but is not used in this example.
+parameters:
+
+  data_local: /root/my-copy-c4
+  data_remote: # If blank, files must be present in data_local
+  tokenizer_name: gpt2
+  max_seq_len: 2048
+  global_seed: 17
+
+  # Run Name
+  run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
+
+  # Model
+  model:
+    name: mosaic_gpt
+    init_device: cpu
+    tokenizer_name: ${tokenizer_name}
+    d_model: 256
+    n_heads: 32
+    n_layers: 32
+    mlp_ratio: 4
+    max_seq_len: ${max_seq_len}
+    vocab_size: 50368
+    attn_impl: triton
+    no_bias: True
+    alibi: True
+    attn_clip_qkv: 6
+    mup:
+      save_shapes: True
+      load_path: oci://mosaicml-internal-checkpoints/sasha/mup_shape_pkls/40m_param_proxy_model_apr_27_23_alibi.pickle
+
+  # Tokenizer
+  tokenizer:
+    name: ${tokenizer_name}
+    kwargs:
+      model_max_length: ${max_seq_len}
+
+  # Dataloaders
+  train_loader:
+    name: text
+    dataset:
+      local: ${data_local}
+      remote: ${data_remote}
+      split: train
+      shuffle: true
+      tokenizer_name: ${tokenizer_name}
+      max_seq_len: ${max_seq_len}
+      shuffle_seed: ${global_seed}
+    drop_last: true
+    num_workers: 8
+
+  eval_loader:
+    name: text
+    dataset:
+      local: ${data_local}
+      remote: ${data_remote}
+      split: val
+      shuffle: false
+      tokenizer_name: ${tokenizer_name}
+      max_seq_len: ${max_seq_len}
+      shuffle_seed: ${global_seed}
+    drop_last: false
+    num_workers: 8
+
+  # Optimization
+  scheduler:
+    name: cosine_with_warmup
+    t_warmup: 160ba
+    alpha_f: 0.1
+
+  optimizer:
+    name: mup_decoupled_lionw
+    lr: 6.0e-3
+    betas:
+    - 0.9
+    - 0.95
+    eps: 1.0e-08
+    weight_decay: 0.00012
+
+  algorithms:
+    gradient_clipping:
+      clipping_type: norm
+      clipping_threshold: 1.0
+
+  max_duration: 4800ba # ~ 2.5B tokens
+  eval_interval: 500ba
+  eval_first: false
+  eval_subset_num_batches: -1
+  global_train_batch_size: 256
+
+  # System
+  seed: ${global_seed}
+  device_eval_batch_size: 16
+  device_train_microbatch_size: 16
+  # device_train_microbatch_size: auto
+  precision: amp_bf16
+
+  # Logging
+  progress_bar: false
+  log_to_console: true
+  console_log_interval: 1ba
+
+  callbacks:
+    speed_monitor:
+      window_size: 10
+    lr_monitor: {}
+    memory_monitor: {}
+    runtime_estimator: {}
+
+  loggers:
+    wandb: {}
