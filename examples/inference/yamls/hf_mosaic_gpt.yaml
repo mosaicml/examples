@@ -1,0 +1,24 @@
+name: instructor-large
+cluster: r7z13
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:latest
+replicas: 1
+integrations:
+  - integration_type: git_repo
+    git_branch: roshan/inference_hf_model
+    git_repo: mosaicml/examples
+    pip_install: .[all]
+  - integration_type: pip_packages
+    packages:
+      - InstructorEmbedding
+      - sentence-transformers
+model:
+  checkpoint_path: hkunlp/instructor-large
+  custom_model:
+    model_handler: examples.inference.src.hf_instructor_model_class.HFInstructorLargeModel
+metadata:
+  version: 1
+  model_name: Instructor-Large
+  task_type: feature-extraction
+  tag: mosaic-hosted-model
