@@ -12,7 +12,7 @@ for width_mult in [1, 2, 4, 8]:
     # set the name of the run
     updated_width = base_width * width_mult
 
-    config.name = f'mosaic-gpt-125m-4-layer-d_model-{updated_width}-mup-test-gpus-8'
+    config.name = f'mgpt-4-layer-d-model-{updated_width}-mup-10k-steps-alibi-clip-lion'
 
     # Update the parameters
     # deepcopy for safety
@@ -23,5 +23,5 @@ for width_mult in [1, 2, 4, 8]:
 
     # And run!
     run = create_run(config)
-    print(f'Launching run {run.name} with d_model{updated_width}')
+    print(f'Launching run {run.name} with d_model {updated_width}')
     runs.append(run)

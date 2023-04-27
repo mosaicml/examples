@@ -19,14 +19,12 @@ integrations:
 command: |
   cd examples/examples/llm
   composer main.py  /mnt/config/parameters.yaml \
-    max_duration=100ba \
+    max_duration=10000ba \
     eval_interval=0 \
     data_remote=oci://mosaicml-internal-datasets/c4/base/pretok-gpt2-2k/ \
     tokenizer_name=gpt2 \
     train_loader.dataset.split=train_small \
-    eval_loader.dataset.split=val_small \
-    save_interval=1000ba \
-    save_num_checkpoints_to_keep=1
+    eval_loader.dataset.split=val_small
 # save_folder: oci://mosaicml-internal-checkpoints/sasha/{run_name}/checkpoints
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
@@ -67,6 +65,8 @@ parameters:
     vocab_size: 50368
     attn_impl: triton
     no_bias: True
+    alibi: True
+    attn_clip_qkv: 6
     mup:
       save_shapes: False
       load_path: oci://mosaicml-internal-checkpoints/sasha/mup_shape_pkls/125m_n_layers_4_d_model_192.pickle
@@ -105,16 +105,17 @@ parameters:
     num_workers: 8
 
   # Optimization
-  # scheduler: 
-  #   name: cosine_with_warmup
-  #   t_warmup: 1ba
-  #   alpha_f: 1.0
-  scheduler: 
-    name: constant_with_warmup
-    t_warmup: 0ba
+  # Optimization
+  scheduler:
+    name: cosine_with_warmup
+    t_warmup: 100ba
+    alpha_f: 0.1
+  # scheduler:
+  #   name: constant_with_warmup
+  #   t_warmup: 0ba
 
   optimizer:
-    name: mup_decoupled_adamw
+    name: mup_decoupled_lionw
     lr: 6.0e-2
     betas:
     - 0.9
