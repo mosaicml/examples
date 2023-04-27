@@ -152,8 +152,9 @@ def main(args: Namespace) -> None:
 
     fsdp_config = {
         'sharding_strategy': 'FULL_SHARD',
-        'mixed_precision': 'PURE',
-        'activation_checkpointing': True,
+        'mixed_precision': 'DEFAULT',
+        'activation_checkpointing': False,
+        'limit_all_gathers': True,
         'activation_cpu_offload': False,
         'verbose': False,
     }
