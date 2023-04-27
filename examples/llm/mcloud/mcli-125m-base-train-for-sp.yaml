@@ -67,9 +67,6 @@ parameters:
     no_bias: True
     alibi: True
     attn_clip_qkv: 6
-    mup:
-      save_shapes: False
-      load_path: oci://mosaicml-internal-checkpoints/sasha/mup_shape_pkls/125m_n_layers_4_d_model_192_alibi.pickle
 
   # Tokenizer
   tokenizer:
@@ -115,7 +112,7 @@ parameters:
   #   t_warmup: 0ba
 
   optimizer:
-    name: mup_decoupled_lionw
+    name: decoupled_lionw
     lr: 6.0e-3
     betas:
     - 0.9
