@@ -149,7 +149,7 @@ def write_huggingface_pretrained_from_composer_checkpoint(
     print('#' * 30)
     print('Saving HF Model Config...')
     hf_config = get_hf_config_from_composer_state_dict(composer_state_dict)
-    hf_config['torch_dtype'] = dtype
+    hf_config.torch_dtype = dtype
     hf_config.save_pretrained(local_output_path)
     print(hf_config)
 
