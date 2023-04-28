@@ -21,6 +21,7 @@ command: |
   composer main.py  /mnt/config/parameters.yaml \
     max_duration=8000ba \
     eval_interval=150ba \
+    eval_first=True \
     data_remote=oci://mosaicml-internal-datasets/c4/base/pretok-gpt2-2k/ \
     tokenizer_name=gpt2 \
     train_loader.dataset.split=train \

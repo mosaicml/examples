@@ -48,6 +48,7 @@ class MosaicGPT(PreTrainedModel):
 
         layernorm_class = LPLayerNorm if config.low_precision_layernorm else nn.LayerNorm
         self.mup = config.mup
+        print(self.mup)
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
