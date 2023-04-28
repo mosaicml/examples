@@ -69,7 +69,9 @@ class Seq2SeqFinetuningCollator:
                 found_keys.append(illegal_key)
         if found_keys:
             raise ValueError(
-                f'The following keys are in batch_metadata but are not allowed: {", ".join(found_keys)}.'
+                f'The following keys are in batch_metadata but are not allowed: {", ".join(found_keys)}.\n' +\
+                f'You cannot use keys that are used directly by the models. The prohibited keys are:\n' +\
+                f'{", ".join(illegal_keys)}'
             )
         if self.format_for_generation:
             self.batch_metadata['generate_output'] = True
