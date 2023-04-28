@@ -58,6 +58,9 @@ class MosaicGPT(PreTrainedModel):
             print("overriding softmax scale! (replace with 1/d instead of 1/sqrt(d))")
             config.softmax_scale = 1. / (config.d_model / config.n_heads)
             print(f"{config.softmax_scale=}")
+            # mup embed_scale
+            self.mup.embed_scale = getattr(self.mup, "embed_scale", 10.0)
+            print(f"{self.mup.embed_scale=}")
 
         self.transformer = nn.ModuleDict({
             'wte':
@@ -305,6 +308,9 @@ class MosaicGPT(PreTrainedModel):
         ), f'Cannot forward input with seq_len={S}, this model only supports seq_len<={self.config.max_seq_len}'
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
+
+        tok_emb = self.mup.embed_scale * tok_emb if self.mup else tok_emb
+
         if self.alibi:
             x = tok_emb
         else:

@@ -10,7 +10,7 @@ integrations:
   packages:
   - git+https://github.com/microsoft/mup.git@main
 - integration_type: wandb
-  project: sasha-mup
+  project: sasha-mup-sweep
   entity: mosaic-ml
 # We are fetching, converting, and training on the 'val' split
 # as it is small and quick to get going for this demo.
@@ -20,7 +20,7 @@ command: |
   cd examples/examples/llm
   composer main.py  /mnt/config/parameters.yaml \
     max_duration=8000ba \
-    eval_interval=0 \
+    eval_interval=150ba \
     data_remote=oci://mosaicml-internal-datasets/c4/base/pretok-gpt2-2k/ \
     tokenizer_name=gpt2 \
     train_loader.dataset.split=train \
@@ -70,8 +70,9 @@ parameters:
     alibi: True
     attn_clip_qkv: 6
     mup:
-      save_shapes: True
+      save_shapes: False
       load_path: oci://mosaicml-internal-checkpoints/sasha/mup_shape_pkls/40m_param_proxy_model_apr_27_23_alibi.pickle
+      embed_scale: 1.0
 
   # Tokenizer
   tokenizer:
