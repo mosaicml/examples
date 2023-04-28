@@ -24,42 +24,69 @@ Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 def build_finetuning_dataloader(cfg: DictConfig, tokenizer: Tokenizer,
                                 device_batch_size: int) -> DataLoader:
-    """Builds a dataloader for training or evaluating.
+    """Builds a finetuning dataloader for training or evaluating.
 
     Args:
-        cfg (Mapping): The config for your dataset/dataloader. The config needs
-            to define the following:
-
-            - cfg.dataset.name (e.g. "tatsu-lab/alpaca"; must be
-                registered in `dataset_constructor` -- see `tasks.py` for details)
-            - cfg.dataset.local (local location if using a streaming dataset, optional)
-            - cfg.dataset.remote (remote location if using a streaming dataset, optional)
-            - cfg.dataset.kwargs (optional kwargs to pass to `load_dataset` if using `datasets` library)
-            - cfg.dataset.split (e.g. "train" or "validation")
-            - cfg.dataset.max_seq_len (e.g., 512)
-            - cfg.dataset.decoder_only_format (should be True for a GPT model)
-            - cfg.dataset.allow_pad_trimming (default is False)
-            - cfg.dataset.packing_ratio (set to >1.0 to activate packing)
-            - cfg.dataset.shuffle (e.g. True for training, False for validation)
-
-            - cfg.drop_last (e.g. False)
-            - cfg.num_workers (e.g. 8)
-            - cfg.pin_memory (e.g. True)
-            - cfg.prefetch_factor (e.g. 2)
-            - cfg.persistent_workers (e.g. True)
-            - cfg.timeout (e.g. 30)
-
+        cfg (DictConfig): An omegaconf dictionary used to configure the loader:
+            cfg.name (str): The type of dataloader to build. Must = "finetuning".
+            ---
+            cfg.dataset.name (str): The name of the HuggingFace dataset to use
+                and/or the name of the tokenization function to use -- the
+                tokenization function must be registered in `tasks.py`.
+                See README for details.
+            cfg.dataset.kwargs (DictConfig, optional): Additional kwargs to
+                pass to `datasets.load_dataset`, which can be used to load
+                a dataset from local files.
+            cfg.dataset.remote (str, optional): Location of a MDS-formatted
+                streaming dataset to use. Setting this will tell the builder
+                to create a streaming dataset rather than a HuggingFace dataset.
+            cfg.dataset.local (str, optional): Local path where remote data
+                will be streamed to. Only valid if `cfg.dataset.remote` has
+                also been set.
+            cfg.dataset.max_seq_len (int): The maximum length of sequences
+                in the batch. See :class:`Seq2SeqFinetuningCollator` docstring
+                for details.
+            cfg.dataset.decoder_only_format (bool): Whether to format the
+                examples for a decoder-only model. See :class:`Seq2SeqFinetuningCollator`
+                docstring for details.
+            cfg.dataset.allow_pad_trimming (bool, optional): Whether to allow
+                the collator to trim padding. See :class:`Seq2SeqFinetuningCollator`
+                docstring for details. Default: ``False``.
+            cfg.dataset.packing_ratio (float, optional): If provided, this invokes
+                a collator wrapper that packs `device_batch_size*packing_ratio`
+                raw examples into `device_batch_size` packed examples. This helps
+                minimize padding while preserving sequence integrity.
+                This adds `sequence_id` to the batch, which indicates which unique
+                sequence each token belongs to.
+                Note: Using this feature will not change device_batch_size but it
+                    will determine the number of raw examples consumed by the dataloader
+                    per batch. Some examples may be discarded if they do not fit when
+                    packing.
+                    Select `packing_ratio` **carefully** based on the dataset
+                    statistics, `max_seq_len`, and tolerance for discarding samples!
+                    The packing code in `../packing.py` provides a script that can help
+                    you choose the best `packing_ratio`.
+            cfg.dataset.shuffle (bool): Whether to shuffle the dataset.
+            ___
+            See :class:`StreamingTextDataset` for info on other standard config
+                options within `cfg.dataset` that will be passed as kwargs if
+                using the streaming codepath.
+            ---
+            See :class:`DataLoader` for standard argument options to the pytorch
+                dataloader, such as `cfg.drop_last`, `cfg.num_workers`, etc.
         tokenizer (transformers.PreTrainedTokenizer): The tokenizer used to
-            prepare the data from raw text. If pad_token is not defined, it will be
-            automatically set to eos_token.
-        device_batch_size (int): The batch size that should be loaded on each device.
+            prepare the data from raw text. Any missing sentinel tokens will
+            be added by the collator.
+        device_batch_size (int): The size of the batches (number of examples)
+            that the dataloader will produce.
 
     Returns:
         A pytorch dataloader
 
     Note:
-        You can run the script inside `src/data/packing.py` to quickly test the padding/waste
-        rate for different `cfg.dataset.packing_ratio` choices, given a starting workload YAML.
+        You can run the script inside `../packing.py` to quickly test the
+        padding/waste rates for different `cfg.dataset.packing_ratio` choices,
+        given a starting workload YAML.
     """
     # Use EOS as the pad token if none exists
     if tokenizer.pad_token is None:  # type: ignore
