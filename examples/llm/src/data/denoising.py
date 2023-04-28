@@ -828,7 +828,7 @@ if __name__ == '__main__':
         remote = local
     print(f'Reading val split from {remote} -> {local}')
 
-    decoder_only = False
+    decoder_only = True
 
     cfg = {
         'name': 'text_denoising',
