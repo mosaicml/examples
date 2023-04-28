@@ -22,7 +22,7 @@ for embed_scale in [1.0, 10.0]:
             rounded_num = round(updated_lr, 2 - int(math.floor(math.log10(abs(updated_lr)))) - 1)
             print(rounded_num)
 
-            config.name = f'mgpt-40m-d-256-lr-{updated_lr}-data-{friendly_data}-e-scale-{int(embed_scale)}'
+            config.name = f'mpt-40m-warmup-d-256-lr-{updated_lr}-data-{friendly_data}-e-scale-{int(embed_scale)}'
 
             print(config.name)
             # Update the parameters

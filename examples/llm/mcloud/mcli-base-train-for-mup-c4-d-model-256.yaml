@@ -111,7 +111,7 @@ parameters:
   # Optimization
   scheduler:
     name: cosine_with_warmup
-    t_warmup: 160ba
+    t_warmup: 320ba
     alpha_f: 0.1
 
   optimizer:
