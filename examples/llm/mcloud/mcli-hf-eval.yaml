@@ -13,8 +13,12 @@ command: |
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 # Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
-run_name: gpt-j-eval
-
+# run_name: gpt-j-eval
+# run_name: pythia-eval
+# run_name: opt-eval
+# run_name: cerebras-eval
+# run_name: stablelm-eval
+run_name: llama-eval
 gpu_num: 8
 gpu_type: a100_80gb
 cluster: r1z1 # replace with your cluster here!
@@ -23,13 +27,23 @@ cluster: r1z1 # replace with your cluster here!
 parameters:
   # Tokenizer
   tokenizer:
-      name: EleutherAI/gpt-j-6b
+      # name: EleutherAI/gpt-j-6b
+      # name: EleutherAI/pythia-6.9b
+      # name: facebook/opt-6.7b
+      # name: cerebras/Cerebras-GPT-6.7B
+      # name: StabilityAI/stablelm-base-alpha-7b
+      name: huggyllama/llama-7b
       kwargs:
         model_max_length: 2048
 
   model:
     name: hf_causal_lm
-    pretrained_model_name_or_path: EleutherAI/gpt-j-6b
+    # pretrained_model_name_or_path: EleutherAI/gpt-j-6b
+    # pretrained_model_name_or_path: EleutherAI/pythia-6.9b
+    # pretrained_model_name_or_path: facebook/opt-6.7b
+    # pretrained_model_name_or_path: cerebras/Cerebras-GPT-6.7B
+    # pretrained_model_name_or_path: StabilityAI/stablelm-base-alpha-7b
+    pretrained_model_name_or_path: huggyllama/llama-7b
     device: cpu
     pretrained: true
 
@@ -41,11 +55,28 @@ parameters:
 
   icl_tasks:
     -
+      label: jeopardy
+      dataset_uri: local_data/jeopardy_all.jsonl # ADD YOUR OWN DATASET URI
+      num_fewshot:
+      - 0
+      - 1
+      - 5
+      - 10
+      batch_size: 2
+      icl_task_type: language_modeling
+      metric_names:
+      - InContextLearningLMAccuracy
+      - InContextLearningLMExpectedCalibrationError
+      prompt_string: '' # this goes at the beginning of each input
+      example_delimiter: '\n' # this goes between fewshot examples
+      continuation_delimiter: ' Answer: ' # this separates questions from answers
+      has_categories: true
+    -
       label: lambada_openai
       dataset_uri: local_data/lambada_openai.jsonl 
       num_fewshot:
       - 0
-      batch_size: 4
+      batch_size: 2
       icl_task_type: language_modeling
       metric_names:
       - InContextLearningLMAccuracy
@@ -61,7 +92,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -77,7 +108,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -93,12 +124,27 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
       - InContextLearningMCExpectedCalibrationError
-
+      prompt_string: '' # this goes at the beginning of each input
+      example_delimiter: '\n' # this goes between fewshot examples
+      continuation_delimiter: 'Answer: ' # this separates questions from answers
+    -
+      label: arc_challenge
+      dataset_uri: local_data/arc_challenge.jsonl # ADD YOUR OWN DATASET URI
+      num_fewshot:
+      - 0
+      - 1
+      - 5
+      - 10
+      batch_size: 2
+      icl_task_type: multiple_choice
+      metric_names:
+      - InContextLearningMultipleChoiceAccuracy
+      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
@@ -110,7 +156,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -127,7 +173,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -136,23 +182,6 @@ parameters:
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
     -
-      label: jeopardy
-      dataset_uri: local_data/jeopardy_all.jsonl # ADD YOUR OWN DATASET URI
-      num_fewshot:
-      - 0
-      - 1
-      - 5
-      - 10
-      batch_size: 4
-      icl_task_type: language_modeling
-      metric_names:
-      - InContextLearningLMAccuracy
-      - InContextLearningLMExpectedCalibrationError
-      prompt_string: '' # this goes at the beginning of each input
-      example_delimiter: '\n' # this goes between fewshot examples
-      continuation_delimiter: ' Answer: ' # this separates questions from answers
-      has_categories: true
-    -
       label: mmlu
       dataset_uri: local_data/mmlu.jsonl # ADD YOUR OWN DATASET URI
       num_fewshot:
@@ -160,7 +189,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -177,7 +206,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: schema
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -193,7 +222,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: schema
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
@@ -209,7 +238,7 @@ parameters:
       - 1
       - 5
       - 10
-      batch_size: 4
+      batch_size: 2
       icl_task_type: question_answering
       metric_names:
       - InContextLearningQAAccuracy
