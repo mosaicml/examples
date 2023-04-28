@@ -23,7 +23,7 @@ train_loader:
 - "input" refers to the text that you feed into the model, e.g. *Tell me a few facts about dogs.*
 - "output" refers to the text that the model is trained to produce in response to the input, e.g. *Dogs are great pets. They love to play fetch. They are better than cats...*
 
-`dataset.name` must refer to a function in `_tasks.py` that you have registered under that name. For example:
+`dataset.name` must refer to a function in `tasks.py` that you have registered under that name. For example:
 ```python
 @dataset_constructor.register('my-finetuning-task')
 def my_tokenization_function(example: Dict, tokenizer: Tokenizer):
@@ -36,7 +36,7 @@ def my_tokenization_function(example: Dict, tokenizer: Tokenizer):
     )
 ```
 
-These tokenization functions simply serve to handle dataset-specific formatting, where different field names are used to represent the input/output, the input/output need to be split out of a single text sequence, etc. You can look through `_tasks.py` to see other examples and to build a clearer intuition.
+These tokenization functions simply serve to handle dataset-specific formatting, where different field names are used to represent the input/output, the input/output need to be split out of a single text sequence, etc. You can look through `tasks.py` to see other examples and to build a clearer intuition.
 
 Now that we've covered that concept, we'll describe the 3 different usage patterns...
 
@@ -44,7 +44,7 @@ Now that we've covered that concept, we'll describe the 3 different usage patter
 
 Let's say you want to finetune using a dataset available on the HuggingFace Hub. We'll pretend this dataset on the Hub is called `hf-hub/identifier`.
 
-1. In `_tasks.py`, write a function for processing the dataset, to split it into prompt and response
+1. In `tasks.py`, write a function for processing the dataset, to split it into prompt and response
 1. Register this function using `@dataset_constructor.register('hf-hub/identifier')`
 1. Reference this in a training yaml, such as the one in `yamls/mosaic_gpt/finetune/7b_dolly_sft.yaml`
 ```yaml
@@ -79,7 +79,7 @@ train_loader:
 
 Let's say you have an MDS-formatted dataset. For example, maybe you used the `convert_finetuning_dataset.py` script to convert a large HuggingFace dataset into a streaming format and saved it to S3.
 
-1. In `_tasks.py`, write a function for processing the dataset, to split it into prompt and response
+1. In `tasks.py`, write a function for processing the dataset, to split it into prompt and response
 1. Register this function using `@dataset_constructor.register('some_name')`
 1. Set the `dataset.remote` and `dataset.local` values in your YAML
 ```yaml
