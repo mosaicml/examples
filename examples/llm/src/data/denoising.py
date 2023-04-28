@@ -141,6 +141,9 @@ class MixtureOfDenoisersCollator:
         prefix_function: Optional[PREFIX_FUNCTION] = ul2_prefix_function,
         context_eos: Optional[bool] = None,
     ):
+        # Prepare the tokenizer for denoising tasks
+        utils.adapt_tokenizer_for_denoising(tokenizer)
+
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
         self.decoder_only_format = decoder_only_format
@@ -151,9 +154,6 @@ class MixtureOfDenoisersCollator:
         self._seen_first_batch = False
 
         self.context_eos = bool(context_eos) if decoder_only_format else True
-
-        # Prepare the tokenizer for denoising tasks
-        utils.adapt_tokenizer_for_denoising(self.tokenizer)
 
         # Process the span_mean_lengths_and_ratios argument
         if span_mean_lengths_and_ratios is None:
@@ -418,8 +418,7 @@ def build_text_denoising_dataloader(
     assert cfg.name == 'text_denoising', f'Tried to build_denoising text dataloader with cfg.name={cfg.name}'
 
     collate_fn = MixtureOfDenoisersCollator(
-        tokenizer=utils.AutoTokenizerForMOD.from_pretrained(
-            tokenizer.name_or_path),
+        tokenizer=tokenizer,
         max_seq_length=cfg.dataset.max_seq_len,
         decoder_only_format=cfg.mixture_of_denoisers.decoder_only_format,
         span_mean_lengths_and_ratios=cfg.mixture_of_denoisers.get(
