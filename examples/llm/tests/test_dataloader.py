@@ -191,7 +191,6 @@ def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming,
         'dataset': {
             'name': 'tatsu-lab/alpaca',
             'split': 'train',
-            'tokenizer_name': tokenizer_name,
             'max_seq_len': max_seq_len,
             'decoder_only_format': decoder_only_format,
             'allow_pad_trimming': allow_pad_trimming,
@@ -207,6 +206,15 @@ def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming,
     }
 
     cfg = om.create(cfg)
+
+    tokenizer = build_tokenizer(
+        om.create({
+            'name': tokenizer_name,
+            'kwargs': {
+                'model_max_length': max_seq_len
+            }
+        }))
+
     device_batch_size = 2
 
     expected_keys = ['input_ids', 'attention_mask', 'labels']
@@ -215,7 +223,7 @@ def test_finetuning_dataloader(decoder_only_format, allow_pad_trimming,
     else:
         expected_keys += ['decoder_attention_mask', 'decoder_input_ids']
 
-    loader = build_finetuning_dataloader(cfg, device_batch_size)
+    loader = build_finetuning_dataloader(cfg, tokenizer, device_batch_size)
     batch_ix = 0
     for batch in loader:
         for k in expected_keys:

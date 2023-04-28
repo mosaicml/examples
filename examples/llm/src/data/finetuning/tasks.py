@@ -35,7 +35,6 @@ from functools import partial
 from typing import Any, Callable, Dict, Optional, Union
 
 import datasets
-import transformers
 from omegaconf import DictConfig
 from streaming import StreamingDataset
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
@@ -50,7 +49,7 @@ class StreamingFinetuningDataset(StreamingDataset):
 
     Args:
         local (str): Local dataset directory where shards are cached by split.
-        tokenizer_name (str): The name of the HuggingFace tokenizer to use to
+        tokenizer (Tokenizer): The name of the HuggingFace tokenizer to use to
             tokenize samples.
         tokenize_function (callable): A function that takes a text sample (dict) and a tokenizer,
             and returns the tokenized sample (dict). The tokenized sample must have `input_ids`
@@ -79,7 +78,7 @@ class StreamingFinetuningDataset(StreamingDataset):
 
     def __init__(self,
                  local: str,
-                 tokenizer_name: str,
+                 tokenizer: Tokenizer,
                  tokenize_function: Callable[[Dict, Tokenizer], Dict],
                  remote: Optional[str] = None,
                  split: Optional[str] = None,
@@ -121,19 +120,7 @@ class StreamingFinetuningDataset(StreamingDataset):
                          num_canonical_nodes=num_canonical_nodes,
                          batch_size=batch_size)
 
-        # Build tokenizer
-        os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-            tokenizer_name)
-
-        # suppress warnings when using longer 'max_seq_len'
-        self.tokenizer.model_max_length = int(1e30)
-
-        # Use EOS as the pad token if none exists
-        if self.tokenizer.pad_token is None:  # type: ignore
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-
+        self.tokenizer = tokenizer
         self.tokenize_function = tokenize_function
 
     # How to process a sample
@@ -189,13 +176,13 @@ class DatasetConstructor:
         )
         return dataset
 
-    def build_from_streaming(self, dataset_name: str, tokenizer_name: str,
+    def build_from_streaming(self, dataset_name: str, tokenizer: Tokenizer,
                              **kwargs: Any):
 
         tokenize_function = self._task_tokenization_registry[dataset_name]
 
         dataset = StreamingFinetuningDataset(
-            tokenizer_name=tokenizer_name,
+            tokenizer=tokenizer,
             tokenize_function=tokenize_function,
             **kwargs,
         )

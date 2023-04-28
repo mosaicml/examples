@@ -80,7 +80,11 @@ def build_dataloader(cfg, tokenizer, device_batch_size):
             device_batch_size,
         )
     elif cfg.name == 'finetuning':
-        return build_finetuning_dataloader(cfg, device_batch_size)
+        return build_finetuning_dataloader(
+            cfg,
+            tokenizer,
+            device_batch_size,
+        )
 
     else:
         raise ValueError(f'Not sure how to build dataloader with config: {cfg}')

@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+from typing import Union
 
 import torch
 import transformers
 from composer.utils import dist
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from examples.llm.src.data.finetuning.collator import Seq2SeqFinetuningCollator
 from examples.llm.src.data.finetuning.tasks import dataset_constructor
@@ -18,8 +20,10 @@ log = logging.getLogger(__name__)
 # HuggingFace hardcodes the ignore index to -100
 _HF_IGNORE_INDEX = -100
 
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
-def build_finetuning_dataloader(cfg: DictConfig,
+
+def build_finetuning_dataloader(cfg: DictConfig, tokenizer: Tokenizer,
                                 device_batch_size: int) -> DataLoader:
     """Builds a dataloader for training or evaluating.
 
@@ -28,12 +32,11 @@ def build_finetuning_dataloader(cfg: DictConfig,
             to define the following:
 
             - cfg.dataset.name (e.g. "tatsu-lab/alpaca"; must be
-                registered in `dataset_constructor` -- see `./tasks.py` for details)
+                registered in `dataset_constructor` -- see `tasks.py` for details)
             - cfg.dataset.local (local location if using a streaming dataset, optional)
             - cfg.dataset.remote (remote location if using a streaming dataset, optional)
-            - cfg.dataset.kwargs (optional kwargs to pass to load_dataset if using datasets library)
+            - cfg.dataset.kwargs (optional kwargs to pass to `load_dataset` if using `datasets` library)
             - cfg.dataset.split (e.g. "train" or "validation")
-            - cfg.dataset.tokenizer_name (e.g. "gpt2")
             - cfg.dataset.max_seq_len (e.g., 512)
             - cfg.dataset.decoder_only_format (should be True for a GPT model)
             - cfg.dataset.allow_pad_trimming (default is False)
@@ -47,6 +50,9 @@ def build_finetuning_dataloader(cfg: DictConfig,
             - cfg.persistent_workers (e.g. True)
             - cfg.timeout (e.g. 30)
 
+        tokenizer (transformers.PreTrainedTokenizer): The tokenizer used to
+            prepare the data from raw text. If pad_token is not defined, it will be
+            automatically set to eos_token.
         device_batch_size (int): The batch size that should be loaded on each device.
 
     Returns:
@@ -56,10 +62,14 @@ def build_finetuning_dataloader(cfg: DictConfig,
         You can run the script inside `src/data/packing.py` to quickly test the padding/waste
         rate for different `cfg.dataset.packing_ratio` choices, given a starting workload YAML.
     """
+    # Use EOS as the pad token if none exists
+    if tokenizer.pad_token is None:  # type: ignore
+        tokenizer.pad_token = tokenizer.eos_token
+
     if cfg.dataset.get('local') is not None:
         dataset = dataset_constructor.build_from_streaming(
             cfg.dataset.name,
-            cfg.dataset.tokenizer_name,
+            tokenizer=tokenizer,
             local=cfg.dataset.local,
             remote=cfg.dataset.get('remote', None),
             split=cfg.dataset.get('split'),
@@ -71,10 +81,11 @@ def build_finetuning_dataloader(cfg: DictConfig,
             validate_hash=cfg.dataset.get('validate_hash', None),
             shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
             num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
-            batch_size=device_batch_size)
+            batch_size=device_batch_size,
+        )
 
         collate_fn = Seq2SeqFinetuningCollator(
-            dataset.tokenizer,
+            tokenizer=tokenizer,
             max_seq_len=cfg.dataset.max_seq_len,
             decoder_only_format=cfg.dataset.decoder_only_format,
             allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
@@ -93,8 +104,8 @@ def build_finetuning_dataloader(cfg: DictConfig,
                 collator=collate_fn,
                 target_batch_size=device_batch_size,
                 max_seq_len=cfg.dataset.max_seq_len,
-                pad_token_id=dataset.tokenizer.pad_token_id,
-                padding_side=dataset.tokenizer.padding_side,
+                pad_token_id=tokenizer.pad_token_id,
+                padding_side=tokenizer.padding_side,
                 max_leftover_bins_to_keep=cfg.dataset.get(
                     'max_leftover_bins_to_keep'),
             )
@@ -121,12 +132,6 @@ def build_finetuning_dataloader(cfg: DictConfig,
         if cfg.dataset.get('remote') is not None:
             raise ValueError(
                 f'{cfg.dataset.remote=} but cfg.dataset.local is None.')
-
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            cfg.dataset.tokenizer_name)
-
-        if tokenizer.pad_token is None:  # type: ignore
-            tokenizer.pad_token = tokenizer.eos_token
 
         dataset = dataset_constructor.build(cfg.dataset, tokenizer)
 
