@@ -25,10 +25,11 @@ class HFInstructorLargeModel(BaseModelHandler):
     def setup(self):
         self.model = INSTRUCTOR(self.MODEL_NAME)
 
-    def predict(self, **inputs):
+    def predict(self, **inputs: Dict[str, Any]):
         # input_strings in format of [[<instruction>, <sentence>]]
         if "input_strings" not in inputs:
             raise KeyError("input_strings key not in inputs")
-
+        
+        print(inputs)
         embeddings = self.model.encode(inputs["input_strings"])
         return embeddings.tolist()
