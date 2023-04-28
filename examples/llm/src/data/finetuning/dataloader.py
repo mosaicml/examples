@@ -9,8 +9,8 @@ from composer.utils import dist
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
-from examples.llm.src.data.finetuning._tasks import dataset_constructor
 from examples.llm.src.data.finetuning.collator import Seq2SeqFinetuningCollator
+from examples.llm.src.data.finetuning.tasks import dataset_constructor
 from examples.llm.src.data.packing import BinPackWrapper
 
 log = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def build_finetuning_dataloader(cfg: DictConfig,
             to define the following:
 
             - cfg.dataset.name (e.g. "tatsu-lab/alpaca"; must be
-                registered in `dataset_constructor` -- see `./_tasks.py` for details)
+                registered in `dataset_constructor` -- see `./tasks.py` for details)
             - cfg.dataset.local (local location if using a streaming dataset, optional)
             - cfg.dataset.remote (remote location if using a streaming dataset, optional)
             - cfg.dataset.kwargs (optional kwargs to pass to load_dataset if using datasets library)
