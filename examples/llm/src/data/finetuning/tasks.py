@@ -1,6 +1,35 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+"""Code for task-specific seq-to-seq data formatting.
+
+As explained in `README.md`, you can add to this file to define/register
+tokenization functions for new seq-to-seq finetuning tasks. These tokenization
+functions take individual examples that contain raw text and tokenize them in a
+way that yields a consistent format.
+
+When adding a new function, make sure to decorate it with:
+    `@dataset_constructor.register()`,
+where you can pass one or more names of datasets that should
+use the decorated tokenization function.
+
+Tokenization functions should take 2 arguments:
+1. An input example
+2. The tokenizer
+
+Tokenization functions should end with:
+    `return tokenizer(text=<prompt>, text_target=<response>)`,
+where `<prompt>` is a placeholder for the prompt text string that you
+extracted from the input example, and '<response>' is a placeholder for
+the response text string.
+You do not need to handle padding, truncation, etc. That will be handled
+automatically elsewhere.
+
+Just to be clear, "prompt" represents the text you would give the model
+at inference time, and "response" represents the text you are training
+it to produce given the prompt.
+"""
+
 import os
 from functools import partial
 from typing import Any, Callable, Dict, Optional, Union
@@ -179,14 +208,13 @@ dataset_constructor = DatasetConstructor()
 
 @dataset_constructor.register('tatsu-lab/alpaca')
 def alpaca_tokenize_function(inp: Dict, tokenizer: Tokenizer):
-    """Format the text string and simply tokenize."""
-    # `text` is the text the encoder receives (i.e. the prompt)
-    # `text_target` is the target output the decoder should produce
+    """Split out prompt/response from text and tokenize."""
     try:
         prompt, response = inp['text'].split('### Response:')
-    except:
-        print(inp)
-        raise
+    except Exception as e:
+        raise ValueError(
+            f"Unable to extract prompt/response from 'text'={inp['text']}"
+        ) from e
     return tokenizer(
         text=prompt + '### Response:',
         text_target=response,
@@ -195,7 +223,7 @@ def alpaca_tokenize_function(inp: Dict, tokenizer: Tokenizer):
 
 @dataset_constructor.register('HuggingFaceH4/databricks_dolly_15k')
 def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
-    """Format the text string and simply tokenize."""
+    """Format the text string and tokenize."""
     PROMPT_FORMAT = 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Response:\n'
     try:
         if inp['input'] != '':
@@ -204,17 +232,17 @@ def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
             instruction = inp['instruction']
         prompt = PROMPT_FORMAT.format(instruction=instruction)
         response = inp['output']
-    except:
-        print(inp)
-        raise
+    except Exception as e:
+        raise ValueError(
+            f'Unable to extract prompt/response from {inp=}') from e
     return tokenizer(
         text=prompt,
         text_target=response,
     )
 
 
-@dataset_constructor.register('sam-mosaic/vicuna_alpaca_hc3_chatml')
-@dataset_constructor.register('sam-mosaic/full-hh-rlhf-chatml')
+@dataset_constructor.register('sam-mosaic/full-hh-rlhf-chatml',
+                              'sam-mosaic/vicuna_alpaca_hc3_chatml')
 def simple_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Already split, just tokenize."""
     return tokenizer(
@@ -223,50 +251,19 @@ def simple_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     )
 
 
-@dataset_constructor.register('laion/OIG')
-def oig_tokenize_function(inp: Dict, tokenizer: Tokenizer):
-    """Format the text string and simply tokenize."""
-    # `text` is the text the encoder receives (i.e. the prompt)
-    # `text_target` is the target output the decoder should produce
-    try:
-        # janky heuristic but I really want to train on this data
-        # all data is OTF human: blah\n bot: blah blah
-        # so this should "work" for some definition of work
-        # too many of the tokens are loss generating but I am okay with that
-        prompt, response = inp['text'].split(sep=':', maxsplit=1)
-    except:
-        print(inp)
-        raise
-    return tokenizer(
-        text=prompt + ':',
-        text_target=response,
-    )
-
-
 @dataset_constructor.register('bigscience/P3')
 def p3_tokenize_function(inp: Dict, tokenizer: Tokenizer):
-    """Format the text string and simply tokenize."""
-    # `text` is the text the encoder receives (i.e. the prompt)
-    # `text_target` is the target output the decoder should produce
-    try:
-        prompt = inp['inputs']  # instruction-finetuned prompts
-        response = inp['targets']  # sequence of values
-    except:
-        print(inp)
-        raise
+    """Format the already-split example and tokenize."""
     return tokenizer(
-        text=prompt + ':',
-        text_target=response,
+        text=inp['inputs'] + ':',
+        text_target=inp['targets'],
     )
 
 
 # Muennighoff's P3 and flan datasets share a similar convention
 @dataset_constructor.register('Muennighoff/P3', 'Muennighoff/flan')
 def muennighoff_tokenize_function(inp: Dict, tokenizer: Tokenizer):
-    """Format the text string and simply tokenize."""
-    # `text` is the text the encoder receives (i.e. the prompt)
-    # `text_target` is the target output the decoder should produce
-    # In this dataset, there are only 2 columns: "inputs" and "targets"
+    """Format the already-split example and tokenize."""
     try:
         prompt: str = inp['inputs']
         response: str = inp['targets']
@@ -275,9 +272,9 @@ def muennighoff_tokenize_function(inp: Dict, tokenizer: Tokenizer):
         if not (prompt.endswith(transitions) or
                 response.startswith(transitions)):
             response = ' ' + response
-    except:
-        print(inp)
-        raise
+    except Exception as e:
+        raise ValueError(
+            f'Unable to process prompt/response from {inp=}') from e
     return tokenizer(
         text=prompt,
         text_target=response,
