@@ -16,7 +16,8 @@ from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
-from omegaconf import DictConfig, OmegaConf as om
+from omegaconf import DictConfig
+from omegaconf import OmegaConf as om
 from transformers import AutoTokenizer
 
 from examples.common.fdiff import FDiffMetrics

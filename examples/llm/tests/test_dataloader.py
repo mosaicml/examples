@@ -59,10 +59,18 @@ def test_correct_padding(tokenizer_name, pretokenize, batch_size=4):
     test_cfg.data_local = data_local
     test_cfg.eval_loader.dataset.split = split
 
-    tokenizer = build_tokenizer(om.create({'name': tokenizer_name, 'kwargs': {}}))
+    tokenizer = build_tokenizer(
+        om.create({
+            'name': tokenizer_name,
+            'kwargs': {}
+        }))
 
     # Dataloaders
-    eval_loader = build_text_dataloader(test_cfg.eval_loader, tokenizer, batch_size)
+    eval_loader = build_text_dataloader(
+        test_cfg.eval_loader,
+        tokenizer,
+        batch_size,
+    )
     batch = next(iter(eval_loader))
 
     assert batch['input_ids'].shape == torch.Size([batch_size, 2048])
@@ -144,7 +152,13 @@ def test_denoising_dataloader(decoder_only_format, pretokenize, packing_ratio):
     if packing_ratio is not None:
         expected_keys += ['sequence_id']
 
-    tokenizer = build_tokenizer(om.create({'name': tokenizer_name, 'kwargs': {'model_max_length': max_seq_len}}))
+    tokenizer = build_tokenizer(
+        om.create({
+            'name': tokenizer_name,
+            'kwargs': {
+                'model_max_length': max_seq_len
+            }
+        }))
 
     loader = build_text_denoising_dataloader(cfg, tokenizer, device_batch_size)
     batch_ix = 0
