@@ -12,7 +12,7 @@ for width_mult in [1, 2, 4, 8]:
     # set the name of the run
     updated_width = base_width * width_mult
 
-    config.name = f'mgpt-4-layer-d-model-{updated_width}-mup-10k-steps-alibi-clip-lion'
+    config.name = f'mgpt-4-layer-d-model-{updated_width}-mup-10k-steps-nonzero-wd'
 
     # Update the parameters
     # deepcopy for safety
