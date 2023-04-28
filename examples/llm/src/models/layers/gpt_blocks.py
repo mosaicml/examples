@@ -7,11 +7,10 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
-    LPLayerNorm
 
 from examples.llm.src.models.layers.attention import (MultiheadAttention,
                                                       MultiQueryAttention)
+from examples.llm.src.models.layers.norm import NORM_CLASS_REGISTRY
 
 
 class GPTMLP(nn.Module):
@@ -43,17 +42,17 @@ class GPTBlock(nn.Module):
                  attn_pdrop: float = 0.0,
                  alibi: bool = False,
                  resid_pdrop: float = 0.0,
-                 low_precision_layernorm: bool = False,
+                 norm_type: str = 'low_precision_layernorm',
                  multiquery_attention: bool = False,
                  device: Optional[str] = None,
                  **kwargs):
         del kwargs  # unused, just to capture any extra args from the config
         super().__init__()
 
-        layernorm_class = LPLayerNorm if low_precision_layernorm else nn.LayerNorm
+        norm_class = NORM_CLASS_REGISTRY[norm_type.lower()]
         attn_class = MultiQueryAttention if multiquery_attention else MultiheadAttention
 
-        self.ln_1 = layernorm_class(d_model, device=device)
+        self.norm_1 = norm_class(d_model, device=device)
         self.attn = attn_class(
             attn_impl=attn_impl,
             attn_clip_qkv=attn_clip_qkv,
@@ -64,7 +63,7 @@ class GPTBlock(nn.Module):
             n_heads=n_heads,
             device=device,
         )
-        self.ln_2 = layernorm_class(d_model, device=device)
+        self.norm_2 = norm_class(d_model, device=device)
         self.mlp = GPTMLP(
             d_model=d_model,
             mlp_ratio=mlp_ratio,
@@ -81,14 +80,14 @@ class GPTBlock(nn.Module):
         attention_mask: Optional[torch.ByteTensor] = None,
         is_causal: bool = True,
     ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor]]]:
-        a = self.ln_1(x)
+        a = self.norm_1(x)
         b, _, past_key_value = self.attn(a,
                                          past_key_value=past_key_value,
                                          attn_bias=attn_bias,
                                          attention_mask=attention_mask,
                                          is_causal=is_causal)
         x = x + self.resid_attn_dropout(b)
-        m = self.ln_2(x)
+        m = self.norm_2(x)
         n = self.mlp(m)
         x = x + self.resid_mlp_dropout(n)
         return x, past_key_value
