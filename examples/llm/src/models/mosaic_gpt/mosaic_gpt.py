@@ -48,7 +48,6 @@ class MosaicGPT(PreTrainedModel):
 
         layernorm_class = LPLayerNorm if config.low_precision_layernorm else nn.LayerNorm
         self.mup = config.mup
-        print(self.mup)
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
@@ -60,8 +59,8 @@ class MosaicGPT(PreTrainedModel):
             config.softmax_scale = 1. / (config.d_model / config.n_heads)
             print(f"{config.softmax_scale=}")
             # mup embed_scale
-            self.mup.embed_scale = getattr(self.mup, "embed_scale", 10.0)
-            print(f"{self.mup.embed_scale=}")
+            self.mup["embed_scale"] = self.mup.get("embed_scale", 10.0)
+            print(f"{self.mup['embed_scale']=}")
 
         self.transformer = nn.ModuleDict({
             'wte':
@@ -310,8 +309,8 @@ class MosaicGPT(PreTrainedModel):
 
         tok_emb = self.transformer.wte(input_ids)  # type: ignore
 
-        tok_emb = self.mup.embed_scale * tok_emb if self.mup else tok_emb
-
+        tok_emb = self.mup["embed_scale"] * tok_emb if self.mup else tok_emb
+        
         if self.alibi:
             x = tok_emb
         else:

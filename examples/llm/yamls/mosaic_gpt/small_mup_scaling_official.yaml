@@ -29,6 +29,7 @@ model:
   mup:
     save_shapes: False
     load_path: /root/base_shape_rerun.pickle
+    embed_scale: 100.0
 
 # Tokenizer
 tokenizer:

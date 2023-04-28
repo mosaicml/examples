@@ -5,8 +5,8 @@
 
 from typing import Optional, Tuple, Union
 
-from transformers import PretrainedConfig
 
+from transformers import PretrainedConfig
 
 class MosaicGPTConfig(PretrainedConfig):
     model_type = 'mosaic_gpt'
@@ -40,7 +40,7 @@ class MosaicGPTConfig(PretrainedConfig):
         emb_init_std: Optional[float] = None,
         emb_init_uniform_lim: Optional[Union[Tuple[float, float],
                                              float]] = None,
-        mup: Optional[dict] = None,
+        mup: Optional = None,
         init_gain: float = 0,
         fan_mode: str = 'fan_in',
         init_nonlinearity: str = 'relu',
