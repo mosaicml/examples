@@ -60,7 +60,7 @@ train_loader:
 
 Let's say you have your finetuning dataset stored in local `jsonl` files.
 
-1. In `_task.py`, write a function for processing the dataset, to split it into prompt and response
+1. In `tasks.py`, write a function for processing the dataset, to split it into prompt and response
 1. Register this function using `@dataset_constructor.register('some_name')`
 1. Reference this in a training yaml, such as the one in `yamls/mosaic_gpt/finetune/1b_local_data_sft.yaml`
 ```yaml
