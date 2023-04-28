@@ -261,7 +261,7 @@ if __name__ == '__main__':
 
     from omegaconf import OmegaConf as om
 
-    from examples.common.text_data import build_text_dataloader
+    from examples.common import build_text_dataloader, build_tokenizer
     from examples.llm.src import (build_finetuning_dataloader,
                                   build_text_denoising_dataloader)
 
@@ -311,13 +311,15 @@ if __name__ == '__main__':
             raise ValueError('`num_packing_ratios` must be a positive integer.')
         return args
 
-    def build_dataloader(cfg, device_batch_size):
+    def build_dataloader(cfg, tokenizer, device_batch_size):
         if cfg.name == 'text':
-            return build_text_dataloader(cfg, device_batch_size)
+            return build_text_dataloader(cfg, tokenizer, device_batch_size)
         elif cfg.name == 'text_denoising':
-            return build_text_denoising_dataloader(cfg, device_batch_size)
+            return build_text_denoising_dataloader(cfg, tokenizer,
+                                                   device_batch_size)
         elif cfg.name == 'finetuning':
-            return build_finetuning_dataloader(cfg, device_batch_size)
+            return build_finetuning_dataloader(cfg, tokenizer,
+                                               device_batch_size)
         else:
             raise ValueError(
                 f'Not sure how to build dataloader with config: {cfg}')
@@ -351,10 +353,15 @@ if __name__ == '__main__':
     max_leftovers_to_keep = dataloader_cfg.dataset.get('max_leftovers_to_keep',
                                                        None)
 
+    # build tokenizer
+    if 'tokenizer' not in cfg:
+        raise ValueError('config must define tokenizer')
+    tokenizer = build_tokenizer(cfg.tokenizer)
+
     # Turn off packing for the dataloader (we want raw, pre-packed examples)
     dataloader_cfg.dataset.packing_ratio = None
     dataloader_cfg.dataset.max_leftovers_to_keep = None
-    train_dataloader = build_dataloader(dataloader_cfg,
+    train_dataloader = build_dataloader(dataloader_cfg, tokenizer,
                                         max(raw_batch_sizes) * 100)
 
     # Get a bunch of raw examples
