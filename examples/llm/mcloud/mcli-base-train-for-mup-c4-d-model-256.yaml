@@ -10,7 +10,7 @@ integrations:
   packages:
   - git+https://github.com/microsoft/mup.git@main
 - integration_type: wandb
-  project: sasha-mup-sweep
+  project: sasha-mup-with-eval
   entity: mosaic-ml
 # We are fetching, converting, and training on the 'val' split
 # as it is small and quick to get going for this demo.
@@ -73,7 +73,7 @@ parameters:
     mup:
       save_shapes: False
       load_path: oci://mosaicml-internal-checkpoints/sasha/mup_shape_pkls/40m_param_proxy_model_apr_27_23_alibi.pickle
-      embed_scale: 1.0
+      # embed_scale: 1.0
 
   # Tokenizer
   tokenizer:
