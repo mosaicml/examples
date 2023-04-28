@@ -1,6 +1,5 @@
 # data_local: ./my-copy-c4
 # data_remote: # If blank, files must be present in data_local
-tokenizer_name: gpt2
 max_seq_len: 2048
 global_seed: 17
 
@@ -11,7 +10,6 @@ run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 model:
   name: mosaic_gpt
   init_device: meta
-  tokenizer_name: ${tokenizer_name}
   d_model: 4096
   n_heads: 32
   n_layers: 32
@@ -22,7 +20,7 @@ model:
 
 # Tokenizer
 tokenizer:
-  name: ${tokenizer_name}
+  name: gpt2
   kwargs:
     model_max_length: ${max_seq_len}
 
@@ -32,7 +30,6 @@ train_loader:
   dataset:
     name: HuggingFaceH4/databricks_dolly_15k
     split: train
-    tokenizer_name: ${tokenizer_name}
     max_seq_length: ${max_seq_len}
     allow_pad_trimming: false
     decoder_only_format: true

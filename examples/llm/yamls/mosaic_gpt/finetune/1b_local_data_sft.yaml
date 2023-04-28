@@ -1,4 +1,3 @@
-tokenizer_name: gpt2 # This must match the tokenizer you pretrained with
 max_seq_len: 2048
 global_seed: 17
 
@@ -10,7 +9,6 @@ run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 model:
   name: mosaic_gpt
   init_device: meta
-  tokenizer_name: ${tokenizer_name}
   d_model: 2048
   n_heads: 16 # Modified 24->16 so that d_head == 128 to statisfy FlashAttention
   n_layers: 24
@@ -21,7 +19,7 @@ model:
 
 # Tokenizer
 tokenizer:
-  name: ${tokenizer_name}
+  name: gpt2
   kwargs:
     model_max_length: ${max_seq_len}
 
@@ -39,7 +37,6 @@ train_loader: &train_loader
   dataset:
     <<: *hf_dataset
     split: train
-    tokenizer_name: ${tokenizer_name}
     max_seq_length: ${max_seq_len}
     allow_pad_trimming: false
     decoder_only_format: true
