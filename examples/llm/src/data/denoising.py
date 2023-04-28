@@ -13,8 +13,8 @@ import torch
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from torch.utils.data import DataLoader
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from examples.common import Tokenizer
 from examples.common.text_data import StreamingTextDataset
 from examples.llm.src.data.packing import BinPackWrapper
 from examples.llm.src.models import utils
@@ -25,6 +25,8 @@ log = logging.getLogger(__name__)
 
 # HuggingFace hardcodes the ignore index to -100
 _HF_IGNORE_INDEX = -100
+
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 # Required signature of any `prefix_function` (see below)
 PREFIX_FUNCTION = Callable[[float, Optional[float], Tokenizer], Sequence[int]]

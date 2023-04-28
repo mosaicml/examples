@@ -1,9 +1,11 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+from typing import Union
 
-from transformers import AutoTokenizer
+from transformers import (AutoTokenizer, PreTrainedTokenizer,
+                          PreTrainedTokenizerFast)
 
-from examples.common import Tokenizer
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 # For consistency with T5 Tokenizer, which is what this adaptation aims to mimic,
 # we hardcode there to be 100 sentinel tokens

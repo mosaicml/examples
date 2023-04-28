@@ -3,13 +3,15 @@
 import time
 import warnings
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union
 
 import torch
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
+                          PreTrainedTokenizer, PreTrainedTokenizerFast)
 
-from examples.common import Tokenizer
 from examples.llm import MosaicGPT, MosaicGPTConfig
+
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 
 def str2bool(v):

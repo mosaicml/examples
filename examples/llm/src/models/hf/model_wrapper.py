@@ -10,18 +10,20 @@ from __future__ import annotations
 
 import inspect
 from collections import UserDict
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import torch
 import transformers
 from composer.models.huggingface import HuggingFaceModel
 from torchmetrics import Metric
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from examples.common import Tokenizer
 from examples.common.hf_fsdp import prepare_hf_model_for_fsdp
 
 # HuggingFace hardcodes the ignore index to -100
 _HF_IGNORE_INDEX = -100
+
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 
 class HuggingFaceModelWithZLoss(HuggingFaceModel):

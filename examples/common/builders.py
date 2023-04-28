@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-
 import os
+from typing import Union
 
 from composer import algorithms
 from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
@@ -17,7 +17,8 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from transformers import AutoTokenizer
+from transformers import (AutoTokenizer, PreTrainedTokenizer,
+                          PreTrainedTokenizerFast)
 
 from examples.common.fdiff import FDiffMetrics
 from examples.common.generate_callback import Generate
@@ -27,6 +28,8 @@ from examples.common.optim import (DecoupledAdaLRLion, DecoupledClipLion,
 from examples.common.resumption_callbacks import GlobalLRScaling, LayerFreezing
 from examples.common.scheduled_gc_callback import ScheduledGarbageCollector
 from examples.common.text_data import Tokenizer, build_text_dataloader
+
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 
 def build_callback(name, kwargs):

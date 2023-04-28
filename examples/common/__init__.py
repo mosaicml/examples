@@ -13,7 +13,7 @@ try:
     from examples.common.hf_fsdp import (prepare_hf_causal_lm_model_for_fsdp,
                                          prepare_hf_enc_dec_model_for_fsdp,
                                          prepare_hf_model_for_fsdp)
-    from examples.common.text_data import (StreamingTextDataset, Tokenizer,
+    from examples.common.text_data import (StreamingTextDataset,
                                            build_text_dataloader)
 except ImportError as e:
     raise ImportError(
@@ -34,7 +34,6 @@ __all__ = [
     'log_config',
     'StreamingTextDataset',
     'build_text_dataloader',
-    'Tokenizer',
     'prepare_hf_causal_lm_model_for_fsdp',
     'prepare_hf_enc_dec_model_for_fsdp',
     'prepare_hf_model_for_fsdp',

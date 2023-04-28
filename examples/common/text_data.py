@@ -5,7 +5,7 @@
 
 import os
 from itertools import islice
-from typing import Any, Callable, Dict, List, Optional, Sequence, TypeAlias
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -16,7 +16,7 @@ from streaming import Stream, StreamingDataset
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-Tokenizer: TypeAlias = PreTrainedTokenizer | PreTrainedTokenizerFast
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 
 class StreamingTextDataset(StreamingDataset):
