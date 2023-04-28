@@ -5,7 +5,6 @@ import logging
 from typing import Union
 
 import torch
-import transformers
 from composer.utils import dist
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
@@ -84,42 +83,13 @@ def build_finetuning_dataloader(cfg: DictConfig, tokenizer: Tokenizer,
             batch_size=device_batch_size,
         )
 
-        collate_fn = Seq2SeqFinetuningCollator(
-            tokenizer=tokenizer,
-            max_seq_len=cfg.dataset.max_seq_len,
-            decoder_only_format=cfg.dataset.decoder_only_format,
-            allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
-        )
-
-        if cfg.dataset.get('packing_ratio'):
-            n_examples_to_pack = int(device_batch_size *
-                                     cfg.dataset.packing_ratio)
-            if n_examples_to_pack < device_batch_size:
-                raise ValueError('packing_ratio must be >= 1, if supplied')
-            if not cfg.dataset.decoder_only_format:
-                raise NotImplementedError(
-                    'On-the-fly packing is currently only supported for decoder-only formats.'
-                )
-            collate_fn = BinPackWrapper(
-                collator=collate_fn,
-                target_batch_size=device_batch_size,
-                max_seq_len=cfg.dataset.max_seq_len,
-                pad_token_id=tokenizer.pad_token_id,
-                padding_side=tokenizer.padding_side,
-                max_leftover_bins_to_keep=cfg.dataset.get(
-                    'max_leftover_bins_to_keep'),
-            )
-            device_batch_size = n_examples_to_pack
-        elif cfg.dataset.get('max_leftover_bins_to_keep') is not None:
-            raise ValueError(
-                'cfg.dataset.max_leftover_bins_to_keep has been defined, ' +\
-                'but cfg.dataset.packing_ratio has not been set. Please set ' +\
-                'the latter to turn on packing or remove the former from the config.')
+        collate_fn, dataloader_batch_size = _build_collate_fn(
+            cfg, tokenizer, device_batch_size)
 
         return DataLoader(
             dataset,
             collate_fn=collate_fn,
-            batch_size=device_batch_size,
+            batch_size=dataloader_batch_size,
             drop_last=cfg.drop_last,
             num_workers=cfg.num_workers,
             pin_memory=cfg.get('pin_memory', True),
@@ -135,42 +105,13 @@ def build_finetuning_dataloader(cfg: DictConfig, tokenizer: Tokenizer,
 
         dataset = dataset_constructor.build(cfg.dataset, tokenizer)
 
-        collate_fn = Seq2SeqFinetuningCollator(
-            tokenizer,
-            max_seq_len=cfg.dataset.max_seq_len,
-            decoder_only_format=cfg.dataset.decoder_only_format,
-            allow_pad_trimming=cfg.dataset.get('allow_pad_trimming', False),
-        )
-
-        if cfg.dataset.get('packing_ratio'):
-            n_examples_to_pack = int(device_batch_size *
-                                     cfg.dataset.packing_ratio)
-            if n_examples_to_pack < device_batch_size:
-                raise ValueError('packing_ratio must be >= 1, if supplied')
-            if not cfg.dataset.decoder_only_format:
-                raise NotImplementedError(
-                    'On-the-fly packing is currently only supported for decoder-only formats.'
-                )
-            collate_fn = BinPackWrapper(
-                collator=collate_fn,
-                target_batch_size=device_batch_size,
-                max_seq_len=cfg.dataset.max_seq_len,
-                pad_token_id=tokenizer.pad_token_id,
-                padding_side=tokenizer.padding_side,
-                max_leftover_bins_to_keep=cfg.dataset.get(
-                    'max_leftover_bins_to_keep'),
-            )
-            device_batch_size = n_examples_to_pack
-        elif cfg.dataset.get('max_leftover_bins_to_keep') is not None:
-            raise ValueError(
-                'cfg.dataset.max_leftover_bins_to_keep has been defined, ' +\
-                'but cfg.dataset.packing_ratio has not been set. Please set ' +\
-                'the latter to turn on packing or remove the former from the config.')
+        collate_fn, dataloader_batch_size = _build_collate_fn(
+            cfg.dataset, tokenizer, device_batch_size)
 
         return DataLoader(
             dataset,
             collate_fn=collate_fn,
-            batch_size=device_batch_size,
+            batch_size=dataloader_batch_size,
             sampler=dist.get_sampler(dataset,
                                      drop_last=cfg.drop_last,
                                      shuffle=cfg.dataset.shuffle),
@@ -182,15 +123,56 @@ def build_finetuning_dataloader(cfg: DictConfig, tokenizer: Tokenizer,
         )
 
 
+def _build_collate_fn(dataset_cfg: DictConfig, tokenizer: Tokenizer,
+                      device_batch_size: int):
+    collate_fn = Seq2SeqFinetuningCollator(
+        tokenizer=tokenizer,
+        max_seq_len=dataset_cfg.max_seq_len,
+        decoder_only_format=dataset_cfg.decoder_only_format,
+        allow_pad_trimming=dataset_cfg.get('allow_pad_trimming', False),
+    )
+
+    packing_ratio = dataset_cfg.get('packing_ratio')
+    if packing_ratio is None:
+        if dataset_cfg.get('max_leftover_bins_to_keep') is not None:
+            raise ValueError(
+                'dataset.max_leftover_bins_to_keep has been defined, ' +\
+                'but dataset.packing_ratio has not been set. Please set ' +\
+                'the latter to turn on packing or remove the former from the config.')
+        return collate_fn, device_batch_size
+
+    if packing_ratio == 1.0:
+        return collate_fn, device_batch_size
+    elif packing_ratio < 1.0:
+        raise ValueError('packing_ratio must be >= 1, if supplied')
+
+    if not dataset_cfg.decoder_only_format:
+        raise NotImplementedError(
+            'On-the-fly packing is currently only supported for decoder-only formats.'
+        )
+
+    collate_fn = BinPackWrapper(
+        collator=collate_fn,
+        target_batch_size=device_batch_size,
+        max_seq_len=dataset_cfg.max_seq_len,
+        pad_token_id=tokenizer.pad_token_id,
+        padding_side=tokenizer.padding_side,
+        max_leftover_bins_to_keep=dataset_cfg.get('max_leftover_bins_to_keep'),
+    )
+    n_examples_to_pack = int(device_batch_size * packing_ratio)
+    return collate_fn, n_examples_to_pack
+
+
 if __name__ == '__main__':
     import torch
     from omegaconf import OmegaConf as om
+
+    from examples.common import build_tokenizer
     cfg = om.create({
         'dataset': {
             'name': 'tatsu-lab/alpaca',
             'split': 'train',
             'packing_ratio': 18.0,
-            'tokenizer_name': 'gpt2',
             'max_seq_len': 2048,
             'decoder_only_format': True,
             'separator_text': False,
@@ -206,22 +188,19 @@ if __name__ == '__main__':
         'timeout': 0
     })
 
-    device_batch_size = 8
+    tokenizer_cfg = {'name': 'gpt2', 'kwargs': {}}
+    tokenizer_cfg['kwargs'] = {'model_max_length': cfg.dataset.max_seq_len}
+    tokenizer_cfg = om.create(tokenizer_cfg)
+    tokenizer = build_tokenizer(tokenizer_cfg)
 
-    dataloader = build_finetuning_dataloader(cfg, device_batch_size)
-
-    tokenizer = transformers.AutoTokenizer.from_pretrained(
-        cfg.dataset.tokenizer_name)
+    device_batch_size = 2
+    dataloader = build_finetuning_dataloader(cfg, tokenizer, device_batch_size)
 
     packing = cfg.dataset.get('packing_ratio') is not None
 
     for i, batch in enumerate(dataloader):
-        if i >= 100:
+        if i >= 5:
             break
-        if i >= 1:
-            if not packing:
-                break
-            continue
         print(f'-----Batch {i}-----')
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
@@ -287,6 +266,3 @@ if __name__ == '__main__':
                         j, batch['decoder_attention_mask'][j] == 1],
                                      skip_special_tokens=False))
         print('   ')
-    if packing:
-        print(f'Padding = {100*(1-dataloader.collate_fn.efficiency):5.2f}%')
-        print(f'Waste   = {100*dataloader.collate_fn.waste:5.2f}%')
