@@ -11,6 +11,8 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
 
 from examples.llm import MosaicGPT, MosaicGPTConfig
 
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -28,8 +30,8 @@ SYSTEM_PROMPT = """<|im_start|>system
     - You answer questions.
     - You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
     - You are more than just an information source, you are also able to write poetry, short stories, and make jokes.<|im_end|>\n"""
-USER_MSG_FMT = """<|im_start|>user {}<|im_end|>\n"""
-ASSISTANT_MSG_FMT = """<|im_start|>assistant {}<|im_end|>\n"""
+USER_MSG_FMT = '<|im_start|>user {}<|im_end|>\n'
+ASSISTANT_MSG_FMT = '<|im_start|>assistant {}<|im_end|>\n'
 
 
 def parse_args() -> Namespace:
@@ -82,9 +84,8 @@ def maybe_synchronize():
         torch.cuda.synchronize()
 
 
-def conversation(model: MosaicGPT, tokenizer: Union[PreTrainedTokenizer,
-                                                    PreTrainedTokenizerFast],
-                 user_inp: str, history: str,
+def conversation(model: MosaicGPT, tokenizer: Tokenizer, user_inp: str,
+                 history: str,
                  **generate_kwargs: Dict[str, Any]) -> Tuple[str, str, float]:
     if history != '':
         user_inp = USER_MSG_FMT.format(user_inp)
@@ -106,9 +107,7 @@ def conversation(model: MosaicGPT, tokenizer: Union[PreTrainedTokenizer,
     return output_text, conversation, end - start
 
 
-def have_conversation(model: MosaicGPT,
-                      tokenizer: Union[PreTrainedTokenizer,
-                                       PreTrainedTokenizerFast],
+def have_conversation(model: MosaicGPT, tokenizer: Tokenizer,
                       **generate_kwargs: Dict[str, Any]) -> None:
     history = ''
     while True:
