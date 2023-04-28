@@ -42,9 +42,9 @@ Now that we've covered that concept, we'll describe the 3 different usage patter
 
 ### 1) Using a dataset on the HuggingFace Hub
 
-Let's say you want to finetune off of a dataset available on the HuggingFace Hub. We'll pretend this dataset on the Hub is called `hf-hub/identifier`.
+Let's say you want to finetune using a dataset available on the HuggingFace Hub. We'll pretend this dataset on the Hub is called `hf-hub/identifier`.
 
-1. In `_task.py`, write a function for processing the dataset, to split it into prompt and response
+1. In `_tasks.py`, write a function for processing the dataset, to split it into prompt and response
 1. Register this function using `@dataset_constructor.register('hf-hub/identifier')`
 1. Reference this in a training yaml, such as the one in `yamls/mosaic_gpt/finetune/7b_dolly_sft.yaml`
 ```yaml
@@ -79,7 +79,7 @@ train_loader:
 
 Let's say you have an MDS-formatted dataset. For example, maybe you used the `convert_finetuning_dataset.py` script to convert a large HuggingFace dataset into a streaming format and saved it to S3.
 
-1. In `_task.py`, write a function for processing the dataset, to split it into prompt and response
+1. In `_tasks.py`, write a function for processing the dataset, to split it into prompt and response
 1. Register this function using `@dataset_constructor.register('some_name')`
 1. Set the `dataset.remote` and `dataset.local` values in your YAML
 ```yaml

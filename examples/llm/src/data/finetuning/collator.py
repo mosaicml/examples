@@ -29,7 +29,7 @@ class Seq2SeqFinetuningCollator:
             sizes. Default: ``False`` ensures that all sequences are max_seq_len.
         separator_text (str | bool, optional): If a string is provided, it will
             be used to separate the context and target sequences (appended to end
-            of context). If True, will use the tokenizer's sep_token, which must
+            of context). If ``True``, will use the tokenizer's sep_token, which must
             be defined. Only applicable for decoder-only formatting.
         format_for_generation (bool, optional): Whether to format the batch such
             that context and target sequences remain separated, which is useful
