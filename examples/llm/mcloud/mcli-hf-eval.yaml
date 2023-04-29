@@ -34,7 +34,7 @@ parameters:
       # name: StabilityAI/stablelm-base-alpha-7b
       name: huggyllama/llama-7b
       kwargs:
-        model_max_length: 2048
+        model_max_length: 1024
 
   model:
     name: hf_causal_lm
@@ -49,9 +49,9 @@ parameters:
 
 
   # FSDP config for model sharding
-  fsdp_config:
-    sharding_strategy: FULL_SHARD
-    mixed_precision: PURE
+  # fsdp_config:
+  #   sharding_strategy: FULL_SHARD
+  #   mixed_precision: PURE
 
   icl_tasks:
     -
@@ -66,7 +66,6 @@ parameters:
       icl_task_type: language_modeling
       metric_names:
       - InContextLearningLMAccuracy
-      - InContextLearningLMExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: ' Answer: ' # this separates questions from answers
@@ -80,7 +79,6 @@ parameters:
       icl_task_type: language_modeling
       metric_names:
       - InContextLearningLMAccuracy
-      - InContextLearningLMExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: ' ' # this separates contexts from continuations
@@ -96,7 +94,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
@@ -112,7 +109,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: ' ' # this separates questions from answers
@@ -128,7 +124,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
@@ -144,7 +139,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
@@ -160,8 +154,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
-
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: ' ' # this separates questions from answers
@@ -177,7 +169,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
@@ -193,7 +184,6 @@ parameters:
       icl_task_type: multiple_choice
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: 'Answer: ' # this separates questions from answers
@@ -210,7 +200,6 @@ parameters:
       icl_task_type: schema
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: '' # this separates questions from answers
@@ -226,7 +215,6 @@ parameters:
       icl_task_type: schema
       metric_names:
       - InContextLearningMultipleChoiceAccuracy
-      - InContextLearningMCExpectedCalibrationError
       prompt_string: '' # this goes at the beginning of each input
       example_delimiter: '\n' # this goes between fewshot examples
       continuation_delimiter: '' # this separates questions from answers

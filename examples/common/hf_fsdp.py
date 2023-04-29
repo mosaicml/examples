@@ -95,6 +95,7 @@ def prepare_hf_model_for_fsdp(model: PreTrainedModel) -> None:
     else:
         # many common decoder-only model do not set the flag
         # model.config.is_decoder, so we can't trust it
+
         prepare_hf_causal_lm_model_for_fsdp(model)
 
 
@@ -112,6 +113,8 @@ def prepare_hf_causal_lm_model_for_fsdp(model: PreTrainedModel) -> None:
     lm_head = model.get_output_embeddings()
     # some models (OPT) implement .get_input_embeddings for the causal subclass
     # but all of them implement it for the base model
+    if causal_base_model is None:
+        return
     tied_embeddings = causal_base_model.get_input_embeddings()
     modules = {
         'base_model': causal_base_model,
