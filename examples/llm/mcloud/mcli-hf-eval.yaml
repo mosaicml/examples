@@ -17,8 +17,8 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 # run_name: pythia-eval
 # run_name: opt-eval
 # run_name: cerebras-eval
-# run_name: stablelm-eval
-run_name: llama-eval
+run_name: stablelm-eval
+# run_name: llama-eval
 gpu_num: 8
 gpu_type: a100_80gb
 cluster: r1z1 # replace with your cluster here!
@@ -31,8 +31,8 @@ parameters:
       # name: EleutherAI/pythia-6.9b
       # name: facebook/opt-6.7b
       # name: cerebras/Cerebras-GPT-6.7B
-      # name: StabilityAI/stablelm-base-alpha-7b
-      name: huggyllama/llama-7b
+      name: StabilityAI/stablelm-base-alpha-7b
+      # name: huggyllama/llama-7b
       kwargs:
         model_max_length: 1024
 
@@ -42,16 +42,16 @@ parameters:
     # pretrained_model_name_or_path: EleutherAI/pythia-6.9b
     # pretrained_model_name_or_path: facebook/opt-6.7b
     # pretrained_model_name_or_path: cerebras/Cerebras-GPT-6.7B
-    # pretrained_model_name_or_path: StabilityAI/stablelm-base-alpha-7b
-    pretrained_model_name_or_path: huggyllama/llama-7b
+    pretrained_model_name_or_path: StabilityAI/stablelm-base-alpha-7b
+    # pretrained_model_name_or_path: huggyllama/llama-7b
     device: cpu
     pretrained: true
 
 
   # FSDP config for model sharding
-  # fsdp_config:
-  #   sharding_strategy: FULL_SHARD
-  #   mixed_precision: PURE
+  fsdp_config:
+    sharding_strategy: FULL_SHARD
+    mixed_precision: PURE
 
   icl_tasks:
     -
