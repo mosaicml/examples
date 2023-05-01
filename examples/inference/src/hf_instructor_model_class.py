@@ -15,10 +15,6 @@ class BaseModelHandler:
     def predict(self, **inputs: Dict[str, Any]):
         raise NotImplementedError
 
-    def predict_stream(self, **inputs: Dict[str, Any]):
-        raise NotImplementedError
-
-
 class HFInstructorLargeModel(BaseModelHandler):
     MODEL_NAME = 'hkunlp/instructor-large'
 
@@ -30,6 +26,5 @@ class HFInstructorLargeModel(BaseModelHandler):
         if "input_strings" not in inputs:
             raise KeyError("input_strings key not in inputs")
         
-        print(inputs)
         embeddings = self.model.encode(inputs["input_strings"])
         return embeddings.tolist()
