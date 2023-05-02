@@ -12,7 +12,7 @@ from composer import Trainer
 from composer.algorithms import (EMA, SAM, BlurPool, ChannelsLast, ColOut,
                                  LabelSmoothing, MixUp, ProgressiveResizing,
                                  RandAugment, StochasticDepth)
-from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
+from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor, RuntimeEstimator
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingWithWarmupScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
@@ -34,9 +34,9 @@ def build_logger(name: str, kwargs: Dict):
 
 def main(config):
     reproducibility.seed_all(config.seed)
-    if config.grad_accum == 'auto' and not torch.cuda.is_available():
+    if config.device_train_microbatch_size == 'auto' and not torch.cuda.is_available():
         raise ValueError(
-            'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
+            'device_train_microbatch_size="auto" requires training with a GPU; please specify device_train_microbatch_size as an integer'
         )
 
     # If using a recipe, update the config's loss name, eval and train resize sizes, and the max duration
@@ -117,6 +117,7 @@ def main(config):
     )  # Measures throughput as samples/sec and tracks total training time
     lr_monitor = LRMonitor()  # Logs the learning rate
     memory_monitor = MemoryMonitor()  # Logs memory utilization
+    runtime_estimator = RuntimeEstimator()
 
     # Callback for checkpointing
     print('Built Speed, LR, and Memory monitoring callbacks\n')
@@ -176,13 +177,13 @@ def main(config):
     # Create the Trainer!
     print('Building Trainer')
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
+    precision = 'amp_fp16' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
         model=composer_model,
         train_dataloader=train_dataspec,
         eval_dataloader=eval_dataspec,
-        eval_interval='1ep',
+        eval_interval='50ba',
         optimizers=optimizer,
         schedulers=lr_scheduler,
         algorithms=algorithms,
@@ -196,7 +197,7 @@ def main(config):
         load_path=config.load_path,
         device=device,
         precision=precision,
-        grad_accum=config.grad_accum,
+        device_train_microbatch_size=config.device_train_microbatch_size,
         seed=config.seed,
         python_log_level=config.get('python_log_level', None),
     )
