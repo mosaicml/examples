@@ -204,7 +204,8 @@ def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     )
 
 
-@dataset_constructor.register('sam-mosaic/vicuna_alpaca_hc3_chatml')
+@dataset_constructor.register('sam-mosaic/vicuna_alpaca_hc3_chatml',
+                              'sam-mosaic/dolly_hhrlhf')
 def dolly_chatml_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Already split, just tokenize."""
     return tokenizer(
