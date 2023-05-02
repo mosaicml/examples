@@ -30,7 +30,8 @@ def build_logger(name: str, kwargs: Dict):
 
 def main(config):
     reproducibility.seed_all(config.seed)
-    if config.device_train_microbatch_size == 'auto' and not torch.cuda.is_available():
+    if config.device_train_microbatch_size == 'auto' and not torch.cuda.is_available(
+    ):
         raise ValueError(
             'device_train_microbatch_size="auto" requires training with a GPU; please specify device_train_microbatch_size as an integer'
         )
