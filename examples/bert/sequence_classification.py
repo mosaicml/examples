@@ -129,7 +129,6 @@ def main(cfg: DictConfig,
     print('Building train loader...')
     train_loader = build_my_dataloader(
         cfg.train_loader,
-        model.tokenizer,
         cfg.global_train_batch_size // dist.get_world_size(),
     )
     print('Building eval loader...')
@@ -137,7 +136,6 @@ def main(cfg: DictConfig,
                                      cfg.global_train_batch_size)
     eval_loader = build_my_dataloader(
         cfg.eval_loader,
-        model.tokenizer,
         global_eval_batch_size // dist.get_world_size(),
     )
 
