@@ -194,7 +194,7 @@ def main(config):
         save_interval=config.save_interval,
         save_num_checkpoints_to_keep=config.save_num_checkpoints_to_keep,
         save_overwrite=config.get('save_overwrite', False),
-        load_path=config.load_path,
+        load_path=config.get('load_path', None),
         device=device,
         precision=precision,
         device_train_microbatch_size=config.device_train_microbatch_size,
