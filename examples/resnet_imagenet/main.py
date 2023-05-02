@@ -200,7 +200,7 @@ def main(config):
         device_train_microbatch_size=config.device_train_microbatch_size,
         seed=config.seed,
         python_log_level=config.get('python_log_level', None),
-        train_subset_num_batches=100,
+        train_subset_num_batches=1000,
     )
     print('Built Trainer\n')
 
