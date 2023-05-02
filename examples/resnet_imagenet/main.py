@@ -183,13 +183,13 @@ def main(config):
         model=composer_model,
         train_dataloader=train_dataspec,
         eval_dataloader=eval_dataspec,
-        eval_interval='50ba',
+        eval_interval='1ep',
         optimizers=optimizer,
         schedulers=lr_scheduler,
         algorithms=algorithms,
         loggers=loggers,
         max_duration=config.max_duration,
-        callbacks=[speed_monitor, lr_monitor, memory_monitor],
+        callbacks=[speed_monitor, lr_monitor, memory_monitor, runtime_estimator],
         save_folder=config.save_folder,
         save_interval=config.save_interval,
         save_num_checkpoints_to_keep=config.save_num_checkpoints_to_keep,
@@ -200,6 +200,7 @@ def main(config):
         device_train_microbatch_size=config.device_train_microbatch_size,
         seed=config.seed,
         python_log_level=config.get('python_log_level', None),
+        train_subset_num_batches='100ba',
     )
     print('Built Trainer\n')
 
