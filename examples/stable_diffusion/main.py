@@ -58,7 +58,7 @@ def main(config: DictConfig):  # type: ignore
 
     # Eval dataset
     eval_dataspec = build_prompt_dataspec(
-        config.dataset.prompts, 
+        config.dataset.prompts,
         batch_size=config.eval_device_batch_size // dist.get_world_size(),
     )
 
