@@ -27,9 +27,9 @@ def main(config: DictConfig):  # type: ignore
     ) > 1:  # initialize the pytorch distributed process group if training on multiple gpus.
         dist.initialize_dist(device)
 
-    if config.grad_accum == 'auto' and device == 'cpu':
+    if config.device_train_microbatch_size == 'auto' and device == 'cpu':
         raise ValueError(
-            'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
+            'device_train_microbatch_size="auto" requires training with a GPU; please specify device_train_microbatch_size as an integer'
         )
     # calculate batch size per device and add it to config (These calculations will be done inside the composer trainer in the future)
     config.train_device_batch_size, _, _ = calculate_batch_size_info(
@@ -113,7 +113,7 @@ def main(config: DictConfig):  # type: ignore
         load_path=config.load_path,
         device=device,
         precision=config.precision,
-        grad_accum=config.grad_accum,
+        device_train_microbatch_size=config.device_train_microbatch_size,
         seed=config.seed)
 
     print('Logging config')
