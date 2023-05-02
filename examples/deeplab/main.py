@@ -31,11 +31,13 @@ def build_logger(name: str, kwargs: dict):
 
 def main(config):
     reproducibility.seed_all(config.seed)
-
-    if config.device_train_microbatch_size == 'auto' and not torch.cuda.is_available():
+    auto_microbatching = config.device_train_microbatch_size == 'auto' 
+    if auto_microbatching and not torch.cuda.is_available():
         raise ValueError(
-            'device_train_microbatch_size="auto" requires training with a GPU; please specify device_train_microbatch_size as an integer'
+            'device_train_microbatch_size="auto" requires training with a GPU. Please specify'
+            ' device_train_microbatch_size as an integer'
         )
+
 
     # If using a recipe, update the config's loss name, eval and train resize sizes, and the max duration
     if config.recipe_name:
