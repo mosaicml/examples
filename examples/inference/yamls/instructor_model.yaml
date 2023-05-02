@@ -1,0 +1,24 @@
+name: instructor-large
+cluster: r7z13
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:latest
+replicas: 1
+command: |
+  cd examples
+  touch __init__.py
+  cd ..
+  uvicorn serve:app --host 0.0.0.0 --port 8080
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  pip_install: -r /code/examples/examples/inference/requirements.txt
+model:
+  checkpoint_path: hkunlp/instructor-large
+  custom_model:
+    model_handler: examples.examples.inference.src.hf_instructor_model_class.HFInstructorLargeModel
+metadata:
+  version: 1
+  model_name: Instructor-Large
+  task_type: feature-extraction
+  tag: mosaic-hosted-model
