@@ -1,5 +1,3 @@
-data_local: ./my-copy-c4
-data_remote: # If blank, files must be present in data_local
 max_seq_len: 2048
 global_seed: 17
 
@@ -7,12 +5,13 @@ global_seed: 17
 run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 
 # Model
+# These must match pretraining
 model:
   name: mosaic_gpt
   init_device: meta
-  d_model: 8192
-  n_heads: 64
-  n_layers: 80
+  d_model: 2048
+  n_heads: 16 # Modified 24->16 so that d_head == 128 to statisfy FlashAttention
+  n_layers: 24
   mlp_ratio: 4
   max_seq_len: ${max_seq_len}
   vocab_size: 50368
@@ -24,56 +23,64 @@ tokenizer:
   kwargs:
     model_max_length: ${max_seq_len}
 
+# Local data to load into huggingface datasets
+dataset: &hf_dataset
+  name: mylocalset
+  kwargs:
+    data_files:
+      train: /path/to/train.jsonl
+      test: /path/to/test.jsonl
+
 # Dataloaders
-train_loader:
-  name: text
+train_loader: &train_loader
+  name: finetuning
   dataset:
-    local: ${data_local}
-    remote: ${data_remote}
+    <<: *hf_dataset
     split: train
+    max_seq_length: ${max_seq_len}
+    allow_pad_trimming: false
+    decoder_only_format: true
+    packing_ratio: 3.5
     shuffle: true
-    max_seq_len: ${max_seq_len}
-    shuffle_seed: ${global_seed}
   drop_last: true
   num_workers: 8
+  pin_memory: false
+  prefetch_factor: 2
+  persistent_workers: true
+  timeout: 0
 
 eval_loader:
-  name: text
+  <<: *train_loader
   dataset:
-    local: ${data_local}
-    remote: ${data_remote}
-    split: val
-    shuffle: false
-    max_seq_len: ${max_seq_len}
-    shuffle_seed: ${global_seed}
-  drop_last: false
-  num_workers: 8
+    <<: *hf_dataset
+    split: test
 
 # Optimization
 scheduler:
-  name: cosine_with_warmup
-  t_warmup: 100ba
-  alpha_f: 0.1
+  name: linear_decay_with_warmup # linear no warmup is HF default which dolly used
+  t_warmup: 0ba
+  alpha_f: 0
 
 optimizer:
+  # mimic HF defaults to replicate dolly
   name: decoupled_adamw
-  lr: 8.0e-5
+  lr: 1.0e-5
   betas:
   - 0.9
-  - 0.95
-  eps: 1.0e-08
-  weight_decay: 0.0
+  - 0.999
+  eps: 1.0e-8
+  weight_decay: 0
 
 algorithms:
   gradient_clipping:
     clipping_type: norm
     clipping_threshold: 1.0
 
-max_duration: 333800ba  # ~ 1.4T tokens
-eval_interval: 10000ba
+max_duration: 1ep
+eval_interval: 50ba
 eval_first: false
 eval_subset_num_batches: -1
-global_train_batch_size: 2048
+global_train_batch_size: 128
 
 # System
 seed: ${global_seed}
@@ -86,7 +93,7 @@ precision: amp_bf16
 fsdp_config:
   sharding_strategy: FULL_SHARD
   mixed_precision: PURE
-  activation_checkpointing: true
+  activation_checkpointing: false
   activation_checkpointing_reentrant: false
   activation_cpu_offload: false
   limit_all_gathers: true
@@ -108,11 +115,11 @@ callbacks:
 #   wandb: {}
 
 # Checkpoint to local filesystem or remote object store
-# save_interval: 10000ba
+# save_interval: 2000ba
 # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
 # save_folder: ./{run_name}/checkpoints
 # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
-# Load from local filesystem or remote object store
-# load_path: ./gpt-70b/checkpoints/latest-rank{rank}.pt
-# load_path: s3://my-bucket/my-folder/gpt-70b/checkpoints/latest-rank{rank}.pt
+# Load from remote object store
+# REPLACE THE BELOW with you own checkpoint!
+load_path: oci://my-bucket/my-folder/gpt-7b/checkpoints/some_checkpoint.ckpt

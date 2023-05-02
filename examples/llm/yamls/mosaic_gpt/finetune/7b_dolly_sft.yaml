@@ -1,5 +1,5 @@
-data_local: ./my-copy-c4
-data_remote: # If blank, files must be present in data_local
+# data_local: ./my-copy-c4
+# data_remote: # If blank, files must be present in data_local
 max_seq_len: 2048
 global_seed: 17
 
@@ -10,9 +10,9 @@ run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
 model:
   name: mosaic_gpt
   init_device: meta
-  d_model: 8192
-  n_heads: 64
-  n_layers: 80
+  d_model: 4096
+  n_heads: 32
+  n_layers: 32
   mlp_ratio: 4
   max_seq_len: ${max_seq_len}
   vocab_size: 50368
@@ -26,59 +26,55 @@ tokenizer:
 
 # Dataloaders
 train_loader:
-  name: text
+  name: finetuning
   dataset:
-    local: ${data_local}
-    remote: ${data_remote}
+    name: HuggingFaceH4/databricks_dolly_15k
     split: train
+    max_seq_length: ${max_seq_len}
+    allow_pad_trimming: false
+    decoder_only_format: true
+    packing_ratio: 3.5
     shuffle: true
-    max_seq_len: ${max_seq_len}
-    shuffle_seed: ${global_seed}
   drop_last: true
   num_workers: 8
+  pin_memory: false
+  prefetch_factor: 2
+  persistent_workers: true
+  timeout: 0
 
-eval_loader:
-  name: text
-  dataset:
-    local: ${data_local}
-    remote: ${data_remote}
-    split: val
-    shuffle: false
-    max_seq_len: ${max_seq_len}
-    shuffle_seed: ${global_seed}
-  drop_last: false
-  num_workers: 8
+# There is no validation split so we skip eval_loader
 
 # Optimization
 scheduler:
-  name: cosine_with_warmup
-  t_warmup: 100ba
-  alpha_f: 0.1
+  name: linear_decay_with_warmup # linear no warmup is HF default which dolly used
+  t_warmup: 0ba
+  alpha_f: 0
 
 optimizer:
+  # mimic HF defaults to replicate dolly
   name: decoupled_adamw
-  lr: 8.0e-5
+  lr: 1.0e-5
   betas:
   - 0.9
-  - 0.95
-  eps: 1.0e-08
-  weight_decay: 0.0
+  - 0.999
+  eps: 1.0e-8
+  weight_decay: 0
 
 algorithms:
   gradient_clipping:
     clipping_type: norm
     clipping_threshold: 1.0
 
-max_duration: 333800ba  # ~ 1.4T tokens
-eval_interval: 10000ba
-eval_first: false
-eval_subset_num_batches: -1
-global_train_batch_size: 2048
+max_duration: 1ep
+eval_interval: 1 # this is the only allowed value for no eval
+# eval_first: false
+# eval_subset_num_batches: -1
+global_train_batch_size: 64 # assuming 8 gpus
 
 # System
 seed: ${global_seed}
-device_eval_batch_size: 4
-device_train_microbatch_size: 4
+device_eval_batch_size: 8
+device_train_microbatch_size: 8
 # device_train_microbatch_size: auto
 precision: amp_bf16
 
@@ -108,11 +104,11 @@ callbacks:
 #   wandb: {}
 
 # Checkpoint to local filesystem or remote object store
-# save_interval: 10000ba
+# save_interval: 5000ba
 # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
 # save_folder: ./{run_name}/checkpoints
 # save_folder: s3://my-bucket/my-folder/{run_name}/checkpoints
 
-# Load from local filesystem or remote object store
-# load_path: ./gpt-70b/checkpoints/latest-rank{rank}.pt
-# load_path: s3://my-bucket/my-folder/gpt-70b/checkpoints/latest-rank{rank}.pt
+# Load from remote object store
+# REPLACE THE BELOW with you own checkpoint!
+load_path: oci://my-bucket/my-folder/gpt-7b/checkpoints/some_checkpoint.ckpt
