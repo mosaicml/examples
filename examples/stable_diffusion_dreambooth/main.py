@@ -148,7 +148,7 @@ def main(config: DictConfig):  # type: ignore
         load_path=config.load_path,
         device=config.device,
         precision=config.get('precision'),
-        grad_accum=config.get('grad_accum'),
+        device_train_microbatch_size=config.get('device_train_microbatch_size'),
         seed=config.seed,
         fsdp_config=fsdp_config)
 

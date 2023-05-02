@@ -1,5 +1,5 @@
 max_duration: 1ba
-grad_accum: 1
+device_train_microbatch_size: 1
 
 train_dataset:
   is_streaming: true

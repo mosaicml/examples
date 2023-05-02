@@ -14,11 +14,11 @@ command: |
   composer main.py /mnt/config/parameters.yaml
 # Configuration similar to baseline.yaml
 parameters:
-  run_name: deeplabv3_ade20k # Name of the  training run used for checkpointing and other logging
-  is_train: true             # Trains the model if true, otherwise runs evaluation
-  seed: 17                   # Random seed
-  max_duration: 128ep         # Duration to train specified as a Time string
-  grad_accum: auto           # Amount of gradient accumulation, 'auto' means Composer will choose the optimal value
+  run_name: deeplabv3_ade20k            # Name of the  training run used for checkpointing and other logging
+  is_train: true                        # Trains the model if true, otherwise runs evaluation
+  seed: 17                              # Random seed
+  max_duration: 128ep                   # Duration to train specified as a Time string
+  device_train_microbatch_size: auto    # Size of microbatch, 'auto' means Composer will choose the optimal value
 
   # Model
   model:
