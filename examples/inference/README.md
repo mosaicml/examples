@@ -23,7 +23,7 @@ The logs for a successful deployment should look something like:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/instructor_model_logs.png">
-  <img alt="Logs from single node NeMo trianing." src="./assets/instructor_model_logs.png">
+  <img alt="Logs from server startup." src="./assets/instructor_model_logs.png">
 </picture>
 
 # Running Inference

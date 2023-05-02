@@ -2,7 +2,7 @@ name: instructor-large
 cluster: r7z13
 gpu_num: 1
 gpu_type: a100_40gb
-image: mosaicml/inference-testing:a6409984-b6e2-422f-bba9-57323851d42b
+image: mosaicml/inference:latest
 replicas: 1
 command: |
   cd examples
@@ -11,7 +11,6 @@ command: |
   uvicorn serve:app --host 0.0.0.0 --port 8080
 integrations:
 - integration_type: git_repo
-  git_branch: roshan/inference_hf_model
   git_repo: mosaicml/examples
   pip_install: -r /code/examples/examples/inference/requirements.txt
 model:
