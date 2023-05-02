@@ -228,30 +228,30 @@ class GlueClassificationJob(FineTuneJob):
         self.optimizer = None
 
     def get_trainer(self, device: Optional[Union[Device, str]] = None):
-        return Trainer(
-            model=self.model,
-            optimizers=self.optimizer,
-            schedulers=self.scheduler,
-            train_dataloader=self.train_dataloader,
-            eval_dataloader=self.evaluators,
-            eval_interval=self.eval_interval,
-            load_path=self.load_path,
-            save_folder=self.save_folder,
-            max_duration=self.max_duration,
-            seed=self.seed,
-            device_train_microbatch_size='auto' if torch.cuda.device_count() > 0 else None,
-            load_weights_only=True,
-            load_strict_model_weights=False,
-            loggers=self.loggers,
-            callbacks=self.callbacks,
-            python_log_level='ERROR',
-            run_name=self.job_name,
-            load_ignore_keys=['state/model/model.classifier*'],
-            precision=self.precision,
-            device=device,
-            progress_bar=True,
-            log_to_console=False,
-            **self.kwargs)
+        return Trainer(model=self.model,
+                       optimizers=self.optimizer,
+                       schedulers=self.scheduler,
+                       train_dataloader=self.train_dataloader,
+                       eval_dataloader=self.evaluators,
+                       eval_interval=self.eval_interval,
+                       load_path=self.load_path,
+                       save_folder=self.save_folder,
+                       max_duration=self.max_duration,
+                       seed=self.seed,
+                       device_train_microbatch_size='auto'
+                       if torch.cuda.device_count() > 0 else None,
+                       load_weights_only=True,
+                       load_strict_model_weights=False,
+                       loggers=self.loggers,
+                       callbacks=self.callbacks,
+                       python_log_level='ERROR',
+                       run_name=self.job_name,
+                       load_ignore_keys=['state/model/model.classifier*'],
+                       precision=self.precision,
+                       device=device,
+                       progress_bar=True,
+                       log_to_console=False,
+                       **self.kwargs)
 
 
 class MNLIJob(GlueClassificationJob):
