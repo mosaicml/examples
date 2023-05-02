@@ -71,7 +71,7 @@ def parse_args() -> Namespace:
                         default=True)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--profile-gen-timing',
+    parser.add_argument('--profile_gen_timing',
                         type=str2bool,
                         nargs='?',
                         const=True,
@@ -93,7 +93,7 @@ def main(args: Namespace) -> None:
             prompts.append(''.join(f.readlines()))
 
     if args.profile_gen_timing:
-        max_new_tokens = [1, 128, 256]
+        max_new_tokens = [1, 1, 128, 256]
         prompts = prompts[:1] * len(max_new_tokens)
     else:
         max_new_tokens = []
