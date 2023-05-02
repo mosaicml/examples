@@ -71,6 +71,11 @@ def parse_args() -> Namespace:
                         default=True)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--profile-gen-timing',
+                        type=str2bool,
+                        nargs='?',
+                        const=True,
+                        default=False)
     return parser.parse_args()
 
 
@@ -86,6 +91,12 @@ def main(args: Namespace) -> None:
             raise FileNotFoundError(f'{prompt_file=} does not match any file.')
         with open(prompt_file, 'r') as f:
             prompts.append(''.join(f.readlines()))
+
+    if args.profile_gen_timing:
+        max_new_tokens = [1, 128, 256]
+        prompts = prompts[:1] * len(max_new_tokens)
+    else:
+        max_new_tokens = []
 
     # Seed randomness
     random.seed(args.seed)
@@ -182,6 +193,9 @@ def main(args: Namespace) -> None:
     #             )
 
     for idx, prompt in enumerate(prompts):
+        if args.profile_gen_timing:
+            generate_kwargs['max_new_tokens'] = max_new_tokens[idx]
+
         print(f'\n\nTokenizing prompt ({idx+1} / {len(prompts)})...')
         maybe_synchronize()
         encode_start = time.time()
@@ -217,11 +231,12 @@ def main(args: Namespace) -> None:
                                axis=1).numpy(force=True)  # type: ignore
 
         # Print generations
-        delimiter = '#' * 100
-        continuation = decoded_gen[len(prompt):]
-        print(delimiter)
-        print('\033[92m' + prompt + '\033[0m' + continuation)
-        print(delimiter)
+        if not args.profile_gen_timing:
+            delimiter = '#' * 100
+            continuation = decoded_gen[len(prompt):]
+            print(delimiter)
+            print('\033[92m' + prompt + '\033[0m' + continuation)
+            print(delimiter)
 
         # Print timing info
         output_tokens = gen_tokens - input_tokens
