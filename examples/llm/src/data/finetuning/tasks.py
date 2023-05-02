@@ -76,23 +76,24 @@ class StreamingFinetuningDataset(StreamingDataset):
             partitioned over the workers. Defaults to ``None``.
     """
 
-    def __init__(self,
-                 local: str,
-                 tokenizer: Tokenizer,
-                 tokenize_function: Callable[[Dict, Tokenizer], Dict],
-                 remote: Optional[str] = None,
-                 split: Optional[str] = None,
-                 shuffle: bool = False,
-                 predownload: Optional[int] = 100_000,
-                 keep_zip: Optional[bool] = None,
-                 download_retry: int = 2,
-                 download_timeout: float = 60,
-                 validate_hash: Optional[str] = None,
-                 shuffle_seed: int = 9176,
-                 num_canonical_nodes: Optional[int] = 128,
-                 batch_size: Optional[int] = None,
-                 **kwargs: Any):
-
+    def __init__(
+        self,
+        local: str,
+        tokenizer: Tokenizer,
+        tokenize_function: Callable[[Dict, Tokenizer], Dict],
+        remote: Optional[str] = None,
+        split: Optional[str] = None,
+        shuffle: bool = False,
+        predownload: Optional[int] = 100_000,
+        keep_zip: Optional[bool] = None,
+        download_retry: int = 2,
+        download_timeout: float = 60,
+        validate_hash: Optional[str] = None,
+        shuffle_seed: int = 9176,
+        num_canonical_nodes: Optional[int] = 128,
+        batch_size: Optional[int] = None,
+        **kwargs: Any,
+    ):
         if len(kwargs) > 0:
             raise ValueError(
                 f'StreamingTextDataset() got an unexpected keyword argument: {kwargs}'
@@ -107,18 +108,20 @@ class StreamingFinetuningDataset(StreamingDataset):
                     )
 
         # Build Dataset
-        super().__init__(local=local,
-                         remote=remote,
-                         split=split,
-                         shuffle=shuffle,
-                         predownload=predownload,
-                         keep_zip=keep_zip,
-                         download_retry=download_retry,
-                         download_timeout=download_timeout,
-                         validate_hash=validate_hash,
-                         shuffle_seed=shuffle_seed,
-                         num_canonical_nodes=num_canonical_nodes,
-                         batch_size=batch_size)
+        super().__init__(
+            local=local,
+            remote=remote,
+            split=split,
+            shuffle=shuffle,
+            predownload=predownload,
+            keep_zip=keep_zip,
+            download_retry=download_retry,
+            download_timeout=download_timeout,
+            validate_hash=validate_hash,
+            shuffle_seed=shuffle_seed,
+            num_canonical_nodes=num_canonical_nodes,
+            batch_size=batch_size,
+        )
 
         self.tokenizer = tokenizer
         self.tokenize_function = tokenize_function
@@ -178,7 +181,6 @@ class DatasetConstructor:
 
     def build_from_streaming(self, dataset_name: str, tokenizer: Tokenizer,
                              **kwargs: Any):
-
         tokenize_function = self._task_tokenization_registry[dataset_name]
 
         dataset = StreamingFinetuningDataset(
@@ -228,8 +230,11 @@ def dolly_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     )
 
 
-@dataset_constructor.register('sam-mosaic/full-hh-rlhf-chatml',
-                              'sam-mosaic/vicuna_alpaca_hc3_chatml')
+@dataset_constructor.register(
+    'sam-mosaic/full-hh-rlhf-chatml',
+    'sam-mosaic/vicuna_alpaca_hc3_chatml',
+    'sam-mosaic/dolly_hhrlhf',
+)
 def simple_tokenize_function(inp: Dict, tokenizer: Tokenizer):
     """Already split, just tokenize."""
     return tokenizer(
