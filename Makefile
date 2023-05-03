@@ -47,6 +47,8 @@ lint:  ## Apply autoformating and run style checks via pre-commit
 	bash scripts/lint_subdirectory.sh stable_diffusion
 	@echo "================================ Linting Stable Diffusion Dreambooth examples"
 	bash scripts/lint_subdirectory.sh stable_diffusion_dreamboth
+	@echo "================================ Linting Inference examples"
+	bash scripts/lint_subdirectory.sh inference
 
 # we don't test the BERT examples since there are no tests yet...
 .PHONY: test
