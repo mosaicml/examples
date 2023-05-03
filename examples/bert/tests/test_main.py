@@ -21,29 +21,30 @@ def test_trainer(model_name: str, seed: int):
     config.seed = seed
 
     with SynthTextDirectory() as tmp_datadir:
-        with SynthTextDirectory() as tmp_datadir2:
-            config.train_loader.dataset.remote = tmp_datadir
-            config.train_loader.dataset.local = tmp_datadir
-            config.eval_loader.dataset.remote = tmp_datadir2
-            config.eval_loader.dataset.local = tmp_datadir2
-            # Also save checkpoints in the temporary directory
-            config.save_folder = tmp_datadir
+        config.train_loader.dataset.remote = tmp_datadir
+        config.train_loader.local = os.path.join(tmp_datadir, 'local2')
+        config.eval_loader.dataset.remote = tmp_datadir
+        config.eval_loader.local = os.path.join(tmp_datadir, 'local2')
+        # Also save checkpoints in the temporary directory
+        config.save_folder = tmp_datadir
 
-            # Train
-            trainer1 = main(config, return_trainer=True)
-            assert trainer1 is not None
-            model1 = trainer1.state.model.model
+        # Train
+        trainer1 = main(config, return_trainer=True)
+        assert trainer1 is not None
+        model1 = trainer1.state.model.model
 
-            # Check that the checkpoint was saved
-            chkpt_path = os.path.join(tmp_datadir, 'latest-rank0.pt')
-            assert os.path.isfile(chkpt_path), f'{os.listdir(tmp_datadir)}'
+        # Check that the checkpoint was saved
+        chkpt_path = os.path.join(tmp_datadir, 'latest-rank0.pt')
+        assert os.path.isfile(chkpt_path), f'{os.listdir(tmp_datadir)}'
 
-            # Check that the checkpoint was loaded by comparing model weights (with no weight changes)
-            config.load_path = chkpt_path
-            config.seed += 10  # change seed
-            trainer2 = main(config, return_trainer=True, do_train=False)
-            assert trainer2 is not None
-            model2 = trainer2.state.model.model
+        # Check that the checkpoint was loaded by comparing model weights (with no weight changes)
+        config.load_path = chkpt_path
+        config.seed += 10  # change seed
+        config.train_loader.local = os.path.join(tmp_datadir, 'local2')
+        config.eval_loader.local = os.path.join(tmp_datadir, 'local2')
+        trainer2 = main(config, return_trainer=True, do_train=False)
+        assert trainer2 is not None
+        model2 = trainer2.state.model.model
 
-            for param1, param2 in zip(model1.parameters(), model2.parameters()):
-                torch.testing.assert_close(param1, param2)
+        for param1, param2 in zip(model1.parameters(), model2.parameters()):
+            torch.testing.assert_close(param1, param2)

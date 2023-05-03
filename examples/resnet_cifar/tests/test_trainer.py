@@ -28,10 +28,10 @@ def test_trainer(use_recipe):
     config.seed = 1337 + 100 * use_recipe
 
     with SynthClassificationDirectory() as tmp_datadir:
-        config.train_dataset.path = os.path.join(tmp_datadir, '1-td1')
-        config.train_dataset.local = os.path.join(tmp_datadir, '1-td1')
-        config.eval_dataset.path = os.path.join(tmp_datadir, '1-td2')
-        config.eval_dataset.local = os.path.join(tmp_datadir, '1-td2')
+        config.train_dataset.path = tmp_datadir
+        config.train_dataset.local = os.path.join(tmp_datadir, 'local1')
+        config.eval_dataset.path = tmp_datadir
+        config.eval_dataset.local = os.path.join(tmp_datadir, 'local2')
         # Also save checkpoints in the temporary directory
         config.save_folder = tmp_datadir
 
@@ -50,10 +50,8 @@ def test_trainer(use_recipe):
         config.load_path = chkpt_path
         config.is_train = False
         config.seed += 10  # change seed
-        config.train_dataset.path = os.path.join(tmp_datadir, '2-td1')
-        config.train_dataset.local = os.path.join(tmp_datadir, '2-td1')
-        config.eval_dataset.path = os.path.join(tmp_datadir, '2-td2')
-        config.eval_dataset.local = os.path.join(tmp_datadir, '2-td2')
+        config.train_dataset.local = os.path.join(tmp_datadir, 'local3')
+        config.eval_dataset.local = os.path.join(tmp_datadir, 'local4')
         trainer2 = main(config)
         model2 = trainer2.state.model.module
 
