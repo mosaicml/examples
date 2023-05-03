@@ -396,17 +396,17 @@ def train(config: om.DictConfig) -> None:
         for _, eval_results in result['result']['metrics'].items():
             for _, metric in eval_results.items():
                 glue_results[job_values['task']].append(metric * 100)
-    glue_results = {
+    glue_results_mean = {
         key: np.mean(values) for key, values in glue_results.items()
     }
 
     overall_glue = []
-    for _, average_metric in glue_results.items():
+    for _, average_metric in glue_results_mean.items():
         overall_glue.append(average_metric)
     overall_glue = np.mean(overall_glue)
 
     _print_averaged_glue_results([(key, value)
-                                  for key, value in glue_results.items()] +
+                                  for key, value in glue_results_mean.items()] +
                                  [('glue', overall_glue)])
 
 
