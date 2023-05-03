@@ -27,6 +27,13 @@ def update_batch_size_info(cfg: DictConfig):
     cfg.n_gpus = dist.get_world_size()
     cfg.device_train_batch_size = device_train_batch_size
     cfg.device_train_microbatch_size = device_microbatch_size
+    # Safely set `device_eval_batch_size` if not provided by user	
+    if 'device_eval_batch_size' not in cfg:	
+        if cfg.device_train_microbatch_size == 'auto':	
+            cfg.device_eval_batch_size = 1	
+        else:	
+            cfg.device_eval_batch_size = cfg.device_train_microbatch_size
+    return cfg
 
 
 def log_config(cfg: DictConfig):
