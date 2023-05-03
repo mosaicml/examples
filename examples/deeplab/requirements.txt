@@ -1,4 +1,3 @@
-mosaicml[streaming,wandb]>=0.14.0,<0.15
+mosaicml[streaming,wandb]>=0.13.4,<0.14
 omegaconf
 mmsegmentation==0.22.0
-torch>=1.13.1,<2.0
