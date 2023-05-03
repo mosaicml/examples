@@ -209,7 +209,7 @@ def run_job_worker(config: om.DictConfig,
     return results
 
 
-def run_jobs_parallel(configs: Sequence[om.DictConfig]):
+def run_jobs_parallel(configs: Sequence[om.DictConfig]) -> Dict[str, Any]:
     """Runs a list of jobs (passed in as Hydra configs) across GPUs.
 
     Returns a dictionary mapping job name to the result and original config
@@ -249,7 +249,7 @@ def run_jobs_parallel(configs: Sequence[om.DictConfig]):
     return finished_results
 
 
-def run_jobs_serial(configs):
+def run_jobs_serial(configs) -> Dict[str, Any]:
     """Runs the jobs serially, rather than in parallel.
 
     Useful for debugging
