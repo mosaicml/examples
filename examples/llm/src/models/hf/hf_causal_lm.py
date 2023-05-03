@@ -3,14 +3,15 @@
 
 """Implements a Hugging Causal LM wrapped inside a :class:`.ComposerModel`."""
 
-from typing import Optional, Union
+from typing import Union
 
 from composer.metrics.nlp import (InContextLearningLMAccuracy,
                                   InContextLearningMultipleChoiceAccuracy,
                                   LanguageCrossEntropy, LanguagePerplexity)
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from transformers import AutoConfig, AutoModelForCausalLM, PreTrainedTokenizer, PreTrainedTokenizerFast
+from transformers import (AutoConfig, AutoModelForCausalLM, PreTrainedTokenizer,
+                          PreTrainedTokenizerFast)
 
 from examples.llm.src.models.hf.model_wrapper import HuggingFaceModelWithZLoss
 from examples.llm.src.models.utils import init_empty_weights
@@ -18,6 +19,7 @@ from examples.llm.src.models.utils import init_empty_weights
 __all__ = ['ComposerHFCausalLM']
 
 Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+
 
 class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
     """Configures a :class:`.HuggingFaceModel` around a Causal LM.
@@ -41,9 +43,7 @@ class ComposerHFCausalLM(HuggingFaceModelWithZLoss):
                 to validation metrics. Default: ``False``.
     """
 
-    def __init__(self,
-                 om_model_config: DictConfig,
-                 tokenizer: Tokenizer):
+    def __init__(self, om_model_config: DictConfig, tokenizer: Tokenizer):
         config = AutoConfig.from_pretrained(
             om_model_config.pretrained_model_name_or_path,
             **om_model_config.get('config_overrides', {}))
