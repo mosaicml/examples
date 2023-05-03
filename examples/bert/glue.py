@@ -405,7 +405,9 @@ def train(config: om.DictConfig) -> None:
         overall_glue.append(average_metric)
     glue_results_mean['glue'] = np.mean(overall_glue)
 
-    _print_averaged_glue_results([(key, value) for key, value in glue_results_mean.items()])
+    _print_averaged_glue_results([
+        (key, value) for key, value in glue_results_mean.items()
+    ])
 
 
 if __name__ == '__main__':
