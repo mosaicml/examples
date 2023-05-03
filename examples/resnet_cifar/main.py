@@ -116,7 +116,7 @@ def main(config):
     ]
 
     print('Building Trainer')
-    precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
+    precision = 'amp_fp16' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
         model=model,

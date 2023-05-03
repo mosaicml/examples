@@ -181,7 +181,7 @@ def main(config):
     # Create the Trainer!
     print('Building Trainer')
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
-    precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
+    precision = 'amp_fp16' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
         model=composer_model,
