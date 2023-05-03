@@ -1,4 +1,4 @@
-# Inference with Custom Models on the MosaicML platform
+# Inference with Custom Models on the MosaicML Platform
 
 In this folder, we provide an example of how to create and deploy your own text embedding model using MosaicML Inference.
 
