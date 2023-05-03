@@ -390,7 +390,7 @@ def train(config: om.DictConfig) -> None:
     _print_table(all_results)
 
     # Average the GLUE results across seeds and pretty print them
-    glue_results = defaultdict(list)
+    glue_results: Dict[str, List[float]] = defaultdict(list)
     for job_name, result in all_results.items():
         job_values = get_values_from_path(job_name, separator='_')
         for _, eval_results in result['result']['metrics'].items():
