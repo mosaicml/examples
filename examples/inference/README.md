@@ -11,9 +11,9 @@ You'll find in this folder:
 
 First, you'll need access to MosaicML's inference service. You can request access [here](https://forms.mosaicml.com/demo).
 
-Once you have access, you just need to install the requirements with:
+Once you have access, you just need to install the MosaicML client and command line interface:
 ```bash
-pip install -r requirements.txt
+pip install mosaicml-cli
 ```
 
 ## Configuring the Model
