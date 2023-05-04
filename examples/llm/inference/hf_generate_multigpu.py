@@ -1,5 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
+import itertools
 import os
 import random
 import time
@@ -40,9 +41,9 @@ def parse_args() -> Namespace:
     )
     parser.add_argument('--max_seq_len', type=int, default=81920)
     parser.add_argument('--max_new_tokens', type=int, default=2048)
-    parser.add_argument('--temperature', type=float, default=1.0)
-    parser.add_argument('--top_k', type=int, default=50)
-    parser.add_argument('--top_p', type=float, default=1.0)
+    parser.add_argument('--temperature', type=float, nargs='+', default=[1.0])
+    parser.add_argument('--top_k', type=int, nargs='+', default=[50])
+    parser.add_argument('--top_p', type=float, nargs='+', default=[1.0])
     parser.add_argument('--do_sample',
                         type=str2bool,
                         nargs='?',
@@ -70,12 +71,13 @@ def parse_args() -> Namespace:
                         const=True,
                         default=True)
     parser.add_argument('--device', type=str, default=None)
-    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--seed', type=int, nargs='+', default=[42])
     parser.add_argument('--profile_gen_timing',
                         type=str2bool,
                         nargs='?',
                         const=True,
                         default=False)
+    parser.add_argument('--skip-prompt-printout', action='store_true')
     return parser.parse_args()
 
 
@@ -99,8 +101,8 @@ def main(args: Namespace) -> None:
         max_new_tokens = []
 
     # Seed randomness
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    random.seed(args.seed[0])
+    torch.manual_seed(args.seed[0])
 
     dist.initialize_dist(get_device(None), timeout=1800)
 
@@ -126,19 +128,6 @@ def main(args: Namespace) -> None:
                              tokenizer,
                              use_logits=True,
                              shift_labels=True)
-
-    generate_kwargs = {
-        'max_new_tokens': args.max_new_tokens,
-        'temperature': args.temperature,
-        'top_p': args.top_p,
-        'top_k': args.top_k,
-        'use_cache': args.use_cache,
-        'do_sample': args.do_sample,
-        'eos_token_id': args.eos_token_id or tokenizer.eos_token_id,
-        'pad_token_id': args.pad_token_id or tokenizer.pad_token_id,
-        'synced_gpus': True,
-    }
-    print(f'\nGenerate kwargs:\n{generate_kwargs}')
 
     device = torch.cuda.current_device(
     )  #'cuda' if torch.cuda.is_available() else 'cpu'
@@ -193,71 +182,97 @@ def main(args: Namespace) -> None:
     #             )
 
     for idx, prompt in enumerate(prompts):
-        if args.profile_gen_timing:
-            generate_kwargs['max_new_tokens'] = max_new_tokens[idx]
+        for temp, top_k, top_p, seed in itertools.product(
+                args.temperature, args.top_k, args.top_p, args.seed):
+            print('!@!' * 33)
 
-        print(f'\n\nTokenizing prompt ({idx+1} / {len(prompts)})...')
-        maybe_synchronize()
-        encode_start = time.time()
-        encoded_inp = tokenizer([prompt], return_tensors='pt', padding=True)
-        for key, value in encoded_inp.items():
-            encoded_inp[key] = value.to(device)
-        maybe_synchronize()
-        encode_end = time.time()
-        input_tokens = torch.sum(
-            encoded_inp['input_ids'] != tokenizer.pad_token_id,
-            axis=1).numpy(force=True)  # type: ignore
+            # Seed randomness
+            random.seed(seed)
+            torch.manual_seed(seed)
 
-        # Run HF generate
-        print(f'Generating responses ({idx+1} / {len(prompts)})...')
-        maybe_synchronize()
-        gen_start = time.time()
-        with torch.no_grad():
-            with torch.autocast('cuda', dtype, enabled=args.autocast):
-                encoded_gen = model.model.generate(
-                    input_ids=encoded_inp['input_ids'],
-                    attention_mask=encoded_inp['attention_mask'],
-                    **generate_kwargs,
-                )
-        maybe_synchronize()
-        gen_end = time.time()
+            print(f'\nSeed: {seed}')
 
-        decode_start = time.time()
-        decoded_gen = tokenizer.batch_decode(encoded_gen,
-                                             skip_special_tokens=True)[0]
-        maybe_synchronize()
-        decode_end = time.time()
-        gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
-                               axis=1).numpy(force=True)  # type: ignore
+            generate_kwargs = {
+                'max_new_tokens': args.max_new_tokens,
+                'temperature': temp,
+                'top_p': top_p,
+                'top_k': top_k,
+                'use_cache': args.use_cache,
+                'do_sample': args.do_sample,
+                'eos_token_id': args.eos_token_id or tokenizer.eos_token_id,
+                'pad_token_id': args.pad_token_id or tokenizer.pad_token_id,
+                'synced_gpus': True,
+            }
+            print(f'\nGenerate kwargs:\n{generate_kwargs}')
 
-        # Print generations
-        if not args.profile_gen_timing:
-            delimiter = '#' * 100
-            continuation = decoded_gen[len(prompt):]
-            print(delimiter)
-            print('\033[92m' + prompt + '\033[0m' + continuation)
-            print(delimiter)
+            if args.profile_gen_timing:
+                generate_kwargs['max_new_tokens'] = max_new_tokens[idx]
 
-        # Print timing info
-        output_tokens = gen_tokens - input_tokens
-        total_input_tokens = input_tokens.sum()
-        total_output_tokens = output_tokens.sum()
-        encode_latency = 1000 * (encode_end - encode_start)
-        gen_latency = 1000 * (gen_end - gen_start)
-        decode_latency = 1000 * (decode_end - decode_start)
-        total_latency = encode_latency + gen_latency + decode_latency
+            print(f'\n\nTokenizing prompt ({idx+1} / {len(prompts)})...')
+            maybe_synchronize()
+            encode_start = time.time()
+            encoded_inp = tokenizer([prompt], return_tensors='pt', padding=True)
+            for key, value in encoded_inp.items():
+                encoded_inp[key] = value.to(device)
+            maybe_synchronize()
+            encode_end = time.time()
+            input_tokens = torch.sum(
+                encoded_inp['input_ids'] != tokenizer.pad_token_id,
+                axis=1).numpy(force=True)  # type: ignore
 
-        latency_per_output_token = total_latency / total_output_tokens
-        output_tok_per_sec = 1000 / latency_per_output_token
-        print(f'{input_tokens=}, {output_tokens=}')
-        print(f'{total_input_tokens=}, {total_output_tokens=}')
-        print(
-            f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
-        )
-        print(f'{latency_per_output_token=:.2f}ms/tok')
-        print(f'{output_tok_per_sec=:.2f}tok/sec')
+            # Run HF generate
+            print(f'Generating responses ({idx+1} / {len(prompts)})...')
+            maybe_synchronize()
+            gen_start = time.time()
+            with torch.no_grad():
+                with torch.autocast('cuda', dtype, enabled=args.autocast):
+                    encoded_gen = model.model.generate(
+                        input_ids=encoded_inp['input_ids'],
+                        attention_mask=encoded_inp['attention_mask'],
+                        **generate_kwargs,
+                    )
+            maybe_synchronize()
+            gen_end = time.time()
 
-        gc_cuda()
+            decode_start = time.time()
+            decoded_gen = tokenizer.batch_decode(encoded_gen,
+                                                 skip_special_tokens=True)[0]
+            maybe_synchronize()
+            decode_end = time.time()
+            gen_tokens = torch.sum(encoded_gen != tokenizer.pad_token_id,
+                                   axis=1).numpy(force=True)  # type: ignore
+
+            # Print generations
+            if not args.profile_gen_timing:
+                delimiter = '#' * 100
+                continuation = decoded_gen[len(prompt):]
+                print(delimiter)
+                if args.skip_prompt_printout:
+                    print(continuation)
+                else:
+                    print('\033[92m' + prompt + '\033[0m' + continuation)
+                print(delimiter)
+
+            # Print timing info
+            output_tokens = gen_tokens - input_tokens
+            total_input_tokens = input_tokens.sum()
+            total_output_tokens = output_tokens.sum()
+            encode_latency = 1000 * (encode_end - encode_start)
+            gen_latency = 1000 * (gen_end - gen_start)
+            decode_latency = 1000 * (decode_end - decode_start)
+            total_latency = encode_latency + gen_latency + decode_latency
+
+            latency_per_output_token = total_latency / total_output_tokens
+            output_tok_per_sec = 1000 / latency_per_output_token
+            print(f'{input_tokens=}, {output_tokens=}')
+            print(f'{total_input_tokens=}, {total_output_tokens=}')
+            print(
+                f'{encode_latency=:.2f}ms, {gen_latency=:.2f}ms, {decode_latency=:.2f}ms, {total_latency=:.2f}ms'
+            )
+            print(f'{latency_per_output_token=:.2f}ms/tok')
+            print(f'{output_tok_per_sec=:.2f}tok/sec')
+
+            gc_cuda()
 
 
 if __name__ == '__main__':
