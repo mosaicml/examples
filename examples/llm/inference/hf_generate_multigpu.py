@@ -44,6 +44,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--temperature', type=float, nargs='+', default=[1.0])
     parser.add_argument('--top_k', type=int, nargs='+', default=[50])
     parser.add_argument('--top_p', type=float, nargs='+', default=[1.0])
+    parser.add_argument('--repetition_penalty', type=float, default=1.0)
     parser.add_argument('--do_sample',
                         type=str2bool,
                         nargs='?',
@@ -197,6 +198,7 @@ def main(args: Namespace) -> None:
                 'temperature': temp,
                 'top_p': top_p,
                 'top_k': top_k,
+                'repetition_penalty': args.repetition_penalty,
                 'use_cache': args.use_cache,
                 'do_sample': args.do_sample,
                 'eos_token_id': args.eos_token_id or tokenizer.eos_token_id,
