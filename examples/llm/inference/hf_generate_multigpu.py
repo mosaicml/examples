@@ -77,7 +77,7 @@ def parse_args() -> Namespace:
                         nargs='?',
                         const=True,
                         default=False)
-    parser.add_argument('--skip-prompt-printout', action='store_true')
+    parser.add_argument('--skip_prompt_printout', action='store_true')
     return parser.parse_args()
 
 
