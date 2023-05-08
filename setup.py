@@ -74,6 +74,7 @@ def _merge_dependencies(deps_base: List[str],
         base_dict.pop('flash-attn', None)
         base_dict.pop('triton', None)
         base_dict.pop('xentropy-cuda-lib', None)
+        base_dict.pop('xformers', None)
     return [k + v for k, v in base_dict.items()]  # 'foo': '>3' -> 'foo>3'
 
 
