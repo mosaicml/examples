@@ -7,8 +7,7 @@ try:
                                           build_icl_evaluators, build_logger,
                                           build_optimizer, build_scheduler,
                                           build_tokenizer)
-    from examples.common.config_utils import (calculate_batch_size_info,
-                                              log_config,
+    from examples.common.config_utils import (log_config,
                                               update_batch_size_info)
     from examples.common.hf_fsdp import (prepare_hf_causal_lm_model_for_fsdp,
                                          prepare_hf_enc_dec_model_for_fsdp,
@@ -29,7 +28,6 @@ __all__ = [
     'build_dataloader',
     'build_icl_evaluators',
     'build_tokenizer',
-    'calculate_batch_size_info',
     'update_batch_size_info',
     'log_config',
     'StreamingTextDataset',

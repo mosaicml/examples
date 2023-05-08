@@ -24,11 +24,11 @@ parameters:
   global_train_batch_size: 8 # example, Training total batch size (2 per 40gb A100, 8 cards)
   global_eval_batch_size: 4 # each prompt generates 4 images
 
-  # Amount of gradient accumulation, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
+  # Size of microbatch, auto (GPU only) means Composer will set the optimal value, set to 1 for cpu
   device: gpu # gpu, mps, cpu (mps is experimental)
   use_fsdp: false
-  grad_accum: auto
-  precision: amp # (GPU only), set to fp32 if training on cpu
+  device_train_microbatch_size: auto
+  precision: amp_fp16 # (GPU only), set to fp32 if training on cpu
 
   use_prior_preservation: true
   prior_loss_weight: 1.0

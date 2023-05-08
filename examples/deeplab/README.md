@@ -214,7 +214,6 @@ by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/t
 [epoch=0][batch=16/625]: memory/inactive_mem: 663622144
 [epoch=0][batch=16/625]: memory/reserved_mem: 28137488384
 [epoch=0][batch=16/625]: memory/alloc_retries: 3
-[epoch=0][batch=16/625]: trainer/grad_accum: 2
 [epoch=0][batch=16/625]: loss/train/total: 7.1292
 [epoch=0][batch=16/625]: metrics/train/MulticlassAccuracy: 0.0005
 [epoch=0][batch=17/625]: wall_clock/train: 17.8836
@@ -230,7 +229,6 @@ by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/t
 [epoch=0][batch=17/625]: memory/inactive_mem: 663618048
 [epoch=0][batch=17/625]: memory/reserved_mem: 28137488384
 [epoch=0][batch=17/625]: memory/alloc_retries: 3
-[epoch=0][batch=17/625]: trainer/grad_accum: 2
 [epoch=0][batch=17/625]: loss/train/total: 7.1243
 [epoch=0][batch=17/625]: metrics/train/MulticlassAccuracy: 0.0010
 train          Epoch   0:    3%|▋                        | 17/625 [00:17<07:23,  1.37ba/s, loss/train/total=7.1292]
@@ -263,7 +261,7 @@ At the bottom of `yamls/deeplabv3.yaml`, we provide arguments for saving and loa
 ## On memory constraints
 
 In previous blog posts ([1](https://www.mosaicml.com/blog/farewell-oom), [2](https://www.mosaicml.com/blog/billion-parameter-gpt-training-made-easy))
-we demonstrated Auto Grad Accum. This allows Composer to automatically execute each batch as multiple microbatches to save memory. This means the same configuration can be run on different hardware or on fewer devices without manually tuning the batch size or (significantly) changing the optimization. This feature is thoroughly tested, but if there are any issues, you can manually set `grad_accum` to your desired value.
+we demonstrated Automatic Microbatching. This allows Composer to automatically execute each batch as multiple microbatches to save memory. This means the same configuration can be run on different hardware or on fewer devices without manually tuning the batch size or (significantly) changing the optimization. This feature is thoroughly tested, but if there are any issues, you can manually set `device_train_microbatch_size` to your desired value.
 
 ## Contact Us
 
