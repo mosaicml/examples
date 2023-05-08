@@ -22,9 +22,9 @@ def test_trainer(model_name: str, seed: int):
 
     with SynthTextDirectory() as tmp_datadir:
         config.train_loader.dataset.remote = tmp_datadir
-        config.train_loader.dataset.local = os.path.join(tmp_datadir, 'tr-local2')
+        config.train_loader.dataset.local = os.path.join(tmp_datadir, 'tr-local1')
         config.eval_loader.dataset.remote = tmp_datadir
-        config.eval_loader.dataset.local = os.path.join(tmp_datadir, 'ev-local2')
+        config.eval_loader.dataset.local = os.path.join(tmp_datadir, 'ev-local1')
         # Also save checkpoints in the temporary directory
         config.save_folder = tmp_datadir
 
