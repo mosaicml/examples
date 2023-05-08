@@ -22,9 +22,11 @@ def test_trainer(model_name: str, seed: int):
 
     with SynthTextDirectory() as tmp_datadir:
         config.train_loader.dataset.remote = tmp_datadir
-        config.train_loader.dataset.local = os.path.join(tmp_datadir, 'tr-local1')
+        config.train_loader.dataset.local = os.path.join(
+            tmp_datadir, 'tr-local1')
         config.eval_loader.dataset.remote = tmp_datadir
-        config.eval_loader.dataset.local = os.path.join(tmp_datadir, 'ev-local1')
+        config.eval_loader.dataset.local = os.path.join(tmp_datadir,
+                                                        'ev-local1')
         # Also save checkpoints in the temporary directory
         config.save_folder = tmp_datadir
 
@@ -40,8 +42,10 @@ def test_trainer(model_name: str, seed: int):
         # Check that the checkpoint was loaded by comparing model weights (with no weight changes)
         config.load_path = chkpt_path
         config.seed += 10  # change seed
-        config.train_loader.dataset.local = os.path.join(tmp_datadir, 'tr-local2')
-        config.eval_loader.dataset.local = os.path.join(tmp_datadir, 'ev-local2')
+        config.train_loader.dataset.local = os.path.join(
+            tmp_datadir, 'tr-local2')
+        config.eval_loader.dataset.local = os.path.join(tmp_datadir,
+                                                        'ev-local2')
         trainer2 = main(config, return_trainer=True, do_train=False)
         assert trainer2 is not None
         model2 = trainer2.state.model.model
