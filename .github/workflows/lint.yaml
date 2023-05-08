@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
-      fail-fast: false  # TODO: Delete
       matrix:
         python_version:
         - '3.9'
