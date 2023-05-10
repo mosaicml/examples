@@ -1,0 +1,19 @@
+name: instructor-large
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:latest
+replicas: 1
+command: uvicorn serve:app --host 0.0.0.0 --port 8080
+integrations:
+  - integration_type: git_repo
+    git_repo: mosaicml/inference-model-registry
+  - integration_type: pip_package
+    packages:
+      - InstructorEmbedding==1.0.0
+      - sentence-transformers==2.2.2
+model:
+  download_parameters:
+    hf_path: hkunlp/instructor-large
+  model_handler: inference-model-registry.instructor.instructor_handler.HFInstructorModel
+  model_parameters:
+    model_name: hkunlp/instructor-large
