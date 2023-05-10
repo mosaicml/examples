@@ -15,4 +15,4 @@ model:
   model_handler: examples.inference_model_handlers.mosaic_diffusion.mosaic_diffusion_handler.StableDiffusionHandler
 command: |
   cd examples
-  uvicorn serve:app --host 0.0.0.0 --port 8080
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080

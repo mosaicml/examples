@@ -5,10 +5,10 @@ image: mosaicml/inference:latest
 replicas: 1
 command: |
   cd examples
-  uvicorn serve:app --host 0.0.0.0 --port 8080
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
 integrations:
   - integration_type: git_repo
-    git_repo: mosaicml/inference-model-registry
+    git_repo: mosaicml/examples
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b
