@@ -1,7 +1,7 @@
 from InstructorEmbedding import INSTRUCTOR
 import torch
 
-class HFInstructorModel():
+class HFInstructorHandler():
     """Custom Hugging Face Instructor Model handler class."""
 
     MODEL_NAME = ''
