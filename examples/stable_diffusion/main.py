@@ -17,7 +17,7 @@ from data import build_hf_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
 
-from examples.common import build_logger, calculate_batch_size_info, log_config
+from examples.common import build_logger, log_config
 
 
 def main(config: DictConfig):  # type: ignore
@@ -27,15 +27,11 @@ def main(config: DictConfig):  # type: ignore
     ) > 1:  # initialize the pytorch distributed process group if training on multiple gpus.
         dist.initialize_dist(device)
 
-    if config.grad_accum == 'auto' and device == 'cpu':
+    if config.device_train_microbatch_size == 'auto' and device == 'cpu':
         raise ValueError(
-            'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
+            'device_train_microbatch_size="auto" requires training with a GPU; please specify device_train_microbatch_size as an integer'
         )
     # calculate batch size per device and add it to config (These calculations will be done inside the composer trainer in the future)
-    config.train_device_batch_size, _, _ = calculate_batch_size_info(
-        config.global_train_batch_size, 'auto')
-    config.eval_device_batch_size, _, _ = calculate_batch_size_info(
-        config.global_eval_batch_size, 'auto')
 
     print('Building Composer model')
     model = build_stable_diffusion_model(
@@ -44,7 +40,8 @@ def main(config: DictConfig):  # type: ignore
         train_unet=config.model.train_unet,
         num_images_per_prompt=config.model.num_images_per_prompt,
         image_key=config.model.image_key,
-        caption_key=config.model.caption_key)
+        caption_key=config.model.caption_key,
+    )
 
     # Train dataset
     print('Building dataloaders')
@@ -56,17 +53,22 @@ def main(config: DictConfig):  # type: ignore
         std=config.dataset.std,
         image_column=config.dataset.image_column,
         caption_column=config.dataset.caption_column,
-        batch_size=config.train_device_batch_size)
+        batch_size=config.global_train_batch_size // dist.get_world_size(),
+    )
 
     # Eval dataset
     eval_dataspec = build_prompt_dataspec(
-        config.dataset.prompts, batch_size=config.eval_device_batch_size)
+        config.dataset.prompts,
+        batch_size=config.eval_device_batch_size // dist.get_world_size(),
+    )
 
     # Optimizer
     print('Building optimizer and learning rate scheduler')
-    optimizer = torch.optim.AdamW(params=model.parameters(),
-                                  lr=config.optimizer.lr,
-                                  weight_decay=config.optimizer.weight_decay)
+    optimizer = torch.optim.AdamW(
+        params=model.parameters(),
+        lr=config.optimizer.lr,
+        weight_decay=config.optimizer.weight_decay,
+    )
 
     # Constant LR for fine-tuning
     lr_scheduler = ConstantScheduler()
@@ -113,7 +115,7 @@ def main(config: DictConfig):  # type: ignore
         load_path=config.load_path,
         device=device,
         precision=config.precision,
-        grad_accum=config.grad_accum,
+        device_train_microbatch_size=config.device_train_microbatch_size,
         seed=config.seed)
 
     print('Logging config')

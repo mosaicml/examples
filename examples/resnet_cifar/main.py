@@ -30,10 +30,11 @@ def build_logger(name: str, kwargs: Dict):
 
 def main(config):
     reproducibility.seed_all(config.seed)
-    if config.grad_accum == 'auto' and not torch.cuda.is_available():
+    auto_microbatching = config.device_train_microbatch_size == 'auto'
+    if auto_microbatching and not torch.cuda.is_available():
         raise ValueError(
-            'grad_accum="auto" requires training with a GPU; please specify grad_accum as an integer'
-        )
+            'device_train_microbatch_size="auto" requires training with a GPU. Please specify'
+            ' device_train_microbatch_size as an integer')
 
     # Initialize dist to ensure CIFAR is only downloaded by rank 0
     device = 'gpu' if torch.cuda.is_available() else 'cpu'
@@ -115,7 +116,7 @@ def main(config):
     ]
 
     print('Building Trainer')
-    precision = 'amp' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
+    precision = 'amp_fp16' if device == 'gpu' else 'fp32'  # Mixed precision for fast training when using a GPU
     trainer = Trainer(
         run_name=config.run_name,
         model=model,
@@ -135,7 +136,7 @@ def main(config):
         load_path=config.load_path,
         device=device,
         precision=precision,
-        grad_accum=config.grad_accum,
+        device_train_microbatch_size=config.device_train_microbatch_size,
         seed=config.seed,
         python_log_level=config.get('python_log_level', None),
     )

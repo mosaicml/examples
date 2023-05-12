@@ -209,7 +209,7 @@ def run_job_worker(config: om.DictConfig,
     return results
 
 
-def run_jobs_parallel(configs: Sequence[om.DictConfig]):
+def run_jobs_parallel(configs: Sequence[om.DictConfig]) -> Dict[str, Any]:
     """Runs a list of jobs (passed in as Hydra configs) across GPUs.
 
     Returns a dictionary mapping job name to the result and original config
@@ -249,7 +249,7 @@ def run_jobs_parallel(configs: Sequence[om.DictConfig]):
     return finished_results
 
 
-def run_jobs_serial(configs):
+def run_jobs_serial(configs) -> Dict[str, Any]:
     """Runs the jobs serially, rather than in parallel.
 
     Useful for debugging
@@ -390,24 +390,24 @@ def train(config: om.DictConfig) -> None:
     _print_table(all_results)
 
     # Average the GLUE results across seeds and pretty print them
-    glue_results = defaultdict(list)
+    glue_results: Dict[str, List[float]] = defaultdict(list)
     for job_name, result in all_results.items():
         job_values = get_values_from_path(job_name, separator='_')
         for _, eval_results in result['result']['metrics'].items():
             for _, metric in eval_results.items():
                 glue_results[job_values['task']].append(metric * 100)
-    glue_results = {
-        key: np.mean(values) for key, values in glue_results.items()
+    glue_results_mean: Dict[str, float] = {
+        key: float(np.mean(values)) for key, values in glue_results.items()
     }
 
     overall_glue = []
-    for _, average_metric in glue_results.items():
+    for _, average_metric in glue_results_mean.items():
         overall_glue.append(average_metric)
-    overall_glue = np.mean(overall_glue)
+    glue_results_mean['glue'] = float(np.mean(overall_glue))
 
-    _print_averaged_glue_results([(key, value)
-                                  for key, value in glue_results.items()] +
-                                 [('glue', overall_glue)])
+    _print_averaged_glue_results([
+        (key, value) for key, value in glue_results_mean.items()
+    ])
 
 
 if __name__ == '__main__':

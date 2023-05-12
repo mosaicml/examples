@@ -1,3 +1,7 @@
+# [NEW!] We've Moved to [LLM-Foundry](https://github.com/mosaicml/llm-foundry)
+
+The last release of examples repo with llm in it is 0.0.4. Future work has moved to [llm-foundry](https://github.com/mosaicml/llm-foundry).
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./assets/loss-curve-dark.png">
