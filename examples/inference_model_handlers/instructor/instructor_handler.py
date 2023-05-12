@@ -4,8 +4,6 @@ import torch
 class HFInstructorHandler():
     """Custom Hugging Face Instructor Model handler class."""
 
-    MODEL_NAME = ''
-
     def __init__(self, model_name: str):
         self.device = torch.cuda.current_device()
         self.model_name = model_name

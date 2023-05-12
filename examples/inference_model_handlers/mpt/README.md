@@ -1,6 +1,6 @@
 ## Model Description
 
-A state-of-the-art 6.7B parameter instruction finetuned language model trained by MosaicML. Check out the [MPT-Instruct huggingface repo](https://huggingface.co/spaces/mosaicml/mpt-7b-instruct) for more information.
+A state-of-the-art 6.7B parameter instruction finetuned language model trained by MosaicML. Check out the [MPT-Instruct huggingface repo](https://huggingface.co/spaces/mosaicml/mpt-7b-instruct) and our [blog post](https://www.mosaicml.com/blog/mpt-7b) for more information.
 
 ## Deploy
 

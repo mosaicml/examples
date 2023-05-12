@@ -32,6 +32,7 @@ jobs:
         - nemo
         - gpt_neox
         - trlx
+        - inference_model_handlers
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4

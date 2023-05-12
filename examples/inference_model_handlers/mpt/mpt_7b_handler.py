@@ -47,7 +47,7 @@ class MPTModelHandler():
                                   device=self.device)
 
     def _parse_inputs(self, inputs: Dict[str, Any]):
-        if 'input_strings' not in inputs:
+        if 'input_strings' not in inputs or not isinstance(inputs['input_strings'], list):
             raise RuntimeError(
                 "Input strings must be provided as a list to generate call")
 
