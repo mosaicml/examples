@@ -36,7 +36,7 @@ parameters:
   # how runs are saved and logged in W&B
   base_run_name:
   default_seed: 19
-  precision: bf16
+  precision: amp_bf16
 
   # Tokenizer for dataset creation
   tokenizer_name: &tokenizer_name bert-base-uncased
@@ -84,6 +84,7 @@ parameters:
   tasks:
     mnli:
       # Specify any extra task-specific arguments for the trainer here
+      seeds: [19, 8364, 717, 10536, 90166]
       trainer_kwargs:
         # We keep one MNLI checkpoint locally so that we can start finetuning of
         # RTE, MRPC and STS-B from the MNLI checkpoint

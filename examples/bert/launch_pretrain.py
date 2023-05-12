@@ -27,7 +27,7 @@ def main(args):
 
         run.parameters["loggers"]["wandb"]["tags"] = [
             "pretraining", args.scheduler, f"initial-{args.initial_mlm_rate}",
-            f"final-{args.final_mlm_rate}"
+            f"final-{args.final_mlm_rate}", f"bert-{args.model}"
         ]
 
         run.parameters["loggers"]["wandb"]["groups"] = [
@@ -41,6 +41,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheduler", type=str, required=True)
+    parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--initial-mlm-rate", type=float, required=True)
     parser.add_argument("--final-mlm-rate", type=float, required=True)
     args = parser.parse_args()
