@@ -1,7 +1,7 @@
 import argparse
 import copy
 
-from mcli.sdk import RunConfig, create_run
+from mcli import RunConfig, create_run
 
 
 def build_checkpoint_path(scheduler, init_rate, final_rate, seed, ckpt):
