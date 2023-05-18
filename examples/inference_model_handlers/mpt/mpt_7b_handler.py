@@ -5,7 +5,7 @@ from typing import Any, Dict
 import torch
 from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
                           TextIteratorStreamer, pipeline)
-from utils import parse_generate_inputs
+from examples.inference_model_handlers.utils.input_utils import parse_generate_inputs
 
 class MPTModelHandler():
 

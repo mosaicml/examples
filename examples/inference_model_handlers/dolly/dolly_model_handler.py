@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 import torch
 from transformers import (TextIteratorStreamer, pipeline)
-from utils import parse_generate_inputs
+from examples.inference_model_handlers.utils.input_utils import parse_generate_inputs
 
 class DollyModelHandler():
 
@@ -20,7 +20,6 @@ class DollyModelHandler():
     def __init__(self):
         self.device = torch.cuda.current_device()
 
-        model = model.eval()
         self.generator = pipeline(
             model="databricks/dolly-v2-12b",
             torch_dtype=torch.bfloat16,
