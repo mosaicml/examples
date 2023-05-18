@@ -24,7 +24,7 @@ class MPTModelHandler():
         self.model_name = model_name
 
         config = AutoConfig.from_pretrained(
-            'mosaicml/mpt-7b-instruct',
+            self.model_name,
             trust_remote_code=True
         )
         config.attn_config['attn_impl'] = 'triton'
