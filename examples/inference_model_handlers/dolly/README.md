@@ -1,6 +1,6 @@
 ## Model Description
 
-A state-of-the-art 6.7B parameter instruction finetuned language model trained by MosaicML. Check out the [MPT-Instruct huggingface repo](https://huggingface.co/spaces/mosaicml/mpt-7b-instruct) for more information.
+An instruction fine-tuned model licensed for comercial use by Databricks. It's based on pythia-12b and trained with the databricks-dolly-15k dataset. Check out the [Dolly-v2-12b huggingface repo](https://huggingface.co/databricks/dolly-v2-12b) for more information.
 
 ## Deploy
 
