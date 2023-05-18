@@ -23,29 +23,13 @@ class MPTModelHandler():
         self.device = torch.cuda.current_device()
         self.model_name = model_name
 
-        config = AutoConfig.from_pretrained(
-            'mosaicml/mpt-7b-instruct',
-            trust_remote_code=True
-        )
-        config.attn_config['attn_impl'] = 'triton'
-
-        model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            config=config,
-            torch_dtype=torch.bfloat16,
-            trust_remote_code=True
-        )
-
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            trust_remote_code=True)
-        self.tokenizer = tokenizer
-
         model = model.eval()
-        self.generator = pipeline(task='text-generation',
-                                  model=model,
-                                  tokenizer=tokenizer,
-                                  device=self.device)
+        self.generator = pipeline(
+            model="databricks/dolly-v2-12b",
+            torch_dtype=torch.bfloat16,
+            trust_remote_code=True,
+            device=self.device)
+
 
     def predict(self, **inputs: Dict[str, Any]):
         generate_input, generate_kwargs = parse_generate_inputs(
