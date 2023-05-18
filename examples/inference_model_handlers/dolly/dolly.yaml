@@ -1,0 +1,15 @@
+name: dolly-v2-12b
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:0.0.80
+replicas: 1
+command: |
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+integrations:
+  - integration_type: git_repo
+    git_repo: mosaicml/examples
+model:
+  download_parameters:
+    hf_path: databricks/dolly-v2-12b
+  model_handler: examples.inference_model_handlers.dolly.dolly_model_handler.DollyModelHandler

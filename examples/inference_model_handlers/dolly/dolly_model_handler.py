@@ -1,13 +1,11 @@
-import copy
 from threading import Thread
 from typing import Any, Dict
 
 import torch
-from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
-                          TextIteratorStreamer, pipeline)
+from transformers import (TextIteratorStreamer, pipeline)
 from utils import parse_generate_inputs
 
-class MPTModelHandler():
+class DollyModelHandler():
 
     DEFAULT_GENERATE_KWARGS = {
         'max_length': 256,
@@ -19,9 +17,8 @@ class MPTModelHandler():
 
     INPUT_STRINGS_KEY = 'input_strings'
 
-    def __init__(self, model_name: str):
+    def __init__(self):
         self.device = torch.cuda.current_device()
-        self.model_name = model_name
 
         model = model.eval()
         self.generator = pipeline(
