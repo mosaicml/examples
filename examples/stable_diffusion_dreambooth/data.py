@@ -106,8 +106,7 @@ def build_dreambooth_dataloader(instance_data_root: str,
         batch_size=batch_size,
         sampler=sampler,
         drop_last=drop_last,  # type: ignore
-        collate_fn=collate_fn,  # type: ignore
-        **dataloader_kwargs)
+        collate_fn=collate_fn)
 
 
 def build_prompt_dataloader(prompts: list[str], batch_size: int,

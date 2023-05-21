@@ -6,6 +6,7 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 integrations:
 - integration_type: git_repo
+  git_branch: tessa-test 
   git_repo: mosaicml/examples
   pip_install: .[stable-diffusion-dreambooth]
   ssh_clone: false
