@@ -297,7 +297,7 @@ class MNLIJob(GlueClassificationJob):
                                         lr=5.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=5.0e-06)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -373,7 +373,7 @@ class RTEJob(GlueClassificationJob):
                                         lr=1.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=1.0e-5)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -442,7 +442,7 @@ class QQPJob(GlueClassificationJob):
                                         lr=3.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=3.0e-6)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -511,7 +511,7 @@ class COLAJob(GlueClassificationJob):
                                         lr=5.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=5.0e-6)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -580,7 +580,7 @@ class MRPCJob(GlueClassificationJob):
                                         lr=8.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=8.0e-6)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -649,7 +649,7 @@ class QNLIJob(GlueClassificationJob):
                                         lr=1.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=1.0e-6)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -718,7 +718,7 @@ class SST2Job(GlueClassificationJob):
                                         lr=3.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=3.0e-6)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -787,7 +787,7 @@ class STSBJob(GlueClassificationJob):
                                         lr=3.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=3.0e-6)
+                                        weight_decay=0.1)
 
         dataset_kwargs = {
             'task': self.task_name,
