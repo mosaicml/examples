@@ -1,7 +1,7 @@
 run_name: stable-diffusion-dreambooth
-cluster:     # Name of the cluster to use for this run
-gpu_type: a100_40gb   # Type of GPU to use
-gpu_num:     # Number of GPUs to use
+cluster: r8z6     # Name of the cluster to use for this run
+gpu_type: a100_80gb   # Type of GPU to use
+gpu_num: 8    # Number of GPUs to use
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 integrations:
@@ -9,6 +9,12 @@ integrations:
   git_repo: mosaicml/examples
   pip_install: .[stable-diffusion-dreambooth]
   ssh_clone: false
+
+scheduling:
+    max_retries: 1
+    resumable: true
+    priority: medium
+
 command: |
   cd examples/examples/stable_diffusion_dreambooth
   composer main.py /mnt/config/parameters.yaml
@@ -68,14 +74,13 @@ parameters:
     lr: 1.0e-06
     weight_decay: 1.0e-2
 
-  # wandb:     # Uncomment and fill below arguments to use WandB logger
-  #   entity:  # Name of WandB entity, usually username or organization name
-  #   project: stable-diffusion-dreambooth # Name of WandB project
-  #   group:   # Name of WandB group
-  #   rank_zero_only: false
+  wandb:     # Uncomment and fill below arguments to use WandB logger
+    entity:  mosaic-ml # Name of WandB entity, usually username or organization name
+    project: stable-diffusion-dreambooth # Name of WandB project
+    rank_zero_only: false
 
   # Save checkpoint parameters
-  save_folder:  # e.g. ./{run_name}/ckpt (local) or oci://mybucket/mydir/{run_name}/ckpt (remote)
+  save_folder: oci://mosaicml-internal-checkpoints/Tessa/chkp/{run_name} # e.g. ./{run_name}/ckpt (local) or oci://mybucket/mydir/{run_name}/ckpt (remote)
   save_interval: ${max_duration} # Interval to checkpoint based on time string
   save_num_checkpoints_to_keep: 1 # Cleans up checkpoints saved locally only!
   save_filename: best.pt

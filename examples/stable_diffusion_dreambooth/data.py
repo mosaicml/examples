@@ -100,6 +100,7 @@ def build_dreambooth_dataloader(instance_data_root: str,
     use_prior_preservation = True if class_prompt and class_data_root else False
     collate_fn = partial(dreambooth_collate_fn,
                          use_prior_preservation=use_prior_preservation)
+    print(dataloader_kwargs)
     return DataLoader(
         dataset=dataset,
         batch_size=batch_size,
