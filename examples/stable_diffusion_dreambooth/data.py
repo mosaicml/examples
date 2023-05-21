@@ -101,6 +101,9 @@ def build_dreambooth_dataloader(instance_data_root: str,
     collate_fn = partial(dreambooth_collate_fn,
                          use_prior_preservation=use_prior_preservation)
     print(dataloader_kwargs)
+    if 'dataloader_kwargs' in dataloader_kwargs:
+        dataloader_kwargs = dataloader_kwargs['dataloader_kwargs']
+    
     return DataLoader(
         dataset=dataset,
         batch_size=batch_size,
@@ -120,6 +123,9 @@ def build_prompt_dataloader(prompts: list[str], batch_size: int,
     """
     dataset = PromptDataset(prompts)
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
+    if 'dataloader_kwargs' in dataloader_kwargs:
+        dataloader_kwargs = dataloader_kwargs['dataloader_kwargs']
+        
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,
