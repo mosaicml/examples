@@ -80,7 +80,7 @@ def main(config: DictConfig):  # type: ignore
         center_crop=config.dataset.center_crop,
         tokenizer=model.tokenizer,
         batch_size=config.train_device_batch_size,
-        dataloader_kwargs=config.dataset.dataloader_kwargs)
+        **config.dataset.dataloader_kwargs)
 
     # Optimizer
     print('Building optimizer and learning rate scheduler')
