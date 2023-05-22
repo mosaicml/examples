@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from examples.common.text_data import StreamingTextDataset
+from examples.llm.src.data.packing import BinPackWrapper
 from examples.llm.src.models import utils
 
 __all__ = ['MixtureOfDenoisersCollator', 'build_text_denoising_dataloader']
@@ -122,6 +123,11 @@ class MixtureOfDenoisersCollator:
             To disable these prefixes, use a value of ``None``.
             Default: :func:`ul2_prefix_function` applies the prefix scheme
             suggested in the UL2 paper: http://arxiv.org/abs/2205.05131.
+        context_eos (bool, optional): Whether to attach an EOS token to the end
+            of the context sequence, marking the transition from context to
+            target sequence. Only applicable if decoder_only_format is True.
+            Context EOS tokens are always added for encoder-decoder format.
+            Default: ``False`` does not attach context EOS.
     """
 
     def __init__(
@@ -133,7 +139,11 @@ class MixtureOfDenoisersCollator:
         sequence_mask_ratios: Optional[Union[List[float], float]] = None,
         allow_pad_trimming: bool = False,
         prefix_function: Optional[PREFIX_FUNCTION] = ul2_prefix_function,
+        context_eos: Optional[bool] = None,
     ):
+        # Prepare the tokenizer for denoising tasks
+        utils.adapt_tokenizer_for_denoising(tokenizer)
+
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
         self.decoder_only_format = decoder_only_format
@@ -143,8 +153,7 @@ class MixtureOfDenoisersCollator:
         self._allow_pad_trimming = allow_pad_trimming
         self._seen_first_batch = False
 
-        # Prepare the tokenizer for denoising tasks
-        utils.adapt_tokenizer_for_denoising(self.tokenizer)
+        self.context_eos = bool(context_eos) if decoder_only_format else True
 
         # Process the span_mean_lengths_and_ratios argument
         if span_mean_lengths_and_ratios is None:
@@ -212,7 +221,8 @@ class MixtureOfDenoisersCollator:
                 mask_ratio=span_mask_ratio,
                 mean_span_length=span_mean_length,
                 n_prefix_tokens=len(prefix_tokens or []),
-                decoder_only_format=self.decoder_only_format)
+                decoder_only_format=self.decoder_only_format,
+                context_eos=self.context_eos)
             if max_raw_length < self._smallest_max_raw_length:
                 self._smallest_max_raw_length = max_raw_length
             if max_raw_length > self._largest_max_raw_length:
@@ -235,6 +245,8 @@ class MixtureOfDenoisersCollator:
                 prefix_tokens = None
 
             max_raw_length = self.max_seq_length - len(prefix_tokens or []) - 1
+            if decoder_only_format and self.context_eos:
+                max_raw_length = max_raw_length - 1
 
             if not self._uses_span_corruption and (
                     max_raw_length < self._smallest_max_raw_length):
@@ -283,7 +295,8 @@ class MixtureOfDenoisersCollator:
                     max_seq_length=self.max_seq_length,
                     tokenizer=self.tokenizer,
                     sentinel_token_ids=self._sentinel_token_ids,
-                    decoder_only_format=self.decoder_only_format))
+                    decoder_only_format=self.decoder_only_format,
+                    context_eos=self.context_eos))
         batch = self.tokenizer.pad(processed_examples)
 
         # This logic prevents trimming on at least the first batch
@@ -337,8 +350,11 @@ class MixtureOfDenoisersCollator:
         return batch
 
 
-def build_text_denoising_dataloader(cfg: DictConfig,
-                                    device_batch_size: int) -> DataLoader:
+def build_text_denoising_dataloader(
+    cfg: DictConfig,
+    tokenizer: Tokenizer,
+    device_batch_size: int,
+) -> DataLoader:
     """Constructor function for a Mixture of Denoisers dataloader.
 
     This function constructs a dataloader that can be used to train an
@@ -355,12 +371,23 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         cfg (DictConfig): An omegaconf dictionary used to configure the loader:
             cfg.name (str): The type of dataloader to build. Must = "text_denoising".
             ---
-            cfg.dataset.tokenizer_name (str): The name of the tokenizer to use
-                for tokenizing raw text. Or, if using pre-tokenized data, the
-                name of the tokenizer used to prepare the data.
             cfg.dataset.max_seq_len (int): The maximum length of sequences
                 in the batch. See :class:`MixtureOfDenoisersCollator` docstring
                 for details.
+            cfg.dataset.packing_ratio (float, optional): If provided, this invokes
+                a collator wrapper that packs device_batch_size*packing_ratio
+                raw examples into device_batch_size packed examples. This helps
+                minimize padding while preserving sequence integrity.
+                This adds `sequence_id` to the batch, which indicates which unique
+                sequence each token belongs to.
+                Note: Using this feature will not change device_batch_size but it
+                    will determine the number of raw examples consumed by the dataloader
+                    per batch. Some examples may be discarded if they do not fit when
+                    packing.
+                    Select packing_ratio **carefully** based on the dataset
+                    statistics, max_seq_len, and tolerance for discarding samples!
+                    The packing code in `./packing.py` provides a script that can help
+                    you choose the best packing_ratio.
             See :class:`StreamingTextDataset` for info on other standard config
                 options within `cfg.dataset`.
             ---
@@ -384,14 +411,21 @@ def build_text_denoising_dataloader(cfg: DictConfig,
             ---
             See :class:`DataLoader` for standard argument options to the pytorch
                 dataloader, such as `cfg.drop_last`, `cfg.num_workers`, etc.
+        tokenizer (transformers.PreTrainedTokenizer): The tokenizer used to
+            prepare the data from raw text. Any missing sentinel tokens will
+            be added by the collator.
         device_batch_size (int): The size of the batches (number of examples)
             that the dataloader will produce.
+
+    Note:
+        You can run the script inside `./packing.py` to quickly test the
+        padding/waste rates for different `cfg.dataset.packing_ratio` choices,
+        given a starting workload YAML.
     """
     assert cfg.name == 'text_denoising', f'Tried to build_denoising text dataloader with cfg.name={cfg.name}'
 
     collate_fn = MixtureOfDenoisersCollator(
-        tokenizer=utils.AutoTokenizerForMOD.from_pretrained(
-            cfg.dataset.tokenizer_name),
+        tokenizer=tokenizer,
         max_seq_length=cfg.dataset.max_seq_len,
         decoder_only_format=cfg.mixture_of_denoisers.decoder_only_format,
         span_mean_lengths_and_ratios=cfg.mixture_of_denoisers.get(
@@ -401,7 +435,8 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         allow_pad_trimming=cfg.mixture_of_denoisers.get('allow_pad_trimming',
                                                         False),
         prefix_function=cfg.mixture_of_denoisers.get('prefix_function',
-                                                     ul2_prefix_function))
+                                                     ul2_prefix_function),
+        context_eos=cfg.mixture_of_denoisers.get('context_eos'))
 
     truncate_to = cfg.mixture_of_denoisers.get('truncate_raw_tokens_to')
     if truncate_to is None:
@@ -430,7 +465,7 @@ def build_text_denoising_dataloader(cfg: DictConfig,
 
     dataset = StreamingTextDataset(
         local=cfg.dataset.local,
-        tokenizer_name=cfg.dataset.tokenizer_name,
+        tokenizer=tokenizer,
         max_seq_len=truncate_to,
         remote=cfg.dataset.get('remote'),
         split=cfg.dataset.get('split'),
@@ -443,6 +478,33 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         shuffle_seed=cfg.dataset.get('shuffle_seed'),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes'),
         batch_size=device_batch_size)
+
+    if dataset.tokenizer.pad_token is None:  # type: ignore
+        dataset.tokenizer.pad_token = dataset.tokenizer.eos_token
+
+    if cfg.dataset.get('packing_ratio'):
+        n_examples_to_pack = int(device_batch_size * cfg.dataset.packing_ratio)
+        if n_examples_to_pack < device_batch_size:
+            raise ValueError('packing_ratio must be >= 1, if supplied')
+        if not cfg.mixture_of_denoisers.decoder_only_format:
+            raise NotImplementedError(
+                'On-the-fly packing is currently only supported for decoder-only formats.'
+            )
+        collate_fn = BinPackWrapper(
+            collator=collate_fn,
+            target_batch_size=device_batch_size,
+            max_seq_len=cfg.dataset.max_seq_len,
+            pad_token_id=dataset.tokenizer.pad_token_id,
+            padding_side=dataset.tokenizer.padding_side,
+            max_leftover_bins_to_keep=cfg.dataset.get(
+                'max_leftover_bins_to_keep'),
+        )
+        device_batch_size = n_examples_to_pack
+    elif cfg.dataset.get('max_leftover_bins_to_keep') is not None:
+        raise ValueError(
+            'cfg.dataset.max_leftover_bins_to_keep has been defined, ' +\
+            'but cfg.dataset.packing_ratio has not been set. Please set ' +\
+            'the latter to turn on packing or remove the former from the config.')
 
     return DataLoader(
         dataset,
@@ -467,6 +529,7 @@ def noise_token_sequence(
     tokenizer: Tokenizer,
     sentinel_token_ids: np.ndarray,
     decoder_only_format: bool,
+    context_eos: bool,
 ) -> Dict[str, torch.Tensor]:
     """Span corruption applicable to all UL2 denoising tasks."""
     # Extract the raw text tokens (trim if we need to)
@@ -504,7 +567,6 @@ def noise_token_sequence(
         use_sentinels = False
     else:
         use_sentinels = True
-    ensure_input_eos = False if decoder_only_format else True
 
     # Generate the mask
     # Note: this function can be used for all the UL2 noising functions
@@ -518,7 +580,7 @@ def noise_token_sequence(
                                 use_sentinels,
                                 tokenizer.eos_token_id,
                                 sentinel_token_ids,
-                                ensure_eos=ensure_input_eos)
+                                ensure_eos=context_eos)
     tokens_labels = _apply_mask(tokens,
                                 1 - mask,
                                 use_sentinels,
@@ -551,7 +613,7 @@ def noise_token_sequence(
 
 def _get_max_starting_length(max_length: int, mask_ratio: float,
                              mean_span_length: float, n_prefix_tokens: int,
-                             decoder_only_format: bool):
+                             decoder_only_format: bool, context_eos: bool):
     """Get max num raw tokens that will fit max_length."""
 
     def sequence_stats(length: int):
@@ -563,8 +625,7 @@ def _get_max_starting_length(max_length: int, mask_ratio: float,
         num_noise_spans = np.maximum(num_spans, 1)
         num_nonnoise_tokens = length - num_noise_tokens
         # Prefix, sentinel, and EOS added to input for Enc-Dec
-        extra_inp_tokens = n_prefix_tokens + num_noise_spans + int(
-            not decoder_only_format)
+        extra_inp_tokens = n_prefix_tokens + num_noise_spans + int(context_eos)
         # Sentinel and EOS added to target
         extra_targ_tokens = num_noise_spans + 1
         # Sequence totals after corruption
@@ -763,14 +824,16 @@ def _format_tokens_for_decoder_only(
 
 
 # Helpful to test if your dataloader is working locally
-# Run `python data_denoising.py [remote] [local, optional]` and verify that batches
+# Run `python denoising.py [local] [remote, optional]` and verify that batches
 # are printed out
 if __name__ == '__main__':
-    remote = sys.argv[1]
+    from examples.common.builders import build_tokenizer
+
+    local = sys.argv[1]
     if len(sys.argv) > 2:
-        local = sys.argv[2]
+        remote = sys.argv[2]
     else:
-        local = remote
+        remote = local
     print(f'Reading val split from {remote} -> {local}')
 
     decoder_only = True
@@ -780,10 +843,10 @@ if __name__ == '__main__':
         'dataset': {
             'local': local,
             'remote': remote,
-            'split': 'val_small',
+            'split': 'val',  # 'val_small',
             'shuffle': False,
-            'tokenizer_name': 'gpt2' if decoder_only else 't5-base',
-            'max_seq_len': 256 if decoder_only else 128,
+            'max_seq_len': 2048 if decoder_only else 1024,
+            'packing_ratio': 4.5,
             'predownload': 1000,
             'keep_zip': True,  # in case we need compressed files after testing
         },
@@ -798,14 +861,34 @@ if __name__ == '__main__':
     cfg = om.create(cfg)
     device_batch_size = 2
 
-    loader = build_text_denoising_dataloader(cfg, device_batch_size)
+    tokenizer_cfg = {
+        'name': 'gpt2' if decoder_only else 't5-base',
+        'kwargs': {}
+    }
+    tokenizer_cfg['kwargs'] = {'model_max_length': cfg.dataset.max_seq_len}
+    tokenizer_cfg = om.create(tokenizer_cfg)
+    tokenizer = build_tokenizer(tokenizer_cfg)
+
+    loader = build_text_denoising_dataloader(cfg, tokenizer, device_batch_size)
 
     print(
         f'\n\nTRUNCATING TO: {loader.dataset.max_seq_len}\n\n')  # type: ignore
 
-    tokenizer = loader.collate_fn.tokenizer
+    packing = cfg.dataset.get('packing_ratio') is not None
+    if packing:
+        tokenizer = loader.collate_fn.base_collator.tokenizer
+    else:
+        tokenizer = loader.collate_fn.tokenizer
     batch_ix = 0
     for batch in loader:
+        if batch_ix >= 50:
+            batch_ix += 1
+            break
+        if batch_ix >= 5:
+            if not packing:
+                break
+            batch_ix += 1
+            continue
         print('\n')
         print('#' * 20, f'Batch {batch_ix}', '#' * 20)
         for k, v in batch.items():
@@ -818,16 +901,37 @@ if __name__ == '__main__':
                 attn_full = batch['attention_mask'][sample_ix].to(torch.bool)
                 attn_labels = torch.logical_xor(attn_inputs, attn_full)
                 print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
-                print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
-                print('Target: ', tokenizer.decode(labels[attn_labels]))
+                if packing:
+                    for subseq in range(
+                            int(batch['sequence_id'][sample_ix].max()) + 1):
+                        is_subseq = batch['sequence_id'][sample_ix] == subseq
+                        print(
+                            '\033[93m{}\033[00m\n'.format('Input:  '),
+                            tokenizer.decode(token_sample[torch.logical_and(
+                                is_subseq, attn_inputs)]))
+                        print(
+                            '\033[92m{}\033[00m\n'.format('Target: '),
+                            tokenizer.decode(labels[torch.logical_and(
+                                is_subseq, attn_labels)]))
+                else:
+                    print('\033[91m{}\033[00m\n'.format('Full:   '),
+                          tokenizer.decode(token_sample[attn_full]))
+                    print('\033[93m{}\033[00m\n'.format('Input:  '),
+                          tokenizer.decode(token_sample[attn_inputs]))
+                    print('\033[92m{}\033[00m\n'.format('Target: '),
+                          tokenizer.decode(labels[attn_labels]))
             else:
                 labels = batch['labels'][sample_ix]
                 attn_inputs = batch['attention_mask'][sample_ix].to(torch.bool)
                 attn_labels = batch['decoder_attention_mask'][sample_ix].to(
                     torch.bool)
                 print('-' * 20, f' Sample {sample_ix} ', '-' * 20)
-                print('Input:  ', tokenizer.decode(token_sample[attn_inputs]))
-                print('Target: ', tokenizer.decode(labels[attn_labels]))
+                print('\033[93m{}\033[00m\n'.format('Input:  '),
+                      tokenizer.decode(token_sample[attn_inputs]))
+                print('\033[92m{}\033[00m\n'.format('Target: '),
+                      tokenizer.decode(labels[attn_labels]))
         batch_ix += 1
-        if batch_ix >= 5:
-            break
+
+    if packing:
+        print(f'Padding = {100*(1-loader.collate_fn.efficiency):5.2f}%')
+        print(f'Waste   = {100*loader.collate_fn.waste:5.2f}%')

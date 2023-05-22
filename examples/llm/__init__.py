@@ -4,8 +4,6 @@
 try:
     import torch
 
-    from examples.llm.inference.inference import (MosaicGPTInference,
-                                                  get_mosaicgpt_inference_model)
     from examples.llm.src.model_registry import COMPOSER_MODEL_REGISTRY
     from examples.llm.src.models.hf import (ComposerHFCausalLM,
                                             ComposerHFPrefixLM, ComposerHFT5)
@@ -14,7 +12,8 @@ try:
         flash_attn_fn, scaled_multihead_dot_product_attention,
         triton_flash_attn_fn)
     from examples.llm.src.models.layers.gpt_blocks import GPTMLP, GPTBlock
-    from examples.llm.src.models.mosaic_gpt import ComposerMosaicGPT, MosaicGPT
+    from examples.llm.src.models.mosaic_gpt import (ComposerMosaicGPT,
+                                                    MosaicGPT, MosaicGPTConfig)
 except ImportError as e:
     try:
         is_cuda_available = torch.cuda.is_available()  # type: ignore
@@ -41,7 +40,6 @@ __all__ = [
     'GPTMLP',
     'GPTBlock',
     'MosaicGPT',
+    'MosaicGPTConfig',
     'ComposerMosaicGPT',
-    'MosaicGPTInference',
-    'get_mosaicgpt_inference_model',
 ]

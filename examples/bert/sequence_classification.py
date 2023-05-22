@@ -127,11 +127,17 @@ def main(cfg: DictConfig,
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_my_dataloader(cfg.train_loader,
-                                       cfg.device_train_batch_size)
+    train_loader = build_my_dataloader(
+        cfg.train_loader,
+        cfg.global_train_batch_size // dist.get_world_size(),
+    )
     print('Building eval loader...')
-    eval_loader = build_my_dataloader(cfg.eval_loader,
-                                      cfg.device_eval_batch_size)
+    global_eval_batch_size = cfg.get('global_eval_batch_size',
+                                     cfg.global_train_batch_size)
+    eval_loader = build_my_dataloader(
+        cfg.eval_loader,
+        global_eval_batch_size // dist.get_world_size(),
+    )
 
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)

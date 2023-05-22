@@ -8,28 +8,30 @@ Inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
 
 import math
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from composer.algorithms.low_precision_layernorm.low_precision_layernorm import \
-    LPLayerNorm
 from composer.metrics import (InContextLearningLMAccuracy,
                               InContextLearningMultipleChoiceAccuracy)
 from composer.metrics.nlp import LanguageCrossEntropy, LanguagePerplexity
 from composer.models import HuggingFaceModel
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-from transformers import AutoTokenizer, PreTrainedModel
+from transformers import (PreTrainedModel, PreTrainedTokenizer,
+                          PreTrainedTokenizerFast)
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
 import examples.llm.src.models.layers.attention as attention
 import examples.llm.src.models.layers.gpt_blocks as gpt_blocks
+from examples.llm.src.models.layers.norm import NORM_CLASS_REGISTRY
 from examples.llm.src.models.mosaic_gpt.configuration_mosaic_gpt import \
     MosaicGPTConfig
 from examples.llm.src.models.utils import (MODEL_INIT_REGISTRY,
                                            add_bidirectional_mask_if_missing)
+
+Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
 
 
 class MosaicGPT(PreTrainedModel):
@@ -41,10 +43,16 @@ class MosaicGPT(PreTrainedModel):
 
         self.attn_impl = config.attn_impl
         self.prefix_lm = config.prefix_lm
+        self.attn_uses_sequence_id = config.attn_uses_sequence_id
         self.alibi = config.alibi
         self.alibi_bias_max = config.alibi_bias_max
 
-        layernorm_class = LPLayerNorm if config.low_precision_layernorm else nn.LayerNorm
+        if config.norm_type.lower() not in NORM_CLASS_REGISTRY.keys():
+            norm_options = ' | '.join(NORM_CLASS_REGISTRY.keys())
+            raise NotImplementedError(
+                f'Requested norm type ({config.norm_type}) is not implemented within this repo (Options: {norm_options}).'
+            )
+        norm_class = NORM_CLASS_REGISTRY[config.norm_type.lower()]
 
         # CogView (https://arxiv.org/abs/2105.13290) and GLM-130B (https://arxiv.org/abs/2210.02414)
         # both report this helping with stabilizing training
@@ -72,9 +80,8 @@ class MosaicGPT(PreTrainedModel):
                     for _ in range(config.n_layers)
                 ])
         })
-        self.transformer.update({
-            'ln_f': layernorm_class(config.d_model, device=config.init_device)
-        })
+        self.transformer.update(
+            {'norm_f': norm_class(config.d_model, device=config.init_device)})
 
         # enables scaling output logits; similar to a softmax "temperature"
         # PaLM paper uses scale 1/sqrt(config.d_model)
@@ -107,7 +114,8 @@ class MosaicGPT(PreTrainedModel):
             config.max_seq_len,
             self.alibi,
             prefix_lm=self.prefix_lm,
-            causal=self.is_causal)
+            causal=self.is_causal,
+            use_sequence_id=self.attn_uses_sequence_id)
 
         if config.no_bias:
             for module in self.modules():
@@ -120,11 +128,13 @@ class MosaicGPT(PreTrainedModel):
         if config.verbose and config.verbose > 2:
             print(self)
 
+    @torch.no_grad()
     def _attn_bias(self,
                    device,
                    dtype,
                    attention_mask: Optional[torch.ByteTensor] = None,
-                   prefix_mask: Optional[torch.ByteTensor] = None):
+                   prefix_mask: Optional[torch.ByteTensor] = None,
+                   sequence_id: Optional[torch.LongTensor] = None):
         if not self._attn_bias_initialized:
             if self.attn_bias_shape:
                 self.attn_bias = torch.zeros(self.attn_bias_shape,
@@ -145,6 +155,11 @@ class MosaicGPT(PreTrainedModel):
         if self.attn_impl == 'flash':
             return self.attn_bias, attention_mask
 
+        if self.attn_bias is not None:
+            # .to(*args, **kwargs) is a no-op if tensor is already on
+            # specified device or of specificed dtype
+            self.attn_bias = self.attn_bias.to(dtype=dtype, device=device)
+
         attn_bias = self.attn_bias
 
         # If using torch or triton, we incorporate the prefix_mask (if appropriate)
@@ -153,8 +168,13 @@ class MosaicGPT(PreTrainedModel):
             assert isinstance(prefix_mask, torch.Tensor)  # pyright
             attn_bias = self._apply_prefix_mask(attn_bias, prefix_mask)
 
+        # If using torch or triton, we incorporate sequence_id (if appropriate)
+        if self.attn_uses_sequence_id and sequence_id is not None:
+            assert isinstance(attn_bias, torch.Tensor)  # pyright
+            attn_bias = self._apply_sequence_id(attn_bias, sequence_id)
+
         # If using torch or triton, we incorporate attention_mask. This will output
-        # None in place of attention_mask since it will not be futher needed in the
+        # None in place of attention_mask since it will not be further needed in the
         # attention modules.
         if attention_mask is not None:
             s_k = attention_mask.shape[-1]
@@ -201,9 +221,29 @@ class MosaicGPT(PreTrainedModel):
                        dtype=torch.bool,
                        device=prefix_mask.device)).view(1, 1, seq_len, seq_len)
         prefix = prefix_mask.view(-1, 1, 1, seq_len)
-        cannot_attend = torch.logical_not(
-            torch.logical_or(causal, prefix.bool()))
+        cannot_attend = ~torch.logical_or(causal, prefix.bool())
 
+        min_val = torch.finfo(attn_bias.dtype).min
+        attn_bias = attn_bias.masked_fill(cannot_attend, min_val)
+
+        return attn_bias
+
+    def _apply_sequence_id(self, attn_bias: torch.Tensor,
+                           sequence_id: torch.LongTensor):
+        seq_len = sequence_id.shape[-1]
+        if seq_len > self.config.max_seq_len:
+            raise ValueError(
+                f'sequence_id sequence length cannot exceed max_seq_len={self.config.max_seq_len}'
+            )
+
+        # select seq_len subset of attn mask
+        attn_bias = attn_bias[..., :seq_len, :seq_len]
+
+        # Restrict attention to tokens that share the same value
+        # in sequence_id
+        cannot_attend = torch.logical_not(
+            torch.eq(sequence_id.view(-1, seq_len, 1),
+                     sequence_id.view(-1, 1, seq_len))).unsqueeze(1)
         min_val = torch.finfo(attn_bias.dtype).min
         attn_bias = attn_bias.masked_fill(cannot_attend, min_val)
 
@@ -215,6 +255,7 @@ class MosaicGPT(PreTrainedModel):
             past_key_values: Optional[List[Tuple[torch.FloatTensor]]] = None,
             attention_mask: Optional[torch.ByteTensor] = None,
             prefix_mask: Optional[torch.ByteTensor] = None,
+            sequence_id: Optional[torch.LongTensor] = None,
             return_dict: Optional[bool] = None,
             output_attentions: Optional[bool] = None,
             output_hidden_states: Optional[bool] = None,
@@ -241,6 +282,19 @@ class MosaicGPT(PreTrainedModel):
             raise ValueError(
                 'prefix_mask is a required argument when MosaicGPT is configured with prefix_lm=True.'
             )
+
+        if self.training:
+            if self.attn_uses_sequence_id and sequence_id is None:
+                raise ValueError(
+                    'sequence_id is a required argument when MosaicGPT is configured with attn_uses_sequence_id=True ' +\
+                    'and the model is in train mode.'
+                )
+            elif (self.attn_uses_sequence_id is False) and (sequence_id
+                                                            is not None):
+                warnings.warn(
+                    'MosaicGPT received non-None input for `sequence_id` but is configured with attn_uses_sequence_id=False. ' +\
+                    'This input will be ignored. If you want the model to use `sequence_id`, set attn_uses_sequence_id to True.'
+                )
 
         S = input_ids.size(1)
 
@@ -275,7 +329,8 @@ class MosaicGPT(PreTrainedModel):
             if attention_mask is not None:
                 # adjust the position indices to account for padding tokens
                 pos = torch.clamp(pos - torch.cumsum(
-                    (attention_mask == 0), dim=1)[:, past_position:],
+                    (~attention_mask).to(torch.int32), dim=1)[:,
+                                                              past_position:],
                                   min=0)
 
             pos_emb = self.transformer.wpe(pos)  # type: ignore
@@ -294,7 +349,8 @@ class MosaicGPT(PreTrainedModel):
             device=x.device,
             dtype=x.dtype,
             attention_mask=attention_mask,
-            prefix_mask=prefix_mask)
+            prefix_mask=prefix_mask,
+            sequence_id=sequence_id)
 
         # initialize the past key values cache if it should be used
         if use_cache and past_key_values is None:
@@ -316,7 +372,7 @@ class MosaicGPT(PreTrainedModel):
             if past_key_values is not None:
                 past_key_values[b_idx] = past_key_value
 
-        x = self.transformer.ln_f(x)  # type: ignore
+        x = self.transformer.norm_f(x)  # type: ignore
 
         # output embedding weight tied to input embedding
         assert isinstance(self.transformer.wte, nn.Module)  # pyright
@@ -364,6 +420,11 @@ class MosaicGPT(PreTrainedModel):
             raise NotImplementedError(
                 'MosaicGPT does not support generation with right padding.')
 
+        if self.attn_uses_sequence_id and self.training:
+            sequence_id = torch.zeros_like(input_ids[:1])
+        else:
+            sequence_id = None
+
         if past_key_values is not None:
             input_ids = input_ids[:, -1].unsqueeze(-1)
 
@@ -382,8 +443,9 @@ class MosaicGPT(PreTrainedModel):
             'input_ids': input_ids,
             'attention_mask': attention_mask,
             'prefix_mask': prefix_mask,
+            'sequence_id': sequence_id,
             'past_key_values': past_key_values,
-            'use_cache': kwargs.get('use_cache'),
+            'use_cache': kwargs.get('use_cache', True),
         }
 
     @staticmethod
@@ -405,26 +467,15 @@ class MosaicGPT(PreTrainedModel):
 
 class ComposerMosaicGPT(HuggingFaceModel):
 
-    def __init__(self, om_model_config: DictConfig,
-                 om_tokenizer_config: DictConfig):
+    def __init__(
+        self,
+        om_model_config: DictConfig,
+        tokenizer: Optional[Tokenizer] = None,
+    ):
         resolved_om_model_config = om.to_container(om_model_config,
                                                    resolve=True)
         hf_config = MosaicGPTConfig.from_dict(resolved_om_model_config)
         model = MosaicGPT(hf_config)
-
-        resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
-                                                       resolve=True)
-        tokenizer_kwargs = resolved_om_tokenizer_config.get(  # type: ignore
-            'kwargs', {})
-        tokenizer_name = resolved_om_tokenizer_config['name']  # type: ignore
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
-                                                  **tokenizer_kwargs)
-
-        # HuggingFace does not respect the model_max_length kwarg, and overrides it with
-        # min(kwargs['model_max_length'], original_config['model_max_length']), so we explicitly
-        # set it here
-        if 'model_max_length' in tokenizer_kwargs:
-            tokenizer.model_max_length = tokenizer_kwargs['model_max_length']
 
         train_metrics = [
             LanguageCrossEntropy(hf_config.vocab_size),
@@ -447,7 +498,7 @@ class ComposerMosaicGPT(HuggingFaceModel):
             allow_embedding_resizing=True,
         )
 
-        self.num_fwd_flops = self._compute_num_fwd_flops()
+        self.n_active_params = sum(p.numel() for p in self.parameters())
 
         loss_fn_config = om_model_config.get('loss_fn', 'fused_crossentropy')
         if loss_fn_config == 'fused_crossentropy':
@@ -477,32 +528,29 @@ class ComposerMosaicGPT(HuggingFaceModel):
         input_ids = batch['input_ids']
         attention_mask = batch['attention_mask'].bool(
         ) if 'attention_mask' in batch else None
+        sequence_id = batch.get('sequence_id', None)
         prefix_mask = batch['bidirectional_mask'].bool(
         ) if 'bidirectional_mask' in batch else None
         # Note: prefix_mask is only used if model.prefix_lm is True
         return self.model(input_ids=input_ids,
                           attention_mask=attention_mask,
-                          prefix_mask=prefix_mask)
+                          prefix_mask=prefix_mask,
+                          sequence_id=sequence_id)
 
     def loss(self, outputs, batch):
         targets = self.get_targets(batch)
         return self.loss_fn(outputs.logits.view(-1, outputs.logits.size(-1)),
                             targets.view(-1))
 
-    def _compute_num_fwd_flops(self):
-        n_params = sum(p.numel() for p in self.parameters())
-        # the number of paramters is approximately the number of multiply-accumulates (MAC) in the network
-        # each MAC has 2 FLOPs - we multiply by 2 ie 2 * n_param
-        # this gets us FLOPs / token
-        params_flops_per_token = 2 * n_params
-        params_flops_per_seq = params_flops_per_token * self.model.config.max_seq_len
-        # there are 2 FLOPS per mac; there is A=Q*K^T and out=A*V ops (ie mult by 2)
-        attn_flops_per_seq = self.model.config.n_layers * 2 * 2 * (
-            self.model.config.d_model * (self.model.config.max_seq_len**2))
-        return params_flops_per_seq + attn_flops_per_seq
-
     def flops_per_batch(self, batch):
         # Note: this computation does not take into account padding, and assumes
         # that the dataset has been constructed without padding. Additionally, we
         # assume the backward pass is approximately 2x the forward pass
-        return self.num_fwd_flops * 3 * batch['input_ids'].shape[0]
+
+        bs, msl = batch['input_ids'].shape[0:2]
+        params_flops_per_token = 2 * self.n_active_params
+        params_flops_per_seq = params_flops_per_token * msl
+        attn_flops_per_seq = self.model.config.n_layers * 2 * 2 * (
+            self.model.config.d_model * (msl**2))
+
+        return (params_flops_per_seq + attn_flops_per_seq) * 3 * bs

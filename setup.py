@@ -9,7 +9,7 @@ from setuptools import setup
 _PACKAGE_NAME = 'mosaicml-examples'
 _PACKAGE_DIR = 'examples'
 _EXAMPLE_SUBDIRS = ('resnet_cifar', 'resnet_imagenet', 'deeplab', 'bert', 'llm',
-                    'stable_diffusion')
+                    'stable_diffusion', 'stable_diffusion_dreambooth')
 _REPO_REAL_PATH = os.path.dirname(os.path.realpath(__file__))
 _PACKAGE_REAL_PATH = os.path.join(_REPO_REAL_PATH, _PACKAGE_DIR)
 
@@ -74,6 +74,7 @@ def _merge_dependencies(deps_base: List[str],
         base_dict.pop('flash-attn', None)
         base_dict.pop('triton', None)
         base_dict.pop('xentropy-cuda-lib', None)
+        base_dict.pop('xformers', None)
     return [k + v for k, v in base_dict.items()]  # 'foo': '>3' -> 'foo>3'
 
 

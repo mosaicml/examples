@@ -12,10 +12,12 @@ from omegaconf import OmegaConf as om
 
 from examples.common.builders import (build_algorithm, build_callback,
                                       build_icl_evaluators, build_logger,
-                                      build_optimizer, build_scheduler)
+                                      build_optimizer, build_scheduler,
+                                      build_tokenizer)
 from examples.common.config_utils import log_config, update_batch_size_info
 from examples.common.text_data import build_text_dataloader
 from examples.llm.src import (COMPOSER_MODEL_REGISTRY,
+                              build_finetuning_dataloader,
                               build_text_denoising_dataloader)
 
 
@@ -54,22 +56,36 @@ def validate_config(cfg):
             )
 
 
-def build_composer_model(model_cfg, tokenizer_cfg):
+def build_composer_model(model_cfg, tokenizer):
     warnings.filterwarnings(
         action='ignore',
         message='Torchmetrics v0.9 introduced a new argument class property')
-    try:
-        return COMPOSER_MODEL_REGISTRY[model_cfg.name](model_cfg, tokenizer_cfg)
-    except:
+    if model_cfg.name not in COMPOSER_MODEL_REGISTRY:
         raise ValueError(
             f'Not sure how to build model with name={model_cfg.name}')
+    return COMPOSER_MODEL_REGISTRY[model_cfg.name](model_cfg, tokenizer)
 
 
-def build_dataloader(cfg, device_batch_size):
+def build_dataloader(cfg, tokenizer, device_batch_size):
     if cfg.name == 'text':
-        return build_text_dataloader(cfg, device_batch_size)
+        return build_text_dataloader(
+            cfg,
+            tokenizer,
+            device_batch_size,
+        )
     elif cfg.name == 'text_denoising':
-        return build_text_denoising_dataloader(cfg, device_batch_size)
+        return build_text_denoising_dataloader(
+            cfg,
+            tokenizer,
+            device_batch_size,
+        )
+    elif cfg.name == 'finetuning':
+        return build_finetuning_dataloader(
+            cfg,
+            tokenizer,
+            device_batch_size,
+        )
+
     else:
         raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
 
@@ -115,30 +131,34 @@ def main(cfg):
             "Reverting to `cfg.model.init_device='cpu'`.")
         cfg.model.init_device = 'cpu'
 
+    # build tokenizer
+    tokenizer = build_tokenizer(cfg.tokenizer)
+
     # Build Model
     print('Initializing model...')
-    model = build_composer_model(cfg.model, cfg.tokenizer)
+    model = build_composer_model(cfg.model, tokenizer)
     cfg.n_params = sum(p.numel() for p in model.parameters())
     print(f'{cfg.n_params=:.2e}')
-    if hasattr(model, 'num_fwd_flops'):
-        print(f'{model.num_fwd_flops=:.2e}')
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_dataloader(cfg.train_loader,
-                                    cfg.device_train_batch_size)
+    train_loader = build_dataloader(
+        cfg.train_loader,
+        tokenizer,
+        cfg.device_train_batch_size,
+    )
     print('Building eval loader...')
     evaluators = []
     if 'eval_loader' in cfg:
         eval_loader = Evaluator(label='eval',
                                 dataloader=build_dataloader(
-                                    cfg.eval_loader,
+                                    cfg.eval_loader, tokenizer,
                                     cfg.device_eval_batch_size),
                                 metric_names=list(model.train_metrics.keys()))
         evaluators.append(eval_loader)
 
     if 'icl_tasks' in cfg:
-        icl_evaluators, _ = build_icl_evaluators(cfg, model.tokenizer)
+        icl_evaluators, _ = build_icl_evaluators(cfg, tokenizer)
         evaluators.extend(icl_evaluators)
 
     # Optimizer
@@ -189,6 +209,10 @@ def main(cfg):
                                              'auto'),
         fsdp_config=fsdp_config,  # type: ignore
         save_folder=cfg.get('save_folder', None),
+        save_filename=cfg.get('save_filename',
+                              'ep{epoch}-ba{batch}-rank{rank}.pt'),
+        save_latest_filename=cfg.get('save_latest_filename',
+                                     'latest-rank{rank}.pt'),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
                                              -1),
@@ -204,7 +228,8 @@ def main(cfg):
     print('Logging config...')
     log_config(cfg)
 
-    if cfg.get('eval_first', False):
+    if cfg.get('eval_first',
+               False) and trainer.state.timestamp.batch.value == 0:
         trainer.eval()
 
     print('Starting training...')

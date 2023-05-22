@@ -16,9 +16,11 @@ from composer.utils import get_device, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from transformers.modeling_outputs import CausalLMOutputWithPast
+from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
 from examples.llm import (COMPOSER_MODEL_REGISTRY, ComposerHFCausalLM,
                           ComposerHFPrefixLM)
+from examples.llm.src.models.layers import NORM_CLASS_REGISTRY, alibi_bias
 from examples.llm.src.models.mosaic_gpt import MosaicGPT, MosaicGPTConfig
 
 
@@ -164,7 +166,7 @@ def test_attention_mechanism(batch_size=2):
         device=x.device, dtype=x.dtype, attention_mask=attention_mask)
 
     for block in model.model.transformer.blocks:
-        a = block.ln_1(x)
+        a = block.norm_1(x)
         b, attention_weights, _ = block.attn(a,
                                              past_key_value=None,
                                              attn_bias=attn_bias,
@@ -176,7 +178,7 @@ def test_attention_mechanism(batch_size=2):
         assert torch.equal(expected_zerod_weights.expand(*zerod_weights.shape),
                            zerod_weights)
         x = x + block.resid_attn_dropout(b)
-        m = block.ln_2(x)
+        m = block.norm_2(x)
         n = block.mlp(m)
         x = x + block.resid_mlp_dropout(n)
 
@@ -345,8 +347,10 @@ def test_loss_fn():
     with open(conf_path) as f:
         test_cfg = om.load(f)
 
-    test_cfg.model.init_device = 'cuda:0'
     test_cfg.device = 'cuda:0'
+    test_cfg.model.init_device = 'cuda:0'
+    test_cfg.model.param_init_fn = 'baseline_'
+    test_cfg.model.init_std = 0.02
 
     model_1 = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
                                                            test_cfg.tokenizer)
@@ -413,7 +417,9 @@ def test_opt_wrapping(prefixlm):
     assert not model.model.lm_head._fsdp_wrap
 
 
-def test_mosaic_gpt_creation():
+@pytest.mark.parametrize('norm_type', NORM_CLASS_REGISTRY.keys())
+@pytest.mark.parametrize('no_bias', [False, True])
+def test_mosaic_gpt_creation(norm_type, no_bias):
     # Test that the config constructs the model as expected.
     hf_config = MosaicGPTConfig(
         init_device='cpu',
@@ -425,6 +431,8 @@ def test_mosaic_gpt_creation():
         emb_pdrop=0.1,
         resid_pdrop=0.2,
         attn_impl='torch',
+        norm_type=norm_type,
+        no_bias=no_bias,
     )
     mosaic_gpt = MosaicGPT(hf_config)
 
@@ -443,8 +451,10 @@ def test_mosaic_gpt_creation():
 
     d_model = hf_config.d_model
     for block in mosaic_gpt.transformer.blocks:  # type: ignore
-        assert block.ln_1.weight.shape == torch.Size([d_model])  # type: ignore
-        assert block.ln_2.weight.shape == torch.Size([d_model])  # type: ignore
+        assert block.norm_1.weight.shape == torch.Size([d_model
+                                                       ])  # type: ignore
+        assert block.norm_2.weight.shape == torch.Size([d_model
+                                                       ])  # type: ignore
         assert block.mlp.mlp_up.weight.shape == torch.Size(  # type: ignore
             [hf_config.d_model * hf_config.mlp_ratio, hf_config.d_model])
         assert block.mlp.mlp_down.weight.shape == torch.Size(  # type: ignore
@@ -481,6 +491,8 @@ def test_forward_with_padding(attention_impl, device, alibi):
         resid_pdrop=0.2,
         attn_impl=attention_impl,
         alibi=alibi,
+        param_init_fn='baseline_',
+        init_std=0.02,
     )
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
@@ -565,6 +577,57 @@ def test_forward_with_padding(attention_impl, device, alibi):
                 middle_padding_output[0],
                 batched_output[1, :],
                 atol=1e-6 if attention_impl == 'torch' else 1e-8)
+
+
+@pytest.mark.parametrize('attention_impl', ['torch', 'triton'])
+def test_advanced_mask_building(attention_impl):
+    # Test that the correct attention mask is created when both
+    # prefix_mask and sequence_id are used
+    hf_config = MosaicGPTConfig(init_device='cpu',
+                                d_model=16,
+                                n_heads=1,
+                                n_layers=1,
+                                mlp_ratio=1,
+                                max_seq_len=256,
+                                emb_pdrop=0.0,
+                                resid_pdrop=0.0,
+                                attn_impl=attention_impl,
+                                prefix_lm=True,
+                                attn_uses_sequence_id=True,
+                                alibi=False)
+    mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt.eval()
+
+    prefix_mask = torch.ByteTensor([[1, 1, 0, 0, 1, 1, 1, 0]])
+    sequence_id = torch.LongTensor([[0, 0, 0, 0, 1, 1, 1, 1]])
+
+    attn_bias, _ = mosaic_gpt._attn_bias(device=mosaic_gpt.device,
+                                         dtype=torch.float32,
+                                         attention_mask=None,
+                                         prefix_mask=prefix_mask,
+                                         sequence_id=sequence_id)
+
+    assert isinstance(attn_bias, torch.Tensor)
+    assert attn_bias.shape == torch.Size([1, 1, 8, 8])
+
+    # We'll construct the expected value of attn_bias and then compare.
+    can_attend = torch.tensor([
+        [1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+    ])
+    can_attend = can_attend.bool().view(1, 1, 8, 8)
+    expected_attn_bias = torch.zeros_like(attn_bias)
+    expected_attn_bias = expected_attn_bias.masked_fill(
+        torch.logical_not(can_attend),
+        torch.finfo(attn_bias.dtype).min)
+
+    assert torch.equal(attn_bias, expected_attn_bias)
 
 
 @pytest.mark.parametrize('attention_impl,device', [('torch', 'cpu'),
@@ -714,6 +777,9 @@ def test_forward_with_cache_and_padding(alibi):
         resid_pdrop=0.2,
         attn_impl='torch',
         alibi=alibi,
+        use_cache=True,
+        param_init_fn='baseline_',
+        init_std=0.02,
     )
 
     mosaic_gpt = MosaicGPT(hf_config)
@@ -788,13 +854,16 @@ def test_forward_with_cache(attention_impl, device, alibi):
         resid_pdrop=0.2,
         attn_impl=attention_impl,
         alibi=alibi,
+        use_cache=True,
+        param_init_fn='baseline_',
+        init_std=0.02,
     )
     reproducibility.seed_all(1234)
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
     mosaic_gpt = device.module_to_device(mosaic_gpt)
 
-    with get_precision_context('amp_bf16'):
+    with get_precision_context('amp_bf16' if device.name == 'gpu' else 'fp32'):
         reproducibility.seed_all(1234)
         first_input_ids = torch.tensor([[11274, 16390, 11]])
         first_input_ids = device.tensor_to_device(first_input_ids)
@@ -842,10 +911,12 @@ def test_forward_with_cache(attention_impl, device, alibi):
                                  attention_mask=second_attention_mask)
 
         # check that the output is the same whether using the key-value cache or not
-        torch.testing.assert_close(second_output.logits,
-                                   full_output.logits[:, -1, :].unsqueeze(1),
-                                   atol=1e-2,
-                                   rtol=1e-2)
+        torch.testing.assert_close(
+            second_output.logits,
+            full_output.logits[:, -1, :].unsqueeze(1),
+            atol=1e-2,
+            rtol=1e-2,
+        )
 
 
 @pytest.mark.parametrize('alibi', [True, False])
@@ -861,6 +932,9 @@ def test_generate_with_past_kv(alibi):
         resid_pdrop=0.2,
         attn_impl='torch',
         alibi=alibi,
+        use_cache=True,
+        param_init_fn='baseline_',
+        init_std=0.02,
     )
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
@@ -914,6 +988,7 @@ def test_generation_kwargs_dont_crash(generation_kwargs, alibi):
         resid_pdrop=0.2,
         attn_impl='torch',
         alibi=alibi,
+        use_cache=True,
     )
     mosaic_gpt = MosaicGPT(hf_config)
     mosaic_gpt.eval()
@@ -927,13 +1002,87 @@ def test_generation_kwargs_dont_crash(generation_kwargs, alibi):
                             **generation_kwargs)
 
 
-def test_tokenizer_max_length_load(max_seq_len=2048):
-    conf_path = 'yamls/mosaic_gpt/testing.yaml'
-    with open(conf_path) as f:
-        test_cfg = om.load(f)
+@pytest.mark.gpu
+@pytest.mark.parametrize('attention_impl', ['torch', 'flash', 'triton'])
+@pytest.mark.parametrize('alibi', [True, False])
+def test_model_to(attention_impl, alibi):
+    # test that moving the model to diff devices and dtypes in diff ways does not break the model
+    if not torch.cuda.is_available():
+        pytest.skip(
+            f'This test requires CUDA to be available in order to run with {attention_impl} attention.'
+        )
+    if alibi and attention_impl == 'flash':
+        pytest.skip(f'alibi only implemented with torch and triton attention.')
 
-    test_cfg.max_seq_len = max_seq_len
+    hf_config = MosaicGPTConfig(
+        init_device='cpu',
+        d_model=128,
+        n_heads=4,
+        n_layers=2,
+        mlp_ratio=2,
+        max_seq_len=2048,
+        emb_pdrop=0.1,
+        resid_pdrop=0.2,
+        attn_impl=attention_impl,
+        alibi=alibi,
+        use_cache=True,
+        param_init_fn='baseline_',
+        init_std=0.02,
+    )
+    reproducibility.seed_all(1234)
+    mosaic_gpt = MosaicGPT(hf_config)
+    mosaic_gpt = mosaic_gpt.bfloat16()
+    mosaic_gpt = mosaic_gpt.to('cuda')
+    mosaic_gpt.eval()
 
-    model = COMPOSER_MODEL_REGISTRY[test_cfg.model.name](test_cfg.model,
-                                                         test_cfg.tokenizer)
-    assert model.tokenizer.model_max_length == max_seq_len
+    # gen input data
+    input_ids = torch.tensor([[11274, 16390, 11]]).to('cuda')
+    attention_mask = torch.tensor([[1, 1, 1]]).bool().to('cuda')
+
+    _ = mosaic_gpt(input_ids, attention_mask=attention_mask)
+
+    # move the model around using different methods
+    mosaic_gpt = mosaic_gpt.to('cpu')
+
+    # verify the model still works
+    if attention_impl == 'torch':
+        _ = mosaic_gpt(input_ids.to('cpu'),
+                       attention_mask=attention_mask.to('cpu'))
+
+    mosaic_gpt = mosaic_gpt.cuda()
+
+    # verify the model still works
+    if attention_impl == 'torch':
+        _ = mosaic_gpt(input_ids, attention_mask=attention_mask)
+
+    mosaic_gpt = mosaic_gpt.to('cpu')
+    mosaic_gpt = mosaic_gpt.float()
+
+    # verify the model still works
+    if attention_impl == 'torch':
+        _ = mosaic_gpt(input_ids.to('cpu'),
+                       attention_mask=attention_mask.to('cpu'))
+
+    mosaic_gpt = mosaic_gpt.half()
+    mosaic_gpt = mosaic_gpt.to(0)  # move to rank0
+    mosaic_gpt = mosaic_gpt.bfloat16()
+
+    # verify the model still works
+    _ = mosaic_gpt(input_ids, attention_mask=attention_mask)
+
+
+def test_alibi_vs_hf():
+    # compare alibi-bias generation vs HF Bloom model alibi-bias for diff seq len and n_heads
+    for n_heads in range(1, 64):
+        for seq_len in [1, 2, 8, 13, 64, 195, 256]:
+            # hf bloom alibi bais
+            alibi_bias_hf = build_alibi_tensor(
+                torch.ones(seq_len)[None, ...], n_heads, torch.float32)
+            alibi_bias_hf = alibi_bias_hf - alibi_bias_hf.max(
+                dim=2, keepdim=True).values
+
+            # mosaicml alibi bais
+            alibi_bias_m = alibi_bias(n_heads, seq_len, dtype=torch.float32)
+            alibi_bias_m = alibi_bias_m[0]
+
+            torch.testing.assert_close(alibi_bias_hf, alibi_bias_m)

@@ -6,7 +6,7 @@ import sys
 from typing import Optional, cast
 
 from composer import Trainer
-from composer.utils import reproducibility
+from composer.utils import dist, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
@@ -55,10 +55,19 @@ def main(cfg: DictConfig,
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_dataloader(cfg.train_loader,
-                                    cfg.device_train_batch_size)
+    train_loader = build_dataloader(
+        cfg.train_loader,
+        model.tokenizer,
+        cfg.global_train_batch_size // dist.get_world_size(),
+    )
     print('Building eval loader...')
-    eval_loader = build_dataloader(cfg.eval_loader, cfg.device_eval_batch_size)
+    global_eval_batch_size = cfg.get('global_eval_batch_size',
+                                     cfg.global_train_batch_size)
+    eval_loader = build_dataloader(
+        cfg.eval_loader,
+        model.tokenizer,
+        global_eval_batch_size // dist.get_world_size(),
+    )
 
     # Optimizer
     optimizer = build_optimizer(cfg.optimizer, model)
