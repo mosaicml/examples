@@ -125,7 +125,7 @@ def build_prompt_dataloader(prompts: list[str], batch_size: int,
     sampler = dist.get_sampler(dataset, drop_last=False, shuffle=False)
     if 'dataloader_kwargs' in dataloader_kwargs:
         dataloader_kwargs = dataloader_kwargs['dataloader_kwargs']
-        
+    print("Batch size: ", batch_size)
     return DataSpec(dataloader=DataLoader(dataset=dataset,
                                           batch_size=batch_size,
                                           sampler=sampler,
