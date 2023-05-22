@@ -1,7 +1,7 @@
 run_name: stable-diffusion-dreambooth
-cluster:  r1z2   # Name of the cluster to use for this run
+cluster:     # Name of the cluster to use for this run
 gpu_type: a100_40gb   # Type of GPU to use
-gpu_num: 2    # Number of GPUs to use
+gpu_num:    # Number of GPUs to use
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 integrations:
@@ -9,6 +9,8 @@ integrations:
   git_repo: mosaicml/examples
   pip_install: .[stable-diffusion-dreambooth]
   ssh_clone: false
+  git_branch: sd-dreambooth-bugfix
+
 command: |
   cd examples/examples/stable_diffusion_dreambooth
   composer main.py /mnt/config/parameters.yaml
@@ -68,11 +70,11 @@ parameters:
     lr: 1.0e-06
     weight_decay: 1.0e-2
 
-  # wandb:     # Uncomment and fill below arguments to use WandB logger
-  #   entity:  # Name of WandB entity, usually username or organization name
-  #   project: stable-diffusion-dreambooth # Name of WandB project
-  #   group:   # Name of WandB group
-  #   rank_zero_only: false
+  wandb:     # Uncomment and fill below arguments to use WandB logger
+    entity:  # Name of WandB entity, usually username or organization name
+    project: stable-diffusion-dreambooth-bugfix # Name of WandB project
+    group:   # Name of WandB group
+    rank_zero_only: false
 
   # Save checkpoint parameters
   save_folder:  # e.g. ./{run_name}/ckpt (local) or oci://mybucket/mydir/{run_name}/ckpt (remote)
