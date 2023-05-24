@@ -21,9 +21,9 @@ from PIL import Image
 from streaming import StreamingDataset
 from torch.utils.data import DataLoader, Dataset
 
-from examples.deeplab.transforms import (IMAGENET_CHANNEL_MEAN,
-                                         IMAGENET_CHANNEL_STD,
-                                         build_ade20k_transformations)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import transforms as transforms_module
 
 __all__ = ['ADE20k', 'StreamingADE20k']
 
@@ -70,7 +70,7 @@ def build_ade20k_dataspec(
         **dataloader_kwargs (Dict[str, Any]): Additional settings for the
             dataloader (e.g. num_workers, etc.)
     """
-    joint_transform, image_transforms, target_transforms = build_ade20k_transformations(
+    joint_transform, image_transforms, target_transforms = transforms_module.build_ade20k_transformations(
         split=split,
         base_size=base_size,
         min_resize_scale=min_resize_scale,
@@ -98,9 +98,10 @@ def build_ade20k_dataspec(
         sampler = dist.get_sampler(dataset,
                                    drop_last=drop_last,
                                    shuffle=shuffle)
-    device_transform_fn = NormalizationFn(mean=IMAGENET_CHANNEL_MEAN,
-                                          std=IMAGENET_CHANNEL_STD,
-                                          ignore_background=ignore_background)
+    device_transform_fn = NormalizationFn(
+        mean=transforms_module.IMAGENET_CHANNEL_MEAN,
+        std=transforms_module.IMAGENET_CHANNEL_STD,
+        ignore_background=ignore_background)
 
     return DataSpec(
         dataloader=DataLoader(dataset=dataset,
@@ -272,7 +273,7 @@ class StreamingADE20k(StreamingDataset):
                          batch_size=batch_size)
 
         # Define custom transforms
-        self.both_transform, self.image_transform, self.target_transform = build_ade20k_transformations(
+        self.both_transform, self.image_transform, self.target_transform = transforms_module.build_ade20k_transformations(
             split=split,
             base_size=base_size,
             min_resize_scale=min_resize_scale,

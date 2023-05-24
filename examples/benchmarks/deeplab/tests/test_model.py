@@ -4,7 +4,6 @@
 import pytest
 import torch
 from composer.models import ComposerClassifier
-
 from examples.deeplab.model import build_composer_deeplabv3
 
 

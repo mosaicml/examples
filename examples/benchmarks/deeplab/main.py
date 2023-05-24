@@ -15,9 +15,10 @@ from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf
 
-from examples.common.config_utils import log_config
-from examples.deeplab.data import build_ade20k_dataspec
-from examples.deeplab.model import build_composer_deeplabv3
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import data as data_module
+import model as model_module
 
 
 def build_logger(name: str, kwargs: dict):
@@ -57,7 +58,7 @@ def main(config):
 
     # Train dataset
     print('Building train dataloader')
-    train_dataspec = build_ade20k_dataspec(
+    train_dataspec = data_module.build_ade20k_dataspec(
         path=config.train_dataset.path,
         local=config.train_dataset.local,
         is_streaming=config.train_dataset.is_streaming,
@@ -78,7 +79,7 @@ def main(config):
 
     # Validation dataset
     print('Building evaluation dataloader')
-    eval_dataspec = build_ade20k_dataspec(
+    eval_dataspec = data_module.build_ade20k_dataspec(
         path=config.eval_dataset.path,
         local=config.eval_dataset.local,
         is_streaming=config.eval_dataset.is_streaming,
@@ -106,7 +107,7 @@ def main(config):
             torch.nn.init.ones_(module.weight)
             torch.nn.init.zeros_(module.bias)
 
-    composer_model = build_composer_deeplabv3(
+    composer_model = model_module.build_composer_deeplabv3(
         num_classes=config.model.num_classes,
         backbone_arch=config.model.backbone_arch,
         backbone_weights=config.model.backbone_weights,

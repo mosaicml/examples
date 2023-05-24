@@ -9,9 +9,8 @@ import tempfile
 import numpy as np
 import pytest
 import torch
-from PIL import Image
-
 from examples.deeplab.data import build_ade20k_dataspec, check_dataloader
+from PIL import Image
 
 
 class SynthADE20KDirectory:
