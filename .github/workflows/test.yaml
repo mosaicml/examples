@@ -22,25 +22,22 @@ jobs:
         include:
         - name: bert-pytest
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: bert
+          subdir: benchmarks/bert
         - name: resnet-cifar-pytest
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: resnet_cifar
+          subdir: benchmarks/resnet_cifar
         - name: deeplab-pytest
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: deeplab
-        - name: llm-pytest
-          container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: llm
+          subdir: benchmarks/deeplab
         - name: resnet-imagenet-pytest
           container: mosaicml/pytorch_vision:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: resnet_imagenet
+          subdir: benchmarks/resnet_imagenet
         - name: stable-diffusion-pytest
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: stable_diffusion
+          subdir: end-to-end-examples/stable_diffusion
         - name: stable-diffusion-dreambooth-pytest
           container: mosaicml/pytorch:1.13.1_cpu-python3.10-ubuntu20.04
-          subdir: stable_diffusion_dreambooth
+          subdir: end-to-end-examples/stable_diffusion_dreambooth
 
     name: ${{ matrix.name }}
     container: ${{ matrix.container }}
