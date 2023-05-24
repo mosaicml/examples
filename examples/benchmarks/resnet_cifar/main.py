@@ -1,6 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+import importlib
 import os
 import sys
 from typing import Dict
@@ -12,11 +13,23 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist, reproducibility
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
-from examples.common.config_utils import log_config
-from examples.resnet_cifar.data import build_cifar10_dataspec
-from examples.resnet_cifar.model import build_composer_resnet_cifar
+importlib.add_to_path(os.path.dirname(os.path.abspath(__file__)))
+
+from .data import build_cifar10_dataspec
+from .model import build_composer_resnet_cifar
+
+
+def log_config(cfg: DictConfig):
+    print(OmegaConf.to_yaml(cfg))
+    if 'wandb' in cfg.get('loggers', {}):
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
 
 
 def build_logger(name: str, kwargs: Dict):
