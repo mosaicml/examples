@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Inference endpoint for Stable Diffusion."""
-
 import base64
 import io
+from typing import Any, Dict
 
 import torch
 from composer.utils.file_helpers import get_file
@@ -44,7 +44,7 @@ class StableDiffusionHandler():
         model.to(self.device)
         self.model = model.eval()
 
-    def predict(self, **inputs):
+    def predict(self, **inputs: Dict[str, Any]):
         if 'prompt' not in inputs:
             print('No prompt provided, returning nothing')
             return
