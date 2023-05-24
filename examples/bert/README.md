@@ -8,44 +8,49 @@ You'll find in this folder:
 
 ### Pre-training
 
-* `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on Mosaic's cloud.
-* `yamls/main/` - Pre-baked configs for pre-training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `main.py`.
-* `yamls/test/main.yaml` - A config for quickly verifying that `main.py` runs.
+- `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on the MosaicML platform.
+- `yamls/main/` - Pre-baked configs for pre-training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `main.py`.
+- `yamls/test/main.yaml` - A config for quickly verifying that `main.py` runs.
 
 ### Fine-tuning
-* `sequence_classification.py` - A starter script to simplify fine-tuning with your own dataset on a single classification task, locally or on Mosaic's cloud.
-* `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on Mosaic's cloud.
-* `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning.
-* `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`. These handle individual fine-tuning jobs and task-specific hyperparameters.
-* `yamls/finetuning/` - Pre-baked configs for fine-tuning both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `sequence_classification.py` and `glue.py`.
-* `yamls/test/sequence_classification.yaml` - A config for quickly verifying that `sequence_classification.py` runs.
-* `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
+
+- `sequence_classification.py` - A starter script to simplify fine-tuning with your own dataset on a single classification task, locally or on the MosaicML platform.
+- `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on the MosaicML platform.
+- `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning.
+- `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`. These handle individual fine-tuning jobs and task-specific hyperparameters.
+- `yamls/finetuning/` - Pre-baked configs for fine-tuning both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `sequence_classification.py` and `glue.py`.
+- `yamls/test/sequence_classification.yaml` - A config for quickly verifying that `sequence_classification.py` runs.
+- `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
 
 ### Shared
-* `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#composer.Trainer).
-* `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
-* `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
-* `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
-* `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT.
-* `requirements.txt` — All needed Python dependencies.
-* This `README.md`
+
+- `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#composer.Trainer).
+- `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
+- `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
+- `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
+- `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT.
+- `requirements.txt` — All needed Python dependencies.
+- This `README.md`
 
 In the [common](../common) folder, you will also find:
-* `../common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
+
+- `../common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
 
 ## Quick start
 
 ### System recommendations
 
 We recommend the following environment:
-* A system with NVIDIA GPU(s)
-* A Docker container running [MosaicML's PyTorch base image](https://hub.docker.com/r/mosaicml/pytorch/tags): `mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04`.
+
+- A system with NVIDIA GPU(s)
+- A Docker container running [MosaicML's PyTorch base image](https://hub.docker.com/r/mosaicml/pytorch/tags): `mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04`.
 
 This recommended Docker image comes pre-configured with the following dependencies:
-  * PyTorch Version: 1.13.1
-  * CUDA Version: 11.7
-  * Python Version: 3.10
-  * Ubuntu Version: 20.04
+
+- PyTorch Version: 1.13.1
+- CUDA Version: 11.7
+- Python Version: 3.10
+- Ubuntu Version: 20.04
 
 ### Install
 
@@ -60,7 +65,7 @@ cd examples/bert
 
 ## Prepare your data
 
-*(If you have a small dataset that's stored locally or doesn't take much time to download from cloud storage, you can skip this section).*
+_(If you have a small dataset that's stored locally or doesn't take much time to download from cloud storage, you can skip this section)._
 
 In this benchmark, we train BERTs on the [C4: Colossal, Cleaned, Common Crawl dataset](https://huggingface.co/datasets/c4). To run pre-training on C4, you'll need to make yourself a copy of this dataset.
 
@@ -116,8 +121,6 @@ python ../common/text_data.py --local_path /tmp/cache-c4 --remote_path ./my-copy
 ```
 
 With our data prepared, we can now start training.
-
-
 
 ### Test pre-training
 
@@ -201,7 +204,7 @@ The GLUE benchmark measures the average performance across 8 NLP classification 
 To handle this complicated fine-tuning pipeline, we provide the `glue.py` script.
 
 This script handles parallelizing each of these fine-tuning jobs across all the GPUs on your machine.
-That is, the `glue.py` script takes advantage of the small dataset/batch size of the GLUE tasks through *task* parallelism rather than data parallelism. This means that different tasks are trained in parallel, each using one GPU, instead of having one task trained at a time with batches parallelized across GPUs.
+That is, the `glue.py` script takes advantage of the small dataset/batch size of the GLUE tasks through _task_ parallelism rather than data parallelism. This means that different tasks are trained in parallel, each using one GPU, instead of having one task trained at a time with batches parallelized across GPUs.
 
 **Note:** To get started with the `glue.py` script, you will first need to update each reference YAML so that the starting checkpoint field points to the last checkpoint saved by `main.py`. See the [configs](#configs) section for more detail.
 
@@ -225,9 +228,10 @@ Fair warning: all the processes launched inside of `glue.py` will generate their
 This section is to help orient you to the config YAMLs referenced throughout this README and found in `yamls/`.
 
 A quick note on our use of YAMLs:
-* We use YAMLs just to make all the configuration explicit.
-* You can also configure anything you want directly in the Python files.
-* The YAML files don't use any special schema, keywords, or other magic. They're just a clean way of writing a dict for the scripts to read.
+
+- We use YAMLs just to make all the configuration explicit.
+- You can also configure anything you want directly in the Python files.
+- The YAML files don't use any special schema, keywords, or other magic. They're just a clean way of writing a dict for the scripts to read.
 
 In other words, you're free to modify this starter code to suit your project and aren't tied to using YAMLs in your workflow.
 
@@ -235,29 +239,29 @@ In other words, you're free to modify this starter code to suit your project and
 
 Before using the configs in `yamls/main/` when running `main.py`, you'll need to fill in:
 
-* `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
-* `data_remote` - Set this to the filepath of your streaming C4 directory. The default value of `./my-copy-c4` will work if you built a local C4 copy, following the [dataset preparation](#prepare-your-data) instructions. If you moved your dataset to a central location, you simply need to point `data_remote` to that new location.
-* `data_local` - This is the path to the local directory where the dataset is streamed to. If `data_remote` is local, you can use the same path for `data_local` so no additional copying is done. The default values of `./my-copy-c4` are set up to work with such a local copy. If you moved your dataset to a central location, setting `data_local` to `/tmp/cache-c4` should work fine.
-* `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
-* `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that.
+- `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
+- `data_remote` - Set this to the filepath of your streaming C4 directory. The default value of `./my-copy-c4` will work if you built a local C4 copy, following the [dataset preparation](#prepare-your-data) instructions. If you moved your dataset to a central location, you simply need to point `data_remote` to that new location.
+- `data_local` - This is the path to the local directory where the dataset is streamed to. If `data_remote` is local, you can use the same path for `data_local` so no additional copying is done. The default values of `./my-copy-c4` are set up to work with such a local copy. If you moved your dataset to a central location, setting `data_local` to `/tmp/cache-c4` should work fine.
+- `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
+- `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that.
 
 ### sequence_classification.py
 
 Before using the configs in `yamls/finetuning/` when running `sequence_classification.py`, you'll need to fill in:
 
-* `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that. If you're fine-tuning a Mosaic BERT, this should not be left empty.
-* `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
-* `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
-* `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
+- `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that. If you're fine-tuning a Mosaic BERT, this should not be left empty.
+- `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
+- `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
+- `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
 
 ### glue.py
 
 Before using the configs in `yamls/finetuning/glue/` when running `glue.py`, you'll need to fill in:
 
-* `starting_checkpoint_load_path` - This determines which checkpoint you start from when doing fine-tuning. This should look like `<save_folder>/<checkpoint>`, where `<save_folder>` is the location you set in your pre-training config (see above section).
-* `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
-* `base_run_name` (optional) - Make sure to avoid re-using the same name across multiple runs.
-* `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
+- `starting_checkpoint_load_path` - This determines which checkpoint you start from when doing fine-tuning. This should look like `<save_folder>/<checkpoint>`, where `<save_folder>` is the location you set in your pre-training config (see above section).
+- `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
+- `base_run_name` (optional) - Make sure to avoid re-using the same name across multiple runs.
+- `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
 
 ## Running on the MosaicML platform
 
@@ -289,7 +293,7 @@ mcli run -f yamls/finetuning/glue/mcloud_run.yaml
 
 ### Multi-node training
 
-To train with high performance on *multi-node* clusters, the easiest way is with the MosaicML platform ;)
+To train with high performance on _multi-node_ clusters, the easiest way is with the MosaicML platform ;)
 
 But if you want to try this manually on your own cluster, then just provide a few variables to `composer`, either directly via CLI or via environment variables. Then launch the appropriate command on each node.
 
@@ -335,23 +339,22 @@ composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 You should see logs being printed to your terminal.
 You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
-
 ## Mosaic BERT
 
 Our starter code supports both standard HuggingFace BERT models and our own **Mosaic BERT**. The latter incorporates numerous methods to improve throughput and training.
 Our goal in developing Mosaic BERT was to greatly reduce training time while making it easy for you to use on your own problems!
 
 To do this, we employ a number of techniques from the literature:
-* [ALiBi (Press et al., 2021)](https://arxiv.org/abs/2108.12409v1)
-* [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
-* ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
-* [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html)
-* [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135)
+
+- [ALiBi (Press et al., 2021)](https://arxiv.org/abs/2108.12409v1)
+- [Gated Linear Units (Shazeer, 2020)](https://arxiv.org/abs/2002.05202)
+- ["The Unpadding Trick"](https://github.com/mlcommons/training_results_v1.1/blob/main/NVIDIA/benchmarks/bert/implementations/pytorch/fmha.py)
+- [FusedLayerNorm (NVIDIA)](https://nvidia.github.io/apex/layernorm.html)
+- [FlashAttention (Dao et al., 2022)](https://arxiv.org/abs/2205.14135)
 
 ... and get them to work together! To our knowledge, many of these methods have never been combined before.
 
 If you're reading this, we're still profiling the exact speedup and performance gains offered by Mosaic BERT compared to comparable HuggingFace BERT models. Stay tuned for incoming results!
-
 
 ## Contact Us
 

@@ -1,6 +1,8 @@
-run_name: nemo-megatron-gpt-124m-gpu-16
-cluster: r0z0 # Update with your cluster here!
-gpu_num: 16
+name: nemo-megatron-gpt-124m-gpu-16
+
+compute:
+  gpus: 16  # Number of GPUs to use
+
 
 # For the latest NeMo container version, see https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nemo
 image: nvcr.io/nvidia/nemo:22.11
