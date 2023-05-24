@@ -1,4 +1,4 @@
-# This YAML is intended to serve as a reference for running on the Mosaic Cloud
+# This YAML is intended to serve as a reference for running on the MosaicML platform
 # The config from `yamls/main/mosaic-bert-base-uncased.yaml` is copied into the `parameters` field below.
 # You can copy/modify the contents of this file to run different workloads, following the other
 # examples in this directory.
@@ -8,12 +8,16 @@
 #
 # When ready, use `mcli run -f yamls/main/mcloud_run_a100_40gb.yaml` to launch
 
-# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
-run_name: mosaic-bert-base-uncased
-cluster:       # Name of the cluster to use for this run
-gpu_type: a100_40gb # Type of GPU to use
-gpu_num: 8  # Number of GPUs to use
+name: mosaic-bert-base-uncased
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: TODO # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
@@ -36,8 +40,7 @@ command: |
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
 # is the config that `main.py` uses in the above command.
 parameters:
-  # Run Name
-  run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
+  run_name: # If left blank, will be read from top YAML name for W&B logging and checkpointing
 
   # Supply a path to your remote data path
   data_local: ./my-copy-c4

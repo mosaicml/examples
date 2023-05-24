@@ -1,7 +1,9 @@
-run_name: neox-multi-node
+name: neox-multi-node
 image: shivanshupurohit/gpt-neox:112 # Docker image provided by EleutherAI
-gpu_num: 16
-cluster: # ADD YOUR CLUSTER HERE
+
+compute:
+  gpus: 16
+
 
 integrations:
 - integration_type: git_repo

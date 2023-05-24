@@ -1,8 +1,13 @@
-run_name: deeplab-benchmark
-cluster:       # Name of the cluster to use for this run
-gpu_type: a100_80gb # Type of GPU to use
-gpu_num: 8  # Number of GPUs to use specified as an integer
+name: deeplab-benchmark
 image: mosaicml/pytorch_vision:1.12.1_cu116-python3.9-ubuntu20.04
+
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: TODO # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples

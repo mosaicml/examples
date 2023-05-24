@@ -6,11 +6,15 @@ integrations:
   pip_install: -e .[resnet-imagenet]
   ssh_clone: false # Should be true if using a private repo
 
-run_name: resnet_example
-cluster:       # Name of the cluster to use for this run
-gpu_type: a100_40gb # Type of GPU to use
-gpu_num: 8  # Number of GPUs to use
+name: resnet_example
 image: mosaicml/pytorch:1.12.1_cu116-python3.9-ubuntu20.04
+
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: TODO # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
 
 command: |
   cd examples/examples/resnet_imagenet
