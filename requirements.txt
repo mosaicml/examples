@@ -14,6 +14,6 @@ omegaconf>=2.2.3,<3
 # these are just for common/
 datasets==2.10.1
 transformers>=4.25.1,<4.29
-mosaicml-streaming>=0.4.0,<0.5
+mosaicml-streaming>=0.4.1,<0.5
 pynvml<12
 slack-sdk<4
