@@ -1,3 +1,12 @@
+### :construction: :construction: :construction: THIS REPO IS UNDER CONSTRUCTION :construction: :construction: :construction: 
+We are restructuring this repo to focus on examples usages of the MosaicML platform, and more clear examples of end-to-end usages of MosaicML's tools. If you were previously using the examples repo, our most recent stable release is [v0.0.4](https://github.com/mosaicml/examples/releases/tag/v0.0.4), and the commit before this restructuring began is [e37d79874dc9f7c2409e076a5155ff7d4c9d445c](https://github.com/mosaicml/examples/tree/e37d79874dc9f7c2409e076a5155ff7d4c9d445c).
+
+If you are looking for: 
+- our LLM training stack, see [llm-foundry](https://github.com/mosaicml/llm-foundry)
+- our diffusion training stack, see [diffusion](https://github.com/mosaicml/diffusion)
+- our docs, see [docs](https://docs.mosaicml.com/en/latest/)
+- our BERT training code, see [the released version](https://github.com/mosaicml/examples/tree/v0.0.4/examples/bert)
+
 # MosaicML Examples
 
 This repo contains reference examples for training ML models quickly and to high accuracy. It's designed to be easily forked and modified.
