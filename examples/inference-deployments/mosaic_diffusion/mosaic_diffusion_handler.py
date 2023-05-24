@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2022 MosaicML Diffusion authors
 # SPDX-License-Identifier: Apache-2.0
 
@@ -8,9 +11,8 @@ import io
 
 import torch
 from composer.utils.file_helpers import get_file
-from PIL import Image
-
 from diffusion.models import stable_diffusion_2
+from PIL import Image
 
 # Local checkpoint params
 LOCAL_CHECKPOINT_PATH = '/tmp/model.pt'
@@ -29,7 +31,9 @@ class StableDiffusionHandler():
         pretrained_flag = False
         self.device = torch.cuda.current_device()
 
-        model = stable_diffusion_2(pretrained=pretrained_flag, encode_latents_in_fp16=True, fsdp=False)
+        model = stable_diffusion_2(pretrained=pretrained_flag,
+                                   encode_latents_in_fp16=True,
+                                   fsdp=False)
         if not pretrained_flag:
             download_model()
             state_dict = torch.load(LOCAL_CHECKPOINT_PATH)
@@ -50,7 +54,10 @@ class StableDiffusionHandler():
         for arg in ['prompt', 'negative_prompt']:
             if arg in inputs:
                 kwargs[arg] = inputs[arg]
-        for arg in ['height', 'width', 'num_inference_steps', 'num_images_per_prompt', 'seed']:
+        for arg in [
+                'height', 'width', 'num_inference_steps',
+                'num_images_per_prompt', 'seed'
+        ]:
             if arg in inputs:
                 kwargs[arg] = int(inputs[arg])
         for arg in ['guidance_scale']:
@@ -67,10 +74,12 @@ class StableDiffusionHandler():
         # Send as bytes
         png_images = []
         for i in range(imgs.shape[0]):
-            img = (imgs[i].permute(1, 2, 0).numpy() * 255).round().astype('uint8')
+            img = (imgs[i].permute(1, 2, 0).numpy() *
+                   255).round().astype('uint8')
             pil_image = Image.fromarray(img, 'RGB')
             img_byte_arr = io.BytesIO()
             pil_image.save(img_byte_arr, format='PNG')
-            base64_encoded_image = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+            base64_encoded_image = base64.b64encode(
+                img_byte_arr.getvalue()).decode('utf-8')
             png_images.append(bytes(base64_encoded_image, 'utf-8'))
         return png_images
