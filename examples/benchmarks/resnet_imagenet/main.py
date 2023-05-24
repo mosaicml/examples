@@ -16,11 +16,23 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingWithWarmupScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
-from examples.common.config_utils import log_config
-from examples.resnet_imagenet.data import build_imagenet_dataspec
-from examples.resnet_imagenet.model import build_composer_resnet
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import data as data_module
+import model as model_module
+
+
+def log_config(cfg: DictConfig):
+    print(OmegaConf.to_yaml(cfg))
+    if 'wandb' in cfg.get('loggers', {}):
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
 
 
 def build_logger(name: str, kwargs: Dict):
@@ -59,7 +71,7 @@ def main(config):
 
     # Train dataset
     print('Building train dataloader')
-    train_dataspec = build_imagenet_dataspec(
+    train_dataspec = data_module.build_imagenet_dataspec(
         data_path=config.train_dataset.path,
         is_streaming=config.train_dataset.is_streaming,
         batch_size=train_batch_size,
@@ -77,7 +89,7 @@ def main(config):
 
     # Validation dataset
     print('Building evaluation dataloader')
-    eval_dataspec = build_imagenet_dataspec(
+    eval_dataspec = data_module.build_imagenet_dataspec(
         data_path=config.eval_dataset.path,
         is_streaming=config.train_dataset.is_streaming,
         batch_size=eval_batch_size,
@@ -94,9 +106,10 @@ def main(config):
 
     # Instantiate torchvision ResNet model
     print('Building Composer model')
-    composer_model = build_composer_resnet(model_name=config.model.name,
-                                           loss_name=config.model.loss_name,
-                                           num_classes=config.model.num_classes)
+    composer_model = model_module.build_composer_resnet(
+        model_name=config.model.name,
+        loss_name=config.model.loss_name,
+        num_classes=config.model.num_classes)
     print('Built Composer model\n')
 
     # Optimizer
