@@ -1,0 +1,1 @@
+git+https://github.com/mosaicml/diffusion@e36f068e33115090a6d59e5a6652148b63ecf32c#egg=diffusion
