@@ -38,7 +38,7 @@ parameters:
   parallel: true
 
   # Additional details will be added to this name
-  # for each GLUE task, and each random seed. The run_name also determines
+  # for each GLUE task, and each random seed. The base_run_name also determines
   # how checkpoints are saved and logged in W&B
   base_run_name: # If left blank, will be read from top YAML name
 
