@@ -439,7 +439,7 @@ class QQPJob(GlueClassificationJob):
                          **kwargs)
 
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=3.0e-5,
+                                        lr=1.0e-5,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
                                         weight_decay=3.0e-6)
