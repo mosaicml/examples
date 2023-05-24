@@ -19,5 +19,5 @@ name: convert-composer-hf
 
 compute:
   gpus: 8  # Number of GPUs to use
-  
+
   # cluster: TODO # Name of the cluster to use for this run
