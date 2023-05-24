@@ -1,7 +1,7 @@
 run_name: stable-diffusion-dreambooth
 cluster:     # Name of the cluster to use for this run
 gpu_type: a100_40gb   # Type of GPU to use
-gpu_num:     # Number of GPUs to use
+gpu_num:    # Number of GPUs to use
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 integrations:
@@ -9,6 +9,7 @@ integrations:
   git_repo: mosaicml/examples
   pip_install: .[stable-diffusion-dreambooth]
   ssh_clone: false
+
 command: |
   cd examples/examples/stable_diffusion_dreambooth
   composer main.py /mnt/config/parameters.yaml
