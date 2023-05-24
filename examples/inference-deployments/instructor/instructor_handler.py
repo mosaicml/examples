@@ -1,5 +1,9 @@
-from InstructorEmbedding import INSTRUCTOR
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 import torch
+from InstructorEmbedding import INSTRUCTOR
+
 
 class HFInstructorHandler():
     """Custom Hugging Face Instructor Model handler class."""
@@ -18,8 +22,8 @@ class HFInstructorHandler():
 
         Input format: {"input_strings": ["<instruction>", "<sentence>"]}
         """
-        if "input_strings" not in inputs:
-            raise KeyError("input_strings key not in inputs")
+        if 'input_strings' not in inputs:
+            raise KeyError('input_strings key not in inputs')
 
-        embeddings = self.model.encode(inputs["input_strings"])
+        embeddings = self.model.encode(inputs['input_strings'])
         return embeddings.tolist()
