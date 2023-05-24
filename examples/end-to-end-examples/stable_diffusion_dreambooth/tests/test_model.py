@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-
 from examples.stable_diffusion_dreambooth.model import \
     build_stable_diffusion_model
 
