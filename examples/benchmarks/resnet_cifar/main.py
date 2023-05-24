@@ -1,7 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-import importlib
 import os
 import sys
 from typing import Dict
@@ -15,10 +14,10 @@ from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist, reproducibility
 from omegaconf import DictConfig, OmegaConf
 
-importlib.add_to_path(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from .data import build_cifar10_dataspec
-from .model import build_composer_resnet_cifar
+import data as data_module
+import model as model_module
 
 
 def log_config(cfg: DictConfig):
@@ -62,7 +61,7 @@ def main(config):
         eval_batch_size //= dist.get_world_size()
 
     print('Building train dataloader')
-    train_dataspec = build_cifar10_dataspec(
+    train_dataspec = data_module.build_cifar10_dataspec(
         data_path=config.train_dataset.path,
         is_streaming=config.train_dataset.is_streaming,
         batch_size=train_batch_size,
@@ -77,7 +76,7 @@ def main(config):
     print('Built train dataloader\n')
 
     print('Building evaluation dataloader')
-    test_dataspec = build_cifar10_dataspec(
+    test_dataspec = data_module.build_cifar10_dataspec(
         data_path=config.eval_dataset.path,
         is_streaming=config.eval_dataset.is_streaming,
         batch_size=eval_batch_size,
@@ -92,8 +91,8 @@ def main(config):
     print('Built evaluation dataloader\n')
 
     print('Build Composer model')
-    model = build_composer_resnet_cifar(model_name=config.model.name,
-                                        num_classes=config.model.num_classes)
+    model = model_module.build_composer_resnet_cifar(
+        model_name=config.model.name, num_classes=config.model.num_classes)
     print('Built Composer model\n')
 
     print('Building optimizer and learning rate scheduler')
