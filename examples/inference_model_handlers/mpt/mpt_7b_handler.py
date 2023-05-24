@@ -93,7 +93,10 @@ class MPTModelHandler():
         
         print("Logging input to generate: ", generate_inputs)
         outputs = self.generator(generate_inputs, **generate_kwargs)
-        return self._extract_output(outputs)
+        print(outputs)
+        ret = self._extract_output(outputs)
+        print(ret)
+        return ret
 
     def predict_stream(self, **inputs: Dict[str, Any]):
         generate_input, generate_kwargs = self._parse_inputs(inputs)
