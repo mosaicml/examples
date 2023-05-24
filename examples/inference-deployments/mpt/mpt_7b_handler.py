@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 import copy
 from threading import Thread
 from typing import Any, Dict
@@ -5,6 +8,7 @@ from typing import Any, Dict
 import torch
 from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
                           TextIteratorStreamer, pipeline)
+
 
 class MPTModelHandler():
 
@@ -22,22 +26,17 @@ class MPTModelHandler():
         self.device = torch.cuda.current_device()
         self.model_name = model_name
 
-        config = AutoConfig.from_pretrained(
-            self.model_name,
-            trust_remote_code=True
-        )
+        config = AutoConfig.from_pretrained(self.model_name,
+                                            trust_remote_code=True)
         config.attn_config['attn_impl'] = 'triton'
 
-        model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            config=config,
-            torch_dtype=torch.bfloat16,
-            trust_remote_code=True
-        )
+        model = AutoModelForCausalLM.from_pretrained(self.model_name,
+                                                     config=config,
+                                                     torch_dtype=torch.bfloat16,
+                                                     trust_remote_code=True)
 
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(self.model_name,
+                                                  trust_remote_code=True)
         self.tokenizer = tokenizer
 
         model = model.eval()
@@ -49,7 +48,7 @@ class MPTModelHandler():
     def _parse_inputs(self, inputs: Dict[str, Any]):
         if 'input_strings' not in inputs:
             raise RuntimeError(
-                "Input strings must be provided as a list to generate call")
+                'Input strings must be provided as a list to generate call')
 
         generate_input = inputs[self.INPUT_STRINGS_KEY]
 
@@ -74,7 +73,7 @@ class MPTModelHandler():
 
         # TextGenerationPipeline passes streamer to generate as a kwarg
         streamer = TextIteratorStreamer(self.tokenizer)
-        generate_kwargs["streamer"] = streamer
+        generate_kwargs['streamer'] = streamer
 
         thread = Thread(target=self.generator,
                         args=(generate_input),
