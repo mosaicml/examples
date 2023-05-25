@@ -67,12 +67,11 @@ class MPTModelHandler():
     def _extract_output(self, outputs: List[Any]):
         output_bytes_list = []
         for output in outputs:
-            output_bytes = bytes(output[0]['generated_text'], encoding='utf8')
+            output_bytes = output[0]['generated_text']
             output_bytes_list.append(output_bytes)
         return output_bytes_list
 
-    def predict(self, input_dicts):
-        print(input_dicts)
+    def predict(self, input_dicts: List[Dict[str, Any]]):
         generate_inputs = []
         generate_kwargs = {}
         for input_dict in input_dicts:            
@@ -93,10 +92,7 @@ class MPTModelHandler():
         
         print("Logging input to generate: ", generate_inputs)
         outputs = self.generator(generate_inputs, **generate_kwargs)
-        print(outputs)
-        ret = self._extract_output(outputs)
-        print(ret)
-        return ret
+        return self._extract_output(outputs)
 
     def predict_stream(self, **inputs: Dict[str, Any]):
         generate_input, generate_kwargs = self._parse_inputs(inputs)
