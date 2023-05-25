@@ -16,35 +16,95 @@ from urllib.parse import urlparse
 import numpy as np
 import omegaconf as om
 import torch
+from composer import algorithms
+from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
+                                OptimizerMonitor, RuntimeEstimator,
+                                SpeedMonitor)
+from composer.loggers import WandBLogger
+from composer.optim.scheduler import (ConstantWithWarmupScheduler,
+                                      CosineAnnealingWithWarmupScheduler,
+                                      LinearWithWarmupScheduler)
 from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 from omegaconf import DictConfig
 
-from examples.bert.src.glue.finetuning_jobs import (TASK_NAME_TO_NUM_LABELS,
-                                                    COLAJob, MNLIJob, MRPCJob,
-                                                    QNLIJob, QQPJob, RTEJob,
-                                                    SST2Job, STSBJob)
-from examples.bert.src.hf_bert import create_hf_bert_classification
-from examples.bert.src.mosaic_bert import create_mosaic_bert_classification
-from examples.common.builders import (build_algorithm, build_callback,
-                                      build_logger, build_scheduler)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import src.glue.finetuning_jobs as finetuning_jobs_module
+import src.hf_bert as hf_bert_module
+import src.mosaic_bert as mosaic_bert_module
 
 TASK_NAME_TO_CLASS = {
-    'mnli': MNLIJob,
-    'rte': RTEJob,
-    'mrpc': MRPCJob,
-    'qnli': QNLIJob,
-    'qqp': QQPJob,
-    'sst2': SST2Job,
-    'stsb': STSBJob,
-    'cola': COLAJob
+    'mnli': finetuning_jobs_module.MNLIJob,
+    'rte': finetuning_jobs_module.RTEJob,
+    'mrpc': finetuning_jobs_module.MRPCJob,
+    'qnli': finetuning_jobs_module.QNLIJob,
+    'qqp': finetuning_jobs_module.QQPJob,
+    'sst2': finetuning_jobs_module.SST2Job,
+    'stsb': finetuning_jobs_module.STSBJob,
+    'cola': finetuning_jobs_module.COLAJob
 }
+
+
+def build_algorithm(name, kwargs):
+    if name == 'gradient_clipping':
+        return algorithms.GradientClipping(**kwargs)
+    elif name == 'alibi':
+        return algorithms.Alibi(**kwargs)
+    elif name == 'fused_layernorm':
+        return algorithms.FusedLayerNorm(**kwargs)
+    elif name == 'gated_linear_units':
+        return algorithms.GatedLinearUnits(**kwargs)
+    elif name == 'low_precision_layernorm':
+        return algorithms.LowPrecisionLayerNorm(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build algorithm: {name}')
+
+
+def build_callback(name, kwargs):
+    if name == 'lr_monitor':
+        return LRMonitor()
+    elif name == 'memory_monitor':
+        return MemoryMonitor()
+    elif name == 'speed_monitor':
+        return SpeedMonitor(window_size=kwargs.get('window_size', 1),
+                            gpu_flops_available=kwargs.get(
+                                'gpu_flops_available', None))
+    elif name == 'runtime_estimator':
+        return RuntimeEstimator()
+    elif name == 'optimizer_monitor':
+        return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
+            'log_optimizer_metrics', True),)
+    elif name == 'health_checker':
+        return HealthChecker(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build callback: {name}')
+
+
+def build_logger(name, kwargs):
+    if name == 'wandb':
+        return WandBLogger(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build logger: {name}')
+
+
+def build_scheduler(cfg):
+    if cfg.name == 'constant_with_warmup':
+        return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
+    elif cfg.name == 'cosine_with_warmup':
+        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                                  alpha_f=cfg.alpha_f)
+    elif cfg.name == 'linear_decay_with_warmup':
+        return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                         alpha_f=cfg.alpha_f)
+    else:
+        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
 
 
 def build_model(cfg: DictConfig, num_labels: int):
     if cfg.name == 'hf_bert':
-        return create_hf_bert_classification(
+        return hf_bert_module.create_hf_bert_classification(
             num_labels=num_labels,
             pretrained_model_name=cfg.pretrained_model_name,
             use_pretrained=cfg.get('use_pretrained', False),
@@ -52,7 +112,7 @@ def build_model(cfg: DictConfig, num_labels: int):
             tokenizer_name=cfg.get('tokenizer_name', None),
             gradient_checkpointing=cfg.get('gradient_checkpointing', None))
     elif cfg.name == 'mosaic_bert':
-        return create_mosaic_bert_classification(
+        return mosaic_bert_module.create_mosaic_bert_classification(
             num_labels=num_labels,
             pretrained_model_name=cfg.pretrained_model_name,
             pretrained_checkpoint=cfg.get('pretrained_checkpoint', None),
@@ -180,7 +240,9 @@ def run_job_worker(config: om.DictConfig,
     instantiated_job = TASK_NAME_TO_CLASS[config.task](
         job_name=config.job_name,
         seed=config.seed,
-        model=build_model(config.model, TASK_NAME_TO_NUM_LABELS[config.task]),
+        model=build_model(
+            config.model,
+            finetuning_jobs_module.TASK_NAME_TO_NUM_LABELS[config.task]),
         tokenizer_name=config.tokenizer_name,
         scheduler=build_scheduler(config.scheduler),
         load_path=config.load_path,

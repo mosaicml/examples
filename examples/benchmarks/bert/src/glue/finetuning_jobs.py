@@ -7,6 +7,7 @@ import copy
 import gc
 import multiprocessing as mp
 import os
+import sys
 from multiprocessing import managers
 from typing import Any, Dict, List, Optional, Union, cast
 
@@ -22,7 +23,9 @@ from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
 from torch.utils.data import DataLoader
 
-from examples.bert.src.glue.data import create_glue_dataset
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from src.glue.data import create_glue_dataset
 
 
 def _build_dataloader(dataset, **kwargs):

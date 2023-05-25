@@ -36,6 +36,8 @@ of the core Mosaic BERT classes.
 import copy
 import logging
 import math
+import os
+import sys
 import warnings
 from typing import List, Optional, Tuple, Union
 
@@ -48,12 +50,13 @@ from transformers.modeling_outputs import (MaskedLMOutput,
                                            SequenceClassifierOutput)
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
-from examples.bert.src.bert_padding import (index_first_axis,
-                                            index_put_first_axis, pad_input,
-                                            unpad_input, unpad_input_only)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import bert_padding as bert_padding_module
 
 try:
-    from examples.bert.src.flash_attn_triton import flash_attn_qkvpacked_func
+    import flash_attn_triton as flash_attn_triton
+    flash_attn_qkvpacked_func = flash_attn_triton.flash_attn_qkvpacked
 except ImportError as e:
     flash_attn_qkvpacked_func = None
 
@@ -203,8 +206,9 @@ class BertUnpadSelfAttention(nn.Module):
             attention: (total_nnz, dim)
         """
         qkv = self.Wqkv(hidden_states)
-        qkv = pad_input(qkv, indices, cu_seqlens.shape[0] - 1,
-                        max_seqlen_in_batch)  # batch, max_seqlen_in_batch, thd
+        qkv = bert_padding_module.pad_input(
+            qkv, indices, cu_seqlens.shape[0] - 1,
+            max_seqlen_in_batch)  # batch, max_seqlen_in_batch, thd
         qkv = rearrange(qkv,
                         'b s (t h d) -> b s t h d',
                         t=3,
@@ -237,7 +241,9 @@ class BertUnpadSelfAttention(nn.Module):
                 attention = flash_attn_qkvpacked_func(qkv, bias)
 
         # attn_mask is 1 for attend and 0 for don't
-        attention = unpad_input_only(attention, torch.squeeze(attn_mask) == 1)
+        attention = bert_padding_module.unpad_input_only(
+            attention,
+            torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
 
 
@@ -301,8 +307,9 @@ class BertUnpadAttention(nn.Module):
         self_output = self.self(input_tensor, cu_seqlens, max_s, indices,
                                 attn_mask, bias)
         if subset_idx is not None:
-            return self.output(index_first_axis(self_output, subset_idx),
-                               index_first_axis(input_tensor, subset_idx))
+            return self.output(
+                bert_padding_module.index_first_axis(self_output, subset_idx),
+                bert_padding_module.index_first_axis(input_tensor, subset_idx))
         else:
             return self.output(self_output, input_tensor)
 
@@ -484,7 +491,7 @@ class BertEncoder(nn.Module):
         # and ntokens_unpad is total number of non-padded tokens.
         # Then unpadding performs the following compression of the inputs:
         # hidden_states[ntokens,hidden] -> hidden_states[ntokens_unpad,hidden]
-        hidden_states, indices, cu_seqlens, _ = unpad_input(
+        hidden_states, indices, cu_seqlens, _ = bert_padding_module.unpad_input(
             hidden_states, attention_mask_bool)
 
         # Add alibi matrix to extended_attention_mask
@@ -518,7 +525,8 @@ class BertEncoder(nn.Module):
             # and ntokens_unpad is total number of non-padded tokens.
             # Then padding performs the following de-compression:
             #     hidden_states[ntokens_unpad,hidden] -> hidden_states[ntokens,hidden]
-            hidden_states = pad_input(hidden_states, indices, batch, seqlen)
+            hidden_states = bert_padding_module.pad_input(
+                hidden_states, indices, batch, seqlen)
         else:
             for i in range(len(self.layer) - 1):
                 layer_module = self.layer[i]
@@ -876,10 +884,11 @@ class BertForMaskedLM(BertPreTrainedModel):
 
             assert input_ids is not None, 'Coding error; please open an issue'
             batch, seqlen = input_ids.shape[:2]
-            prediction_scores = rearrange(index_put_first_axis(
-                prediction_scores, masked_token_idx, batch * seqlen),
-                                          '(b s) d -> b s d',
-                                          b=batch)
+            prediction_scores = rearrange(
+                bert_padding_module.index_put_first_axis(
+                    prediction_scores, masked_token_idx, batch * seqlen),
+                '(b s) d -> b s d',
+                b=batch)
 
         if not return_dict:
             output = (prediction_scores,) + outputs[2:]

@@ -7,21 +7,128 @@ import os
 import sys
 from typing import Optional, cast
 
+import src.glue.data as data_module
+import src.hf_bert as hf_bert_module
+import src.mosaic_bert as mosaic_bert_module
 import transformers
-from composer import Trainer
+from composer import Trainer, algorithms
+from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
+                                OptimizerMonitor, RuntimeEstimator,
+                                SpeedMonitor)
 from composer.core.types import Dataset
+from composer.loggers import WandBLogger
+from composer.optim import DecoupledAdamW
+from composer.optim.scheduler import (ConstantWithWarmupScheduler,
+                                      CosineAnnealingWithWarmupScheduler,
+                                      LinearWithWarmupScheduler)
 from composer.utils import dist, reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from torch.utils.data import DataLoader
 
-from examples.bert.src.glue.data import create_glue_dataset
-from examples.bert.src.hf_bert import create_hf_bert_classification
-from examples.bert.src.mosaic_bert import create_mosaic_bert_classification
-from examples.common.builders import (build_algorithm, build_callback,
-                                      build_logger, build_optimizer,
-                                      build_scheduler)
-from examples.common.config_utils import log_config, update_batch_size_info
+
+def update_batch_size_info(cfg: DictConfig):
+    global_batch_size, device_microbatch_size = cfg.global_train_batch_size, cfg.device_train_microbatch_size
+    if global_batch_size % dist.get_world_size() != 0:
+        raise ValueError(
+            f'Global batch size {global_batch_size} is not divisible by {dist.get_world_size()} '
+            'as a result, the batch size would be truncated, please adjust `global_batch_size` '
+            f'to be divisible by world size, {dist.get_world_size()}.')
+    device_train_batch_size = global_batch_size // dist.get_world_size()
+    if isinstance(device_microbatch_size, int):
+        if device_microbatch_size > device_train_batch_size:
+            print(
+                f'WARNING: device_train_microbatch_size > device_train_batch_size, '
+                f'will be reduced from {device_microbatch_size} -> {device_train_batch_size}.'
+            )
+            device_microbatch_size = device_train_batch_size
+    cfg.n_gpus = dist.get_world_size()
+    cfg.device_train_batch_size = device_train_batch_size
+    cfg.device_train_microbatch_size = device_microbatch_size
+    # Safely set `device_eval_batch_size` if not provided by user
+    if 'device_eval_batch_size' not in cfg:
+        if cfg.device_train_microbatch_size == 'auto':
+            cfg.device_eval_batch_size = 1
+        else:
+            cfg.device_eval_batch_size = cfg.device_train_microbatch_size
+    return cfg
+
+
+def log_config(cfg: DictConfig):
+    print(om.to_yaml(cfg))
+    if 'wandb' in cfg.get('loggers', {}):
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(om.to_container(cfg, resolve=True))
+
+
+def build_algorithm(name, kwargs):
+    if name == 'gradient_clipping':
+        return algorithms.GradientClipping(**kwargs)
+    elif name == 'alibi':
+        return algorithms.Alibi(**kwargs)
+    elif name == 'fused_layernorm':
+        return algorithms.FusedLayerNorm(**kwargs)
+    elif name == 'gated_linear_units':
+        return algorithms.GatedLinearUnits(**kwargs)
+    elif name == 'low_precision_layernorm':
+        return algorithms.LowPrecisionLayerNorm(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build algorithm: {name}')
+
+
+def build_callback(name, kwargs):
+    if name == 'lr_monitor':
+        return LRMonitor()
+    elif name == 'memory_monitor':
+        return MemoryMonitor()
+    elif name == 'speed_monitor':
+        return SpeedMonitor(window_size=kwargs.get('window_size', 1),
+                            gpu_flops_available=kwargs.get(
+                                'gpu_flops_available', None))
+    elif name == 'runtime_estimator':
+        return RuntimeEstimator()
+    elif name == 'optimizer_monitor':
+        return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
+            'log_optimizer_metrics', True),)
+    elif name == 'health_checker':
+        return HealthChecker(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build callback: {name}')
+
+
+def build_logger(name, kwargs):
+    if name == 'wandb':
+        return WandBLogger(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build logger: {name}')
+
+
+def build_scheduler(cfg):
+    if cfg.name == 'constant_with_warmup':
+        return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
+    elif cfg.name == 'cosine_with_warmup':
+        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                                  alpha_f=cfg.alpha_f)
+    elif cfg.name == 'linear_decay_with_warmup':
+        return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup,
+                                         alpha_f=cfg.alpha_f)
+    else:
+        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+
+
+def build_optimizer(cfg, model):
+    if cfg.name == 'decoupled_adamw':
+        return DecoupledAdamW(model.parameters(),
+                              lr=cfg.lr,
+                              betas=cfg.betas,
+                              eps=cfg.eps,
+                              weight_decay=cfg.weight_decay)
+    else:
+        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
 
 
 def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
@@ -45,7 +152,7 @@ def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
     # As a demonstration, we're using the QNLI dataset from the GLUE suite
     # of tasks.
     #
-    # Note: We create our dataset using the `create_glue_dataset` utility
+    # Note: We create our dataset using the `data_module.create_glue_dataset` utility
     #   defined in `./src/glue/data.py`. If you inspect that code, you'll see
     #   that we're taking some extra steps so that our dataset yields examples
     #   that follow a particular format. In particular, the raw text is
@@ -60,7 +167,7 @@ def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
     # examples with a similar structure!
     #
     # REPLACE THIS WITH YOUR OWN DATASET:
-    dataset = create_glue_dataset(
+    dataset = data_module.create_glue_dataset(
         task='qnli',
         split=cfg.split,
         tokenizer_name=cfg.tokenizer_name,
@@ -90,7 +197,7 @@ def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
 def build_model(cfg: DictConfig):
     # Note: cfg.num_labels should match the number of classes in your dataset!
     if cfg.name == 'hf_bert':
-        return create_hf_bert_classification(
+        return hf_bert_module.create_hf_bert_classification(
             num_labels=cfg.num_labels,
             pretrained_model_name=cfg.pretrained_model_name,
             use_pretrained=cfg.get('use_pretrained', False),
@@ -98,7 +205,7 @@ def build_model(cfg: DictConfig):
             tokenizer_name=cfg.get('tokenizer_name'),
             gradient_checkpointing=cfg.get('gradient_checkpointing'))
     elif cfg.name == 'mosaic_bert':
-        return create_mosaic_bert_classification(
+        return mosaic_bert_module.create_mosaic_bert_classification(
             num_labels=cfg.num_labels,
             pretrained_model_name=cfg.pretrained_model_name,
             pretrained_checkpoint=cfg.get('pretrained_checkpoint'),

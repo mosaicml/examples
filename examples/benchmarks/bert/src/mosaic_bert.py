@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from typing import Optional
 
 import transformers
@@ -16,9 +18,10 @@ from torchmetrics.classification.accuracy import MulticlassAccuracy
 from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 from torchmetrics.regression.spearman import SpearmanCorrCoef
 
-from examples.bert.src.bert_layers import (BertForMaskedLM,
-                                           BertForSequenceClassification)
-from examples.bert.src.configuration_bert import BertConfig
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import bert_layers as bert_layers_module
+import configuration_bert as configuration_bert_module
 
 all = ['create_mosaic_bert_mlm', 'create_mosaic_bert_classification']
 
@@ -92,17 +95,18 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
     if not pretrained_model_name:
         pretrained_model_name = 'bert-base-uncased'
 
-    config = BertConfig.from_pretrained(pretrained_model_name, **model_config)
+    config = configuration_bert_module.BertConfig.from_pretrained(
+        pretrained_model_name, **model_config)
 
     # Padding for divisibility by 8
     if config.vocab_size % 8 != 0:
         config.vocab_size += 8 - (config.vocab_size % 8)
 
     if pretrained_checkpoint is not None:
-        model = BertForMaskedLM.from_composer(
+        model = bert_layers_module.BertForMaskedLM.from_composer(
             pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
-        model = BertForMaskedLM(config)
+        model = bert_layers_module.BertForMaskedLM(config)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore
@@ -251,10 +255,10 @@ def create_mosaic_bert_classification(
         config.vocab_size += 8 - (config.vocab_size % 8)
 
     if pretrained_checkpoint is not None:
-        model = BertForSequenceClassification.from_composer(
+        model = bert_layers_module.BertForSequenceClassification.from_composer(
             pretrained_checkpoint=pretrained_checkpoint, config=config)
     else:
-        model = BertForSequenceClassification(config)
+        model = bert_layers_module.BertForSequenceClassification(config)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore
