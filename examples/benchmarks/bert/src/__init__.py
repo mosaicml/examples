@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-
 # yapf: disable
 from examples.bert.src.bert_layers import (BertEmbeddings, BertEncoder,
                                            BertForMaskedLM,

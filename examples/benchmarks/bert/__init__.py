@@ -3,7 +3,6 @@
 
 try:
     import torch
-
     # yapf: disable
     from examples.bert.src.bert_layers import (BertEmbeddings, BertEncoder,
                                                BertForMaskedLM,
