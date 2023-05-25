@@ -12,7 +12,7 @@ integrations:
   git_repo: mosaicml/inference-model-registry
 model:
   downloader: mosaic_diffusion.download_model
-  model_handler: examples.inference_model_handlers.mosaic_diffusion.mosaic_diffusion_handler.StableDiffusionHandler
+  model_handler: examples.inference-deployments.mosaic_diffusion.mosaic_diffusion_handler.StableDiffusionHandler
 command: |
   cd examples
   PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080

@@ -16,6 +16,6 @@ integrations:
 model:
   download_parameters:
     hf_path: hkunlp/instructor-xl
-  model_handler: examples.inference_model_handlers.instructor.instructor_handler.HFInstructorHandler
+  model_handler: examples.inference-deployments.instructor.instructor_handler.HFInstructorHandler
   model_parameters:
     model_name: hkunlp/instructor-xl
