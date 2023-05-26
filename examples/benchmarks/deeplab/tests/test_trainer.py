@@ -10,9 +10,10 @@ import pytest
 sys.path.append('.')
 
 import torch
+from omegaconf import OmegaConf
+
 from examples.deeplab.main import main
 from examples.deeplab.tests.test_data import SynthADE20KDirectory
-from omegaconf import OmegaConf
 
 
 @pytest.mark.parametrize('recipe_name', [None, 'mild', 'medium', 'hot'])

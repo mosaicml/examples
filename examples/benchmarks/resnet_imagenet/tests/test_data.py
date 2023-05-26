@@ -5,6 +5,7 @@ import sys
 
 import pytest
 import torch
+
 from examples.resnet_imagenet.data import (build_imagenet_dataspec,
                                            check_dataloader)
 from examples.resnet_imagenet.tests.utils import SynthClassificationDirectory

@@ -10,9 +10,10 @@ import pytest
 sys.path.append('.')
 
 import torch
+from omegaconf import OmegaConf
+
 from examples.resnet_imagenet.main import main
 from examples.resnet_imagenet.tests.utils import SynthClassificationDirectory
-from omegaconf import OmegaConf
 
 
 @pytest.mark.parametrize('recipe_name', [None, 'mild', 'medium', 'hot'])

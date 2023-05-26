@@ -4,6 +4,7 @@
 import pytest
 import torch
 from composer.models import ComposerClassifier
+
 from examples.resnet_cifar.model import build_composer_resnet_cifar
 
 

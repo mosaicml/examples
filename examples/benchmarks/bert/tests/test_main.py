@@ -5,9 +5,10 @@ import os
 
 import pytest
 import torch
+from omegaconf import DictConfig, OmegaConf
+
 from examples.bert.main import main
 from examples.bert.tests.utils import SynthTextDirectory
-from omegaconf import DictConfig, OmegaConf
 
 
 @pytest.mark.parametrize('model_name,seed', [('mosaic_bert', 17),

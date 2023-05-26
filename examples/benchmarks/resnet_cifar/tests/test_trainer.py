@@ -10,9 +10,10 @@ import pytest
 sys.path.append('.')
 
 import torch
+from omegaconf import OmegaConf
+
 from examples.resnet_cifar.main import main
 from examples.resnet_cifar.tests.utils import SynthClassificationDirectory
-from omegaconf import OmegaConf
 
 
 @pytest.mark.parametrize('use_recipe', [True, False])
