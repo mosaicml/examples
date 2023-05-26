@@ -8,12 +8,16 @@
 #   Please resolve any empty fields before launching!
 #   When ready, use `mcli run -f yamls/finetuning/mcloud_run.yaml` to launch
 
-# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $COMPOSER_RUN_NAME
-run_name: finetune-mosaic-bert
-cluster:       # Name of the cluster to use for this run
-gpu_type: a100_80gb # Type of GPU to use (we use a100_80gb in our experiments)
-gpu_num: 8  # Number of GPUs to use
+name: finetune-mosaic-bert
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: TODO # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
@@ -26,8 +30,7 @@ command: |
   composer sequence_classification.py /mnt/config/parameters.yaml
 
 parameters:
-  # Run Name
-  run_name: # If left blank, will be read from env var $COMPOSER_RUN_NAME
+  run_name: # If left blank, will be read from top YAML name for W&B logging and checkpointing
 
   tokenizer_name: bert-base-uncased
   max_seq_len: 128

@@ -1,0 +1,34 @@
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  git_branch: v0.0.4 # use your branch
+  # git_commit: # OR use your commit hash
+  pip_install: -e .[llm]
+  ssh_clone: false # Should be true if using a private repo
+
+# We are fetching, converting, and training on the 'val' split
+# as it is small and quick to get going for this demo.
+# For real training runs, follow the instructions in `examples/llm/README.md`
+# to convert and host the full 'train' dataset.
+command: |
+  cd examples/examples/llm
+  python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val \
+    --concat_tokens 2048 --tokenizer gpt2 --eos_text '<|endoftext|>'
+  composer main.py yamls/mosaic_gpt/1b.yaml \
+    train_loader.dataset.split=train_small \
+    max_duration=100ba \
+    eval_interval=0
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+name: mosaic-gpt-1b-gpus-8
+
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: TODO # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
+# The below is injected as a YAML file: /mnt/config/parameters.yaml
+# but is not used in this example.
+parameters: {}
