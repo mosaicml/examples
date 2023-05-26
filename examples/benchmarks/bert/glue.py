@@ -13,6 +13,8 @@ from multiprocessing.managers import DictProxy, SyncManager
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from urllib.parse import urlparse
 
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import numpy as np
 import omegaconf as om
 import src.glue.finetuning_jobs as finetuning_jobs_module

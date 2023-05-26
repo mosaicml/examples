@@ -7,6 +7,8 @@ import os
 import sys
 from typing import Optional, cast
 
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import src.glue.data as data_module
 import src.hf_bert as hf_bert_module
 import src.mosaic_bert as mosaic_bert_module

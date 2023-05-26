@@ -5,7 +5,11 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from typing import Optional
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import bert_layers as bert_layers_module
 import configuration_bert as configuration_bert_module

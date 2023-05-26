@@ -7,8 +7,11 @@ import copy
 import gc
 import multiprocessing as mp
 import os
+import sys
 from multiprocessing import managers
 from typing import Any, Dict, List, Optional, Union, cast
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 import torch
 from composer import ComposerModel

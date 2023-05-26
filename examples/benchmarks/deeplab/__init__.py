@@ -1,6 +1,11 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 try:
     from data import ADE20k, StreamingADE20k
     from model import build_composer_deeplabv3, deeplabv3
