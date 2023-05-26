@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import sys
 
 import pytest
 import torch
+from main import main
 from omegaconf import DictConfig, OmegaConf
 
-from examples.bert.main import main
-from examples.bert.tests.utils import SynthTextDirectory
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils import SynthTextDirectory
 
 
 @pytest.mark.parametrize('model_name,seed', [('mosaic_bert', 17),

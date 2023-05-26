@@ -6,9 +6,8 @@ import tempfile
 from typing import Any
 
 import pytest
+from glue import train
 from omegaconf import DictConfig, OmegaConf
-
-from examples.bert.glue import train
 
 
 class GlueDirContext(object):
