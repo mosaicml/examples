@@ -6,8 +6,9 @@ import torch
 from diffusers import (AutoencoderKL, DDPMScheduler, LMSDiscreteScheduler,
                        UNet2DConditionModel)
 from diffusers.utils.import_utils import is_xformers_available
-from examples.stable_diffusion.model import StableDiffusion
 from transformers import CLIPTextModel, CLIPTokenizer, PretrainedConfig
+
+from examples.stable_diffusion.model import StableDiffusion
 
 
 def build_dummy_stable_diffusion_model(model_name_or_path: str,

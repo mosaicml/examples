@@ -59,10 +59,10 @@ class StableDiffusionHandler():
                 'num_images_per_prompt', 'seed'
         ]:
             if arg in inputs:
-                kwargs[arg] = int(inputs[arg])
+                kwargs[arg] = int(inputs[arg])  # type: ignore
         for arg in ['guidance_scale']:
             if arg in inputs:
-                kwargs[arg] = float(inputs[arg])
+                kwargs[arg] = float(inputs[arg])  # type: ignore
 
         prompt = kwargs.pop('prompt')
         prompts = [prompt] if isinstance(prompt, str) else prompt

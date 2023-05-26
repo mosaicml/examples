@@ -14,9 +14,10 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.optim import ConstantScheduler
 from composer.utils import dist, reproducibility
 from data import build_hf_image_caption_datapsec, build_prompt_dataspec
-from examples.common import build_logger, log_config
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
+
+from examples.common import build_logger, log_config
 
 
 def main(config: DictConfig):  # type: ignore
