@@ -4,6 +4,7 @@
 import os
 import sys
 
+# Add folder root to path to allow us to use relative imports regardless of what directory the script is run from
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 try:

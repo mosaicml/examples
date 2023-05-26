@@ -5,6 +5,7 @@ import os
 import sys
 from typing import Optional, cast
 
+# Add folder root to path to allow us to use relative imports regardless of what directory the script is run from
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import src.hf_bert as hf_bert_module

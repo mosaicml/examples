@@ -6,10 +6,13 @@ import sys
 
 import pytest
 import torch
-from main import main
 from omegaconf import DictConfig, OmegaConf
 
+# Add tests folder root to path to allow us to use relative imports regardless of what directory the script is run from
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add folder root to path to allow us to use relative imports regardless of what directory the script is run from
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from main import main
 from utils import SynthTextDirectory
 
 

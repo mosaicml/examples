@@ -41,6 +41,7 @@ import sys
 import warnings
 from typing import List, Optional, Tuple, Union
 
+# Add folder root to path to allow us to use relative imports regardless of what directory the script is run from
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import bert_padding as bert_padding_module
@@ -52,8 +53,6 @@ from transformers.activations import ACT2FN
 from transformers.modeling_outputs import (MaskedLMOutput,
                                            SequenceClassifierOutput)
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
-
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 try:
     import flash_attn_triton as flash_attn_triton

@@ -9,6 +9,7 @@ import os
 import sys
 from typing import Optional
 
+# Add src folder root to path to allow us to use relative imports regardless of what directory the script is run from
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 import bert_layers as bert_layers_module
