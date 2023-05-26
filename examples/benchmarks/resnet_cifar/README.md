@@ -95,9 +95,8 @@ code, first fork this repo on GitHub and clone your fork instead.
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
-cd examples
-pip install -e ".[resnet-cifar]"  # or pip install -e ".[resnet-cifar-cpu]" if no NVIDIA GPU
-cd examples/resnet_cifar
+cd examples/benchmarks/resnet_cifar
+pip install -r requirements.txt
 ```
 
 ### How to start training

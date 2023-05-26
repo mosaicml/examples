@@ -14,7 +14,7 @@ try:
                             build_ade20k_transformations)
 except ImportError as e:
     raise ImportError(
-        'Please make sure to pip install .[deeplab] or .[deeplab-cpu] to get the requirements for the DeepLab example.'
+        'Please make sure to pip install the requirements.txt in benchmarks/deeplab to get the requirements for the DeepLab example.'
     ) from e
 
 __all__ = [

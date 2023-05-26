@@ -7,7 +7,7 @@ try:
     from model import build_composer_resnet
 except ImportError as e:
     raise ImportError(
-        'Please make sure to pip install .[resnet] or .[resnet-cpu] to get the requirements for the ResNet example.'
+        'Please make sure to pip install the requirements.txt ResNet benchmark.'
     ) from e
 
 __all__ = [

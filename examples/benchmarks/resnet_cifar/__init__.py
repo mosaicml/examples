@@ -11,7 +11,7 @@ try:
     from model import ResNetCIFAR, build_composer_resnet_cifar
 except ImportError as e:
     raise ImportError(
-        'Please make sure to pip install .[cifar] or .[cifar-cpu] to get the requirements for the CIFAR example.'
+        'Please make sure to pip install the requirements.txt in the CIFAR benchmark.'
     ) from e
 
 __all__ = [

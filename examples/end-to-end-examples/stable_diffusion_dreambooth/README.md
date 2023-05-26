@@ -32,9 +32,8 @@ This folder contains starter code for Stable Diffusion Dreambooth Finetuning. Dr
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
-cd examples
-pip install -e ".[stable-diffusion-dreamboth]"
-cd examples/stable_diffusion_dreambooth
+cd examples/end-to-end-examples/stable_diffusion_dreambooth
+pip install -r requirements.txt # or pip install -r requirements-cpu.txt if no NVIDIA GPU
 ```
 
 ## Train the model

@@ -120,9 +120,8 @@ code, first fork this repo on GitHub and clone your fork instead.
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
-cd examples
-pip install -e ".[resnet-imagenet]"  # or pip install -e ".[resnet-imagenet-cpu]" if no NVIDIA GPU
-cd examples/resnet_imagenet
+cd examples/benchmarks/resnet_imagenet
+pip install -r requirements.txt
 ```
 
 ### How to start training

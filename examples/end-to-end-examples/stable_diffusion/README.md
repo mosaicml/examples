@@ -32,9 +32,8 @@ This folder contains starter code for finetuning Stable Diffusion. You can easil
 
 ```bash
 git clone https://github.com/mosaicml/examples.git
-cd examples
-pip install -e ".[stable-diffusion]"
-cd examples/stable_diffusion
+cd examples/end-to-end-examples/stable_diffusion
+pip install -r requirements.txt
 ```
 
 ## Train the model
