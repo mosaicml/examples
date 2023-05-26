@@ -15,7 +15,18 @@ from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
 from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
+
+
+def log_config(cfg: DictConfig):
+    print(OmegaConf.to_yaml(cfg))
+    if 'wandb' in cfg.get('loggers', {}):
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
 
 
 def build_logger(name: str, kwargs: dict):
