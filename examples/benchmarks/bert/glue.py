@@ -15,6 +15,9 @@ from urllib.parse import urlparse
 
 import numpy as np
 import omegaconf as om
+import src.glue.finetuning_jobs as finetuning_jobs_module
+import src.hf_bert as hf_bert_module
+import src.mosaic_bert as mosaic_bert_module
 import torch
 from composer import algorithms
 from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
@@ -28,12 +31,6 @@ from composer.utils import reproducibility
 from composer.utils.file_helpers import get_file
 from composer.utils.object_store import S3ObjectStore
 from omegaconf import DictConfig
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import src.glue.finetuning_jobs as finetuning_jobs_module
-import src.hf_bert as hf_bert_module
-import src.mosaic_bert as mosaic_bert_module
 
 TASK_NAME_TO_CLASS = {
     'mnli': finetuning_jobs_module.MNLIJob,

@@ -5,10 +5,10 @@
 
 from __future__ import annotations
 
-import os
-import sys
 from typing import Optional
 
+import bert_layers as bert_layers_module
+import configuration_bert as configuration_bert_module
 import transformers
 from composer.metrics.nlp import (BinaryF1Score, LanguageCrossEntropy,
                                   MaskedAccuracy)
@@ -17,11 +17,6 @@ from torchmetrics import MeanSquaredError
 from torchmetrics.classification.accuracy import MulticlassAccuracy
 from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 from torchmetrics.regression.spearman import SpearmanCorrCoef
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import bert_layers as bert_layers_module
-import configuration_bert as configuration_bert_module
 
 all = ['create_mosaic_bert_mlm', 'create_mosaic_bert_classification']
 

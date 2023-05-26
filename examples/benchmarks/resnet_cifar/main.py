@@ -5,6 +5,8 @@ import os
 import sys
 from typing import Dict
 
+import data as data_module
+import model as model_module
 import torch
 from composer import Trainer
 from composer.algorithms import BlurPool, ChannelsLast, LabelSmoothing, MixUp
@@ -13,11 +15,6 @@ from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist, reproducibility
 from omegaconf import DictConfig, OmegaConf
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import data as data_module
-import model as model_module
 
 
 def log_config(cfg: DictConfig):

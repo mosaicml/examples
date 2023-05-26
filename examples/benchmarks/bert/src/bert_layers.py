@@ -36,11 +36,10 @@ of the core Mosaic BERT classes.
 import copy
 import logging
 import math
-import os
-import sys
 import warnings
 from typing import List, Optional, Tuple, Union
 
+import bert_padding as bert_padding_module
 import torch
 import torch.nn as nn
 from einops import rearrange
@@ -49,10 +48,6 @@ from transformers.activations import ACT2FN
 from transformers.modeling_outputs import (MaskedLMOutput,
                                            SequenceClassifierOutput)
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import bert_padding as bert_padding_module
 
 try:
     import flash_attn_triton as flash_attn_triton

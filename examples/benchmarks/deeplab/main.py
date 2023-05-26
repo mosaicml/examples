@@ -6,6 +6,8 @@
 import os
 import sys
 
+import data as data_module
+import model as model_module
 import torch
 from composer import Trainer
 from composer.algorithms import EMA, SAM, ChannelsLast, MixUp
@@ -14,11 +16,6 @@ from composer.loggers import ProgressBarLogger, WandBLogger
 from composer.optim import CosineAnnealingScheduler, DecoupledSGDW
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import data as data_module
-import model as model_module
 
 
 def build_logger(name: str, kwargs: dict):

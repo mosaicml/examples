@@ -14,16 +14,13 @@ from typing import Any, Optional, Tuple
 
 import streaming
 import torch
+import transforms as transforms_module
 from composer.core import DataSpec
 from composer.datasets.utils import NormalizationFn, pil_image_collate
 from composer.utils import dist
 from PIL import Image
 from streaming import StreamingDataset
 from torch.utils.data import DataLoader, Dataset
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-import transforms as transforms_module
 
 __all__ = ['ADE20k', 'StreamingADE20k']
 

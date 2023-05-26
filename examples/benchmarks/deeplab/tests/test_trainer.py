@@ -2,13 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import sys
 
 import pytest
-
-# TODO: this should be removed when examples has a setup.py i.e. installable
-sys.path.append('.')
-
 import torch
 from omegaconf import OmegaConf
 
