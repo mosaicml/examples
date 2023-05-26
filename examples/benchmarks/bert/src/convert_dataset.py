@@ -13,7 +13,7 @@ from typing import Dict, Iterable, Optional, Union
 import datasets as hf_datasets
 import numpy as np
 from streaming import MDSWriter
-from torch.utils.data import DataLoader, IterableDataset, get_worker_info
+from torch.utils.data import DataLoader, IterableDataset
 from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
@@ -273,10 +273,10 @@ class ConcatTokensDataset(IterableDataset):
 def build_hf_dataset(dataset_name: str,
                      split: str,
                      mode: ConcatMode,
-                     max_length: Optional[int],
+                     max_length: int,
                      bos_text: Optional[str],
                      eos_text: Optional[str],
-                     no_wrap: Optional[bool],
+                     no_wrap: bool,
                      tokenizer: Optional[PreTrainedTokenizerBase],
                      data_subset: Union[str, None] = None) -> IterableDataset:
     """Build an IterableDataset over the HF C4 or pile source data.
@@ -300,6 +300,9 @@ def build_hf_dataset(dataset_name: str,
                                   data_subset=data_subset,
                                   split=split)
     else:
+        assert bos_text is not None
+        assert eos_text is not None
+        assert tokenizer is not None
         if bos_text + eos_text == '':
             test_tokens = tokenizer('test')
             if test_tokens['input_ids'][

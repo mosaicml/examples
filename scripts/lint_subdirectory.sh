@@ -36,6 +36,7 @@ echo "Running checks on files:"
 FILES=$(find "examples/$1" -type f | grep -v '.pyc')
 echo $FILES
 PYTHON_FILES=$(echo "$FILES" | grep '\.py$')
+echo $PYTHON_FILES
 pre-commit run --files $FILES && ([ -z "$PYTHON_FILES" ] || pyright $PYTHON_FILES)
 STATUS=$?
 
