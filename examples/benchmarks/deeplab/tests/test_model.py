@@ -4,8 +4,7 @@
 import pytest
 import torch
 from composer.models import ComposerClassifier
-
-from examples.deeplab.model import build_composer_deeplabv3
+from model import build_composer_deeplabv3
 
 
 @pytest.mark.parametrize('num_classes', [10, 150])

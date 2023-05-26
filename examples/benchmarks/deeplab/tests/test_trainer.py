@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import sys
 
 import pytest
 import torch
+from main import main
 from omegaconf import OmegaConf
 
-from examples.deeplab.main import main
-from examples.deeplab.tests.test_data import SynthADE20KDirectory
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from test_data import SynthADE20KDirectory
 
 
 @pytest.mark.parametrize('recipe_name', [None, 'mild', 'medium', 'hot'])
