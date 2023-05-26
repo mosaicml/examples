@@ -34,9 +34,9 @@ except ImportError as e:
     except:
         is_cuda_available = False
 
-    extras = '.[bert]' if is_cuda_available else '.[bert-cpu]'
+    reqs_file = 'requirements.txt' if is_cuda_available else 'requirements-cpu.txt'
     raise ImportError(
-        f'Please make sure to pip install {extras} to get the requirements for the BERT example.'
+        f'Please make sure to pip install -r {reqs_file} to get the requirements for the BERT benchmark.'
     ) from e
 
 __all__ = [
