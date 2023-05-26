@@ -1,12 +1,18 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
+import os
+import sys
+
 import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from examples.resnet_cifar.data import build_cifar10_dataspec
-from examples.resnet_cifar.tests.utils import SynthClassificationDirectory
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from data import build_cifar10_dataspec
+from utils import SynthClassificationDirectory
 
 # TODO: streaming dataset and dataloader testing
 

@@ -5,15 +5,14 @@ import os
 import sys
 
 import pytest
-
-# TODO: this should be removed when examples has a setup.py i.e. installable
-sys.path.append('.')
-
 import torch
 from omegaconf import OmegaConf
 
-from examples.resnet_cifar.main import main
-from examples.resnet_cifar.tests.utils import SynthClassificationDirectory
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from main import main
+from utils import SynthClassificationDirectory
 
 
 @pytest.mark.parametrize('use_recipe', [True, False])
