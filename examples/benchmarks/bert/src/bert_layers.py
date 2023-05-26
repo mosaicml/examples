@@ -57,7 +57,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 try:
     import flash_attn_triton as flash_attn_triton
-    flash_attn_qkvpacked_func = flash_attn_triton.flash_attn_qkvpacked
+    flash_attn_qkvpacked_func = flash_attn_triton.flash_attn_qkvpacked_func
 except ImportError as e:
     flash_attn_qkvpacked_func = None
 
