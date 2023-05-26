@@ -1,15 +1,9 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-import os
-import sys
-
 import pytest
 import torch
 from composer.models import ComposerClassifier
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from model import build_composer_resnet_cifar
 
 
