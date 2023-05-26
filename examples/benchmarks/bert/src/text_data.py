@@ -301,7 +301,7 @@ def build_text_dataloader(
 if __name__ == '__main__':
     import argparse
 
-    from examples.common.builders import build_tokenizer
+    from src.text_data import build_tokenizer
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--tokenizer',

@@ -66,7 +66,7 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
 
      .. testcode::
 
-         from examples.bert.src.hf_bert import create_hf_bert_mlm
+         from src.hf_bert import create_hf_bert_mlm
          model = create_hf_bert_mlm()
     """
     try:

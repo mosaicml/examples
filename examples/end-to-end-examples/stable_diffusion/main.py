@@ -11,13 +11,30 @@ from callbacks import LogDiffusionImages
 from composer import Trainer
 from composer.algorithms import EMA
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
+from composer.loggers import WandBLogger
 from composer.optim import ConstantScheduler
 from composer.utils import dist, reproducibility
 from data import build_hf_image_caption_datapsec, build_prompt_dataspec
 from model import build_stable_diffusion_model
 from omegaconf import DictConfig, OmegaConf
 
-from examples.common import build_logger, log_config
+
+def log_config(cfg: DictConfig):
+    print(OmegaConf.to_yaml(cfg))
+    if 'wandb' in cfg.get('loggers', {}):
+        try:
+            import wandb
+        except ImportError as e:
+            raise e
+        if wandb.run:
+            wandb.config.update(OmegaConf.to_container(cfg, resolve=True))
+
+
+def build_logger(name, kwargs):
+    if name == 'wandb':
+        return WandBLogger(**kwargs)
+    else:
+        raise ValueError(f'Not sure how to build logger: {name}')
 
 
 def main(config: DictConfig):  # type: ignore

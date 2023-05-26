@@ -81,7 +81,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
 
      .. testcode::
 
-         from examples.bert.src.mosaic import create_mosaic_bert_mlm
+         from src.mosaic import create_mosaic_bert_mlm
          model = create_mosaic_bert_mlm()
     """
     if not model_config:
