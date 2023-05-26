@@ -14,9 +14,33 @@ from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 from streaming import Stream, StreamingDataset
 from torch.utils.data import DataLoader
-from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
+from transformers import (AutoTokenizer, PreTrainedTokenizer,
+                          PreTrainedTokenizerFast)
 
 Tokenizer = Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+
+
+def build_tokenizer(om_tokenizer_config: DictConfig,) -> Tokenizer:
+    os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+    os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+    resolved_om_tokenizer_config = om.to_container(om_tokenizer_config,
+                                                   resolve=True)
+    tokenizer_kwargs = resolved_om_tokenizer_config.get(  # type: ignore
+        'kwargs', {})
+    tokenizer_name = resolved_om_tokenizer_config['name']  # type: ignore
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name,
+                                              **tokenizer_kwargs)
+
+    # HuggingFace does not respect the model_max_length kwarg, and overrides it with
+    # min(kwargs['model_max_length'], original_config['model_max_length']), so we
+    # explicitly set it here
+    tokenizer.model_max_length = tokenizer_kwargs.get(
+        'model_max_length',
+        int(1e30),
+    )
+
+    return tokenizer
 
 
 class StreamingTextDataset(StreamingDataset):
@@ -147,7 +171,7 @@ class StreamingTextDataset(StreamingDataset):
                           dtype=np.int64)[:self.max_seq_len].copy())
 
     # How to process a sample
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> Union[Dict[str, Any], torch.Tensor]:
         sample = super().__getitem__(idx)
         if 'text' in sample:
             token_sample = self._tokenize(sample)
@@ -192,6 +216,7 @@ class ConcatenatedSequenceCollatorWrapper:
 
     def get_sequence_id_from_batch(
             self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+        assert self.split_token_id is not None
         is_separator = torch.eq(batch['input_ids'], self.split_token_id)
         cumulative_sep = torch.cumsum(is_separator,
                                       dim=1).to(batch['input_ids'].dtype)
@@ -300,8 +325,6 @@ def build_text_dataloader(
 # Run `python data.py  --local_path [local] [--remote_path remote, optional]` and verify that batches are printed out
 if __name__ == '__main__':
     import argparse
-
-    from src.text_data import build_tokenizer
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--tokenizer',

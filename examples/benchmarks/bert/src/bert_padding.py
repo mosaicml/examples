@@ -138,8 +138,8 @@ def unpad_input_only(
         hidden_states: (total_nnz, ...), where total_nnz = number of tokens in selected in attention_mask.
     """
     indices = torch.nonzero(attention_mask.flatten(), as_tuple=False).flatten()
-    return index_first_axis(rearrange(hidden_states, 'b s ... -> (b s) ...'),
-                            indices)
+    rearranged = rearrange(hidden_states, 'b s ... -> (b s) ...')
+    return index_first_axis(rearranged, indices)  # type: ignore
 
 
 def pad_input(hidden_states: torch.Tensor, indices: torch.Tensor, batch: int,
@@ -156,4 +156,4 @@ def pad_input(hidden_states: torch.Tensor, indices: torch.Tensor, batch: int,
         hidden_states: (batch, seqlen, ...)
     """
     output = index_put_first_axis(hidden_states, indices, batch * seqlen)
-    return rearrange(output, '(b s) ... -> b s ...', b=batch)
+    return rearrange(output, '(b s) ... -> b s ...', b=batch)  # type: ignore

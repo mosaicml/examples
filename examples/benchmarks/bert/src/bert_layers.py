@@ -43,9 +43,6 @@ from typing import List, Optional, Tuple, Union
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-import os
-import sys
-
 import bert_padding as bert_padding_module
 import torch
 import torch.nn as nn
