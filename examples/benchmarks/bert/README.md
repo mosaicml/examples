@@ -29,12 +29,11 @@ You'll find in this folder:
 - `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
 - `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
 - `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT.
+- `src/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
+- `src/convert_dataset.py` - A script to convert a text dataset from HuggingFace to a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/).
 - `requirements.txt` — All needed Python dependencies.
+- `requirements-cpu.txt` - All needed Python dependencies for running without an NVIDIA GPU.
 - This `README.md`
-
-In the [common](../common) folder, you will also find:
-
-- `../common/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
 
 ## Quick start
 
@@ -89,16 +88,16 @@ To make yourself a copy of C4, use `convert_dataset.py` like so:
 # Note: for BERT we are not doing any concatenation of samples, so we do not use the `--concat_tokens`
 # option here. Instead, samples will simply get padded or truncated to the max sequence length
 # in the dataloader
-python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
+python src/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
 
 # Download the 'train' split if you really want to train the model (not just profile)
 # This will take 1-to-many hours depending on bandwidth, # CPUs, etc.
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
-# python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train
+# python src/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train
 
 # For any of the above commands, you can also choose to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
-# python ../common/convert_dataset.py ... --compression zstd
+# python src/convert_dataset.py ... --compression zstd
 ```
 
 If you're planning on doing multiple training runs, you can upload the **local** copy of C4 you just created to a central location. This will allow you to skip the dataset preparation step in the future. Once you have done so, modify the YAMLs in `yamls/main/` so that the `data_remote` field points to the new location. Then you can simply stream the dataset instead of creating a local copy!
