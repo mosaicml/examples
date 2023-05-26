@@ -45,6 +45,7 @@ Now that you have explored the code, let's jump into the prerequisites for train
 This benchmark assumes that [ADE20k Dataset](https://groups.csail.mit.edu/vision/datasets/ADE20K/) is already stored on your local machine or stored in an S3 bucket after being processed into a streaming dataset. ADE20K can be downloaded by running the command below. This takes up about 1GB of storage and will default to storing the dataset in `./ade20k`.
 
 ```bash
+cd examples/benchmarks/deeplab
 # download ADE20k to specified local directory
 python download_ade20k.py
 ```
