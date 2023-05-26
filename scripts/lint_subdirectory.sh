@@ -17,6 +17,7 @@ echo "Installing requirements..."
 pip install --upgrade 'pip<23'
 pip install 'pre-commit>=2.18.1,<3'
 pip install 'pyright==1.1.296'
+pip install 'pytest>=7.2.1,<8'
 target=$(echo $1 | tr '_' '-' | tr '/' '-')
 
 original_dir=$(pwd)
