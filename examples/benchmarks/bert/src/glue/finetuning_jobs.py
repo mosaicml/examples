@@ -11,8 +11,9 @@ import sys
 from multiprocessing import managers
 from typing import Any, Dict, List, Optional, Union, cast
 
-# Add src folder root to path to allow us to use relative imports regardless of what directory the script is run from
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+# Add glue folder root to path to allow us to use relative imports regardless of what directory the script is run from
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+print(sys.path)
 
 import torch
 from composer import ComposerModel
@@ -24,7 +25,7 @@ from composer.loggers import LoggerDestination
 from composer.optim import ComposerScheduler, DecoupledAdamW
 from composer.trainer.trainer import Trainer
 from composer.utils import dist, reproducibility
-from glue.data import create_glue_dataset
+from data import create_glue_dataset
 from torch.utils.data import DataLoader
 
 
