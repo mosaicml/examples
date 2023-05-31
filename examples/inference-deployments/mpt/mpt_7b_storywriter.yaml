@@ -1,0 +1,17 @@
+name: mpt-7b-storywriter
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:latest
+replicas: 1
+command: |
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+model:
+  download_parameters:
+    hf_path: mosaicml/mpt-7b-storywriter
+  model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler
+  model_parameters:
+    model_name: mosaicml/mpt-7b-storywriter
