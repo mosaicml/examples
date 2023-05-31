@@ -31,6 +31,9 @@ jobs:
         - third-party/nemo
         - third-party/gpt_neox
         - third-party/trlx
+        - inference-deployments/instructor
+        - inference-deployments/mosaic_diffusion
+        - inference-deployments/mpt
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
