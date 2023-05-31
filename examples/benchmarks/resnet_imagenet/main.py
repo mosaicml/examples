@@ -110,7 +110,7 @@ def main(config):
         model_name=config.model.name,
         loss_name=config.model.loss_name,
         num_classes=config.model.num_classes,
-      )
+    )
     print('Built Composer model\n')
 
     # Optimizer
