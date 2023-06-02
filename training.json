@@ -1,7 +1,7 @@
 {
     "$schema": "https://github.com/mosaicml/llm-foundry/blob/main/mcli/mcli-1b-max-seq-len-8k.yaml",
     "$id": "https://docs.mosaicml.com/projects/mcli/en/latest/training/yaml_schema.html",
-    "title": "JSON Schema for MosaicML YAML",
+    "title": "JSON Schema for MosaicML Training YAML",
     "description": "YAML schema for MosaicML training configuration",
     "type": "object",
     "properties": {
