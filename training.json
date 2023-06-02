@@ -1,0 +1,110 @@
+{
+    "$schema": "https://github.com/mosaicml/llm-foundry/blob/main/mcli/mcli-1b-max-seq-len-8k.yaml",
+    "$id": "https://docs.mosaicml.com/projects/mcli/en/latest/training/yaml_schema.html",
+    "title": "JSON Schema for MosaicML YAML",
+    "description": "YAML schema for MosaicML training configuration",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "image": {
+            "type": "string"
+        },
+        "command": {
+            "type": "string"
+        },
+        "compute": {
+            "type": "object",
+            "properties": {
+                "gpus": {
+                    "type": "integer",
+                    "description": "number of gpus"
+                },
+                "cluster": {
+                    "type": "string",
+                    "description": "name of cluster"
+                },
+                "gpu_type": {
+                    "type": "string"
+                },
+                "instance": {
+                    "type": "string"
+                },
+                "nodes": {
+                    "type": "string"
+                },
+                "cpus": {
+                    "type": "integer"
+                }
+            },
+            "required": [ "cluster" ]     
+        },
+        "scheduling": {
+            "type": "object",
+            "properties": {
+                "priority": {
+                    "type": "string"
+                }
+            }
+        },
+        "integrations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "integration_type": {
+                        "type": "string",
+                        "enum": [
+                            "git_repo",
+                            "apt_packages",
+                            "pip_packages",
+                            "wandb"
+                        ]
+                    },
+                    "git_repo": {
+                        "type": "string"
+                    },
+                    "git_branch": {
+                        "type": "string"
+                    },
+                    "pip_install": {
+                        "type": "string"
+                    },
+                    "packages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "project": {
+                        "type": "string"
+                    },
+                    "entity": {
+                        "type": "string"
+                    }
+                },
+                "required": [ "integration_type" ]
+            }
+        },
+        "env_variables": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "required": [ "key", "value" ]
+        },
+        "parameters": {
+            "type": "object"
+        },
+        "metadata": {
+            "type": "string"
+        }
+    },
+    "required": ["name", "image", "command"]
+  }
