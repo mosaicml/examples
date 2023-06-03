@@ -28,6 +28,6 @@ def download_model(remote_uri: str):
     _, _, key = parse_uri(remote_uri)
     object_store.download_object(
         object_name=key,
-        file_name='/downloaded_hf_checkpoint/config.json',
+        filename='/downloaded_hf_checkpoint/config.json',
     )
     # get_file('oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/config.json', '/downloaded_hf_checkpoint/config.json')
