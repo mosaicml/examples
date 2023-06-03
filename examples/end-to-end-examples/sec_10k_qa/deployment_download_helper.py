@@ -5,29 +5,26 @@ import os
 
 from composer.utils import maybe_create_object_store_from_uri, parse_uri
 
+LOCAL_BASE_FOLDER = '/downloaded_hf_checkpoint/'
+
 
 def download_model(remote_uri: str):
-    # files = [
-    #     'config.json',
-    #     'pytorch_model.bin',
-    #     'special_tokens_map.json',
-    #     'tokenizer_config.json',
-    #     'tokenizer.json',
-    #     'generation_config.json',
-    #     'merges.txt',
-    #     'vocab.json',
-    # ]
-    os.makedirs('/downloaded_hf_checkpoint/', exist_ok=True)
-    # for file in files:
-    #     get_file(
-    #         path=os.path.join(remote_uri, file),
-    #         destination=os.path.join('/downloaded_hf_checkpoint/', file),
-    #     )
-    remote_uri = os.path.join(remote_uri, 'config.json')
     object_store = maybe_create_object_store_from_uri(remote_uri)
-    _, _, key = parse_uri(remote_uri)
-    object_store.download_object(
-        object_name=key,
-        filename='/downloaded_hf_checkpoint/config.json',
-    )
-    # get_file('oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/config.json', '/downloaded_hf_checkpoint/config.json')
+    _, _, remote_base_key = parse_uri(remote_uri)
+
+    files = [
+        'config.json',
+        'pytorch_model.bin',
+        'special_tokens_map.json',
+        'tokenizer_config.json',
+        'tokenizer.json',
+        'generation_config.json',
+        'merges.txt',
+        'vocab.json',
+    ]
+    os.makedirs(LOCAL_BASE_FOLDER, exist_ok=True)
+    for file in files:
+        object_store.download_object(
+            object_name=os.path.join(remote_base_key, file),
+            filename=os.path.join(LOCAL_BASE_FOLDER, file),
+        )
