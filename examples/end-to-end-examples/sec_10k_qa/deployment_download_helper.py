@@ -23,7 +23,7 @@ def download_model(remote_uri: str):
     #         path=os.path.join(remote_uri, file),
     #         destination=os.path.join('/downloaded_hf_checkpoint/', file),
     #     )
-
+    remote_uri = os.path.join(remote_uri, 'config.json')
     object_store = maybe_create_object_store_from_uri(remote_uri)
     _, _, key = parse_uri(remote_uri)
     object_store.download_object(
