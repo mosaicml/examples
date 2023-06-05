@@ -30,4 +30,4 @@ class HFInstructorHandler():
             input_list.append(input['input_strings'])
 
         embeddings = self.model.encode(input_list)
-        return embeddings.tolist
+        return embeddings.tolist()
