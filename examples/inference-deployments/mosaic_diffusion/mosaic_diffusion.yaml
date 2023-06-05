@@ -14,5 +14,7 @@ model:
   downloader: mosaic_diffusion.download_model
   model_handler: examples.inference-deployments.mosaic_diffusion.mosaic_diffusion_handler.StableDiffusionHandler
 command: |
-  cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+  python3 inference_go/downloader.py &&
+  export PATH="$PATH:/usr/local/go/bin" &&
+  cd examples &&
+  PYTHONPATH=. go run ../inference_go/inference_server/cmd/main.go

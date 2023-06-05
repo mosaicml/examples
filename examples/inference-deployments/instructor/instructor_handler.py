@@ -1,6 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import torch
 from InstructorEmbedding import INSTRUCTOR
@@ -18,13 +18,16 @@ class HFInstructorHandler():
         self.model = INSTRUCTOR(self.model_name)
         self.model.to(self.device)
 
-    def predict(self, **inputs: Dict[str, Any]):
+    def predict(self, **inputs: List[Dict[str, Any]]):
         """Runs a forward pass with the given inputs.
 
         Input format: {"input_strings": ["<instruction>", "<sentence>"]}
         """
-        if 'input_strings' not in inputs:
-            raise KeyError('input_strings key not in inputs')
+        input_list = []
+        for input in inputs:
+            if 'input_strings' not in input:
+                raise KeyError('input_strings key not in inputs')
+            input_list.append(input['input_strings'])
 
-        embeddings = self.model.encode(inputs['input_strings'])
-        return embeddings.tolist()
+        embeddings = self.model.encode(input_list)
+        return embeddings.tolist
