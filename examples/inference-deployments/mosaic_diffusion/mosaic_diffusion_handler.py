@@ -44,7 +44,7 @@ class StableDiffusionHandler():
         model.to(self.device)
         self.model = model.eval()
 
-    def predict(self, **inputs: List[Dict[str, Any]]):
+    def predict(self, inputs: List[Dict[str, Any]]):
         # Parse and cast args
         kwargs = {}
         for arg in [

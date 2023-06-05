@@ -18,7 +18,7 @@ class HFInstructorHandler():
         self.model = INSTRUCTOR(self.model_name)
         self.model.to(self.device)
 
-    def predict(self, **inputs: List[Dict[str, Any]]):
+    def predict(self, inputs: List[Dict[str, Any]]):
         """Runs a forward pass with the given inputs.
 
         Input format: {"input_strings": ["<instruction>", "<sentence>"]}

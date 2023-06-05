@@ -5,13 +5,12 @@ image: mosaicml/inference:latest
 replicas: 1
 integrations:
 - integration_type: git_repo
-  git_repo: mosaicml/diffusion
-  git_commit: e36f068e33115090a6d59e5a6652148b63ecf32c
-  pip_install: .[all]
+  git_repo: mosaicml/examples
+  git_branch: roshan/inference-go-server-update
 - integration_type: git_repo
   git_repo: mosaicml/inference-model-registry
 model:
-  downloader: mosaic_diffusion.download_model
+  downloader: examples.inference-deployments.mosaic_diffusion.mosaic_diffusion_handler.downloader
   model_handler: examples.inference-deployments.mosaic_diffusion.mosaic_diffusion_handler.StableDiffusionHandler
 command: |
   python3 inference_go/downloader.py &&
