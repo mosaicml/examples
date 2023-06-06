@@ -28,7 +28,7 @@ class MPTModelHandler():
 
         config = AutoConfig.from_pretrained(self.model_name,
                                             trust_remote_code=True)
-        config.attn_config['attn_impl'] = 'triton'
+        config.attn_config['attn_impl'] = 'torch'
 
         model = AutoModelForCausalLM.from_pretrained(self.model_name,
                                                      config=config,
