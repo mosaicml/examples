@@ -85,11 +85,11 @@ class MPTModelHandler():
 
             for k, v in generate_kwarg.items(): 
                 if k in generate_kwargs and generate_kwargs[k] != v:
-                    raise RuntimeError(f"Request has conflicting values for kwarg {k}")
+                    raise RuntimeError(f'Request has conflicting values for kwarg {k}')
                 generate_kwargs[k] = v 
 
 
-        print("Logging input to generate: ", generate_inputs)
+        print('Logging input to generate: ', generate_inputs)
         outputs = self.generator(generate_inputs, **generate_kwargs)
         return self._extract_output(outputs)
 
