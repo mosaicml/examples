@@ -7,7 +7,7 @@
 """Inference endpoint for Stable Diffusion."""
 import base64
 import io
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import torch
 from composer.utils.file_helpers import get_file
@@ -44,34 +44,32 @@ class StableDiffusionHandler():
         model.to(self.device)
         self.model = model.eval()
 
-    def predict(self, inputs: List[Dict[str, Any]]):
+    def predict(self, **inputs: Dict[str, Any]):
+        if 'prompt' not in inputs:
+            print('No prompt provided, returning nothing')
+            return
+
         # Parse and cast args
         kwargs = {}
+        for arg in ['prompt', 'negative_prompt']:
+            if arg in inputs:
+                kwargs[arg] = inputs[arg]
         for arg in [
-                    'height', 'width', 'num_inference_steps',
-                    'num_images_per_prompt', 'seed'
-            ]:
-                if arg in inputs[0]:
-                    kwargs[arg] = int(inputs[0][arg])  # type: ignore
+                'height', 'width', 'num_inference_steps',
+                'num_images_per_prompt', 'seed'
+        ]:
+            if arg in inputs:
+                kwargs[arg] = int(inputs[arg])  # type: ignore
         for arg in ['guidance_scale']:
-            if arg in inputs[0]:
-                kwargs[arg] = float(inputs[0][arg])  # type: ignore
-        #aggregate prompts and negative prompts
-        prompt_list = []
-        neg_prompt_list = []
-        for input in inputs:
-            if 'prompt' not in input:
-                print('No prompt provided, returning nothing')
-                return
+            if arg in inputs:
+                kwargs[arg] = float(inputs[arg])  # type: ignore
 
-            if 'prompt' in input:
-                prompt_list.append(input['prompt'])
-            if 'negative_prompt' in input:
-                neg_prompt_list.append(input['negative_prompt'])
+        prompt = kwargs.pop('prompt')
+        prompts = [prompt] if isinstance(prompt, str) else prompt
 
         # Generate images
         with torch.cuda.amp.autocast(True):
-            imgs = self.model.generate(prompt=prompt_list, negative_prompt=neg_prompt_list, **kwargs).cpu()
+            imgs = self.model.generate(prompt=prompts, **kwargs).cpu()
 
         # Send as bytes
         png_images = []
