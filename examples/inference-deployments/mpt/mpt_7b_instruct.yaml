@@ -8,6 +8,7 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
+  ssh_clone: false
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b-instruct
