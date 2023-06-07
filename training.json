@@ -1,110 +1,224 @@
 {
-    "$schema": "https://github.com/mosaicml/llm-foundry/blob/main/mcli/mcli-1b-max-seq-len-8k.yaml",
     "$id": "https://docs.mosaicml.com/projects/mcli/en/latest/training/yaml_schema.html",
     "title": "JSON Schema for MosaicML Training YAML",
-    "description": "YAML schema for MosaicML training configuration",
+    "description": "YAML schema for MosaicML training configuration. See documentation for more details.",
     "type": "object",
     "properties": {
         "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Name of run."
         },
         "image": {
-            "type": "string"
+            "type": "string",
+            "description": "Path to model Docker image. Images on DockerHub can be configured as 'organization/image_name'."
         },
         "command": {
-            "type": "string"
+            "type": "string",
+            "description": "Command executed at start of run, typically to launch your training jobs and scripts. Composer launch commands are included here. Command can incorporate environment variables defined in the 'env_variables' field."
         },
         "compute": {
-            "type": "object",
-            "properties": {
-                "gpus": {
-                    "type": "integer",
-                    "description": "number of gpus"
-                },
-                "cluster": {
-                    "type": "string",
-                    "description": "name of cluster"
-                },
-                "gpu_type": {
-                    "type": "string"
-                },
-                "instance": {
-                    "type": "string"
-                },
-                "nodes": {
-                    "type": "string"
-                },
-                "cpus": {
-                    "type": "integer"
-                }
-            },
-            "required": [ "cluster" ]     
+            "$ref": "#/$defs/ComputingConfig"
         },
         "scheduling": {
-            "type": "object",
-            "properties": {
-                "priority": {
-                    "type": "string"
-                }
-            }
+            "$ref": "#/$defs/SchedulingConfig"
         },
         "integrations": {
             "type": "array",
+            "description": "List of integrations to customize aspects of both the run setup and environment. Some integrations may require adding secrets. See documentation for available integrations and how to implement them.",
             "items": {
-                "type": "object",
-                "properties": {
-                    "integration_type": {
-                        "type": "string",
-                        "enum": [
-                            "git_repo",
-                            "apt_packages",
-                            "pip_packages",
-                            "wandb"
-                        ]
-                    },
-                    "git_repo": {
-                        "type": "string"
-                    },
-                    "git_branch": {
-                        "type": "string"
-                    },
-                    "pip_install": {
-                        "type": "string"
-                    },
-                    "packages": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "project": {
-                        "type": "string"
-                    },
-                    "entity": {
-                        "type": "string"
-                    }
-                },
-                "required": [ "integration_type" ]
+                "oneOf": [
+                    { "$ref":"#/$defs/apt_packages" },
+                    { "$ref":"#/$defs/git_repo" },
+                    { "$ref":"#/$defs/wandb" },
+                    { "$ref":"#/$defs/pip_packages" },
+                    { "$ref":"#/$defs/comet_ml" }
+                ],
+                "description": "Type of integration. Can be 'git_repo', 'apt_packages', 'pip_packages', 'comel_ml', or 'wandb'."
             }
         },
         "env_variables": {
+            "type": "array",
+            "description": "List of variables that can be accessed by the 'command' field.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Name used to access the value of environment variable."
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "Value of environment variable."
+                    }
+                },
+                "required": [ "key", "value" ]
+            }
+        },
+        "parameters": {
+            "type": "object",
+            "description": "Provided parameters are mounted as a YAML file of your run at '/mnt/config/parameters.yaml'."
+
+        },
+        "metadata": {
+            "type": "object",
+            "description": "Multi-purposed, unstructured place to put information about a run. Can be updated while run is running to export metrics and other information from the run."
+        }
+    },
+    "required": ["name", "image", "command"],
+
+    "$defs": {
+        "SchedulingConfig": {
+            "type": "object",
+            "description": "How the MosaicML platform’s scheduler will manage your run.",
+            "properties": {
+                "priority": {
+                    "type": "string",
+                    "description": "Priority level of run. Can be 'low', 'medium', or 'high'." 
+                }
+            }
+        },
+        "ComputingConfig": {
+            "type": "object",
+            "description": "Compute resources to request for your run. The MosaicML platform will try and infer which compute resources to use automatically, but some fields may be required depending on which and what types of clusters are available to you.",
+            "properties": {
+                "gpus": {
+                    "type": "integer",
+                    "description": "Number of gpus (required unless nodes is specified or run is cpu-only)."
+                },
+                "cluster": {
+                    "type": "string",
+                    "description": "Name of cluster (required if you have multiple clusters)."
+                },
+                "gpu_type": {
+                    "type": "string",
+                    "description": "Type of gpus (optional)."
+                },
+                "instance": {
+                    "type": "string",
+                    "description": "Explicit instance name within the cluster (optional)."
+                },
+                "nodes": {
+                    "type": "string",
+                    "description": "Number of clusters (optional unless gpus is not specified or run is cpu-only)."
+                },
+                "cpus": {
+                    "type": "integer",
+                    "description": "Number of cpus (optional)."
+                }
+            }
+        },
+        "apt_packages": {
             "type": "object",
             "properties": {
-                "key": {
+                "integration_type": {
+                    "type": "string",
+                    "enum": [ "apt_packages" ]
+                },
+                "packages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "upgrade": {
+                    "type": "boolean"
+                }
+            },
+            "required": [ "integration_type", "packages" ]
+        },
+        "pip_packages": {
+            "type": "object",
+            "properties": {
+                "integration_type": {
+                    "type": "string",
+                    "enum": [ "pip_packages" ]
+                },
+                "packages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [ "integration_type", "packages" ]
+        },
+        "git_repo": {
+            "type": "object",
+            "properties": {
+                "integration_type": {
+                    "type": "string",
+                    "enum": [ "git_repo" ]
+                },
+                "git_repo": {
                     "type": "string"
                 },
-                "value": {
+                "git_branch": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "ssh_clone": {
+                    "type": "boolean"
+                },
+                "pip_install": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "git_commit": {
+                    "type": "string"
+                },
+                "git_clone_recursive": {
+                    "type": "boolean"
+                }
+            },
+            "required": [ "integration_type", "git_repo" ]
+        },
+        "wandb": {
+            "type": "object",
+            "properties": {
+                "integration_type": {
+                    "type": "string",
+                    "enum": [ "wandb" ]
+                },
+                "project": {
+                    "type": "string"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "string"
+                },
+                "jobType": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": [ "integration_type" ]
+        },
+        "comet_ml": {
+            "type": "object",
+            "properties": {
+                "integration_type": {
+                    "type": "string",
+                    "enum": [ "comet_ml" ]
+                },
+                "project": {
+                    "type": "string"
+                },
+                "workspace": {
                     "type": "string"
                 }
             },
-            "required": [ "key", "value" ]
-        },
-        "parameters": {
-            "type": "object"
-        },
-        "metadata": {
-            "type": "string"
+            "required": [ "integration_type" ]
         }
-    },
-    "required": ["name", "image", "command"]
+    }
   }
