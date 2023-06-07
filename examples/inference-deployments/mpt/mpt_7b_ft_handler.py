@@ -67,11 +67,15 @@ class MPTFTModelHandler():
 
         # Datatype of weights in the HF checkpoint
         weight_data_type = 'fp32'
-        convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
-                          weight_data_type, False)
-        ckpt_config = configparser.ConfigParser()
         model_path = os.path.join(LOCAL_CHECKPOINT_PATH, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
+        # Reuse checkpoint if it exists.
+        if not os.path.isfile(ckpt_config_path):
+            convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
+                              weight_data_type, False)
+        else:
+            print(f'Reusing existing FT checkpoint at {model_path}')
+        ckpt_config = configparser.ConfigParser()
         if os.path.isfile(ckpt_config_path):
             ckpt_config.read(ckpt_config_path)
 
@@ -106,6 +110,7 @@ class MPTFTModelHandler():
 
         self.end_id = end_id
 
+        print('Initializing ParallelGPT')
         self.model = ParallelGPT(
             head_num,
             size_per_head,
@@ -124,12 +129,14 @@ class MPTFTModelHandler():
             use_attention_linear_bias=use_attention_linear_bias,
             has_positional_encoding=has_positional_encoding,
             shared_contexts_ratio=shared_contexts_ratio)
+        print(f'Loading model from {model_path}')
         if not self.model.load(ckpt_path=model_path):
             raise RuntimeError(
                 'Could not load model from a FasterTransformer checkpoint')
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name,
                                                        trust_remote_code=True)
+        print('FT initialization complete')
 
     def _parse_inputs(self, inputs: Dict[str, Any]):
         if self.INPUT_STRINGS_KEY not in inputs or not isinstance(
@@ -173,13 +180,6 @@ class MPTFTModelHandler():
 
         return generate_input, generate_kwargs
     
-    def _extract_output(self, outputs: List[Any]):
-        output_list = []
-        for output in outputs:
-            output_bytes = output[0]['generated_text']
-            output_list.append(output_bytes)
-        return output_list
-
     def predict(self, input_dicts: List[Dict[str, Any]]):
         generate_inputs = []
         generate_kwargs = {}
@@ -200,7 +200,7 @@ class MPTFTModelHandler():
         start_ids = [
             torch.tensor(self.tokenizer.encode(c),
                          dtype=torch.int32,
-                         device=self.device) for c in generate_input
+                         device=self.device) for c in generate_inputs
         ]
         start_lengths = [len(ids) for ids in start_ids]
         start_ids = pad_sequence(start_ids,
@@ -218,7 +218,7 @@ class MPTFTModelHandler():
                 token = token[token != self.end_id]
                 output = self.tokenizer.decode(token)
                 outputs.append(output)
-        return self._extract_output(outputs)
+        return outputs
 
     def predict_stream(self, **inputs: Dict[str, Any]):
         raise RuntimeError('Streaming is not supported with FasterTransformer!')
