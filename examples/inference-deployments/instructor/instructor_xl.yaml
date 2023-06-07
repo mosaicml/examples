@@ -4,10 +4,8 @@ gpu_type: a100_40gb
 image: mosaicml/inference:latest
 replicas: 1
 command: |
-  python3 inference_go/downloader.py &&
-  export PATH="$PATH:/usr/local/go/bin" &&
-  cd examples &&
-  PYTHONPATH=. go run ../inference_go/inference_server/cmd/main.go
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
 integrations:
 - integration_type: git_repo
   git_repo: dakinggg/examples
