@@ -8,7 +8,6 @@ dataset.
 """
 import os
 import sys
-from io import BytesIO
 from itertools import islice
 from typing import Any, Optional, Tuple
 
@@ -222,15 +221,6 @@ class StreamingADE20k(StreamingDataset):
         batch_size (Optional[int]): Hint the batch_size that will be used on each device's DataLoader. Default: ``None``.
     """
 
-    def decode_uid(self, data: bytes) -> str:
-        return data.decode('utf-8')
-
-    def decode_image(self, data: bytes) -> Image.Image:
-        return Image.open(BytesIO(data))
-
-    def decode_annotation(self, data: bytes) -> Image.Image:
-        return Image.open(BytesIO(data))
-
     def __init__(self,
                  remote: str,
                  local: str,
@@ -259,14 +249,9 @@ class StreamingADE20k(StreamingDataset):
             raise ValueError('final_size must be positive')
 
         # Build StreamingDataset
-        decoders = {
-            'image': self.decode_image,
-            'annotation': self.decode_annotation,
-        }
         super().__init__(remote=os.path.join(remote, split),
                          local=os.path.join(local, split),
                          shuffle=shuffle,
-                         decoders=decoders,
                          batch_size=batch_size)
 
         # Define custom transforms
