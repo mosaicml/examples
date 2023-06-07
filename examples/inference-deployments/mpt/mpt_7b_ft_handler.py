@@ -34,11 +34,12 @@ EXAMPLE_INPUTS_TEXT = [
     "The immune system is a system of many biological structures and processes within an organism that protects against disease. To function properly, an immune system must detect a wide variety of agents, known as pathogens, from viruses to parasitic worms, and distinguish them from the organism's own healthy tissue. In many species, the immune system can be classified into subsystems, such as the innate immune system versus the adaptive immune system, or humoral immunity versus cell-mediated immunity. In humans, the blood–brain barrier, blood–cerebrospinal fluid barrier, and similar fluid–brain barriers separate the peripheral immune system from the neuroimmune system which protects the brain.\nWhat is the immune system?",
 ]
 
+
 class MPTFTModelHandler():
 
     DEFAULT_GENERATE_KWARGS = {
         # Output sequence length to generate.
-        'output_len': 256,
+        'max_length': 256,
         # Beam width for beam search
         'beam_width': 1,
         # top k candidate number
@@ -168,14 +169,18 @@ class MPTFTModelHandler():
         for k, v in inputs.items():
             if k not in [self.INPUT_STRINGS_KEY]:
                 generate_kwargs[k] = v
-        
+
         return generate_input, generate_kwargs
 
-    def _convert_kwargs(self, generate_input: List[str], generate_kwargs: Dict[str, Any]):
+    def _convert_kwargs(self, generate_input: List[str],
+                        generate_kwargs: Dict[str, Any]):
         batch_size = len(generate_input)
 
         # Convert expected kwargs into types expected by FT.
-        generate_kwargs['top_k'] *= torch.ones(batch_size, dtype=torch.int32)
+        # Integer args may be floats if the values are from a json payload.
+        generate_kwargs['max_length'] = int(generate_kwargs['max_length'])
+        generate_kwargs['top_k'] = int(generate_kwargs['top_k']) * torch.ones(
+            batch_size, dtype=torch.int32)
         generate_kwargs['top_p'] *= torch.ones(batch_size, dtype=torch.float32)
         generate_kwargs['temperature'] *= torch.ones(batch_size,
                                                      dtype=torch.float32)
@@ -191,14 +196,15 @@ class MPTFTModelHandler():
             batch_size, dtype=torch.float32)
         generate_kwargs['len_penalty'] *= torch.ones(size=[batch_size],
                                                      dtype=torch.float32)
-        generate_kwargs['min_length'] *= torch.ones(size=[batch_size],
-                                                    dtype=torch.int32)
+        generate_kwargs['min_length'] = int(
+            generate_kwargs['min_length']) * torch.ones(size=[batch_size],
+                                                        dtype=torch.int32)
         if generate_kwargs['random_seed']:
             generate_kwargs['random_seed'] = torch.randint(0,
                                                            10000,
                                                            size=[batch_size],
                                                            dtype=torch.int64)
-    
+
     def predict(self, input_dicts: List[Dict[str, Any]]):
         generate_inputs = []
         generate_kwargs = {}
@@ -291,12 +297,13 @@ if __name__ == '__main__':
     model_handler = MPTFTModelHandler(args.name_or_dir, args.ft_lib_path,
                                       args.inference_data_type, args.int8_mode,
                                       args.gpus)
-    
+
     times = []
     t_start = time.time()
     while len(times) < args.iterations:
         for ex in EXAMPLE_INPUTS_TEXT:
-            if len(times) >= args.iterations: break
+            if len(times) >= args.iterations:
+                break
             inputs = {'input_strings': [ex]}
             t_pred_start = time.time()
             out = model_handler.predict([inputs])
@@ -309,4 +316,6 @@ if __name__ == '__main__':
     print(f'rate: {n/t_total} predict/sec | time: {t_total} sec')
     times.sort()
     print(times)
-    print(f'p50: {times[int(n/2)]} ms | p75: {times[int(0.75*n)]} ms | p90: {times[int(0.9*n)]} | max: {times[-1]}')
+    print(
+        f'p50: {times[int(n/2)]} ms | p75: {times[int(0.75*n)]} ms | p90: {times[int(0.9*n)]} | max: {times[-1]}'
+    )
