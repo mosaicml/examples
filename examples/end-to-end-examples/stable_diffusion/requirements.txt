@@ -2,6 +2,7 @@
 torch>=1.13.0
 torchvision>=0.12.0
 mosaicml[all]>=0.14.0,<0.15
+mosaicml-streaming==0.4.1
 
 # --------- others --------- #
 omegaconf
