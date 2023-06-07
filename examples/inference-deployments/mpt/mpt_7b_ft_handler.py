@@ -145,15 +145,20 @@ class MPTFTModelHandler():
                 'Input strings must be provided as a list to generate call')
 
         generate_input = inputs[self.INPUT_STRINGS_KEY]
-        batch_size = len(generate_input)
 
         # Set default generate kwargs
         generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
-
         # If request contains any additional kwargs, add them to generate_kwargs
         for k, v in inputs.items():
             if k not in [self.INPUT_STRINGS_KEY]:
                 generate_kwargs[k] = v
+        
+        return generate_input, generate_kwargs
+
+    def _convert_kwargs(self, generate_input: List[str], generate_kwargs: Dict[str, Any]):
+        batch_size = len(generate_input)
+
+        # Convert expected kwargs into types expected by FT.
         generate_kwargs['top_k'] *= torch.ones(batch_size, dtype=torch.int32)
         generate_kwargs['top_p'] *= torch.ones(batch_size, dtype=torch.float32)
         generate_kwargs['temperature'] *= torch.ones(batch_size,
@@ -177,8 +182,6 @@ class MPTFTModelHandler():
                                                            10000,
                                                            size=[batch_size],
                                                            dtype=torch.int64)
-
-        return generate_input, generate_kwargs
     
     def predict(self, input_dicts: List[Dict[str, Any]]):
         generate_inputs = []
@@ -196,6 +199,9 @@ class MPTFTModelHandler():
                     raise RuntimeError(
                         f'Request has conflicting values for kwarg {k}')
                 generate_kwargs[k] = v
+
+        # Convert kwargs into torch types and populate values like 'random_seed'
+        self._convert_kwargs(generate_inputs, generate_kwargs)
 
         start_ids = [
             torch.tensor(self.tokenizer.encode(c),
