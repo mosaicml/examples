@@ -1,0 +1,19 @@
+name: sec-llm-deployment-1
+gpu_num: 1
+gpu_type: a10
+image: mosaicml/inference:latest
+replicas: 1
+command: |
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+integrations:
+- integration_type: git_repo
+  git_repo: dakinggg/examples
+  git_branch: fqa2
+model:
+  downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
+  download_parameters:
+    remote_uri: oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/
+  model_parameters:
+    task: text-generation
+    model_name_or_path: /downloaded_hf_checkpoint/

@@ -1,0 +1,21 @@
+name: sec-instructor-large
+gpu_num: 1
+gpu_type: a10
+image: mosaicml/inference:latest
+replicas: 1
+command: |
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+- integration_type: pip_packages
+  packages:
+  - InstructorEmbedding==1.0.0
+  - sentence-transformers==2.2.2
+model:
+  download_parameters:
+    hf_path: hkunlp/instructor-large
+  model_handler: examples.inference-deployments.instructor.instructor_handler.HFInstructorHandler
+  model_parameters:
+    model_name: hkunlp/instructor-large
