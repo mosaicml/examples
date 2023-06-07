@@ -5,20 +5,20 @@ import argparse
 import configparser
 import copy
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
-from examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # type: ignore
 
 from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # isort: skip # type: ignore
 
 LOCAL_CHECKPOINT_PATH = '/tmp/mpt'
 
 
-class MPTFTModelHandler:
+class MPTFTModelHandler():
 
     DEFAULT_GENERATE_KWARGS = {
         # Output sequence length to generate.
@@ -172,9 +172,31 @@ class MPTFTModelHandler:
                                                            dtype=torch.int64)
 
         return generate_input, generate_kwargs
+    
+    def _extract_output(self, outputs: List[Any]):
+        output_list = []
+        for output in outputs:
+            output_bytes = output[0]['generated_text']
+            output_list.append(output_bytes)
+        return output_list
 
-    def predict(self, **inputs: Dict[str, Any]):
-        generate_input, generate_kwargs = self._parse_inputs(inputs)
+    def predict(self, input_dicts: List[Dict[str, Any]]):
+        generate_inputs = []
+        generate_kwargs = {}
+        for input_dict in input_dicts:
+            generate_input_list, generate_kwarg = self._parse_inputs(input_dict)
+            # Flatten the list of inputs into a single list
+            # 2 cases for batching
+            # 1. Multiple requests single input string
+            # 2. Single request multiple input strings
+            generate_inputs += generate_input_list
+
+            for k, v in generate_kwarg.items():
+                if k in generate_kwargs and generate_kwargs[k] != v:
+                    raise RuntimeError(
+                        f'Request has conflicting values for kwarg {k}')
+                generate_kwargs[k] = v
+
         start_ids = [
             torch.tensor(self.tokenizer.encode(c),
                          dtype=torch.int32,
@@ -196,7 +218,7 @@ class MPTFTModelHandler:
                 token = token[token != self.end_id]
                 output = self.tokenizer.decode(token)
                 outputs.append(output)
-        return outputs
+        return self._extract_output(outputs)
 
     def predict_stream(self, **inputs: Dict[str, Any]):
         raise RuntimeError('Streaming is not supported with FasterTransformer!')
@@ -244,5 +266,5 @@ if __name__ == '__main__':
                                      args.inference_data_type, args.int8_mode,
                                      args.gpus)
     inputs = {'input_strings': ['Who is the president of the USA?']}
-    out = model_handle.predict(**inputs)
+    out = model_handle.predict([inputs])
     print(out[0])
