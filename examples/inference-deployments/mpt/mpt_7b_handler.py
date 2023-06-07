@@ -71,21 +71,19 @@ class MPTModelHandler():
         return output_list
 
     def predict(self, input_dicts: List[Dict[str, Any]]):
+        """Runs forward pass with the given inputs.
+
+        input_dicts: List of dictionaries that contain forward pass inputs as well
+        as other parameters, such as generate kwargs.
+
+        ex. [{'input': {'input_strings': ['hello world!']}}]
+        """
         generate_inputs = []
         generate_kwargs = {}
+        # Currently assumes the same generate_kwargs for the entire batch.
         for input_dict in input_dicts:
-            generate_input_list, generate_kwarg = self._parse_inputs(input_dict)
-            # Flatten the list of inputs into a single list
-            # 2 cases for batching
-            # 1. Multiple requests single input string
-            # 2. Single request multiple input strings
-            generate_inputs += generate_input_list
-
-            for k, v in generate_kwarg.items():
-                if k in generate_kwargs and generate_kwargs[k] != v:
-                    raise RuntimeError(
-                        f'Request has conflicting values for kwarg {k}')
-                generate_kwargs[k] = v
+            generate_input, generate_kwargs = self._parse_inputs(input_dict)
+            generate_inputs += generate_input
 
         print('Logging input to generate: ', generate_inputs)
         outputs = self.generator(generate_inputs, **generate_kwargs)
