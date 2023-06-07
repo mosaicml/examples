@@ -5,6 +5,7 @@ import argparse
 import configparser
 import copy
 import os
+import time
 from typing import Any, Dict, List
 
 import torch
@@ -17,6 +18,21 @@ from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # isort: s
 
 LOCAL_CHECKPOINT_PATH = '/tmp/mpt'
 
+# Data set used by locust benchmark
+EXAMPLE_INPUTS_TEXT = [
+    # Short queries with short responses.
+    "Finish this story: I awoke with a _",
+    "How many atoms combine to form dioxygen?",
+    # Short queries which typically produce medium-to-long answers.
+    "My name is ",
+    "What is 1+1?",
+    "What is a lion?",
+    "Raffi:\nHave you ever seen a whale with a polka dot tail?\n You:",
+    "Write a short story about a robot that has a nice day.",
+    "What are some of the most common misconceptions about birds?",
+    # Long query with typically long answers (from SQuAD)
+    "The immune system is a system of many biological structures and processes within an organism that protects against disease. To function properly, an immune system must detect a wide variety of agents, known as pathogens, from viruses to parasitic worms, and distinguish them from the organism's own healthy tissue. In many species, the immune system can be classified into subsystems, such as the innate immune system versus the adaptive immune system, or humoral immunity versus cell-mediated immunity. In humans, the blood–brain barrier, blood–cerebrospinal fluid barrier, and similar fluid–brain barriers separate the peripheral immune system from the neuroimmune system which protects the brain.\nWhat is the immune system?",
+]
 
 class MPTFTModelHandler():
 
@@ -265,12 +281,32 @@ if __name__ == '__main__':
                         type=int,
                         default=1,
                         help='The number of gpus to use for inference.')
+    parser.add_argument('--iterations',
+                        type=int,
+                        default=25,
+                        help='The number of predict iterations to run.')
 
     args = parser.parse_args()
 
-    model_handle = MPTFTModelHandler(args.name_or_dir, args.ft_lib_path,
-                                     args.inference_data_type, args.int8_mode,
-                                     args.gpus)
-    inputs = {'input_strings': ['Who is the president of the USA?']}
-    out = model_handle.predict([inputs])
-    print(out[0])
+    model_handler = MPTFTModelHandler(args.name_or_dir, args.ft_lib_path,
+                                      args.inference_data_type, args.int8_mode,
+                                      args.gpus)
+    
+    times = []
+    t_start = time.time()
+    while len(times) < args.iterations:
+        for ex in EXAMPLE_INPUTS_TEXT:
+            if len(times) >= args.iterations: break
+            inputs = {'input_strings': [ex]}
+            t_pred_start = time.time()
+            out = model_handler.predict([inputs])
+            t_pred = time.time() - t_pred_start
+            print(f'{out[0]} | t: {t_pred}')
+            t_pred = int(t_pred * 100) * 10  # ~nearest 10 ms
+            times.append(t_pred)
+    t_total = time.time() - t_start
+    n = len(times)
+    print(f'rate: {n/t_total} predict/sec | time: {t_total} sec')
+    times.sort()
+    print(times)
+    print(f'p50: {times[int(n/2)]} ms | p75: {times[int(0.75*n)]} ms | p90: {times[int(0.9*n)]} | max: {times[-1]}')
