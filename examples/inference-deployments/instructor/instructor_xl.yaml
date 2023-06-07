@@ -10,8 +10,8 @@ command: |
   PYTHONPATH=. go run ../inference_go/inference_server/cmd/main.go
 integrations:
 - integration_type: git_repo
-  git_repo: dakinggg/examples
-  git_branch: restructure
+  git_repo: mosaicml/examples
+  ssh_clone: false
 - integration_type: pip_packages
   packages:
   - InstructorEmbedding==1.0.0
