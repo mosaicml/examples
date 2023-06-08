@@ -149,7 +149,10 @@ class MPTFTModelHandler:
 
         generate_inputs = inputs[self.INPUT_STRINGS_KEY]
 
-        generate_kwargs = {}
+        # Start with defaults and overwrite with request args. We need to use
+        # defaults here so we can detect disagreeing args when we merge across
+        # requests in the batch.
+        generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
         for k, v in inputs.items():
             if k not in [self.INPUT_STRINGS_KEY]:
                 generate_kwargs[k] = v
@@ -209,11 +212,7 @@ class MPTFTModelHandler:
                         f'Request has conflicting values for kwarg {k}')
                 generate_kwargs[k] = v
         
-        # Merge in default generate kwargs 
-        generate_kwargs_with_defaults = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
-        generate_kwargs_with_defaults.update(generate_kwargs)
-
-        return generate_inputs, generate_kwargs_with_defaults
+        return generate_inputs, generate_kwargs
 
     def predict(self, input_dicts: List[Dict[str, Any]]) -> List[str]:
         generate_inputs, generate_kwargs = self._parse_inputs(input_dicts)
