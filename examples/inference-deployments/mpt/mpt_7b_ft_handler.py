@@ -5,13 +5,13 @@ import argparse
 import configparser
 import copy
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
-from examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # type: ignore
 
 from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # isort: skip # type: ignore
 
@@ -22,7 +22,7 @@ class MPTFTModelHandler:
 
     DEFAULT_GENERATE_KWARGS = {
         # Output sequence length to generate.
-        'output_len': 256,
+        'max_length': 256,
         # Beam width for beam search
         'beam_width': 1,
         # top k candidate number
@@ -65,15 +65,20 @@ class MPTFTModelHandler:
         self.device = torch.cuda.current_device()
         self.model_name = model_name
 
-        # Datatype of weights in the HF checkpoint
-        weight_data_type = 'fp32'
-        convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
-                          weight_data_type, False)
-        ckpt_config = configparser.ConfigParser()
         model_path = os.path.join(LOCAL_CHECKPOINT_PATH, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
-        if os.path.isfile(ckpt_config_path):
-            ckpt_config.read(ckpt_config_path)
+        # If FT checkpoint doesn't exist, create it.
+        if not os.path.isfile(ckpt_config_path):
+            # Datatype of weights in the HF checkpoint
+            weight_data_type = 'fp32'
+            convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
+                              weight_data_type, False)
+            if not os.path.isfile(ckpt_config_path):
+                raise RuntimeError('Failed to create FT checkpoint')
+        else:
+            print(f'Reusing existing FT checkpoint at {model_path}')
+        ckpt_config = configparser.ConfigParser()
+        ckpt_config.read(ckpt_config_path)
 
         # Disable this optimization.
         # https://github.com/NVIDIA/FasterTransformer/blob/main/docs/gpt_guide.md#advanced-features
@@ -106,6 +111,7 @@ class MPTFTModelHandler:
 
         self.end_id = end_id
 
+        print('Initializing FasterTransformer')
         self.model = ParallelGPT(
             head_num,
             size_per_head,
@@ -124,29 +130,35 @@ class MPTFTModelHandler:
             use_attention_linear_bias=use_attention_linear_bias,
             has_positional_encoding=has_positional_encoding,
             shared_contexts_ratio=shared_contexts_ratio)
+        print(f'Loading FT checkpoint from {model_path}')
         if not self.model.load(ckpt_path=model_path):
             raise RuntimeError(
                 'Could not load model from a FasterTransformer checkpoint')
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name,
                                                        trust_remote_code=True)
+        print('FT initialization complete')
 
-    def _parse_inputs(self, inputs: Dict[str, Any]):
+    def _parse_single_input(self, inputs: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
+        """Splits request into input strings and kwargs."""
         if self.INPUT_STRINGS_KEY not in inputs or not isinstance(
                 inputs[self.INPUT_STRINGS_KEY], list):
             raise RuntimeError(
                 'Input strings must be provided as a list to generate call')
 
-        generate_input = inputs[self.INPUT_STRINGS_KEY]
-        batch_size = len(generate_input)
+        generate_inputs = inputs[self.INPUT_STRINGS_KEY]
 
-        # Set default generate kwargs
-        generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
-
-        # If request contains any additional kwargs, add them to generate_kwargs
+        generate_kwargs = {}
         for k, v in inputs.items():
             if k not in [self.INPUT_STRINGS_KEY]:
                 generate_kwargs[k] = v
+        
+        return generate_inputs, generate_kwargs
+
+    def _convert_kwargs(self, generate_inputs: List[str], generate_kwargs: Dict[str, Any]):
+        """Converts generate_kwargs into required torch types."""
+        batch_size = len(generate_inputs)
+                        
         generate_kwargs['top_k'] *= torch.ones(batch_size, dtype=torch.int32)
         generate_kwargs['top_p'] *= torch.ones(batch_size, dtype=torch.float32)
         generate_kwargs['temperature'] *= torch.ones(batch_size,
@@ -172,13 +184,35 @@ class MPTFTModelHandler:
                                                            dtype=torch.int64)
 
         return generate_input, generate_kwargs
+    
+    def _parse_inputs(self, input_dicts: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, Any]]:
+        """Splits requests into a flattened list of input strings and merged kwargs."""
+        generate_inputs = []
+        generate_kwargs = {}
+        for input_dict in input_dicts:
+            generate_input_list, generate_kwarg = self._parse_single_input(input_dict)
+            generate_inputs += generate_input_list
 
-    def predict(self, **inputs: Dict[str, Any]):
-        generate_input, generate_kwargs = self._parse_inputs(inputs)
+            for k, v in generate_kwarg.items():
+                if k in generate_kwargs and generate_kwargs[k] != v:
+                    raise RuntimeError(
+                        f'Request has conflicting values for kwarg {k}')
+                generate_kwargs[k] = v
+        
+        # Merge in default generate kwargs 
+        generate_kwargs_with_defaults = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
+        generate_kwargs_with_defaults.update(generate_kwargs)
+
+        return generate_inputs, generate_kwargs_with_defaults
+
+    def predict(self, input_dicts: List[Dict[str, Any]]) -> List[str]:
+        generate_inputs, generate_kwargs = self._parse_inputs(input_dicts)
+        self._convert_kwargs(generate_kwargs)
+
         start_ids = [
             torch.tensor(self.tokenizer.encode(c),
                          dtype=torch.int32,
-                         device=self.device) for c in generate_input
+                         device=self.device) for c in generate_inputs
         ]
         start_lengths = [len(ids) for ids in start_ids]
         start_ids = pad_sequence(start_ids,
