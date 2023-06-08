@@ -22,7 +22,7 @@ class MPTFTModelHandler:
 
     DEFAULT_GENERATE_KWARGS = {
         # Output sequence length to generate.
-        'max_length': 256,
+        'output_len': 256,
         # Beam width for beam search
         'beam_width': 1,
         # top k candidate number
@@ -69,6 +69,7 @@ class MPTFTModelHandler:
         ckpt_config_path = os.path.join(model_path, 'config.ini')
         # If FT checkpoint doesn't exist, create it.
         if not os.path.isfile(ckpt_config_path):
+            print('Converting model to FT format')
             # Datatype of weights in the HF checkpoint
             weight_data_type = 'fp32'
             convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
@@ -158,8 +159,17 @@ class MPTFTModelHandler:
     def _convert_kwargs(self, generate_inputs: List[str], generate_kwargs: Dict[str, Any]):
         """Converts generate_kwargs into required torch types."""
         batch_size = len(generate_inputs)
-                        
-        generate_kwargs['top_k'] *= torch.ones(batch_size, dtype=torch.int32)
+
+        # Allow 'max_length' to be an alias for 'output_len'. Makes it less
+        # likely clients break when we swap in the FT handler.
+        if 'max_length' in generate_kwargs:
+            generate_kwargs['output_len'] = generate_kwargs['max_length']
+            del generate_kwargs['max_length']
+
+        # Integer args may be floats if the values are from a json payload.
+        generate_kwargs['output_len'] = int(generate_kwargs['output_len'])
+        generate_kwargs['top_k'] = int(generate_kwargs['top_k']) * torch.ones(
+            batch_size, dtype=torch.int32)
         generate_kwargs['top_p'] *= torch.ones(batch_size, dtype=torch.float32)
         generate_kwargs['temperature'] *= torch.ones(batch_size,
                                                      dtype=torch.float32)
@@ -175,15 +185,15 @@ class MPTFTModelHandler:
             batch_size, dtype=torch.float32)
         generate_kwargs['len_penalty'] *= torch.ones(size=[batch_size],
                                                      dtype=torch.float32)
-        generate_kwargs['min_length'] *= torch.ones(size=[batch_size],
-                                                    dtype=torch.int32)
+        generate_kwargs['min_length'] = int(
+            generate_kwargs['min_length']) * torch.ones(size=[batch_size],
+                                                        dtype=torch.int32)
         if generate_kwargs['random_seed']:
             generate_kwargs['random_seed'] = torch.randint(0,
                                                            10000,
                                                            size=[batch_size],
                                                            dtype=torch.int64)
 
-        return generate_input, generate_kwargs
     
     def _parse_inputs(self, input_dicts: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, Any]]:
         """Splits requests into a flattened list of input strings and merged kwargs."""
@@ -207,7 +217,7 @@ class MPTFTModelHandler:
 
     def predict(self, input_dicts: List[Dict[str, Any]]) -> List[str]:
         generate_inputs, generate_kwargs = self._parse_inputs(input_dicts)
-        self._convert_kwargs(generate_kwargs)
+        self._convert_kwargs(generate_inputs, generate_kwargs)
 
         start_ids = [
             torch.tensor(self.tokenizer.encode(c),
