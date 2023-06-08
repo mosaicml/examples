@@ -1,0 +1,21 @@
+integrations:
+- integration_type: git_repo
+  git_repo: dakinggg/examples
+  # git_branch: # use your branch
+  # git_commit: # OR use your commit hash
+  git_branch: fqa2
+  ssh_clone: false # Should be true if using a private repo
+  path: /workspace/examples
+
+# We are fetching, converting, and training on the 'val' split
+# as it is small and quick to get going for this demo.
+# For real training runs, follow the instructions in `llm-foundry/scripts/train/README.md`
+# to convert and host the full 'train' dataset.
+command: |
+  cd examples/end-to-end-examples/sec_10k_qa
+  pip install -r requirements.txt
+  python 01_process_and_upload_10ks.py \
+    --folder_for_upload oci://mosaicml-internal-checkpoints/daniel/data/sec-filings-large/ \
+    --dataset_subset large_full
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+name: upload-10ks-to-cloud # TODO: abstract

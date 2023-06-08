@@ -3,6 +3,7 @@ integrations:
   git_repo: mosaicml/llm-foundry
   # git_branch: # use your branch
   # git_commit: # OR use your commit hash
+  git_branch: main
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
 - integration_type: wandb # TODO: abstract
@@ -13,7 +14,7 @@ command: |
   cd llm-foundry/scripts
   composer train/train.py /mnt/config/parameters.yaml
 image: mosaicml/llm-foundry:1.13.1_cu117-latest
-name: sec-finetune-dolly-mpt-1 # TODO: abstract
+name: sec-finetune-dolly-mpt-4 # TODO: abstract
 
 compute:
   gpus: 8  # Number of GPUs to use
@@ -29,21 +30,32 @@ parameters:
   # Run Name
   run_name: # If left blank, will be read from env var $RUN_NAME
 
+  load_path: oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-mpt-7b-large-13-fb2xyV/ep0-ba1000-rank0.pt
+
+  # model:
+  #   name: mpt_causal_lm
+  #   init_device: meta
+  #   d_model: 4096
+  #   n_heads: 32
+  #   n_layers: 32
+  #   expansion_ratio: 4
+  #   max_seq_len: ${max_seq_len}
+  #   vocab_size: 50432
+  #   no_bias: true
+  #   attn_config:
+  #     attn_impl: triton
+  #     # Set this to `true` if using `train_loader.dataset.packing_ratio` below
+  #     attn_uses_sequence_id: false
+  #     alibi: true
+  # Model
   model:
-    name: mpt_causal_lm
-    init_device: meta
-    d_model: 4096
-    n_heads: 32
-    n_layers: 32
-    expansion_ratio: 4
-    max_seq_len: ${max_seq_len}
-    vocab_size: 50432
-    no_bias: true
-    attn_config:
-      attn_impl: triton
-      # Set this to `true` if using `train_loader.dataset.packing_ratio` below
-      attn_uses_sequence_id: false
-      alibi: true
+    name: hf_causal_lm
+    pretrained_model_name_or_path: mosaicml/mpt-7b
+    pretrained: false
+    config_overrides:
+      attn_config:
+        attn_impl: triton
+        attn_uses_sequence_id: false
 
   # Tokenizer
   tokenizer:

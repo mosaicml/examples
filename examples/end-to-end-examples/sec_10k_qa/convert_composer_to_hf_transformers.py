@@ -20,7 +20,6 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
                           PretrainedConfig, PreTrainedTokenizer)
 
 
-# TODO: maybe move this functionality to Composer
 def get_hf_config_from_composer_state_dict(
         state_dict: Dict[str, Any]) -> PretrainedConfig:
     hf_config_dict = state_dict['state']['integrations']['huggingface'][
@@ -29,7 +28,6 @@ def get_hf_config_from_composer_state_dict(
     return AutoConfig.for_model(**hf_config_dict)
 
 
-# TODO: maybe move this functionality to Composer
 def get_hf_tokenizer_from_composer_state_dict(
         state_dict: Dict[str, Any]) -> Optional[PreTrainedTokenizer]:
     hf_tokenizer_state = state_dict['state']['integrations']['huggingface'][

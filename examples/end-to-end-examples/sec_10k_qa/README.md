@@ -21,9 +21,9 @@ Before starting this tutorial, you should make sure that you have access to the 
 
 ### Acquiring the SEC 10-K data
 
-**Local command:** `python 01_process_and_upload_10ks.py --folder_for_upload oci://mosaicml-internal-checkpoints/daniel/sec-filings-large/ --dataset_subset large_full`
+**Local command:** `python 01_process_and_upload_10ks.py --folder_for_upload oci://mosaicml-internal-checkpoints/daniel/data/sec-filings-large/ --dataset_subset large_full`
 
-We will use the version of the 10-K data kindly uploaded to HuggingFace (https://huggingface.co/datasets/JanosAudran/financial-reports-sec) by `JanosAudran`. Note that reprocessing the data may improve the quality, as this version of the data appears to largely be missing tables, which are an important part of financial statements. Each row in this dataset corresponds to a sentence, so we will need to reprocess the data into full text documents before we can use it. Throughout this tutorial we will use the `large_full` subset of the data. If you would like to simply go through all of the steps quickly and make sure that they run, you can instead use the `small_full` subset (throughout the tutorial), which contains a small subset of the full data.
+We will use the version of the 10-K data kindly uploaded to HuggingFace (https://huggingface.co/datasets/JanosAudran/financial-reports-sec) by `JanosAudran`. Note that reprocessing the data may improve the quality, as this version of the data appears to largely be missing tables, which are an important part of financial statements. Each row in this dataset corresponds to a sentence, so we will need to reprocess the data into full text documents before we can use it. Throughout this tutorial we will use the `large_full` subset of the data, which means that all the steps will take some time, as the dataset is fairly large. If you would like to simply go through all of the steps quickly and make sure that they run, you can instead use the `small_full` subset (throughout the tutorial), which contains a small subset of the full data.
 
 ### MDS Conversion
 
@@ -32,7 +32,7 @@ We will use the version of the 10-K data kindly uploaded to HuggingFace (https:/
 As mentioned in the [MosaicML platform setup](#mosaicml-platform-setup) section, the MosaicML platform does not have permanent storage on the compute nodes. This means that all data will be streamed in and out from a cloud provider. In order to make this process as efficient as possible, we will convert the data into a format that is optimized for streaming, using our [Streaming](https://github.com/mosaicml/streaming) library. This format is called MDS, and is a simple format that is optimized for streaming. The `02_convert_10ks_to_mds.py` script will convert the data into this format. The `--tokenizer` argument specifies the tokenizer to use, and the `--eos_text` argument specifies the text to use as the end of sequence token. The `--concat_tokens` argument specifies the maximum number of tokens to concatenate into a single text example. The `--out_root` argument specifies the output root for the MDS files, and the `--in_root` argument specifies the input root for the 10-K data. The `--dataset_subset` argument specifies which subset of the data to use. The `--dataset_subset` argument is optional, and defaults to `small_full`.
 
 ### Finance Finetune MPT-7b
-
+TODO: add some time estimates and/or shorten the runs
 **Input**: `oci://mosaicml-internal-checkpoints/daniel/data/sec-large-mds/`
 
 **MCLI command**: `mcli run -f 03_finetune_on_10ks.yaml`
@@ -91,9 +91,10 @@ The last step before we can deploy our newly-trained large language model is to 
 
 Now that we have our trained model, we will deploy it using MosaicML inference. This will allow use to use the model as an API. We will additionally deploy a text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions.
 
-Make sure to edit the `06_deploy_llm.yaml` file to point to _your_ checkpoint path. `07_deploy_embedding_model.yaml` does not need to be edited because it is downloading a model from the HuggingFace Hub.
+Make sure to edit the `06_deploy_llm.yaml` file to point to _your_ checkpoint path. `07_deploy_embedding_model.yaml` does not need to be modified because it is downloading a pretrained model from the HuggingFace Hub.
 
 ### Application with gradio
+Now that we've processed our data, trained our models, and deployed our models, we can run the application! We will use Gradio and LangChain to make a simple question answering interface.
 play around
 prompt dataset to eval
 

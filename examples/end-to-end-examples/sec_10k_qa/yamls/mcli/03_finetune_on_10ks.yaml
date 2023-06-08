@@ -3,6 +3,7 @@ integrations:
   git_repo: mosaicml/llm-foundry
   # git_branch: # use your branch
   # git_commit: # OR use your commit hash
+  git_branch: main
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
 - integration_type: wandb # TODO: abstract
@@ -17,7 +18,7 @@ command: |
   cd llm-foundry/scripts
   composer train/train.py /mnt/config/parameters.yaml
 image: mosaicml/llm-foundry:1.13.1_cu117-latest
-name: sec-mpt-7b-large-12 # TODO: abstract
+name: sec-mpt-7b-large-13 # TODO: abstract
 
 compute:
   gpus: 8  # Number of GPUs to use TODO: abstract
@@ -178,3 +179,4 @@ parameters:
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
   save_folder: oci://mosaicml-internal-checkpoints/daniel/checkpoints/{run_name}/ # TODO: abstract
+  save_weights_only: True
