@@ -140,7 +140,8 @@ class MPTFTModelHandler:
                                                        trust_remote_code=True)
         print('FT initialization complete')
 
-    def _parse_single_input(self, inputs: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
+    def _parse_single_input(
+            self, inputs: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         """Splits request into input strings and kwargs."""
         if self.INPUT_STRINGS_KEY not in inputs or not isinstance(
                 inputs[self.INPUT_STRINGS_KEY], list):
@@ -156,10 +157,11 @@ class MPTFTModelHandler:
         for k, v in inputs.items():
             if k not in [self.INPUT_STRINGS_KEY]:
                 generate_kwargs[k] = v
-        
+
         return generate_inputs, generate_kwargs
 
-    def _convert_kwargs(self, generate_inputs: List[str], generate_kwargs: Dict[str, Any]):
+    def _convert_kwargs(self, generate_inputs: List[str],
+                        generate_kwargs: Dict[str, Any]):
         """Converts generate_kwargs into required torch types."""
         batch_size = len(generate_inputs)
 
@@ -197,13 +199,16 @@ class MPTFTModelHandler:
                                                            size=[batch_size],
                                                            dtype=torch.int64)
 
-    
-    def _parse_inputs(self, input_dicts: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, Any]]:
+    def _parse_inputs(
+            self,
+            input_dicts: List[Dict[str,
+                                   Any]]) -> Tuple[List[str], Dict[str, Any]]:
         """Splits requests into a flattened list of input strings and merged kwargs."""
         generate_inputs = []
         generate_kwargs = {}
         for input_dict in input_dicts:
-            generate_input_list, generate_kwarg = self._parse_single_input(input_dict)
+            generate_input_list, generate_kwarg = self._parse_single_input(
+                input_dict)
             generate_inputs += generate_input_list
 
             for k, v in generate_kwarg.items():
@@ -211,7 +216,7 @@ class MPTFTModelHandler:
                     raise RuntimeError(
                         f'Request has conflicting values for kwarg {k}')
                 generate_kwargs[k] = v
-        
+
         return generate_inputs, generate_kwargs
 
     def predict(self, input_dicts: List[Dict[str, Any]]) -> List[str]:
