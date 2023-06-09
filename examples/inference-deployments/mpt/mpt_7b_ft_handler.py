@@ -8,14 +8,13 @@ import os
 from typing import Any, Dict, List, Tuple
 
 import torch
-from torch.nn.utils.rnn import pad_sequence
-from transformers import AutoTokenizer
-
 # isort: skip # type: ignore
-from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT
-
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import \
+    ParallelGPT
 # isort: skip # type: ignore
 from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft
+from torch.nn.utils.rnn import pad_sequence
+from transformers import AutoTokenizer
 
 LOCAL_CHECKPOINT_PATH = '/tmp/mpt'
 
@@ -143,7 +142,8 @@ class MPTFTModelHandler:
                                                        trust_remote_code=True)
         print('FT initialization complete')
 
-    def _parse_model_request(self, model_request: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    def _parse_model_request(
+            self, model_request: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
                 f"{self.INPUT_KEY} must be provided to generate call")
@@ -152,9 +152,6 @@ class MPTFTModelHandler:
 
         # Set default generate kwargs
         generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
-        # TODO any reason why we don't need this?:
-        # generate_kwargs['eos_token_id'] = self.tokenizer.eos_token_id
-
         # If request contains any additional kwargs, add them to generate_kwargs
         for k, v in model_request.get(self.PARAMETERS_KEY, {}).items():
             generate_kwargs[k] = v
@@ -200,13 +197,15 @@ class MPTFTModelHandler:
                                                            size=[batch_size],
                                                            dtype=torch.int64)
 
-    def _parse_model_requests(self, model_requests: List[Dict[str, Any]]) -> Tuple[List[str], Dict[str, Any]]:
+    def _parse_model_requests(
+        self,
+        model_requests: List[Dict[str,
+                                  Any]]) -> Tuple[List[str], Dict[str, Any]]:
         """Splits model requests into a flat list of inputs and merged kwargs."""
         generate_inputs = []
         generate_kwargs = {}
         for req in model_requests:
-            generate_input, generate_kwarg = self._parse_model_request(
-                req)
+            generate_input, generate_kwarg = self._parse_model_request(req)
             generate_inputs += [generate_input]
 
             for k, v in generate_kwarg.items():
