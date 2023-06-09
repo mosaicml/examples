@@ -11,7 +11,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
-from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # isort: skip # type: ignore
 
 from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # isort: skip # type: ignore
 
@@ -203,7 +203,7 @@ class MPTFTModelHandler:
             self,
             input_dicts: List[Dict[str,
                                    Any]]) -> Tuple[List[str], Dict[str, Any]]:
-        """Splits requests into a flattened list of input strings and merged kwargs."""
+        """Splits requests into a flat list of inputs and merged kwargs."""
         generate_inputs = []
         generate_kwargs = {}
         for input_dict in input_dicts:
