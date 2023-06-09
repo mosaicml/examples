@@ -40,7 +40,10 @@ More instructions can be found [here](https://docs.mosaicml.com/projects/mcli/en
 
 Once the deployment is ready, it's time to run inference! 
 
-Using the Python SDK:
+<details>
+<summary> Using Python SDK </summary>
+
+
 ```
 from mcli import predict
 
@@ -54,6 +57,53 @@ input = {
 predict(deployment, input)
 
 ```
+</details>
+
+<details>
+<summary> Using MCLI </summary>
+
+```
+mcli predict <deployment-name> --input '{"input_strings": ["hello world!"]}'
+
+```
+</details>
+
+<details>
+<summary> Using Curl </summary>
+
+```
+curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict_stream \
+-H "Authorization: <your_api_key>" \
+-d '{"input_strings": ["hello world!"]}'
+```
+</details>
+
+<details>
+<summary> Using Langchain </summary>
+
+```
+# Sign up for an account: https://forms.mosaicml.com/demo?utm_source=langchain
+
+from getpass import getpass
+
+MOSAICML_API_TOKEN = getpass()
+import os
+
+os.environ["MOSAICML_API_TOKEN"] = MOSAICML_API_TOKEN
+from langchain.llms import MosaicML
+from langchain import PromptTemplate, LLMChain
+template = """Question: {question}"""
+
+prompt = PromptTemplate(template=template, input_variables=["question"])
+llm = MosaicML(inject_instruction_format=True, model_kwargs={'do_sample': False})
+llm_chain = LLMChain(prompt=prompt, llm=llm)
+question = "Write 3 reasons why you should train an AI model on domain specific data set."
+
+llm_chain.run(question)
+
+```
+</details>
+
 
 You can also use [curl or command line](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/quick_start_inference.html#interacting-with-your-deployment) to send your requests.
 
