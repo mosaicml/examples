@@ -1,6 +1,6 @@
 ## Inference with MPT-7B 
 
-[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a state-of-the-art 6.7B parameter instruction fine-tuned language model trained by MosaicML for inference. Check out the [MPT-Instruct huggingface repo](https://huggingface.co/spaces/mosaicml/mpt-7b-instruct) for more information about the model.
+[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a state-of-the-art 6.7B parameter instruction fine-tuned language model trained by MosaicML for inference. Check out [this link](https://www.mosaicml.com/blog/mpt-7b) for more information!
 
 You’ll find in this folder:
 
@@ -8,10 +8,18 @@ You’ll find in this folder:
     - `mpt_7b.yaml` - a yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
     - `mpt_7b_instruct.yaml` - a yaml to deploy [MPT-7B Intstruct](https://huggingface.co/mosaicml/mpt-7b-instruct).
     - `mpt_7b_storywriter.yaml` - a yaml to deploy [MPT-7B StoryWriter](https://huggingface.co/mosaicml/mpt-7b-storywriter).
-- Model handlers - these define how your model should be loaded and what should happen in a forward pass. You can use the default handlers here or write your custom model handler as per instructions [here](https://docs.mosaicml.com/projects/mcli/en/latest/inference/deployment_features.html#custom-model-handlers).
+- Model handlers - these define how your model should be loaded and how the model should be run when receiving a request. You can use the default handlers here or write your custom model handler as per instructions [here](https://docs.mosaicml.com/projects/mcli/en/latest/inference/deployment_features.html#custom-model-handlers).
     - `mpt_7b_handler.py` - a python script using DeepSpeed.
     - `mpt_7b_ft_handler.py` - a python script using FasterTransformer.
 - `requirements.txt` - package requirements to be able to run these models.
+
+
+## Pre-requisites
+
+Please follow instructions in the Inference Deployments [README](https://github.com/mosaicml/examples/tree/main/examples/inference-deployments/README.md) and make sure 
+- You have access to our inference service.
+- Your dev environment is set up with `mcli`.
+- You have a cluster to work with.
 
 ## Deploying your model
 
