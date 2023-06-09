@@ -200,10 +200,7 @@ class MPTFTModelHandler:
                                                            size=[batch_size],
                                                            dtype=torch.int64)
 
-    def _parse_model_requests(
-            self,
-            model_requests: List[Dict[str,
-                                      Any]]) -> Tuple[str, Dict[str, Any]]:
+    def _parse_model_requests(self, model_requests: List[Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
         """Splits model requests into a flat list of inputs and merged kwargs."""
         generate_inputs = []
         generate_kwargs = {}
