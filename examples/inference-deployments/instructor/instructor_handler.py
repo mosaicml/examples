@@ -27,7 +27,7 @@ class HFInstructorHandler():
         for req in model_requests:
             if 'input' not in req:
                 raise KeyError('input key not in model_requests')
-            input_list.append(input['input'])
+            input_list.append(req['input'])
 
         embeddings = self.model.encode(input_list)
         return embeddings.tolist()
