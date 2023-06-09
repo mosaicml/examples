@@ -34,7 +34,18 @@ to check if it is ready (status 200).
 
 More instructions can be found [here](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/quick_start_inference.html)
 
+### Deploying from cloud storage
+If your model exists on Amazon S3 or Hugging Face, you can edit the YAML's model params to deploy it:
+```yaml
+model:
+    download_parameters:
+        s3_path: <your-s3-path>
+    model_parameters:
+        ...
+        model_name_or_path: my/local/s3_path
+```
 
+If your model exists on a different cloud storage, then you can follow instructions [here](https://docs.mosaicml.com/projects/mcli/en/latest/inference/deployment_features.html#id1) on writing your custom downloader function, and deploy the model.
 
 ## Sending requests to your deployment
 
@@ -103,7 +114,6 @@ llm_chain.run(question)
 
 ```
 </details>
-
 
 ### Input parameters
 | Parameters | Type | Required | Default | Description |
