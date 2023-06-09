@@ -292,5 +292,5 @@ if __name__ == '__main__':
                                      args.inference_data_type, args.int8_mode,
                                      args.gpus)
     inputs = {'input_strings': ['Who is the president of the USA?']}
-    out = model_handle.predict(**inputs)
+    out = model_handle.predict([inputs])
     print(out[0])
