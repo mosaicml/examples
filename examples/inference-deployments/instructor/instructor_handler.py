@@ -18,16 +18,16 @@ class HFInstructorHandler():
         self.model = INSTRUCTOR(self.model_name)
         self.model.to(self.device)
 
-    def predict(self, inputs: List[Dict[str, Any]]):
+    def predict(self, model_requests: List[Dict[str, Any]]):
         """Runs a forward pass with the given inputs.
 
-        Input format: {"input_strings": ["<instruction>", "<sentence>"]}
+        Model request format: {"input": ["<instruction>", "<sentence>"]}
         """
         input_list = []
-        for input in inputs:
-            if 'input_strings' not in input:
-                raise KeyError('input_strings key not in inputs')
-            input_list.append(input['input_strings'])
+        for req in model_requests:
+            if 'input' not in req:
+                raise KeyError('input key not in model_requests')
+            input_list.append(input['input'])
 
         embeddings = self.model.encode(input_list)
         return embeddings.tolist()
