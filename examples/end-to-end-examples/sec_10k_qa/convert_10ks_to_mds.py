@@ -174,7 +174,7 @@ def main(
 
             def joined_identifier(example):
                 example[
-                    'joined_identifier'] = f"{example['docID']}|||{example['tickers'][0]}|||{example['report_date']}"
+                    'joined_identifier'] = f"{example['docID']}|||{example['tickers'][0]}|||{example['reportDate']}"
                 return example
 
             sec_filing_data = sec_filing_data.map(joined_identifier,
