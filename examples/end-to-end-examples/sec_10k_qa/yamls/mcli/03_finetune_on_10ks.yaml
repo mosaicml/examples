@@ -1,3 +1,10 @@
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
@@ -17,8 +24,8 @@ integrations:
 command: |
   cd llm-foundry/scripts
   composer train/train.py /mnt/config/parameters.yaml
-image: mosaicml/llm-foundry:1.13.1_cu117-latest
-name: sec-mpt-7b-large-13 # TODO: abstract
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
+name: mpt-7b-10ks-large-final # TODO: abstract
 
 compute:
   gpus: 8  # Number of GPUs to use TODO: abstract
@@ -29,7 +36,7 @@ compute:
 
 parameters:
   data_local: ./local-dataset-cache
-  data_remote: oci://mosaicml-internal-checkpoints/daniel/data/sec-large-mds/ # TODO: abstract
+  data_remote: oci://mosaicml-internal-checkpoints/daniel/data/sec-10ks-large-mds-final/ # TODO: abstract
 
   max_seq_len: 2048
   global_seed: 17
@@ -101,7 +108,7 @@ parameters:
 
   max_duration: 1ep
   eval_interval: 500ba
-  eval_first: false
+  eval_first: true
   eval_subset_num_batches: -1
   global_train_batch_size: 128
 
@@ -118,7 +125,7 @@ parameters:
   # System
   seed: ${global_seed}
   device_eval_batch_size: 8
-  device_train_microbatch_size: 20
+  device_train_microbatch_size: auto
   precision: amp_bf16
 
   # Logging
@@ -179,4 +186,5 @@ parameters:
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
   save_folder: oci://mosaicml-internal-checkpoints/daniel/checkpoints/{run_name}/ # TODO: abstract
-  save_weights_only: True
+  save_weights_only: True # TODO: REMOVE ONCE COMPOSER BUG IS FIXED
+  dist_timeout: 6000 # TODO: REMOVE BEFORE THIS IS DONE

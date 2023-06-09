@@ -1,25 +1,31 @@
-integrations:
-- integration_type: git_repo
-  git_repo: dakinggg/examples
-  # git_branch: # use your branch
-  # git_commit: # OR use your commit hash
-  git_branch: fqa2
-  ssh_clone: false # Should be true if using a private repo
-  path: /workspace/examples
+compute:
+  gpus: 8  # Number of GPUs to use
 
-# We are fetching, converting, and training on the 'val' split
-# as it is small and quick to get going for this demo.
-# For real training runs, follow the instructions in `llm-foundry/scripts/train/README.md`
-# to convert and host the full 'train' dataset.
+  ## These configurations are optional
+  cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
+integrations:
+# Clone the examples repository so that we have access to the code in sec_1ok_qa
+- integration_type: git_repo
+  git_repo: dakinggg/examples # TODO: CHANGE BACK TO MAIN
+  git_branch: fqa2 # TODO: CHANGE BACK TO MAIN
+  ssh_clone: false # Should be true if using a private repo
+  path: /workspace/examples # Tell MCLI what path to clone the repo to
+
+# cd into the sec_10k_qa folder
+# Install the necessary dependencies
+# Run the script to convert the data files into MosaicML's streaming format (MDS)
 command: |
-  cd examples/end-to-end-examples/sec_10k_qa
+  cd /workspace/examples/examples/end-to-end-examples/sec_10k_qa
   pip install -r requirements.txt
-  python 02_convert_10ks_to_mds.py \
+  python convert_10ks_to_mds.py \
     --tokenizer EleutherAI/gpt-neox-20b \
     --eos_text '<|endoftext|>' \
     --concat_tokens 2048 \
-    --out_root oci://mosaicml-internal-checkpoints/daniel/data/sec-large-mds/ \
-    --in_root oci://mosaicml-internal-checkpoints/daniel/data/sec-filings-large/ \
+    --out_root REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/data/sec-10ks-large-mds/ \
+    --in_root REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
     --dataset_subset large_full
-image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
 name: convert-10ks-to-mds # TODO: abstract

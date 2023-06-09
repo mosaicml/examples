@@ -1,3 +1,10 @@
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
@@ -13,8 +20,8 @@ integrations:
 command: |
   cd llm-foundry/scripts
   composer train/train.py /mnt/config/parameters.yaml
-image: mosaicml/llm-foundry:1.13.1_cu117-latest
-name: sec-finetune-dolly-mpt-4 # TODO: abstract
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
+name: mpt-7b-dolly-small-final # TODO: abstract
 
 compute:
   gpus: 8  # Number of GPUs to use
@@ -30,7 +37,7 @@ parameters:
   # Run Name
   run_name: # If left blank, will be read from env var $RUN_NAME
 
-  load_path: oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-mpt-7b-large-13-fb2xyV/ep0-ba1000-rank0.pt
+  load_path: oci://mosaicml-internal-checkpoints/daniel/checkpoints/mpt-7b-10ks-small-final-m3ly4y/latest-rank0.pt.symlink
 
   # model:
   #   name: mpt_causal_lm
@@ -186,3 +193,4 @@ parameters:
   # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
   save_folder: oci://mosaicml-internal-checkpoints/daniel/checkpoints/{run_name}/ # TODO: abstract
+  dist_timeout: 6000 # TODO: REMOVE BEFORE THIS IS DONE

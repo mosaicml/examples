@@ -130,9 +130,6 @@ def main(folder_for_upload: str, dataset_subset: str):
         running_text_sections.append(' '.join(running_text_section))
         docs_to_dump.append((previous_doc, running_text_sections))
 
-        print(len(docs_to_dump))
-        print(len(set([(doc['reportDate'].split('-')[0], doc['tickers'][0]) for doc, _ in docs_to_dump])))
-
         def dump_doc_wrapper(args):
             doc_to_dump, text_to_dump, object_store, sub_prefix = args
             dump_doc(doc_to_dump, text_to_dump, object_store, sub_prefix)

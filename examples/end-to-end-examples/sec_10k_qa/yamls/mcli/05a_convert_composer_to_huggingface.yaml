@@ -1,3 +1,10 @@
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
@@ -10,14 +17,14 @@ command: |
   cd llm-foundry/llmfoundry/inference
   python convert_composer_to_hf.py \
     --composer_path s3://bucket/folder/checkpoint-path.pt \
-    --hf_output_path s3://bucket/folder/hf/ \
+    --hf_output_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/mpt-7b-finance-final-hf/ \
     --output_precision bf16 \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 optimization_level: 0
 
 # Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $RUN_NAME
-run_name: convert-composer-hf
+run_name: mpt-7b-finance-hf-convert-final
 
 gpu_num: 8
 cluster: r0z0 # replace with your cluster here!
