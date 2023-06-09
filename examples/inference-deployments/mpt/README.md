@@ -26,7 +26,7 @@ Please follow instructions in the Inference Deployments [README](https://github.
 To deploy, simply run `mcli deploy -f mpt_7b_instruct.yaml --cluster <your_cluster>`.
 
 Once deployed, you can ping the deployment using
-```
+```python
 from mcli import ping
 ping('deployment-name')
 ```
@@ -44,7 +44,7 @@ Once the deployment is ready, it's time to run inference!
 <summary> Using Python SDK </summary>
 
 
-```
+```python
 from mcli import predict
 
 deployment = get_inference_deployment(<deployment-name>)
@@ -62,7 +62,7 @@ predict(deployment, input)
 <details>
 <summary> Using MCLI </summary>
 
-```
+```bash
 mcli predict <deployment-name> --input '{"input_strings": ["hello world!"]}'
 
 ```
@@ -71,7 +71,7 @@ mcli predict <deployment-name> --input '{"input_strings": ["hello world!"]}'
 <details>
 <summary> Using Curl </summary>
 
-```
+```bash
 curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict_stream \
 -H "Authorization: <your_api_key>" \
 -d '{"input_strings": ["hello world!"]}'
@@ -81,7 +81,7 @@ curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict_stream \
 <details>
 <summary> Using Langchain </summary>
 
-```
+```python
 # Sign up for an account: https://forms.mosaicml.com/demo?utm_source=langchain
 
 from getpass import getpass
@@ -105,21 +105,16 @@ llm_chain.run(question)
 </details>
 
 
-You can also use [curl or command line](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/quick_start_inference.html#interacting-with-your-deployment) to send your requests.
+### Input parameters
+| Parameters | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| input_string | List[str] | yes | N/A | The prompt to generate a completion for. |
+| top_p | float | no | 0.95 | Defines the tokens that are within the sample operation of text generation. Add tokens in the sample for more probable to least probable until the sum of the probabilities is greater than top_p |
+| temperature | float | no | 0.8 | The temperature of the sampling operation. 1 means regular sampling, 0 means always take the highest score, 100.0 is getting closer to uniform probability |
+| max_length | int | no | 256 | Defines the maximum length in tokens of the output summary |
+| use_cache | bool | no | true | Whether to use KV cacheing during autoregressive decoding. This will use more memory but improve speed |
+| do_sample | bool | no | true | Whether or not to use sampling, use greedy decoding otherwise |
 
-
-```{csv-table}
-:header: >
-:    "Parameters", "Type", "Required", "Default", "Description"
-:widths: 20, 20, 5, 10, 50
-
-"input_string","List[str]","yes","N/A","The prompt to generate a completion for."
-"top_p","float","no","0.95","Defines the tokens that are within the sample operation of text generation. Add tokens in the sample for more probable to least probable until the sum of the probabilities is greater than top_p."
-"temperature","float","no","0.8","The temperature of the sampling operation. 1 means regular sampling, 0 means always take the highest score, 100.0 is getting closer to uniform probability."
-"max_length","int","no","256","Defines the maximum length in tokens of the output summary."
-"use_cache","bool","no","TRUE","Whether to use KV cacheing during autoregressive decoding. This will use more memory but improve speed."
-"do_sample","bool","no","TRUE","Whether or not to use sampling, use greedy decoding otherwise."
-```
 
 ## Output
 
