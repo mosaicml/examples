@@ -119,18 +119,19 @@ class DownloadingIterable:
         num_workers = worker_info.num_workers if worker_info else 1
         identifiers_shard = self.identifiers[worker_id::num_workers]
         print(f'Worker {worker_id} processing {len(identifiers_shard)} files')
-        for (doc_id, ticker) in identifiers_shard:
+        for (_, ticker, report_date) in identifiers_shard:
             os.makedirs(os.path.join(self.output_folder, ticker), exist_ok=True)
 
+            year = report_date.split('-')[0]
             self.object_store.download_object(
                 os.path.join(self.input_folder_prefix, ticker,
-                             f'sec_{doc_id}_txt.txt'),
-                os.path.join(self.output_folder, ticker, f'sec_{doc_id}.txt'),
+                             f'sec_{year}_txt.txt'),
+                os.path.join(self.output_folder, ticker, f'sec_{year}.txt'),
             )
 
             with open(
                     os.path.join(self.output_folder, ticker,
-                                 f'sec_{doc_id}.txt')) as _txt_file:
+                                 f'sec_{year}.txt')) as _txt_file:
                 txt = _txt_file.read()
 
             yield {'text': txt}
@@ -173,7 +174,7 @@ def main(
 
             def joined_identifier(example):
                 example[
-                    'joined_identifier'] = f"{example['docID']}|||{example['tickers'][0]}"
+                    'joined_identifier'] = f"{example['docID']}|||{example['tickers'][0]}|||{example['report_date']}"
                 return example
 
             sec_filing_data = sec_filing_data.map(joined_identifier,
