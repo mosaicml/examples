@@ -49,7 +49,7 @@ class MPTModelHandler():
     def _parse_model_request(self, model_request: Dict[str, Any]):
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
-                f"{self.INPUT_KEY} must be provided to generate call")
+                f'{self.INPUT_KEY} must be provided to generate call')
 
         generate_input = model_request[self.INPUT_KEY]
 

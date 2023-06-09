@@ -146,7 +146,7 @@ class MPTFTModelHandler:
             self, model_request: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
-                f"{self.INPUT_KEY} must be provided to generate call")
+                f'{self.INPUT_KEY} must be provided to generate call')
 
         generate_input = model_request[self.INPUT_KEY]
 
@@ -201,7 +201,7 @@ class MPTFTModelHandler:
         self,
         model_requests: List[Dict[str,
                                   Any]]) -> Tuple[List[str], Dict[str, Any]]:
-        """Splits model requests into a flat list of inputs and merged kwargs."""
+        """Splits requests into a flat list of inputs and merged kwargs."""
         generate_inputs = []
         generate_kwargs = {}
         for req in model_requests:
@@ -245,8 +245,7 @@ class MPTFTModelHandler:
         return outputs
 
     def predict_stream(self, **model_requests: Dict[str, Any]):
-        raise RuntimeError(
-            'Streaming is not supported with FasterTransformer!')
+        raise RuntimeError('Streaming is not supported with FasterTransformer!')
 
 
 if __name__ == '__main__':
@@ -257,13 +256,15 @@ if __name__ == '__main__':
         '--ft_lib_path',
         type=str,
         required=True,
-        help='Path to the libth_transformer dynamic lib file(e.g., build/lib/libth_transformer.so.'
+        help=
+        'Path to the libth_transformer dynamic lib file(e.g., build/lib/libth_transformer.so.'
     )
     parser.add_argument(
         '--name_or_dir',
         '-i',
         type=str,
-        help='HF hub Model name (e.g., mosaicml/mpt-7b) or local dir path to load checkpoint from',
+        help=
+        'HF hub Model name (e.g., mosaicml/mpt-7b) or local dir path to load checkpoint from',
         required=True)
     parser.add_argument('--inference_data_type',
                         '--data_type',
@@ -275,7 +276,8 @@ if __name__ == '__main__':
         type=int,
         default=0,
         choices=[0, 1],
-        help='The level of quantization to perform. 0: No quantization. All computation in data_type. 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32'
+        help=
+        'The level of quantization to perform. 0: No quantization. All computation in data_type. 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32'
     )
     parser.add_argument('--gpus',
                         type=int,
