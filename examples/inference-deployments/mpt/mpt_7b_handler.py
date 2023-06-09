@@ -83,7 +83,7 @@ class MPTModelHandler():
         # Currently assumes the same generate_kwargs for the entire batch.
         for req in model_requests:
             generate_input, generate_kwargs = self._parse_model_request(req)
-            generate_inputs += generate_input
+            generate_inputs += [generate_input]
 
         print('Logging input to generate: ', generate_inputs)
         outputs = self.generator(generate_inputs, **generate_kwargs)

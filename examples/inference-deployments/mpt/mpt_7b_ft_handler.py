@@ -210,7 +210,7 @@ class MPTFTModelHandler:
         for req in model_requests:
             generate_input, generate_kwarg = self._parse_model_request(
                 req)
-            generate_inputs += generate_input
+            generate_inputs += [generate_input]
 
             for k, v in generate_kwarg.items():
                 if k in generate_kwargs and generate_kwargs[k] != v:
