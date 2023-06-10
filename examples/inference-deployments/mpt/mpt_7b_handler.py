@@ -3,7 +3,7 @@
 
 import copy
 from threading import Thread
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import torch
 from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
@@ -28,7 +28,7 @@ class MPTModelHandler():
 
         config = AutoConfig.from_pretrained(self.model_name,
                                             trust_remote_code=True)
-        config.attn_config['attn_impl'] = 'triton'
+        config.attn_config['attn_impl'] = 'torch'
 
         model = AutoModelForCausalLM.from_pretrained(self.model_name,
                                                      config=config,
@@ -63,10 +63,31 @@ class MPTModelHandler():
 
         return generate_input, generate_kwargs
 
-    def predict(self, **inputs: Dict[str, Any]):
-        generate_input, generate_kwargs = self._parse_inputs(inputs)
-        outputs = self.generator(generate_input, **generate_kwargs)
-        return [output[0]['generated_text'] for output in outputs]
+    def _extract_output(self, outputs: List[Any]):
+        output_list = []
+        for output in outputs:
+            output_bytes = output[0]['generated_text']
+            output_list.append(output_bytes)
+        return output_list
+
+    def predict(self, input_dicts: List[Dict[str, Any]]):
+        """Runs forward pass with the given inputs.
+
+        input_dicts: List of dictionaries that contain forward pass inputs as well
+        as other parameters, such as generate kwargs.
+
+        ex. [{'input': {'input_strings': ['hello world!']}}]
+        """
+        generate_inputs = []
+        generate_kwargs = {}
+        # Currently assumes the same generate_kwargs for the entire batch.
+        for input_dict in input_dicts:
+            generate_input, generate_kwargs = self._parse_inputs(input_dict)
+            generate_inputs += generate_input
+
+        print('Logging input to generate: ', generate_inputs)
+        outputs = self.generator(generate_inputs, **generate_kwargs)
+        return self._extract_output(outputs)
 
     def predict_stream(self, **inputs: Dict[str, Any]):
         generate_input, generate_kwargs = self._parse_inputs(inputs)

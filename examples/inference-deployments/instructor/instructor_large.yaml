@@ -1,14 +1,16 @@
 name: instructor-large
 gpu_num: 1
 gpu_type: a100_40gb
-image: mosaicml/inference:latest
+image: mosaicml/inference:0.0.80
 replicas: 1
 command: |
   cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
+  git_commit: 55e1bfcbe6984f970e4b951a2d373e0e68962a31
+  ssh_clone: false
 - integration_type: pip_packages
   packages:
   - InstructorEmbedding==1.0.0
