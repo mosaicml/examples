@@ -14,7 +14,7 @@ integrations:
   ssh_clone: false # Should be true if using a private repo
 
 command: |
-  cd llm-foundry/llmfoundry/scripts/inference
+  cd llm-foundry/scripts/inference
   python convert_composer_to_hf.py \
     --composer_path s3://bucket/folder/checkpoint-path.pt \
     --hf_output_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/mpt-7b-finance-final-hf/ \
