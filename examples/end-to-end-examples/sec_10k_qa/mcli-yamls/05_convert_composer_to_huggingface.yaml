@@ -1,3 +1,5 @@
+name: mpt-7b-finance-hf-convert-final
+
 compute:
   gpus: 8  # Number of GPUs to use
 
@@ -16,15 +18,8 @@ integrations:
 command: |
   cd llm-foundry/scripts/inference
   python convert_composer_to_hf.py \
-    --composer_path s3://bucket/folder/checkpoint-path.pt \
-    --hf_output_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/mpt-7b-finance-final-hf/ \
+    --composer_path REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/REPLACE_WITH_PREVIOUS_RUN_NAME/latest-rank0.pt.symlink \
+    --hf_output_path REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/ \
     --output_precision bf16 \
 
-image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
-optimization_level: 0
-
-# Mosaic Cloud will use run_name (with a unique suffix) to populate the env var $RUN_NAME
-run_name: mpt-7b-finance-hf-convert-final
-
-gpu_num: 8
-cluster: r0z0 # replace with your cluster here!
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

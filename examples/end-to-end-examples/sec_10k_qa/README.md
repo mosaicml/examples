@@ -57,7 +57,7 @@ The `convert_10ks_to_mds.py` script will download the dataset from the HuggingFa
 
 **Inputs:** the `JanosAudran/financial-reports-sec` dataset on HuggingFace
 
-**MCLI command:** `mcli run -f mcli-yamls/01_process_and_upload_10ks.yaml`
+**Command:** `mcli run -f mcli-yamls/01_process_and_upload_10ks.yaml`
 
 **Outputs:** the `sec-10ks-large` folder on your cloud object store, containing train, validation, and test splits of the 10k data, organized by ticker and year
 
@@ -72,7 +72,7 @@ The `convert_10ks_to_mds.py` script will convert the data from step 1 into the M
 
 **Inputs:** the `sec-10ks-large` folder from step 1
 
-**MCLI command:** `mcli run -f mcli-yamls/02_convert_10ks_to_mds.yaml`
+**Command:** `mcli run -f mcli-yamls/02_convert_10ks_to_mds.yaml`
 
 **Outputs:** the `sec-10ks-large-mds` folder on your cloud object store, containing train, validation, and test splits of the 10k data, concatenated, tokenized, and converted to MDS format
 
@@ -89,7 +89,7 @@ Note: this step will take a number of hours (~19hrs on 8xA100_80GB). Either use 
 
 **Inputs:** the `sec-10ks-large-mds` folder from step 2
 
-**MCLI command:** `mcli run -f mcli-yamls/03_finetune_on_10ks.yaml`
+**Command:** `mcli run -f mcli-yamls/03_finetune_on_10ks.yaml`
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
@@ -123,26 +123,38 @@ For this second finetuning step, we will use the same training script as before,
 
 **Inputs:** the final checkpoint from step 3
 
-**MCLI command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
+**Command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
 
 ### Convert the Composer checkpoint to a HuggingFace checkpoint
 
+Before we can deploy our model, we need to convert it into the standard HuggingFace checkpoint folder. We will use the [conversion script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/inference/convert_composer_to_hf.py) from LLM-foundry to do this. This script will take the Composer checkpoint, and write out all the files that HuggingFace expects in a checkpoint folder. You can additionally add the `--hf_repo_for_upload` argument if you would like to upload directly to a private repo on the HuggingFace Hub (you will also need to [set the `HUGGING_FACE_HUB_TOKEN` environment variable](https://docs.mosaicml.com/projects/mcli/en/latest/resources/secrets/env.html) to do this).
+
+Note: this conversion script is _specifically_ for MPT. If you have changed the model to a different HuggingFace model, you can use the `convert_composer_to_hf_transformers.py` script in _this_ repository instead.
+
 **Input:** `oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-dolly-mpt-1-WhKWb3/ep1-ba367-rank0.pt`
 
-**MCLI command:** `python 05_convert_composer_to_hf.py --composer_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0.pt --hf_output_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/`
+**Command:** `python 05_convert_composer_to_hf.py --composer_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0.pt --hf_output_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/`
 The last step before we can deploy our newly-trained large language model is to convert it to a format that can be used by the HuggingFace library. This is a simple process that can be done using the `05_convert_composer_to_hf.py` script. The `--composer_path` argument specifies the path to the Composer checkpoint, and the `--hf_output_path` argument specifies the path to the output HuggingFace checkpoint.
 
 **Output:** `oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/`
 
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `REPLACE_WITH_YOUR_OBJECT_STORE`, `REPLACE_WITH_YOUR_BUCKET_NAME`, `REPLACE_WITH_PREVIOUS_RUN_NAME`
+
+**Inputs:** the final checkpoint from step 3
+
+**Command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
+
+**Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
+
 
 ### Deploy your model and an embedding model
 
-**MCLI command**: `mcli deploy -f 06_deploy_llm.yaml --cluster r7z13`
+**Command**: `mcli deploy -f 06_deploy_llm.yaml --cluster r7z13`
 
-**MCLI command**: `mcli deploy -f 07_deploy_embedding_model.yaml --cluster r7z13`
+**Command**: `mcli deploy -f 07_deploy_embedding_model.yaml --cluster r7z13`
 
 Now that we have our trained model, we will deploy it using MosaicML inference. This will allow use to use the model as an API. We will additionally deploy a text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions.
 
