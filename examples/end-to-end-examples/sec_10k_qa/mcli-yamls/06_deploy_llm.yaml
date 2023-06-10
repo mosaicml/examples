@@ -1,19 +1,31 @@
 name: mpt-7b-finetuned
-gpu_num: 1
-gpu_type: a10
-image: mosaicml/inference:0.0.93
-replicas: 1
-command: |
-  export PYTHONPATH=$PYTHONPATH:/code/examples
+
+gpus: 8  # Number of GPUs to use
+
+## These configurations are optional
+cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+gpu_type: a10 # Type of GPU to use.
+replicas: 1 # Number of replicas to use for this run
+
+
 integrations:
+# Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
   git_commit: c92d827ebf76dd0a52bcec1ed63c0bab3730764e
+
+# Add the examples folder to the PYTHONPATH so we can import the deployment helper
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/examples
+
 model:
+  # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
   download_parameters:
     remote_uri: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
   model_parameters:
     task: text-generation
     model_name_or_path: /downloaded_hf_checkpoint/
+
+image: mosaicml/inference:0.0.93 # Use the Docker image provided by MosaicML

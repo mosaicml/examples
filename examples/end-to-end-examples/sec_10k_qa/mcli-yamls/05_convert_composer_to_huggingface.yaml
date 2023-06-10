@@ -5,9 +5,10 @@ compute:
 
   ## These configurations are optional
   cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
-  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+  # gpu_type: a100_80gb # Type of GPU to use.
 
 integrations:
+# Clone and install the llm-foundry repo so we can run scripts from it
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
   git_branch: main
