@@ -1,3 +1,5 @@
+name: mpt-7b-dolly
+
 compute:
   gpus: 8  # Number of GPUs to use
 
@@ -6,63 +8,55 @@ compute:
   # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
 
 integrations:
+# Clone and install the llm-foundry repo so we can run scripts from it
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
-  # git_branch: # use your branch
-  # git_commit: # OR use your commit hash
   git_branch: main
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
-- integration_type: wandb # TODO: abstract
-  entity: mosaic-ml
-  project: daniel-debug
+# Uncomment and fill in to log to WandB
+# - integration_type: wandb
+#   entity:
+#   project:
 
+# cd into the llm-foundry/scripts directory and run the train.py script
 command: |
   cd llm-foundry/scripts
   composer train/train.py /mnt/config/parameters.yaml
+
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
-name: mpt-7b-dolly-small-final # TODO: abstract
-
-compute:
-  gpus: 8  # Number of GPUs to use
-
-  ## These configurations are optional
-  cluster: r1z1 # Name of the cluster to use for this run
-  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
 
 parameters:
-  max_seq_len: 2048
+  # Path to load the weights from the previous step
+  load_path: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAMEs/sec_10k_demo/checkpoints/REPLACE_WITH_PREVIOUS_RUN_NAME/latest-rank0.pt.symlink
+
+  # Checkpoint to local filesystem or remote object store
+  save_interval: 500ba # How frequently to save checkpoints
+  # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
+  # save_folder: ./{run_name}/checkpoints
+  save_folder: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/ # TODO: abstract
+  dist_timeout: 6000 # TODO: REMOVE BEFORE THIS IS DONE
+
+  # Maximum sequence length of the model
+  # For MPT, you can change this to a different number if you would like to train on longer sequences
+  # Note that you would also need to reprocess your data to contain longer sequences
+  max_seq_len: 2048 
+
+  # Random seed to ensure reproducibility
   global_seed: 17
 
   # Run Name
   run_name: # If left blank, will be read from env var $RUN_NAME
 
-  load_path: oci://mosaicml-internal-checkpoints/daniel/checkpoints/mpt-7b-10ks-small-final-m3ly4y/latest-rank0.pt.symlink
-
-  # model:
-  #   name: mpt_causal_lm
-  #   init_device: meta
-  #   d_model: 4096
-  #   n_heads: 32
-  #   n_layers: 32
-  #   expansion_ratio: 4
-  #   max_seq_len: ${max_seq_len}
-  #   vocab_size: 50432
-  #   no_bias: true
-  #   attn_config:
-  #     attn_impl: triton
-  #     # Set this to `true` if using `train_loader.dataset.packing_ratio` below
-  #     attn_uses_sequence_id: false
-  #     alibi: true
   # Model
   model:
     name: hf_causal_lm
     pretrained_model_name_or_path: mosaicml/mpt-7b
-    pretrained: false
-    config_overrides:
+    pretrained: false # We are loading the Composer checkpoint from the previous step, so don't need the original weights
+    config_overrides: # Override the default model config (comment this out if you change the model from MPT)
       attn_config:
-        attn_impl: triton
-        attn_uses_sequence_id: false
+        attn_impl: triton # Use the triton implementation of attention
+        attn_uses_sequence_id: false # We are not concatenating samples together, so this is false
 
   # Tokenizer
   tokenizer:
@@ -70,20 +64,17 @@ parameters:
     kwargs:
       model_max_length: ${max_seq_len}
 
-
   # Dataloaders
+  # Here we are using the finetuning dataloader
+  # see https://github.com/mosaicml/llm-foundry/tree/main/scripts/train/finetune_example for more details
   train_loader:
-    name: finetuning
+    name: finetuning 
     dataset:
       hf_name: mosaicml/dolly_hhrlhf
       split: train
       max_seq_len: ${max_seq_len}
       allow_pad_trimming: false
       decoder_only_format: true
-      # # Use `python llmfoundry/data/packing.py --yaml-path /path/to/this/yaml/ ...`
-      # # to profile this run's optimal packing_ratio as it depends on GPU count,
-      # # batch size, sequence length
-      # packing_ratio:
       shuffle: true
     drop_last: true
     num_workers: 8
@@ -109,12 +100,15 @@ parameters:
     persistent_workers: true
     timeout: 0
 
-  # Optimization
+  # Learning rate scheduler
+  # see https://github.com/mosaicml/llm-foundry/blob/main/llmfoundry/utils/builders.py#L119-L129 for other built-in options
   scheduler:
-    name: linear_decay_with_warmup  # linear no warmup is HF default which dolly used
-    t_warmup: 50ba  # add some warmup though, seems to help with MPT
+    name: linear_decay_with_warmup
+    t_warmup: 50ba
     alpha_f: 0
 
+  # Optimizer
+  # see https://github.com/mosaicml/llm-foundry/blob/main/llmfoundry/utils/builders.py#L88-L116 for other built-in options
   optimizer:
     # Based on Dolly
     name: decoupled_adamw
@@ -125,24 +119,26 @@ parameters:
     eps: 1.0e-8
     weight_decay: 0
 
+  # Algorithms to apply
+  # see https://docs.mosaicml.com/projects/composer/en/latest/trainer/algorithms.html for an explanation of algorithms in Composer
   algorithms:
     gradient_clipping:
       clipping_type: norm
       clipping_threshold: 1.0
 
-  max_duration: 2ep
-  eval_interval: 500ba
-  # eval_subset_num_batches: -1
-  eval_first: true
-  global_train_batch_size: 128  # somewhere in the 6-8 * numgpus range seems good
-
-  # System
+  # Run configuration
+  max_duration: 2ep # Maximum duration of the run. Change to something shorted (e.g. 10ba) if you want to do a quick test run
+  eval_interval: 500ba # How frequently to evaluate the model
+  eval_first: true # Whether to evaluate the model before training
+  eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
+  global_train_batch_size: 128  # Global batch size. This is the batch size across all GPUs
   seed: ${global_seed}
-  device_eval_batch_size: 8
-  device_train_microbatch_size: auto
+  device_eval_batch_size: 8 # Evaluation batch size per GPU
+  device_train_microbatch_size: auto # Automatically determine the microbatch size per GPU
   precision: amp_bf16
 
-  # FSDP
+  # Configuration settings for FSDP
+  # see https://docs.mosaicml.com/projects/composer/en/latest/notes/distributed_training.html#fullyshardeddataparallel-fsdp for more information about FSDP in Composer
   fsdp_config:
     sharding_strategy: FULL_SHARD
     mixed_precision: PURE
@@ -152,45 +148,46 @@ parameters:
     limit_all_gathers: true
     verbose: false
 
-  # Logging
+  # Logging configuration
   progress_bar: false
   log_to_console: true
   console_log_interval: 1ba
   python_log_level: debug
 
+  # Uncomment to log to WandB
+  # loggers:
+  #   wandb: {}
+
+  # Callbacks
+  # see https://github.com/mosaicml/llm-foundry/blob/main/llmfoundry/utils/builders.py#L33-L61 for other built-in options
   callbacks:
-    generate_callback:
-      batch_log_interval: 500
-      do_sample: true
-      max_new_tokens: 100
-      prompts:
-      - The quick brown fox jumps over
-      - |-
-        Vegan Banana Bread
-        Instructions:
-        1.
-      - The other day I was explaining what generative AI is to my five year old.
-      - We are a global semiconductor company primarily offering
-      - Our company had revenue of
-      - Our business operations are subject to numerous risks, including
-      - What was AMD's revenue in 2019?
-      - What is net operating income?
-      temperature: 1
-      top_k: 50
-      top_p: 0.95
-      use_cache: true
+    # Periodically generate text from the model, uncomment only if you are logging to WandB
+    # generate_callback:
+    #   batch_log_interval: 500
+    #   do_sample: true
+    #   max_new_tokens: 100
+    #   prompts:
+    #   - The quick brown fox jumps over
+    #   - |-
+    #     Vegan Banana Bread
+    #     Instructions:
+    #     1.
+    #   - The other day I was explaining what generative AI is to my five year old.
+    #   - We are a global semiconductor company primarily offering
+    #   - Our company had revenue of
+    #   - Our business operations are subject to numerous risks, including
+    #   - What was AMD's revenue in 2019?
+    #   - What is net operating income?
+    #   temperature: 1
+    #   top_k: 50
+    #   top_p: 0.95
+    #   use_cache: true
+    # Log information about the processing speed of the model
     speed_monitor:
       window_size: 10
+    # Log the learning rate over the course of training
     lr_monitor: {}
+    # Log information about the memory usage of the model
     memory_monitor: {}
+    # Log an estimate of how long the training run has left to complete
     runtime_estimator: {}
-
-  loggers:
-    wandb: {}
-
-  # Checkpoint to local filesystem or remote object store
-  save_interval: 500ba
-  # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  # save_folder: ./{run_name}/checkpoints
-  save_folder: oci://mosaicml-internal-checkpoints/daniel/checkpoints/{run_name}/ # TODO: abstract
-  dist_timeout: 6000 # TODO: REMOVE BEFORE THIS IS DONE

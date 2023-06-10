@@ -64,7 +64,7 @@ parameters:
   tokenizer:
     name: mosaicml/mpt-7b # This can be changed to other tokenizers from the HuggingFace model hub, but must be compatible with the model
     kwargs:
-        model_max_length: ${max_seq_len}
+      model_max_length: ${max_seq_len}
 
   # Dataloaders
   train_loader:
