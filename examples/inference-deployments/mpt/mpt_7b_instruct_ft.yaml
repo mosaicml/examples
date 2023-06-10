@@ -1,0 +1,20 @@
+name: mpt-7b-ft
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:0.0.93
+cluster: r7z13
+command: |
+  export PYTHONPATH=/code:/code/examples:/code/llm-foundry
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+- integration_type: git_repo
+  git_repo: mosaicml/llm-foundry
+model:
+  backend: faster_transformers
+  download_parameters:
+    hf_path: mosaicml/mpt-7b-instruct
+  model_handler: examples.inference-deployments.mpt.mpt_7b_ft_handler.MPTFTModelHandler
+  model_parameters:
+    model_name: mosaicml/mpt-7b-instruct
+    ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
