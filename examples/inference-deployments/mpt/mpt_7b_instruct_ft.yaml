@@ -8,8 +8,10 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
+  git_commit: aab5ef7315715509cff9e08e862d41b3cbac83ad
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
+  git_branch: v0.1.1
 model:
   backend: faster_transformers
   download_parameters:
