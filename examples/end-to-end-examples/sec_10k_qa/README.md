@@ -134,20 +134,13 @@ Before we can deploy our model, we need to convert it into the standard HuggingF
 
 Note: this conversion script is _specifically_ for MPT. If you have changed the model to a different HuggingFace model, you can use the `convert_composer_to_hf_transformers.py` script in _this_ repository instead.
 
-**Input:** `oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-dolly-mpt-1-WhKWb3/ep1-ba367-rank0.pt`
-
-**Command:** `python 05_convert_composer_to_hf.py --composer_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0.pt --hf_output_path oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/`
-The last step before we can deploy our newly-trained large language model is to convert it to a format that can be used by the HuggingFace library. This is a simple process that can be done using the `05_convert_composer_to_hf.py` script. The `--composer_path` argument specifies the path to the Composer checkpoint, and the `--hf_output_path` argument specifies the path to the output HuggingFace checkpoint.
-
-**Output:** `oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/`
-
 **Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `REPLACE_WITH_YOUR_OBJECT_STORE`, `REPLACE_WITH_YOUR_BUCKET_NAME`, `REPLACE_WITH_PREVIOUS_RUN_NAME`
 
-**Inputs:** the final checkpoint from step 3
+**Inputs:** the final checkpoint from step 4
 
-**Command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
+**Command:** `mcli run -f yamls/mcli/05_convert_composer_to_huggingface.yaml`
 
-**Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
+**Outputs:** the `mpt-7b-hf` folder, containing the HuggingFace checkpoint files
 
 
 ### Deploy your model and an embedding model
