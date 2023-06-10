@@ -96,11 +96,7 @@ Note: this step will take a number of hours (~19hrs on 8xA100_80GB). Either use 
 
 ### Instruct Finetune MPT-7b
 
-**Input:**: `daniel/checkpoints/sec-finetune-neo-125-2-CwFq6r/ep1-ba367-rank0.pt`
-
-**MCLI command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
-
-Now that we have trained our model on in-domain financial text, we will train it to better be able to follow instructions. For this step, we will follow the exact same process that we used to create [`mpt-7b-instruct`](https://huggingface.co/mosaicml/mpt-7b-instruct). Namely, we will finetune the model on instruction formatted data following the form of the [`databricks-dolly-15k` dataset](https://huggingface.co/datasets/databricks/databricks-dolly-15k), shown below. See [`mosaicml/dolly_hhrlhf`](https://huggingface.co/datasets/mosaicml/dolly_hhrlhf) for more details on the specific dataset we are using.
+Now that we have trained our model on in-domain financial text, we will train it to better follow instructions. For this step, we will follow the exact same process that we used to create [`mpt-7b-instruct`](https://huggingface.co/mosaicml/mpt-7b-instruct). Namely, we will finetune the model on instruction formatted data following the form of the [`databricks-dolly-15k` dataset](https://huggingface.co/datasets/databricks/databricks-dolly-15k), shown below. See [`mosaicml/dolly_hhrlhf`](https://huggingface.co/datasets/mosaicml/dolly_hhrlhf) for more details on the specific dataset we are using.
 
 ```python
 INSTRUCTION_KEY = "### Instruction:"
@@ -121,7 +117,15 @@ example = "James decides to run 3 sprints 3 times a week. He runs 60 meters each
 fmt_ex = PROMPT_FOR_GENERATION_FORMAT.format(instruction=example)
 ```
 
-TODO: reexplain HF checkpoint versus composer checkpoint
+For this second finetuning step, we will use the same training script as before, but with a different training yaml. The [training yaml](./mcli-yamls/04_instruction_finetune_on_dolly_hh.yaml) will load the same model class and architecture from the HuggingFace Hub, but will set `pretrained: false` and instead load the weights from the Composer checkpoint from the previous step using `load_path`. See this [finetuning yaml](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/yamls/finetune/7b_dolly_sft.yaml) for an example of how to finetune directly with Composer without using HuggingFace Hub (note the difference in the `model` section).
+
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `REPLACE_WITH_YOUR_OBJECT_STORE`, `REPLACE_WITH_YOUR_BUCKET_NAME`, `REPLACE_WITH_PREVIOUS_RUN_NAME`
+
+**Inputs:** the final checkpoint from step 3
+
+**MCLI command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
+
+**Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
 
 ### Convert the Composer checkpoint to a HuggingFace checkpoint
