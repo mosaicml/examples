@@ -1,19 +1,19 @@
-name: sec-llm-deployment-1
+name: mpt-7b-finetuned
 gpu_num: 1
 gpu_type: a10
-image: mosaicml/inference:latest
+image: mosaicml/inference:0.0.93
 replicas: 1
 command: |
-  cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+  export PYTHONPATH=$PYTHONPATH:/code/examples
 integrations:
 - integration_type: git_repo
-  git_repo: dakinggg/examples
-  git_branch: fqa2
+  git_repo: mosaicml/examples
+  ssh_clone: false
+  git_commit: c92d827ebf76dd0a52bcec1ed63c0bab3730764e
 model:
   downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/daniel/checkpoints/sec-finetune-neo-125-3-8UEv7I/ep1-ba367-rank0/
+    remote_uri: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
   model_parameters:
     task: text-generation
     model_name_or_path: /downloaded_hf_checkpoint/

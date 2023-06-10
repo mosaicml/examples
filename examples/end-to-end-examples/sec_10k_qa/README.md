@@ -145,13 +145,21 @@ Note: this conversion script is _specifically_ for MPT. If you have changed the 
 
 ### Deploy your model and an embedding model
 
-**Command**: `mcli deploy -f 06_deploy_llm.yaml --cluster r7z13`
-
-**Command**: `mcli deploy -f 07_deploy_embedding_model.yaml --cluster r7z13`
-
-Now that we have our trained model, we will deploy it using MosaicML inference. This will allow use to use the model as an API. We will additionally deploy a text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions.
+Now that we have our trained model, we will deploy it using MosaicML inference. This will allow use to use the model as an API. We will additionally deploy a pretrained text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions.
 
 Make sure to edit the `06_deploy_llm.yaml` file to point to _your_ checkpoint path. `07_deploy_embedding_model.yaml` does not need to be modified because it is downloading a pretrained model from the HuggingFace Hub.
+
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `REPLACE_WITH_YOUR_OBJECT_STORE`, `REPLACE_WITH_YOUR_BUCKET_NAME`, `REPLACE_WITH_PREVIOUS_RUN_NAME`
+
+**Inputs:** the HuggingFace format checkpoint from step 5
+
+**Command:** `mcli run -f yamls/mcli/05_convert_composer_to_huggingface.yaml`
+
+**Outputs:** the `mpt-7b-hf` folder, containing the HuggingFace checkpoint files
+
+**Command**: `mcli deploy -f 06_deploy_llm.yaml`
+
+**Command**: `mcli deploy -f 07_deploy_embedding_model.yaml`
 
 
 ### Application with gradio
