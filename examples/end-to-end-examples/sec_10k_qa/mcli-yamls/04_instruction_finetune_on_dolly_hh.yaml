@@ -35,7 +35,7 @@ parameters:
   # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
   save_folder: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/ # TODO: abstract
-  dist_timeout: 6000 # TODO: REMOVE BEFORE THIS IS DONE
+  dist_timeout: 60000 # TODO: REMOVE BEFORE THIS IS DONE
 
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
