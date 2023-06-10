@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
+import concurrent.futures
 import json
 import math
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, List
-import concurrent.futures
 
 import datasets
 from composer.utils import (ObjectStore, maybe_create_object_store_from_uri,
@@ -85,26 +85,44 @@ def main(folder_for_upload: str, dataset_subset: str):
         running_text_section = []
         previous_section_id = None
 
-        for packed_batch in tqdm(dataset_iter, total=math.ceil(len(sorted_by_doc) / batch_size), desc=f'Processing {split}'):
+        for packed_batch in tqdm(dataset_iter,
+                                 total=math.ceil(
+                                     len(sorted_by_doc) / batch_size),
+                                 desc=f'Processing {split}'):
             unpacked_batch = []
             batch_length = len(packed_batch['docID'])
             for i in range(batch_length):
                 unpacked_batch.append({
-                    'cik': packed_batch['cik'][i],
-                    'labels': packed_batch['labels'][i],
-                    'filingDate': packed_batch['filingDate'][i],
-                    'docID': packed_batch['docID'][i],
-                    'tickers': packed_batch['tickers'][i],
-                    'exchanges': packed_batch['exchanges'][i],
-                    'entityType': packed_batch['entityType'][i],
-                    'sic': packed_batch['sic'][i],
-                    'stateOfIncorporation': packed_batch['stateOfIncorporation'][i],
-                    'tickerCount': packed_batch['tickerCount'][i],
-                    'acceptanceDateTime': packed_batch['acceptanceDateTime'][i],
-                    'form': packed_batch['form'][i],
-                    'reportDate': packed_batch['reportDate'][i],
-                    'section': packed_batch['section'][i],
-                    'sentence': packed_batch['sentence'][i]
+                    'cik':
+                        packed_batch['cik'][i],
+                    'labels':
+                        packed_batch['labels'][i],
+                    'filingDate':
+                        packed_batch['filingDate'][i],
+                    'docID':
+                        packed_batch['docID'][i],
+                    'tickers':
+                        packed_batch['tickers'][i],
+                    'exchanges':
+                        packed_batch['exchanges'][i],
+                    'entityType':
+                        packed_batch['entityType'][i],
+                    'sic':
+                        packed_batch['sic'][i],
+                    'stateOfIncorporation':
+                        packed_batch['stateOfIncorporation'][i],
+                    'tickerCount':
+                        packed_batch['tickerCount'][i],
+                    'acceptanceDateTime':
+                        packed_batch['acceptanceDateTime'][i],
+                    'form':
+                        packed_batch['form'][i],
+                    'reportDate':
+                        packed_batch['reportDate'][i],
+                    'section':
+                        packed_batch['section'][i],
+                    'sentence':
+                        packed_batch['sentence'][i]
                 })
 
             for current_doc in unpacked_batch:
@@ -134,9 +152,15 @@ def main(folder_for_upload: str, dataset_subset: str):
             doc_to_dump, text_to_dump, object_store, sub_prefix = args
             dump_doc(doc_to_dump, text_to_dump, object_store, sub_prefix)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(32, os.cpu_count() - 2)) as executor:
-            args = [(doc_to_dump, text_to_dump, object_store, sub_prefix) for doc_to_dump, text_to_dump in docs_to_dump]
-            list(tqdm(executor.map(dump_doc_wrapper, args), total=len(args), desc=f'Uploading {split}'))
+        with concurrent.futures.ThreadPoolExecutor(
+                max_workers=min(32,
+                                os.cpu_count() - 2)) as executor:
+            args = [(doc_to_dump, text_to_dump, object_store, sub_prefix)
+                    for doc_to_dump, text_to_dump in docs_to_dump]
+            list(
+                tqdm(executor.map(dump_doc_wrapper, args),
+                     total=len(args),
+                     desc=f'Uploading {split}'))
 
 
 if __name__ == '__main__':
