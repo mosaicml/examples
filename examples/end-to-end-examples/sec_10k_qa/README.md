@@ -79,11 +79,11 @@ The `convert_10ks_to_mds.py` script will convert the data from step 1 into the M
 
 ### Finance Finetune MPT-7b
 
-Next, we will finetune our pretrained base model on the train split of the 10-K data in order to tune it on data that is in-domain for the end task of answering questions about 10-K forms. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation/test split provided with the dataset, which splits by company. So each company (which has multiple years of 10-K forms) will only appear in one of the splits. We will use the validation split as validation data, and reserve the test split for our final testing of our application.
+Next, we will finetune our pretrained base model on the train split of the 10-K data in order to tune it on data that is in-domain for the end task of answering questions about 10-K forms. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation/test splits provided with the dataset, which splits by company. So each company (which has multiple years of 10-K forms) will only appear in one of the splits. We will use the validation split as validation data, and reserve the test split for our final testing of our application.
 
-Please check out the [training yaml](./mcli-yamls/03_finetune_on_10ks.yaml) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on the 10-K form dataset that we processed in the previous step.
+Please check out the [training yaml](./mcli-yamls/03_finetune_on_10ks.yaml) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on the 10-K form dataset that we processed in the previous step. The [training script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/train.py) itself, is from LLM-foundry.
 
-Note: this step will take a number of hours. Either use the `small_full` data from previous steps, or change `max_duration` in the YAML to something smaller if you would like a shorter training run.
+Note: this step will take a number of hours (~19hrs on 8xA100_80GB). Either use the `small_full` data from previous steps, or change `max_duration` in the YAML to something smaller if you would like a shorter training run.
 
 **Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `REPLACE_WITH_YOUR_OBJECT_STORE`, `REPLACE_WITH_YOUR_BUCKET_NAME`
 
