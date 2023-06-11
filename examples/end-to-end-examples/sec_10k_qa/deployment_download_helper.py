@@ -13,6 +13,7 @@ def download_model(remote_uri: str):
     assert object_store is not None  # pyright
     _, _, remote_base_key = parse_uri(remote_uri)
 
+    # These files are hardcoded for MPT, and would need to be changed for a different model
     files = [
         'adapt_tokenizer.py', 'attention.py', 'blocks.py', 'config.json',
         'configuration_mpt.py', 'custom_embedding.py', 'flash_attn_triton.py',
