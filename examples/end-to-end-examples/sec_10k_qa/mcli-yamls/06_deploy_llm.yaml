@@ -28,7 +28,7 @@ model:
   # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
   download_parameters:
-    remote_uri: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
+    remote_uri: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
   model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler # Use the provided MPT handler
   model_parameters:
     model_name: /downloaded_hf_checkpoint/ # Path is hardcoded in deployment_download_helper.download_model

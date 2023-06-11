@@ -26,21 +26,22 @@ command: |
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
 
+# The parameters section is mounted to /mnt/config/parameters.yaml in the container
 parameters:
   # Path to load the weights from the previous step
-  load_path: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAMEs/sec_10k_demo/checkpoints/REPLACE_WITH_PREVIOUS_RUN_NAME/latest-rank0.pt.symlink
+  load_path: OBJECT_STORE://BUCKET_NAMEs/sec_10k_demo/checkpoints/PREVIOUS_RUN_NAME/latest-rank0.pt.symlink
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
   # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
-  save_folder: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/ # TODO: abstract
+  save_folder: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/ # TODO: abstract
   dist_timeout: 60000 # TODO: REMOVE BEFORE THIS IS DONE
 
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
   # Note that you would also need to reprocess your data to contain longer sequences
-  max_seq_len: 2048 
+  max_seq_len: 2048
 
   # Random seed to ensure reproducibility
   global_seed: 17
@@ -52,7 +53,7 @@ parameters:
   model:
     name: hf_causal_lm
     pretrained_model_name_or_path: mosaicml/mpt-7b
-    pretrained: false # We are loading the Composer checkpoint from the previous step, so don't need the original weights
+    pretrained: false # We will load the Composer checkpoint from the previous step, so don't need the original weights
     config_overrides: # Override the default model config (comment this out if you change the model from MPT)
       attn_config:
         attn_impl: triton # Use the triton implementation of attention
@@ -66,9 +67,9 @@ parameters:
 
   # Dataloaders
   # Here we are using the finetuning dataloader
-  # see https://github.com/mosaicml/llm-foundry/tree/main/scripts/train/finetune_example for more details
+  # see LLM-foundry scripts/train/finetune_example for more details on finetuning data
   train_loader:
-    name: finetuning 
+    name: finetuning
     dataset:
       hf_name: mosaicml/dolly_hhrlhf
       split: train
@@ -101,14 +102,14 @@ parameters:
     timeout: 0
 
   # Learning rate scheduler
-  # see https://github.com/mosaicml/llm-foundry/blob/main/llmfoundry/utils/builders.py#L119-L129 for other built-in options
+  # see LLM-foundry llmfoundry/utils/builders.py::build_scheduler for other built-in options
   scheduler:
     name: linear_decay_with_warmup
     t_warmup: 50ba
     alpha_f: 0
 
   # Optimizer
-  # see https://github.com/mosaicml/llm-foundry/blob/main/llmfoundry/utils/builders.py#L88-L116 for other built-in options
+  # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options
   optimizer:
     # Based on Dolly
     name: decoupled_adamw
@@ -120,14 +121,14 @@ parameters:
     weight_decay: 0
 
   # Algorithms to apply
-  # see https://docs.mosaicml.com/projects/composer/en/latest/trainer/algorithms.html for an explanation of algorithms in Composer
+  # see LLM-foundry llmfoundry/utils/builders.py::build_algorithm for other built-in options
   algorithms:
     gradient_clipping:
       clipping_type: norm
       clipping_threshold: 1.0
 
   # Run configuration
-  max_duration: 2ep # Maximum duration of the run. Change to something shorted (e.g. 10ba) if you want to do a quick test run
+  max_duration: 2ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
   eval_interval: 500ba # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
@@ -138,7 +139,8 @@ parameters:
   precision: amp_bf16
 
   # Configuration settings for FSDP
-  # see https://docs.mosaicml.com/projects/composer/en/latest/notes/distributed_training.html#fullyshardeddataparallel-fsdp for more information about FSDP in Composer
+  # https://docs.mosaicml.com/projects/composer/en/latest/notes/distributed_training.html#fullyshardeddataparallel-fsdp
+  # for more information about FSDP in Composer
   fsdp_config:
     sharding_strategy: FULL_SHARD
     mixed_precision: PURE
@@ -159,7 +161,7 @@ parameters:
   #   wandb: {}
 
   # Callbacks
-  # see https://github.com/mosaicml/llm-foundry/blob/main/llmfoundry/utils/builders.py#L33-L61 for other built-in options
+  # see LLM-foundry llmfoundry/utils/builders.py::build_callback for other built-in options
   callbacks:
     # Periodically generate text from the model, uncomment only if you are logging to WandB
     # generate_callback:

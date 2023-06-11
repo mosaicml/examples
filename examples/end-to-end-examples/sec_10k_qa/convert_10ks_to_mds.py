@@ -7,13 +7,15 @@
 import os
 import tempfile
 from argparse import ArgumentParser, Namespace
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import datasets
-from composer.utils import maybe_create_object_store_from_uri, parse_uri
-from llmfoundry.data import ConcatTokensDataset
+from composer.utils import (ObjectStore, maybe_create_object_store_from_uri,
+                            parse_uri)
+# type ignore because we don't want to add foundry to the local dependencies
+from llmfoundry.data import ConcatTokensDataset  # type: ignore
 from streaming import MDSWriter
-from torch.utils.data import DataLoader, get_worker_info
+from torch.utils.data import DataLoader, Dataset, get_worker_info
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
@@ -68,7 +70,7 @@ def parse_args() -> Namespace:
     return parsed
 
 
-def build_dataloader(dataset, batch_size) -> DataLoader:
+def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:
     return DataLoader(
         dataset=dataset,
         sampler=None,
@@ -104,8 +106,13 @@ def generate_samples(
 
 class DownloadingIterable:
 
-    def __init__(self, identifiers, input_folder_prefix, output_folder,
-                 object_store):
+    def __init__(
+        self,
+        identifiers: List[str],
+        input_folder_prefix: str,
+        output_folder: str,
+        object_store: ObjectStore,
+    ):
         self.identifiers = [
             identifier.split('|||') for identifier in identifiers
         ]
@@ -149,10 +156,19 @@ def main(
     max_workers: int,
     compression: str,
 ) -> None:
-    """Main: create C4/pile streaming dataset.
+    """Convert the 10-K dataset into MDS format.
 
     Args:
-        args (Namespace): Commandline arguments.
+        tokenizer_name (str): Name of tokenizer to use.
+        output_folder (str): Folder to write output to.
+        input_folder (str): Folder to read input from.
+        dataset_subset (str): Dataset subset to use.
+        concat_tokens (int): Number of tokens to concatenate.
+        eos_text (str): Text to append to end of each sample.
+        bos_text (str): Text to prepend to beginning of each sample.
+        no_wrap (bool): Whether to wrap each sample in a dict.
+        max_workers (int): Max # of workers to use.
+        compression (str): Compression to use.
     """
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     # we will enforce length, so suppress warnings about sequences too long for the model
@@ -162,6 +178,11 @@ def main(
     object_store = maybe_create_object_store_from_uri(input_folder)
     _, _, folder_prefix = parse_uri(input_folder)
 
+    num_cpus = 1
+    detected_cpus = os.cpu_count()
+    if detected_cpus is not None:
+        num_cpus = max(detected_cpus // 2, 1)
+
     for split in ['validation', 'test', 'train']:
         print(f'Processing {split}')
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -169,20 +190,21 @@ def main(
             sec_filing_data = datasets.load_dataset(
                 'JanosAudran/financial-reports-sec',
                 dataset_subset,
-                num_proc=os.cpu_count() // 2,
+                num_proc=num_cpus,
                 split=split)
 
-            def joined_identifier(example):
+            def joined_identifier(example: Dict[str, Any]):
                 example[
                     'joined_identifier'] = f"{example['docID']}|||{example['tickers'][0]}|||{example['reportDate']}"
                 return example
 
             sec_filing_data = sec_filing_data.map(joined_identifier,
-                                                  num_proc=os.cpu_count() // 2)
+                                                  num_proc=num_cpus)
             unique_identifiers = sec_filing_data.unique('joined_identifier')
 
             print(f'Processing {len(unique_identifiers)} documents')
 
+            assert object_store is not None  # pyright
             downloading_iter = DownloadingIterable(unique_identifiers,
                                                    sub_prefix,
                                                    os.path.join(tmp_dir, split),

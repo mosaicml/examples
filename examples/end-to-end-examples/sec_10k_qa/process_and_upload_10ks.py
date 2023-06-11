@@ -8,7 +8,7 @@ import math
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import datasets
 from composer.utils import (ObjectStore, maybe_create_object_store_from_uri,
@@ -68,12 +68,16 @@ def main(folder_for_upload: str, dataset_subset: str):
 
     batch_size = 10000
 
+    num_cpus = 1
+    detected_cpus = os.cpu_count()
+    if detected_cpus is not None:
+        num_cpus = max(detected_cpus - 2, 1)
     for split in ['validation', 'test', 'train']:
         sub_prefix = os.path.join(folder_prefix, split)
         sec_filing_data = datasets.load_dataset(
             'JanosAudran/financial-reports-sec',
             dataset_subset,
-            num_proc=os.cpu_count() - 2,
+            num_proc=num_cpus,
             split=split)
         sec_filing_data.remove_columns(['returns'])
         sorted_by_doc = sec_filing_data.sort(['docID', 'sentenceCount'])
@@ -148,13 +152,12 @@ def main(folder_for_upload: str, dataset_subset: str):
         running_text_sections.append(' '.join(running_text_section))
         docs_to_dump.append((previous_doc, running_text_sections))
 
-        def dump_doc_wrapper(args):
+        def dump_doc_wrapper(args: Tuple):
             doc_to_dump, text_to_dump, object_store, sub_prefix = args
             dump_doc(doc_to_dump, text_to_dump, object_store, sub_prefix)
 
         with concurrent.futures.ThreadPoolExecutor(
-                max_workers=min(32,
-                                os.cpu_count() - 2)) as executor:
+                max_workers=min(32, num_cpus)) as executor:
             args = [(doc_to_dump, text_to_dump, object_store, sub_prefix)
                     for doc_to_dump, text_to_dump in docs_to_dump]
             list(

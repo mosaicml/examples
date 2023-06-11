@@ -10,26 +10,16 @@ LOCAL_BASE_FOLDER = '/downloaded_hf_checkpoint/'
 
 def download_model(remote_uri: str):
     object_store = maybe_create_object_store_from_uri(remote_uri)
+    assert object_store is not None  # pyright
     _, _, remote_base_key = parse_uri(remote_uri)
 
     files = [
-        'adapt_tokenizer.py',
-        'attention.py',
-        'blocks.py',
-        'config.json',
-        'configuration_mpt.py',
-        'custom_embedding.py',
-        'flash_attn_triton.py',
-        'generation_config.json',
-        'hf_prefixlm_converter.py',
-        'meta_init_context.py',
-        'modeling_mpt.py',
-        'norm.py',
-        'param_init_fns.py',
-        'pytorch_model.bin',
-        'special_tokens_map.json',
-        'tokenizer.json',
-        'tokenizer_config.json'
+        'adapt_tokenizer.py', 'attention.py', 'blocks.py', 'config.json',
+        'configuration_mpt.py', 'custom_embedding.py', 'flash_attn_triton.py',
+        'generation_config.json', 'hf_prefixlm_converter.py',
+        'meta_init_context.py', 'modeling_mpt.py', 'norm.py',
+        'param_init_fns.py', 'pytorch_model.bin', 'special_tokens_map.json',
+        'tokenizer.json', 'tokenizer_config.json'
     ]
     os.makedirs(LOCAL_BASE_FOLDER, exist_ok=True)
     for file in files:

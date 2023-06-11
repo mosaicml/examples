@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 import argparse
 import json
 import os
@@ -14,8 +17,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from tqdm import tqdm
 
-DOCUMENT_PROMPT = PromptTemplate(input_variables=["page_content"],
-                                 template="Context:\n{page_content}")
+DOCUMENT_PROMPT = PromptTemplate(input_variables=['page_content'],
+                                 template='Context:\n{page_content}')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--llm_endpoint_url', type=str)
@@ -31,7 +34,7 @@ if args.dataset_subset == 'small_full':
 elif args.dataset_subset == 'large_full':
     ticker_file_name = 'test_ticker_to_years_large.json'
 else:
-    raise ValueError(f"Unknown dataset subset {args.dataset_subset}")
+    raise ValueError(f'Unknown dataset subset {args.dataset_subset}')
 
 with open(os.path.join(os.path.dirname(path_to_current_file), ticker_file_name),
           'r') as _json_file:
@@ -52,8 +55,8 @@ def clean_response(input_text: str) -> str:
     """
     input_text = input_text.strip('\n')
 
-    context_prefix = "Context:"
-    answer_prefix = "Answer:"
+    context_prefix = 'Context:'
+    answer_prefix = 'Answer:'
     prefixes = [context_prefix, answer_prefix]
     while True:
         prefix_found = False
@@ -83,13 +86,13 @@ def greet(
                                    f'sec_{year}_txt.txt')
     os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
 
-    print(f"Downloading file from {remote_file_path} to {local_file_path}")
+    print(f'Downloading file from {remote_file_path} to {local_file_path}')
 
     if ticker not in ticker_to_years:
-        return f"Invalid ticker {ticker} see test_ticker_to_years_{{large|small}}.json for all the tickers in the test set", '', ''
+        return f'Invalid ticker {ticker} see test_ticker_to_years_{{large|small}}.json for all the tickers in the test set', '', ''
 
     if year not in ticker_to_years[ticker]:
-        return f"Invalid year {year} for ticker {ticker}, available years are {ticker_to_years[ticker]}", '', ''
+        return f'Invalid year {year} for ticker {ticker}, available years are {ticker_to_years[ticker]}', '', ''
 
     if not os.path.exists(local_file_path):
         get_file(remote_file_path, local_file_path)
@@ -102,9 +105,9 @@ def greet(
         chunk_size=1000,
         chunk_overlap=0,
         separators=[
-            "(?<=\\.) (?=\\s)", "(?<=\\?) (?=\\s)", "(?<=\\!) (?=\\s)", '\n',
+            '(?<=\\.) (?=\\s)', '(?<=\\?) (?=\\s)', '(?<=\\!) (?=\\s)', '\n',
             ' ', ''
-        ], # Split on periods, question marks, exclamation marks, new lines, spaces, and empty strings, in the order
+        ],  # Split on periods, question marks, exclamation marks, new lines, spaces, and empty strings, in the order
     )
     split_doc = text_splitter.split_documents([Document(page_content=doc)])
 
@@ -146,7 +149,9 @@ def greet(
     )
     retriever = vector_store.as_retriever(
         search_type='similarity',
-        search_kwargs={'k': 8}, # retrieve the top 8 most similar documents, this can be tweaked
+        search_kwargs={
+            'k': 8
+        },  # retrieve the top 8 most similar documents, this can be tweaked
     )
 
     # Component for generating the response, using the inference endpoint deployed using MosaicML
@@ -154,8 +159,9 @@ def greet(
         endpoint_url=args.llm_endpoint_url,
         inject_instruction_format=True,
         model_kwargs={
-            'max_new_tokens': 200, # maximum number of response tokens to generate
-            'do_sample': False, # perform greedy decoding
+            'max_new_tokens':
+                200,  # maximum number of response tokens to generate
+            'do_sample': False,  # perform greedy decoding
             'use_cache': True
             # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
         },
@@ -164,13 +170,13 @@ def greet(
     # Prompt template for the query
     answer_question_string_template = (
         f"Use the following pieces of context to answer the question at the end. The context is from a {year} financial document about {ticker}. If the question cannot be answered accurately from the provided context, say 'The question cannot be answered from the retrieved documents.'."
-        "\n{context}"
-        "\nQuestion: {question}"
-        "\nHelpful answer with evidence from the context (remember to not answer if the question cannot be answered from the provided context):"
+        '\n{context}'
+        '\nQuestion: {question}'
+        '\nHelpful answer with evidence from the context (remember to not answer if the question cannot be answered from the provided context):'
     )
     answer_question_prompt_template = PromptTemplate(
         template=answer_question_string_template,
-        input_variables=["context", "question"])
+        input_variables=['context', 'question'])
 
     # Component connecting the LLM with the prompt template
     llm_chain = LLMChain(
@@ -209,16 +215,20 @@ if args.dataset_subset == 'small_full':
 elif args.dataset_subset == 'large_full':
     default_ticker = 'UPST'
     default_year = '2020'
+else:
+    raise ValueError(
+        f'Invalid dataset subset {args.dataset_subset}, must be one of small_full or large_full'
+    )
 
 # Simple gradio application for querying the model
 with gr.Blocks() as demo:
-    ticker = gr.Textbox(label="Ticker", value=default_ticker)
-    year = gr.Textbox(label="Year", value=default_year)
-    query = gr.Textbox(label="Query",
-                       value="What was their revenue for the year?")
-    answer = gr.Textbox(label="Answer")
-    sources = gr.Textbox(label="Retrieved source documents")
-    query_btn = gr.Button("Query")
+    ticker = gr.Textbox(label='Ticker', value=default_ticker)
+    year = gr.Textbox(label='Year', value=default_year)
+    query = gr.Textbox(label='Query',
+                       value='What was their revenue for the year?')
+    answer = gr.Textbox(label='Answer')
+    sources = gr.Textbox(label='Retrieved source documents')
+    query_btn = gr.Button('Query')
     query_btn.click(fn=greet,
                     inputs=[ticker, year, query],
                     outputs=[answer, sources])
