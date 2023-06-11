@@ -1,10 +1,9 @@
 name: mpt-7b-finetuned
 
+# Deployment configuration
 gpu_num: 1  # Number of GPUs to use
-
-## These configurations are optional
-cluster: r7z13 # Name of the cluster to use for this run
-gpu_type: a100_40gb # Type of GPU to use.
+cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+gpu_type: a10 # Type of GPU to use.
 replicas: 1 # Number of replicas to use for this run
 
 
@@ -30,8 +29,8 @@ model:
   downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
   download_parameters:
     remote_uri: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
-  model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler
+  model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler # Use the provided MPT handler
   model_parameters:
-    model_name: /downloaded_hf_checkpoint/
+    model_name: /downloaded_hf_checkpoint/ # Path is hardcoded in deployment_download_helper.download_model
 
 image: mosaicml/inference:0.0.93 # Use the Docker image provided by MosaicML

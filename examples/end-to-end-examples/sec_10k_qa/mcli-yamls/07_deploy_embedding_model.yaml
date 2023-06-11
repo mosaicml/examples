@@ -1,21 +1,31 @@
-name: sec-instructor-large
-gpu_num: 1
-gpu_type: a10
-image: mosaicml/inference:latest
+name: instructor-large
+
+# Deployment configuration
+gpu_num: 1 # Number of GPUs to use
+cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+gpu_type: a10 # Type of GPU to use.
 replicas: 1
-command: |
-  cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+
+
 integrations:
+# Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
   git_repo: mosaicml/examples
+# Install the dependencies for the InstructorEmbedding model
 - integration_type: pip_packages
   packages:
   - InstructorEmbedding==1.0.0
   - sentence-transformers==2.2.2
+
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+
 model:
   download_parameters:
     hf_path: hkunlp/instructor-large
   model_handler: examples.inference-deployments.instructor.instructor_handler.HFInstructorHandler
   model_parameters:
     model_name: hkunlp/instructor-large
+
+image: mosaicml/inference:0.0.80 # Use the Docker image provided by MosaicML
