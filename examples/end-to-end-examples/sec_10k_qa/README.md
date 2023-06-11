@@ -174,13 +174,10 @@ You can find the names of your deployments by running `mcli get deployments`.
 **Command**: `gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full`
 
 ### What next?
-your data
-more data
-better instruct data
-finetuning hyperparams
-more prompt engineering
-domain specific retrieval
-read more foundry
-read more composer
-read more streaming
-adapt this piece by piece to your task
+
+Now that you've seen how to use MosaicML to train and deploy a language model, you can try it out on your own data! Here are some ideas for where to go from here:
+- Play around with the hyperparameters and prompts for all of the components in [`app.py`](./app.py) and see how they change the output
+- Try out different models from the HuggingFace Hub, both for the text embedding and for the LLM
+- Try changing optimization parameters in the training yamls to see how they affect the training
+- Try swapping in a new dataset, or applying the models to a new task
+- Read more about the MosaicML components in this tutorial ([LLM-foundry](https://github.com/mosaicml/llm-foundry), [Composer](https://docs.mosaicml.com/projects/composer/en/latest/), [Streaming](https://docs.mosaicml.com/projects/streaming/en/latest/), [MCLI](https://docs.mosaicml.com/projects/mcli/en/latest/))
