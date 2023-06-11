@@ -29,7 +29,7 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 # The parameters section is mounted to /mnt/config/parameters.yaml in the container
 parameters:
   # Path to load the weights from the previous step
-  load_path: OBJECT_STORE://BUCKET_NAMEs/sec_10k_demo/checkpoints/PREVIOUS_RUN_NAME/latest-rank0.pt.symlink
+  load_path: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/checkpoints/PREVIOUS_RUN_NAME/latest-rank0.pt.symlink
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
