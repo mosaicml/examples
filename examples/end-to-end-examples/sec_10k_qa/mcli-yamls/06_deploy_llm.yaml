@@ -29,7 +29,7 @@ model:
   # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/daniel/checkpoints/mpt-7b-finance-final-hf/
+    remote_uri: REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
   model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler
   model_parameters:
     model_name: /downloaded_hf_checkpoint/
