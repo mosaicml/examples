@@ -160,10 +160,18 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 
 ### Application with gradio
-Now that we've processed our data, trained our models, and deployed our models, we can run the application! We will use Gradio and LangChain to make a simple question answering interface.
-play around
-prompt dataset to eval
 
+Now that we've processed our data, trained our models, and deployed our models, we can run the application! We will use Gradio and LangChain to make a simple question answering interface.
+
+We will make use of the MosaicML integration in LangChain for [LLMs](https://github.com/hwchase17/langchain/blob/master/langchain/llms/mosaicml.py) and [embeddings](https://github.com/hwchase17/langchain/blob/master/langchain/embeddings/mosaicml.py), and use the [`RetrievalQA`](https://python.langchain.com/en/latest/modules/chains/index_examples/vector_db_qa.html?highlight=retrievalqa) abstraction with the [`FAISS`](https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/faiss.html?highlight=faiss) to run the application locally.
+
+Note that most of the time spent for each query is creating the embeddings, and we could significantly reduce the request time by precomputing and storing the embeddings.
+
+Play around with the application and imagine ways you could improve it or apply a similar approach to your data!
+
+You can find the names of your deployments by running `mcli get deployments`.
+
+**Command**: `gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path REPLACE_WITH_YOUR_OBJECT_STORE://REPLACE_WITH_YOUR_BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full`
 
 ### What next?
 your data

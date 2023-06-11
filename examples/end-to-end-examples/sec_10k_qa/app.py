@@ -21,13 +21,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--llm_endpoint_url', type=str)
 parser.add_argument('--embedding_endpoint_url', type=str)
 parser.add_argument('--remote_folder_path', type=str)
+parser.add_argument('--dataset_subset', type=str, default='small_full')
 
 args, unknown = parser.parse_known_args()
 
 path_to_current_file = os.path.realpath(__file__)
+if args.dataset_subset == 'small_full':
+    ticker_file_name = 'test_ticker_to_years_small.json'
+elif args.dataset_subset == 'large_full':
+    ticker_file_name = 'test_ticker_to_years_large.json'
+else:
+    raise ValueError(f"Unknown dataset subset {args.dataset_subset}")
+
 with open(
-        os.path.join(os.path.dirname(path_to_current_file), os.pardir,
-                     'test_ticker_to_years.json'), 'r') as _json_file:
+        os.path.join(os.path.dirname(path_to_current_file), ticker_file_name), 'r') as _json_file:
     ticker_to_years = {
         k: sorted(v, key=lambda x: int(x))
         for k, v in json.load(_json_file).items()
@@ -71,7 +78,7 @@ def greet(
     print(f"Getting file {remote_file_path} to {local_file_path}")
 
     if ticker not in ticker_to_years:
-        return f"Invalid ticker {ticker} see test_ticker_to_years.json for all the tickers in the test set", '', ''
+        return f"Invalid ticker {ticker} see test_ticker_to_years_{{large|small}}.json for all the tickers in the test set", '', ''
 
     if year not in ticker_to_years[ticker]:
         return f"Invalid year {year} for ticker {ticker}, available years are {ticker_to_years[ticker]}", '', ''
@@ -85,7 +92,7 @@ def greet(
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=0,
-        separators=['\. ', '\? ', '! ', '\n', ' ', ''],
+        separators=["(?<=\\.) (?=\\s)", "(?<=\\?) (?=\\s)", "(?<=\\!) (?=\\s)", '\n', ' ', ''],
     )
     split_doc = text_splitter.split_documents([Document(page_content=doc)])
 
@@ -131,7 +138,7 @@ def greet(
         endpoint_url=args.llm_endpoint_url,
         inject_instruction_format=True,
         model_kwargs={
-            'max_new_tokens': 100,
+            'max_new_tokens': 200,
             'do_sample': False,
             'use_cache': True
         },
@@ -146,33 +153,6 @@ def greet(
     answer_question_prompt_template = PromptTemplate(
         template=answer_question_string_template,
         input_variables=["context", "question"])
-
-    cite_answer_string_template = (
-        f"Provide a full sentence direct quote from the context that contains the answer to the question. The context is from a {year} financial document about {ticker}."
-        "\n{context}"
-        "\nQuestion: {question}"
-        "\nThe full sentence from the context that contains the answer to the question:"
-    )
-    cite_answer_prompt_template = PromptTemplate(
-        template=cite_answer_string_template,
-        input_variables=["context", "question"])
-
-    llm_chain_cite = LLMChain(
-        llm=llm,
-        prompt=cite_answer_prompt_template,
-    )
-
-    stuff_documents_chain_cite = StuffDocumentsChain(
-        llm_chain=llm_chain_cite,
-        document_variable_name='context',
-        document_prompt=DOCUMENT_PROMPT,
-    )
-
-    cite_qa = RetrievalQA(
-        retriever=retriever,
-        combine_documents_chain=stuff_documents_chain_cite,
-        return_source_documents=True,
-    )
 
     llm_chain = LLMChain(
         llm=llm,
@@ -192,27 +172,30 @@ def greet(
     )
 
     answer_response = answer_qa(query)
-    cite_response = cite_qa(query)
 
     answer = clean_response(answer_response['result'].lstrip('\n'))
-    cite = clean_response(cite_response['result'].lstrip('\n'))
 
-    return answer, cite, '\n\n'.join(
+    return answer, '\n\n'.join(
         [d.page_content for d in answer_response['source_documents']])
 
+if args.dataset_subset == 'small_full':
+    default_ticker = 'FRTG'
+    default_year='2020'
+elif args.dataset_subset == 'large_full':
+    default_ticker = 'UPST'
+    default_year='2020'
 
 with gr.Blocks() as demo:
-    ticker = gr.Textbox(label="Ticker", value='UPST')
-    year = gr.Textbox(label="Year", value=ticker_to_years['UPST'][0])
+    ticker = gr.Textbox(label="Ticker", value=default_ticker)
+    year = gr.Textbox(label="Year", value=default_year)
     query = gr.Textbox(label="Query",
                        value="What was their revenue for the year?")
     answer = gr.Textbox(label="Answer")
-    quote = gr.Textbox(label="Quote")
     sources = gr.Textbox(label="Retrieved source documents")
     query_btn = gr.Button("Query")
     query_btn.click(fn=greet,
                     inputs=[ticker, year, query],
-                    outputs=[answer, quote, sources])
+                    outputs=[answer, sources])
 
     demo.launch()
 
