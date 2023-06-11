@@ -5,7 +5,7 @@ compute:
 
   ## These configurations are optional
   cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
-  # gpu_type: a100_80gb
+  # gpu_type: a100_80gb # Type of GPU to use.
 
 integrations:
 # Clone the examples repository so that we have access to the code in sec_10k_qa
