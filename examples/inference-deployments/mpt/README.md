@@ -1,6 +1,6 @@
 ## Inference with MPT-7B 
 
-[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a state-of-the-art 6.7B parameter instruction fine-tuned language model trained by MosaicML for inference. Check out [this link](https://www.mosaicml.com/blog/mpt-7b) for more information!
+[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a family of 6.7B parameter large language models, including the base model, an instruction finetuned variant, and a variant finetuned on long context books. Check out [this link](https://www.mosaicml.com/blog/mpt-7b) for more information!
 
 You’ll find in this folder:
 
