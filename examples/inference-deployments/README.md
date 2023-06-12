@@ -33,4 +33,4 @@ If a model that you'd like to deploy isn't supported by one of the existing mode
 
 ### YAMLs
 
-Deployment submissions to the MosaicML platform can be configured through a YAML file or using our Python API’s `InferenceDeploymentConfig` class. We have provided YAMLs in these examples which contain information like name, image, download path for the model, and more. Please see [this link](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) to understand what these parameters mean.
+Deployment submissions to the MosaicML platform can be configured through a YAML file or using our Python API’s [InferenceDeploymentConfig](https://docs.mosaicml.com/projects/mcli/en/latest/inference/working_with_deployments.html#the-inferencedeploymentconfig-object) class. We have provided YAMLs in these examples which contain information like name, image, download path for the model, and more. Please see [this link](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) to understand what these parameters mean.
