@@ -11,7 +11,7 @@ integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: main # TODO: pin
+  git_branch: 55e1bfcbe6984f970e4b951a2d373e0e68962a31 # TODO: pin
 # Install the dependencies for the InstructorEmbedding model
 - integration_type: pip_packages
   packages:
@@ -19,8 +19,8 @@ integrations:
   - sentence-transformers==2.2.2
 
 command: |
-  export PYTHONPATH=$PYTHONPATH:/code/examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
 
 model:
   download_parameters:
