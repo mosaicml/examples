@@ -25,6 +25,9 @@ Please follow instructions in the Inference Deployments [README](https://github.
 
 To deploy, simply run `mcli deploy -f mpt_7b_instruct.yaml --cluster <your_cluster>`.
 
+Run `mcli get deployments` on the command line or, using the Python SDK, `mcli.get_inference_deployments()` to get the name of your deployment.
+
+
 Once deployed, you can ping the deployment using
 ```python
 from mcli import ping
@@ -83,7 +86,7 @@ mcli predict <deployment-name> --input '{"input_strings": ["hello world!"]}'
 <summary> Using Curl </summary>
 
 ```bash
-curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict_stream \
+curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict \
 -H "Authorization: <your_api_key>" \
 -d '{"input_strings": ["hello world!"]}'
 ```
@@ -93,8 +96,6 @@ curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict_stream \
 <summary> Using Langchain </summary>
 
 ```python
-# Sign up for an account: https://forms.mosaicml.com/demo?utm_source=langchain
-
 from getpass import getpass
 
 MOSAICML_API_TOKEN = getpass()
