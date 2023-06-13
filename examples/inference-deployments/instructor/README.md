@@ -95,6 +95,34 @@ curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict \
 ```
 </details>
 
+<details>
+<summary> Using Langchain </summary>
+
+ ```python
+from getpass import getpass
+MOSAICML_API_TOKEN = getpass()
+import os
+os.environ["MOSAICML_API_TOKEN"] = MOSAICML_API_TOKEN
+
+from langchain.embeddings import MosaicMLInstructorEmbeddings
+embeddings = MosaicMLInstructorEmbeddings(
+    query_instruction="Represent the query for retrieval: "
+)
+query_text = "This is a test query."
+query_result = embeddings.embed_query(query_text)
+
+document_text = "This is a test document."
+document_result = embeddings.embed_documents([document_text])
+
+import numpy as np
+
+query_numpy = np.array(query_result)
+document_numpy = np.array(document_result[0])
+similarity = np.dot(query_numpy, document_numpy) / (np.linalg.norm(query_numpy)*np.linalg.norm(document_numpy))
+print(f"Cosine similarity between document and query: {similarity}")
+ ```
+ </details>
+
 
 ### Input parameters
 | Parameters | Type | Required | Default | Description |
