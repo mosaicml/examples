@@ -144,9 +144,13 @@ Your deployments will be live and using resources until you manually shut them d
 mcli delete deployment --name <deployment_name>
 ```
 if you want to shut down your deployment!
+    
+## What's Next
+ - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, finetune, evaluate and deploy LLMs.
+ - Check out the [Prompt Engineering Guide](https://www.promptingguide.ai) to better understand LLMs and how to use them.
 
+    
 ## Additional Resources
-- [Reach out](https://forms.mosaicml.com/demo?utm_source=docs&utm_medium=docs.mosaicml.com&utm_campaign=always-on) to our ML experts and discover how we can help you on your ML journey.
 - Check out the [MosaicML Blog](https://www.mosaicml.com/blog) to learn more about large scale AI
 - Follow us on [Twitter](https://twitter.com/mosaicml) and [LinkedIn](https://www.linkedin.com/company/mosaicml)
 - Join our community on [Slack](https://mosaicml.me/slack)
