@@ -11,7 +11,7 @@ integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: 55e1bfcbe6984f970e4b951a2d373e0e68962a31 # TODO: pin
+  git_commit: 55e1bfcbe6984f970e4b951a2d373e0e68962a31
 # Install the dependencies for the InstructorEmbedding model
 - integration_type: pip_packages
   packages:

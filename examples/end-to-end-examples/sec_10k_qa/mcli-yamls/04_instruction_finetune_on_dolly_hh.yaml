@@ -35,8 +35,8 @@ parameters:
   save_interval: 500ba # How frequently to save checkpoints
   # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
-  save_folder: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/ # TODO: abstract
-  dist_timeout: 60000 # TODO: REMOVE BEFORE THIS IS DONE
+  save_folder: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/
+  dist_timeout: 60000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
