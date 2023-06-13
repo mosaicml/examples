@@ -160,6 +160,7 @@ def create_job_configs(main_config: om.DictConfig, tasks_to_run: Set[str],
                     main_config.get('precision', None),
                 'trainer_kwargs':
                     task_config.trainer_kwargs,
+                'optimizer': task_config.get('optimizer', None),
             })
             configs.append(task_seed_config)
 
@@ -193,6 +194,7 @@ def run_job_worker(config: om.DictConfig,
             for name, algorithm_config in config.get('algorithms', {}).items()
         ],
         precision=config.precision,
+        optimizer=config.optimizer,
         **config.trainer_kwargs,
     )
     results = instantiated_job.run(gpu_queue, process_to_gpu)

@@ -189,6 +189,7 @@ class GlueClassificationJob(FineTuneJob):
         task_name: Optional[str] = None,
         num_labels: Optional[int] = -1,
         eval_interval: str = '1000ba',
+        optimizer: Optional[dict] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
@@ -264,6 +265,7 @@ class MNLIJob(GlueClassificationJob):
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '2300ba',
+        optimizer: Optional[dict] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
@@ -292,12 +294,16 @@ class MNLIJob(GlueClassificationJob):
                          callbacks=callbacks,
                          precision=precision,
                          **kwargs)
-
+        lr = 5.0e-5
+        weight_decay = 5.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=5.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=5.0e-06)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -341,6 +347,7 @@ class RTEJob(GlueClassificationJob):
         seed: int = 42,
         eval_interval: str = '100ba',
         scheduler: Optional[ComposerScheduler] = None,
+        optimizer: Optional[dict] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
         batch_size: Optional[int] = 16,
@@ -369,11 +376,16 @@ class RTEJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
+        lr = 1.0e-5
+        weight_decay = 1.0e-5
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=1.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=1.0e-5)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -410,6 +422,7 @@ class QQPJob(GlueClassificationJob):
         seed: int = 42,
         eval_interval: str = '2000ba',
         scheduler: Optional[ComposerScheduler] = None,
+        optimizer: Optional[dict] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '5ep',
         batch_size: Optional[int] = 16,
@@ -438,11 +451,16 @@ class QQPJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
+        lr = 3.0e-5
+        weight_decay = 3.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=3.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=3.0e-6)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -479,6 +497,7 @@ class COLAJob(GlueClassificationJob):
         seed: int = 42,
         eval_interval: str = '250ba',
         scheduler: Optional[ComposerScheduler] = None,
+        optimizer: Optional[dict] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
         batch_size: Optional[int] = 32,
@@ -507,11 +526,16 @@ class COLAJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
+        lr = 5.0e-5
+        weight_decay = 5.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=5.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=5.0e-6)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -548,6 +572,7 @@ class MRPCJob(GlueClassificationJob):
         seed: int = 42,
         eval_interval: str = '100ba',
         scheduler: Optional[ComposerScheduler] = None,
+        optimizer: Optional[dict] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
         batch_size: Optional[int] = 32,
@@ -576,11 +601,16 @@ class MRPCJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
+        lr = 8.0e-5
+        weight_decay = 8.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=8.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=8.0e-6)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -616,6 +646,7 @@ class QNLIJob(GlueClassificationJob):
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '1000ba',
+        optimizer: Optional[dict] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
@@ -645,11 +676,16 @@ class QNLIJob(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
+        lr = 1.0e-5
+        weight_decay = 1.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=1.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=1.0e-6)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -686,6 +722,7 @@ class SST2Job(GlueClassificationJob):
         seed: int = 42,
         eval_interval: str = '500ba',
         scheduler: Optional[ComposerScheduler] = None,
+        optimizer: Optional[dict] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '3ep',
         batch_size: Optional[int] = 16,
@@ -714,11 +751,16 @@ class SST2Job(GlueClassificationJob):
                          precision=precision,
                          **kwargs)
 
+        lr = 3.0e-5
+        weight_decay = 3.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=3.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=3.0e-6)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
@@ -754,6 +796,7 @@ class STSBJob(GlueClassificationJob):
         job_name: Optional[str] = None,
         seed: int = 42,
         eval_interval: str = '200ba',
+        optimizer: Optional[dict] = None,
         scheduler: Optional[ComposerScheduler] = None,
         max_sequence_length: Optional[int] = 256,
         max_duration: Optional[str] = '10ep',
@@ -782,12 +825,16 @@ class STSBJob(GlueClassificationJob):
                          callbacks=callbacks,
                          precision=precision,
                          **kwargs)
-
+        lr = 3.0e-5
+        weight_decay = 3.0e-6
+        if optimizer is not None:
+            lr = optimizer['lr']
+            weight_decay = optimizer['weight_decay']
         self.optimizer = DecoupledAdamW(self.model.parameters(),
-                                        lr=3.0e-5,
+                                        lr=lr,
                                         betas=(0.9, 0.98),
                                         eps=1.0e-06,
-                                        weight_decay=3.0e-6)
+                                        weight_decay=weight_decay)
 
         dataset_kwargs = {
             'task': self.task_name,
