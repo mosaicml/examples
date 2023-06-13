@@ -118,7 +118,7 @@ mcli delete deployment --name <deployment_name>
 if you want to shut down your deployment!
 
 ## What's Next
- - Check out our [Diffusion model](https://github.com/mosaicml/diffusion), which contains code on how to train a Diffusion model on your own data.
+ - Check out our [Diffusion repository](https://github.com/mosaicml/diffusion), which contains code on how to train a Diffusion model on your own data.
  - Check out [our blogpost](https://www.mosaicml.com/blog/diffusion) about how we trained this Diffusion model.
 
 
