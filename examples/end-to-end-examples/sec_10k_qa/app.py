@@ -105,8 +105,10 @@ def greet(
         chunk_size=1000,
         chunk_overlap=0,
         separators=[
-            '(?<=\\.) (?=\\s)', '(?<=\\?) (?=\\s)', '(?<=\\!) (?=\\s)', '\n',
-            ' ', ''
+            r'(?<=\.) ',
+            r'(?<=\?) ',
+            r'(?<=\!) ',
+            r'\n',
         ],  # Split on periods, question marks, exclamation marks, new lines, spaces, and empty strings, in the order
     )
     split_doc = text_splitter.split_documents([Document(page_content=doc)])
@@ -169,11 +171,9 @@ def greet(
 
     # Prompt template for the query
     answer_question_string_template = (
-        f"Use the following pieces of context to answer the question at the end. The context is from a {year} financial document about {ticker}. If the question cannot be answered accurately from the provided context, say 'The question cannot be answered from the retrieved documents.'."
+        f'Use the following pieces of context to answer the question at the end in a single sentence. The context is from a {year} financial document about {ticker}.'
         '\n{context}'
-        '\nQuestion: {question}'
-        '\nHelpful answer with evidence from the context (remember to not answer if the question cannot be answered from the provided context):'
-    )
+        '\nQuestion: {question}')
     answer_question_prompt_template = PromptTemplate(
         template=answer_question_string_template,
         input_variables=['context', 'question'])
