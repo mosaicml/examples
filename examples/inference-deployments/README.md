@@ -18,9 +18,9 @@ Once you have access,
 ## Content
 We have provided examples for 3 different model types in this repo:
 
-1. MPT series
-2. Instructor 
-3. Mosaic diffusion
+1. [MPT series](https://github.com/mosaicml/examples/tree/main/examples/inference-deployments/mpt)
+2. [Instructor](https://github.com/mosaicml/examples/tree/main/examples/inference-deployments/instructor) 
+3. [Mosaic diffusion](https://github.com/mosaicml/examples/tree/main/examples/inference-deployments/mosaic_diffusion)
 
 Each of these model directories have model handlers and yaml files.
 
@@ -34,3 +34,5 @@ If a model that you'd like to deploy isn't supported by one of the existing mode
 ### YAMLs
 
 Deployment submissions to the MosaicML platform can be configured through a YAML file or using our Python API’s [InferenceDeploymentConfig](https://docs.mosaicml.com/projects/mcli/en/latest/inference/working_with_deployments.html#the-inferencedeploymentconfig-object) class. We have provided YAMLs in these examples which contain information like name, image, download path for the model, and more. Please see [this link](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) to understand what these parameters mean.
+
+Note: The `image` field in the YAML corresponds to the Docker image for the Docker container that is executing your deployment. It is set to our latest inference release. 
