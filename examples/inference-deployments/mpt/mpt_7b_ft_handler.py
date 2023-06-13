@@ -51,7 +51,8 @@ class MPTFTModelHandler:
                  ft_lib_path: str,
                  inference_data_type: str = 'bf16',
                  int8_mode: int = 0,
-                 gpus: int = 1):
+                 gpus: int = 1,
+                 force_conversion: bool = False):
         """Fastertransformer model handler for MPT foundation series.
 
         Args:
@@ -73,7 +74,7 @@ class MPTFTModelHandler:
             # Datatype of weights in the HF checkpoint
             weight_data_type = 'fp32'
             convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
-                              weight_data_type, False)
+                              weight_data_type, force_conversion)
             if not os.path.isfile(ckpt_config_path):
                 raise RuntimeError('Failed to create FT checkpoint')
         else:
