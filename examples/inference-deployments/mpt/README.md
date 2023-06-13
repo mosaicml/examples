@@ -1,4 +1,4 @@
-## Inference with MPT-7B 
+## Inference with MPT-7B
 
 [MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a family of 6.7B parameter large language models, including the base model, an instruction finetuned variant, and a variant finetuned on long context books. Check out [this link](https://www.mosaicml.com/blog/mpt-7b) for more information!
 
@@ -16,7 +16,7 @@ You’ll find in this folder:
 
 ## Setup
 
-Please follow instructions in the Inference Deployments [README](https://github.com/mosaicml/examples/tree/main/examples/inference-deployments/README.md) and make sure 
+Please follow instructions in the Inference Deployments [README](https://github.com/mosaicml/examples/tree/main/examples/inference-deployments/README.md) and make sure
 - You have access to our inference service.
 - Your dev environment is set up with `mcli`.
 - You have a cluster to work with.
@@ -37,6 +37,8 @@ to check if it is ready (status 200).
 
 More instructions can be found [here](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/quick_start_inference.html)
 
+You can also check the deployment logs with `mcli get deployment logs <deployment name>`.
+
 ### Deploying from cloud storage
 If your model exists on Amazon S3 or Hugging Face, you can edit the YAML's model params to deploy it:
 ```yaml
@@ -52,7 +54,7 @@ If your model exists on a different cloud storage, then you can follow instructi
 
 ## Sending requests to your deployment
 
-Once the deployment is ready, it's time to run inference! 
+Once the deployment is ready, it's time to run inference!
 
 <details>
 <summary> Using Python SDK </summary>
@@ -144,15 +146,13 @@ Your deployments will be live and using resources until you manually shut them d
 mcli delete deployment --name <deployment_name>
 ```
 if you want to shut down your deployment!
-    
+
 ## What's Next
  - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, finetune, evaluate and deploy LLMs.
  - Check out the [Prompt Engineering Guide](https://www.promptingguide.ai) to better understand LLMs and how to use them.
 
-    
+
 ## Additional Resources
 - Check out the [MosaicML Blog](https://www.mosaicml.com/blog) to learn more about large scale AI
 - Follow us on [Twitter](https://twitter.com/mosaicml) and [LinkedIn](https://www.linkedin.com/company/mosaicml)
 - Join our community on [Slack](https://mosaicml.me/slack)
-
-
