@@ -3,7 +3,7 @@
 
 ## Inference with Mosaic's Diffusion Model
 
-[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use Mosaic's Stable Diffusion model, which we [trained for <$50k](https://www.mosaicml.com/blog/stable-diffusion-2) >. To learn more about Stable Diffusion itself, check out [the repo](https://github.com/huggingface/diffusers/tree/main/src/diffusers/pipelines/stable_diffusion)!
+[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use Mosaic's Stable Diffusion model, which we [trained for <$50k](https://www.mosaicml.com/blog/stable-diffusion-2). To learn more about Stable Diffusion itself, check out [the repo](https://github.com/huggingface/diffusers/tree/main/src/diffusers/pipelines/stable_diffusion)!
 
 You’ll find in this folder:
 
