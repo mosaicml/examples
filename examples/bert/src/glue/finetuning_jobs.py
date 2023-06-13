@@ -240,7 +240,8 @@ class GlueClassificationJob(FineTuneJob):
             save_folder=self.save_folder,
             max_duration=self.max_duration,
             seed=self.seed,
-            grad_accum='auto' if torch.cuda.device_count() > 0 else 1,
+            device_train_microbatch_size='auto'
+                       if torch.cuda.device_count() > 0 else None,
             load_weights_only=True,
             load_strict_model_weights=False,
             loggers=self.loggers,
