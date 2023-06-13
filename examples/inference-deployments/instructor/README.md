@@ -1,6 +1,6 @@
 ## Inference with Instructor
 
-[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use [Instructor-Large]([instructor-large](https://huggingface.co/hkunlp/instructor-large) and [Instructor-XL](https://huggingface.co/hkunlp/instructor-xl), which are both instruction-finetuned text embedding models developed by the NLP Group of The University of Hong Kong. The instructor model series is state-of-the-art on the Massive Text Embedding Benchmark (MTEB).
+[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use [Instructor-Large](https://huggingface.co/hkunlp/instructor-large) and [Instructor-XL](https://huggingface.co/hkunlp/instructor-xl), which are both instruction-finetuned text embedding models developed by the NLP Group of The University of Hong Kong. The instructor model series is state-of-the-art on the [Massive Text Embedding Benchmark (MTEB)](https://huggingface.co/blog/mteb).
 
 
 You’ll find in this folder:
