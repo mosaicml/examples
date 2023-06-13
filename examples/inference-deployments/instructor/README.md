@@ -98,7 +98,7 @@ curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict \
 <details>
 <summary> Using Langchain </summary>
 
- ```python
+```python
 from getpass import getpass
 MOSAICML_API_TOKEN = getpass()
 import os
@@ -130,9 +130,7 @@ print(f"Cosine similarity between document and query: {similarity}")
 | input_strings | List[Tuple[str, str]] | yes | N/A | A list of documents and instructions to embed. Each document is represented as tuple where the first item is the embedding instruction (e.g. "Represent the Science title:") and the second item is the document (e.g. "3D ActionSLAM: wearable person tracking in multi-floor environments"). |
 
 
-
 ## Output
-
 ```
 {
     "data":[
@@ -154,7 +152,6 @@ if you want to shut down your deployment!
 ## What's Next
  - Check out the [Instructor paper](https://instructor-embedding.github.io) to better understand Instructor embedding models.
  - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, finetune, evaluate and deploy LLMs.
- 
 
 
 ## Additional Resources
