@@ -46,10 +46,10 @@ class MPTModelHandler():
                                   tokenizer=tokenizer,
                                   device=self.device)
 
-    def _parse_model_request(self, model_request: Dict[str, Any]):
+    def _parse_model_request(self, model_request: Dict):
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
-                f'{self.INPUT_KEY} must be provided to generate call')
+                f'"{self.INPUT_KEY}" must be provided to generate call')
 
         generate_input = model_request[self.INPUT_KEY]
 
@@ -70,7 +70,7 @@ class MPTModelHandler():
             output_list.append(output_bytes)
         return output_list
 
-    def predict(self, model_requests: List[Dict[str, Any]]):
+    def predict(self, model_requests: List[Dict]):
         """Runs forward pass with the given inputs.
 
         model_requests: List of dictionaries that contain forward pass inputs as well
@@ -89,7 +89,7 @@ class MPTModelHandler():
         outputs = self.generator(generate_inputs, **generate_kwargs)
         return self._extract_output(outputs)
 
-    def predict_stream(self, **inputs: Dict[str, Any]):
+    def predict_stream(self, **inputs: Dict):
         generate_input, generate_kwargs = self._parse_model_request(inputs)
 
         # TextGenerationPipeline passes streamer to generate as a kwarg

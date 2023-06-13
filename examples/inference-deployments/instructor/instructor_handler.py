@@ -1,6 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import torch
 from InstructorEmbedding import INSTRUCTOR
@@ -18,7 +18,7 @@ class HFInstructorHandler():
         self.model = INSTRUCTOR(self.model_name)
         self.model.to(self.device)
 
-    def predict(self, model_requests: List[Dict[str, Any]]):
+    def predict(self, model_requests: List[Dict]):
         """Runs a forward pass with the given inputs.
 
         Model request format: {"input": ["<instruction>", "<sentence>"]}
