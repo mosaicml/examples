@@ -99,7 +99,7 @@ curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict \
 ### Input parameters
 | Parameters | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| input_string | List[str] | yes | N/A | The prompt to generate a completion for. |
+| input_strings | List[Tuple[str, str]] | yes | N/A | A list of documents and instructions to embed. Each document is represented as tuple where the first item is the embedding instruction (e.g. "Represent the Science title:") and the second item is the document (e.g. "3D ActionSLAM: wearable person tracking in multi-floor environments"). |
 
 
 
