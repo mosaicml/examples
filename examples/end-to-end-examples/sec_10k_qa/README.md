@@ -4,13 +4,13 @@ In this tutorial, we will be creating an application that answers questions base
 
 The goal of this tutorial is to show how we can build a prototype of this application using the MosaicML platform from start to finish. We will cover:
 - Setting up your development environment and the MosaicML platform ([setup](#setup))
-- Downloading and processing the data for domain specific pretraining of [MPT-7b](https://huggingface.co/mosaicml/mpt-7b) ([process and upload](#acquiring-the-sec-10-k-data), [MDS conversion](#mds-conversion))
-- Finetuning MPT-7b on financial text ([finetuning](#finetuning-mpt-7b))
-- Instruction finetuning MPT-7b on the data we used to build MPT-7b-instruct ([instruct finetuning](#instruct-finetuning-mpt-7b))
-- Deploying your finetuned MPT-7b and an Instructor embedding model for inference using the MosaicML inference service ([convert to Hugging Face](#convert-the-composer-checkpoint-to-a-huggingface-checkpoint), [deploy](#deploy-your-model-and-an-embedding-model))
-- Using the MosaicML inference integration in LangChain to connect to your deployed models ([application](#application-with-gradio))
-- Building a simple frontend with [gradio](https://gradio.app/) to tie everything together ([application](#application-with-gradio))
-- Next steps you might take ([what's next](#what-next?))
+- Downloading and processing the data for domain specific pretraining of [MPT-7b](https://huggingface.co/mosaicml/mpt-7b) ([process and upload](#1-acquiring-the-sec-10-k-data), [MDS conversion](#2-mds-conversion))
+- Finetuning MPT-7b on financial text ([finetuning](#3-finance-finetune-mpt-7b))
+- Instruction finetuning MPT-7b on the data we used to build MPT-7b-instruct ([instruct finetuning](#4-instruct-finetune-mpt-7b))
+- Deploying your finetuned MPT-7b and an Instructor embedding model for inference using the MosaicML inference service ([convert to Hugging Face](#5-convert-the-composer-checkpoint-to-a-huggingface-checkpoint), [deploy](#6-deploy-your-model-and-an-embedding-model))
+- Using the MosaicML inference integration in LangChain to connect to your deployed models ([application](#7-application-with-gradio))
+- Building a simple frontend with [gradio](https://gradio.app/) to tie everything together ([application](#7-application-with-gradio))
+- Next steps you might take ([what's next](#what-next))
 
 At the end of this tutorial, you will have a simple web application that answers questions about SEC Form 10-K documents using a model that you finetuned and deployed using MosaicML! All the normal caveats about language models and making things up apply, and there are a variety of avenues you can pursue after going through this tutorial to improve the quality and apply the MosaicML platform to your task :)
 
@@ -29,7 +29,7 @@ All commands in this tutorial are going to be run using MCLI yamls. For understa
 
 ### MosaicML platform setup
 
-Before starting this tutorial, you should make sure that you have access to the MosaicML platform. You'll need access to both training and inference services to complete this tutorial, although you can follow this tutorial up to the [deployment](deploy-your-model-and-an-embedding-model) section if you just have access to training. Please [reach out](https://forms.mosaicml.com/demo?utm_source=inference&utm_medium=mosaicml.com&utm_campaign=always-on) if you would like to sign up, and reach out if you are already a customer and need to gain access to either service. First, you should go through the [getting started guide](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/getting_started.html). Second, you should set up the object store of your choice, by following the [secrets guide](https://docs.mosaicml.com/projects/mcli/en/latest/resources/secrets/index.html) for your cloud provider of choice. Lastly, you may want to set up [Weights & Biases](https://docs.mosaicml.com/projects/mcli/en/latest/resources/integrations/wandb.html) or [CometML](https://docs.mosaicml.com/projects/mcli/en/latest/resources/integrations/comet.html) for tracking your experiments. Once you have done all of this, you should be ready to get started with this tutorial!
+Before starting this tutorial, you should make sure that you have access to the MosaicML platform. You'll need access to both training and inference services to complete this tutorial, although you can follow this tutorial up to the [deployment](#6-deploy-your-model-and-an-embedding-model) section if you just have access to training. Please [reach out](https://forms.mosaicml.com/demo?utm_source=inference&utm_medium=mosaicml.com&utm_campaign=always-on) if you would like to sign up, and reach out if you are already a customer and need to gain access to either service. First, you should go through the [getting started guide](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/getting_started.html). Second, you should set up the object store of your choice, by following the [secrets guide](https://docs.mosaicml.com/projects/mcli/en/latest/resources/secrets/index.html) for your cloud provider of choice. Lastly, you may want to set up [Weights & Biases](https://docs.mosaicml.com/projects/mcli/en/latest/resources/integrations/wandb.html) or [CometML](https://docs.mosaicml.com/projects/mcli/en/latest/resources/integrations/comet.html) for tracking your experiments. Once you have done all of this, you should be ready to get started with this tutorial!
 
 
 ### Local setup
@@ -49,7 +49,7 @@ Each section of this tutorial will have a command to run, which fields you need 
 
 ## 1) Acquiring the SEC 10-K data
 
-We will use the version of the 10-K data kindly uploaded to HuggingFace (https://huggingface.co/datasets/JanosAudran/financial-reports-sec) by `JanosAudran`. Note that reprocessing the data may improve the quality, as this version of the data appears to largely be missing tables, which are an important part of financial statements. Each row in this dataset corresponds to a sentence, so we will need to reprocess the data into full text documents before we can use it. Throughout this tutorial we will use the `large_full` subset of the data, which means that all the steps will take some time, as the dataset is fairly large. If you would like to simply go through all of the steps quickly and make sure that they run, you can instead use the `small_full` subset (throughout the tutorial), which contains a small subset of the full data.
+We will use the [version of the 10-K data](https://huggingface.co/datasets/JanosAudran/financial-reports-sec) kindly uploaded to HuggingFace by `JanosAudran`. Note that reprocessing the data may improve the quality, as this version of the data appears to largely be missing tables, which are an important part of financial statements. Each row in this dataset corresponds to a sentence, so we will need to reprocess the data into full text documents before we can use it. Throughout this tutorial we will use the `large_full` subset of the data, which means that all the steps will take some time, as the dataset is fairly large. If you would like to simply go through all of the steps quickly and make sure that they run, you can instead use the `small_full` subset (throughout the tutorial), which contains a small subset of the full data.
 
 The `convert_10ks_to_mds.py` script will download the dataset from the HuggingFace hub, recombine the rows (which each contain a single sentence) into full documents, and save them individually to the cloud for access through this tutorial.
 
