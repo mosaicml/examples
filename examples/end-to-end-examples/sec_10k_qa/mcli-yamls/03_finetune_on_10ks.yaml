@@ -53,6 +53,7 @@ parameters:
   # Model
   model:
     name: hf_causal_lm
+    init_device: mixed
     pretrained_model_name_or_path: mosaicml/mpt-7b # This can be changed to other models from the HuggingFace model hub
     pretrained: true # If false, will just load the model architecture and randomly initialize the weights
     config_overrides: # Override the default model config (comment this out if you change the model from MPT)
