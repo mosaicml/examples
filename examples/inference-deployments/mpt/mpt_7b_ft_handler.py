@@ -65,6 +65,10 @@ class MPTFTModelHandler:
         self.device = torch.cuda.current_device()
         self.model_name = model_name
 
+        # If params went through some JSON path, they may not be ints anymore.
+        int8_mode = int(int8_mode)
+        gpus = int(gpus)
+
         model_path = os.path.join(LOCAL_CHECKPOINT_PATH, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
         # If FT checkpoint doesn't exist, create it.
