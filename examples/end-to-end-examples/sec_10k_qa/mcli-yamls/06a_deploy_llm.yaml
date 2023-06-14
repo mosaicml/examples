@@ -33,4 +33,4 @@ model:
   model_parameters:
     model_name: /downloaded_hf_checkpoint/ # Path is hardcoded in deployment_download_helper.download_model
 
-image: mosaicml/inference:0.0.93 # Use the Docker image provided by MosaicML
+image: mosaicml/inference:0.0.96 # Use the Docker image provided by MosaicML
