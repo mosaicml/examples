@@ -40,7 +40,7 @@ Before starting this tutorial, you should make sure that you have access to the 
 
 ### Local setup
 
-All that is needed for local setup is to install a few dependencies.
+All that is needed for local setup is to install a few dependencies, as the only thing you will be running locally is the final application. Everything else will be run through the MosaicML platform.
 ```bash
 python -m venv examples-10k-venv
 source examples-10k-venv/bin/activate
