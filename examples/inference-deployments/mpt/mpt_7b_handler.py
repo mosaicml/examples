@@ -20,7 +20,8 @@ class MPTModelHandler():
         'temperature': 0.8,
     }
 
-    INPUT_STRINGS_KEY = 'input_strings'
+    INPUT_KEY = 'input'
+    PARAMETERS_KEY = 'parameters'
 
     def __init__(self, model_name: str):
         self.device = torch.cuda.current_device()
@@ -45,21 +46,20 @@ class MPTModelHandler():
                                   tokenizer=tokenizer,
                                   device=self.device)
 
-    def _parse_inputs(self, inputs: Dict[str, Any]):
-        if 'input_strings' not in inputs:
+    def _parse_model_request(self, model_request: Dict):
+        if self.INPUT_KEY not in model_request:
             raise RuntimeError(
-                'Input strings must be provided as a list to generate call')
+                f'"{self.INPUT_KEY}" must be provided to generate call')
 
-        generate_input = inputs[self.INPUT_STRINGS_KEY]
+        generate_input = model_request[self.INPUT_KEY]
 
         # Set default generate kwargs
         generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
         generate_kwargs['eos_token_id'] = self.tokenizer.eos_token_id
 
         # If request contains any additional kwargs, add them to generate_kwargs
-        for k, v in inputs.items():
-            if k not in [self.INPUT_STRINGS_KEY]:
-                generate_kwargs[k] = v
+        for k, v in model_request.get(self.PARAMETERS_KEY, {}).items():
+            generate_kwargs[k] = v
 
         return generate_input, generate_kwargs
 
@@ -70,27 +70,27 @@ class MPTModelHandler():
             output_list.append(output_bytes)
         return output_list
 
-    def predict(self, input_dicts: List[Dict[str, Any]]):
+    def predict(self, model_requests: List[Dict]):
         """Runs forward pass with the given inputs.
 
-        input_dicts: List of dictionaries that contain forward pass inputs as well
+        model_requests: List of dictionaries that contain forward pass inputs as well
         as other parameters, such as generate kwargs.
 
-        ex. [{'input': {'input_strings': ['hello world!']}}]
+        ex. [{'input': 'hello world!', 'parameters': {'max_length': 10}]
         """
         generate_inputs = []
         generate_kwargs = {}
         # Currently assumes the same generate_kwargs for the entire batch.
-        for input_dict in input_dicts:
-            generate_input, generate_kwargs = self._parse_inputs(input_dict)
-            generate_inputs += generate_input
+        for req in model_requests:
+            generate_input, generate_kwargs = self._parse_model_request(req)
+            generate_inputs += [generate_input]
 
         print('Logging input to generate: ', generate_inputs)
         outputs = self.generator(generate_inputs, **generate_kwargs)
         return self._extract_output(outputs)
 
-    def predict_stream(self, **inputs: Dict[str, Any]):
-        generate_input, generate_kwargs = self._parse_inputs(inputs)
+    def predict_stream(self, **inputs: Dict):
+        generate_input, generate_kwargs = self._parse_model_request(inputs)
 
         # TextGenerationPipeline passes streamer to generate as a kwarg
         streamer = TextIteratorStreamer(self.tokenizer)
