@@ -1,7 +1,7 @@
 name: mpt-7b
 gpu_num: 1
 gpu_type: a100_40gb
-image: mosaicml/inference:0.0.93
+image: mosaicml/inference:0.0.95
 replicas: 1
 command: |
   export PYTHONPATH=$PYTHONPATH:/code/examples

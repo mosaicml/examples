@@ -1,7 +1,7 @@
 name: mpt-7b-ft
 gpu_num: 1
 gpu_type: a100_40gb
-image: mosaicml/inference:0.0.93
+image: mosaicml/inference:0.0.96
 cluster: r7z13
 command: |
   export PYTHONPATH=/code:/code/examples:/code/llm-foundry
