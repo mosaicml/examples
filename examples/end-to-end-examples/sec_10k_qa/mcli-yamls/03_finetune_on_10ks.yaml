@@ -135,7 +135,7 @@ parameters:
   # for more information about FSDP in Composer
   fsdp_config:
     sharding_strategy: FULL_SHARD
-    mixed_precision: PURE
+    mixed_precision: FULL
     activation_checkpointing: true
     activation_checkpointing_reentrant: false
     activation_cpu_offload: false
