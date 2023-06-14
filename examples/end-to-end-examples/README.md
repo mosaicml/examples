@@ -9,4 +9,11 @@ Our current examples are:
 
 # Before you start
 
-While the commands and code in these examples _can_ be run locally, the tutorials are written with the assumption that you are using the MosaicML platform. If you are signed up, make sure you've gone through the [getting started guide](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/getting_started.html). If you are not yet a customer but are interested in becoming one, please fill out our [interest form](https://forms.mosaicml.com/demo?utm_source=home&utm_medium=mosaicml.com&utm_campaign=always-on).
+These tutorials are written to be used with the MosaicML platform. If you are signed up, make sure you've gone through the [getting started guide](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/getting_started.html). If you are not yet a customer but are interested in becoming one, please fill out our [interest form](https://forms.mosaicml.com/demo?utm_source=home&utm_medium=mosaicml.com&utm_campaign=always-on).
+
+We also have multiple open source repositories that are used in these tutorials. If you are looking for documentation and repository-specific tutorials, please see each individual repository:
+
+- [LLM-foundry](https://github.com/mosaicml/llm-foundry): An open-source PyTorch library of tools for training, finetuning, evaluating, and deploying LLMs for inference.
+- [Diffusion](https://github.com/mosaicml/diffusion): An open-source PyTorch library for training Diffusion models.
+- [Composer](https://github.com/mosaicml/composer): An open-source PyTorch library for easy large scale deep learning.
+- [Streaming](https://github.com/mosaicml/streaming): An open-source PyTorch library for efficiently and accurately streaming data from the cloud to your training job, whereever that job is running.
