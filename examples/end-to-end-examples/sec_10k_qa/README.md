@@ -152,9 +152,9 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 **Inputs:** the HuggingFace format checkpoint from step 5
 
-**Command**: `mcli deploy -f 06_deploy_llm.yaml`
+**Command**: `mcli deploy -f 06a_deploy_llm.yaml`
 
-**Command**: `mcli deploy -f 07_deploy_embedding_model.yaml`
+**Command**: `mcli deploy -f 06b_deploy_embedding_model.yaml`
 
 **Outputs:** Two deployments, one for the language model and one for the embedding model
 
