@@ -9,8 +9,9 @@ from typing import Dict, List, Tuple
 
 import torch
 from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import \
-    ParallelGPT
-from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft
+    ParallelGPT  # pyright: ignore
+from scripts.inference.convert_hf_mpt_to_ft import \
+    convert_mpt_to_ft  # pyright: ignore
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
