@@ -8,10 +8,8 @@ import os
 from typing import Dict, List, Tuple
 
 import torch
-from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import \
-    ParallelGPT  # type: ignore
-from scripts.inference.convert_hf_mpt_to_ft import \
-    convert_mpt_to_ft  # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # yapf: disable # type: ignore
+from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # yapf: disable # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 
