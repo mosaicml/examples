@@ -5,15 +5,13 @@ import argparse
 import configparser
 import copy
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import torch
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # yapf: disable # type: ignore
+from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # yapf: disable # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
-
-from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # isort: skip # type: ignore
-
-from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # isort: skip # type: ignore
 
 LOCAL_CHECKPOINT_PATH = '/tmp/mpt'
 
@@ -44,7 +42,8 @@ class MPTFTModelHandler:
         'random_seed': True
     }
 
-    INPUT_STRINGS_KEY = 'input_strings'
+    INPUT_KEY = 'input'
+    PARAMETERS_KEY = 'parameters'
 
     def __init__(self,
                  model_name: str,
@@ -140,28 +139,23 @@ class MPTFTModelHandler:
                                                        trust_remote_code=True)
         print('FT initialization complete')
 
-    def _parse_single_input(
-            self, inputs: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
-        """Splits request into input strings and kwargs."""
-        if self.INPUT_STRINGS_KEY not in inputs or not isinstance(
-                inputs[self.INPUT_STRINGS_KEY], list):
+    def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
+        if self.INPUT_KEY not in model_request:
             raise RuntimeError(
-                'Input strings must be provided as a list to generate call')
+                f'"{self.INPUT_KEY}" must be provided to generate call')
 
-        generate_inputs = inputs[self.INPUT_STRINGS_KEY]
+        generate_input = model_request[self.INPUT_KEY]
 
-        # Start with defaults and overwrite with request args. We need to use
-        # defaults here so we can detect disagreeing args when we merge across
-        # requests in the batch.
+        # Set default generate kwargs
         generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
-        for k, v in inputs.items():
-            if k not in [self.INPUT_STRINGS_KEY]:
-                generate_kwargs[k] = v
+        # If request contains any additional kwargs, add them to generate_kwargs
+        for k, v in model_request.get(self.PARAMETERS_KEY, {}).items():
+            generate_kwargs[k] = v
 
-        return generate_inputs, generate_kwargs
+        return generate_input, generate_kwargs
 
     def _convert_kwargs(self, generate_inputs: List[str],
-                        generate_kwargs: Dict[str, Any]):
+                        generate_kwargs: Dict):
         """Converts generate_kwargs into required torch types."""
         batch_size = len(generate_inputs)
 
@@ -199,17 +193,14 @@ class MPTFTModelHandler:
                                                            size=[batch_size],
                                                            dtype=torch.int64)
 
-    def _parse_inputs(
-            self,
-            input_dicts: List[Dict[str,
-                                   Any]]) -> Tuple[List[str], Dict[str, Any]]:
+    def _parse_model_requests(
+            self, model_requests: List[Dict]) -> Tuple[List[str], Dict]:
         """Splits requests into a flat list of inputs and merged kwargs."""
         generate_inputs = []
         generate_kwargs = {}
-        for input_dict in input_dicts:
-            generate_input_list, generate_kwarg = self._parse_single_input(
-                input_dict)
-            generate_inputs += generate_input_list
+        for req in model_requests:
+            generate_input, generate_kwarg = self._parse_model_request(req)
+            generate_inputs += [generate_input]
 
             for k, v in generate_kwarg.items():
                 if k in generate_kwargs and generate_kwargs[k] != v:
@@ -219,8 +210,9 @@ class MPTFTModelHandler:
 
         return generate_inputs, generate_kwargs
 
-    def predict(self, input_dicts: List[Dict[str, Any]]) -> List[str]:
-        generate_inputs, generate_kwargs = self._parse_inputs(input_dicts)
+    def predict(self, model_requests: List[Dict]) -> List[str]:
+        generate_inputs, generate_kwargs = self._parse_model_requests(
+            model_requests)
         self._convert_kwargs(generate_inputs, generate_kwargs)
 
         start_ids = [
@@ -246,7 +238,7 @@ class MPTFTModelHandler:
                 outputs.append(output)
         return outputs
 
-    def predict_stream(self, **inputs: Dict[str, Any]):
+    def predict_stream(self, **model_requests: Dict):
         raise RuntimeError('Streaming is not supported with FasterTransformer!')
 
 
@@ -291,6 +283,6 @@ if __name__ == '__main__':
     model_handle = MPTFTModelHandler(args.name_or_dir, args.ft_lib_path,
                                      args.inference_data_type, args.int8_mode,
                                      args.gpus)
-    inputs = {'input_strings': ['Who is the president of the USA?']}
+    inputs = {'input': 'Who is the president of the USA?'}
     out = model_handle.predict([inputs])
     print(out[0])
