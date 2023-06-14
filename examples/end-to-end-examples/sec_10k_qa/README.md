@@ -12,7 +12,9 @@ The goal of this tutorial is to show how we can build a prototype of this applic
 - Building a simple frontend with [gradio](https://gradio.app/) to tie everything together ([application](#7-application-with-gradio))
 - Next steps you might take ([what's next](#what-next))
 
-At the end of this tutorial, you will have a simple web application that answers questions about SEC Form 10-K documents using a model that you finetuned and deployed using MosaicML! All the normal caveats about language models and making things up apply, and there are a variety of avenues you can pursue after going through this tutorial to improve the quality and apply the MosaicML platform to your task :)
+At the end of this tutorial, you will have a simple web application (pictured below) that answers questions about SEC Form 10-K documents using a model that you finetuned and deployed using MosaicML! All the normal caveats about language models and making things up apply, this is a simple prototype and not production ready, and there are a variety of avenues you can pursue after going through this tutorial to improve the quality and apply the MosaicML platform to your task :)
+
+![demo](web_app_screenshot.png)
 
 
 ## Which MosaicML tools will we use?
@@ -24,7 +26,11 @@ At the end of this tutorial, you will have a simple web application that answers
 
 ## Setup
 
-All commands in this tutorial are going to be run using MCLI yamls. For understanding how this works, and what is actually running, there are a few important details to understand. 1) The MosaicML platform does not have permanent storage on the compute nodes. This means that all data will be streamed in/out to/from a cloud object store. See [MosaicML setup](#mosaicml-platform-setup) for more details on setting up your cloud provider of choice. 2) The `command` section of the yaml is what will actually get run on the compute node. If you are trying to debug/run something locally, you should run what appears in the `command` section. 3) The `parameters` section of the yaml is mounted as a single `.yaml` file at `/mnt/config/parameters.yaml`, which your `command` can then read from. For more MosaicML platform documentation, see the [MosaicML documentation](https://docs.mosaicml.com/projects/mcli/en/latest/), and for a detailed explanation of our yamls, see [training yaml documentation](https://docs.mosaicml.com/projects/mcli/en/latest/training/yaml_schema.html) and [inference yaml documentation](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html).
+All commands in this tutorial are going to be run using MCLI yamls. For understanding how this works, and what is actually running, there are a few important details to understand.
+
+1) The MosaicML platform does not have permanent storage on the compute nodes. This means that all data will be streamed in/out to/from a cloud object store. See [MosaicML setup](#mosaicml-platform-setup) for more details on setting up your cloud provider of choice.
+1) The `command` section of the yaml is what will actually get run on the compute node. If you are trying to debug/run something locally, you should run what appears in the `command` section (after setting up your local environment).
+1) The `parameters` section of the yaml is mounted as a single `.yaml` file at `/mnt/config/parameters.yaml`, which your `command` can then read from. For more MosaicML platform documentation, see the [MosaicML documentation](https://docs.mosaicml.com/projects/mcli/en/latest/), and for a detailed explanation of our yamls, see [training yaml documentation](https://docs.mosaicml.com/projects/mcli/en/latest/training/yaml_schema.html) and [inference yaml documentation](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html).
 
 
 ### MosaicML platform setup
@@ -53,7 +59,7 @@ We will use the [version of the 10-K data](https://huggingface.co/datasets/Janos
 
 The `convert_10ks_to_mds.py` script will download the dataset from the HuggingFace hub, recombine the rows (which each contain a single sentence) into full documents, and save them individually to the cloud for access through this tutorial.
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `OBJECT_STORE`, `BUCKET_NAME` (replace `large_full` with `small_full` if you would like to run through the tutorial more quickly)
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME` (replace `large_full` with `small_full` if you would like to run through the tutorial more quickly)
 
 **Inputs:** the `JanosAudran/financial-reports-sec` dataset on HuggingFace
 
@@ -68,7 +74,7 @@ As mentioned in the [MosaicML platform setup](#mosaicml-platform-setup) section,
 
 The `convert_10ks_to_mds.py` script will convert the data from step 1 into the MDS format. In addition to converting to MDS, it will concatenate samples together (separated by a special "end of sequence" token) to process as many tokens as possible in each sample. We will make use of the [`ConcatTokensDataset`](https://github.com/mosaicml/llm-foundry/blob/2733446bccce1800400b3a72a718bcc1fbff3da3/llmfoundry/data/data.py#L32) in LLM-foundry, and the [`MDSWriter`](https://docs.mosaicml.com/projects/streaming/en/latest/api_reference/generated/streaming.MDSWriter.html#streaming.MDSWriter) to perform this conversion. We will use the `mosaicml/mpt-7b` tokenizer, which is the same as `EleutherAI/gpt-neox-20b`, (`--tokenizer` argument), `<|endoftext|>` to separate examples in concatenated samples (`--eos_text` argument), and a maximum sequence length of 2048 (`--concat_tokens` argument).
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `OBJECT_STORE`, `BUCKET_NAME` (replace `large_full` with `small_full` if you would like to run through the tutorial more quickly)
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME` (replace `large_full` with `small_full` if you would like to run through the tutorial more quickly)
 
 **Inputs:** the `sec-10ks-large` folder from step 1
 
@@ -85,7 +91,7 @@ Please check out the [training yaml](./mcli-yamls/03_finetune_on_10ks.yaml) for 
 
 Note: this step will take a number of hours (~19hrs on 8xA100_80GB). Either use the `small_full` data from previous steps, or change `max_duration` in the YAML to something smaller if you would like a shorter training run.
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `OBJECT_STORE`, `BUCKET_NAME`
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME`
 
 **Inputs:** the `sec-10ks-large-mds` folder from step 2
 
@@ -119,7 +125,7 @@ fmt_ex = PROMPT_FOR_GENERATION_FORMAT.format(instruction=example)
 
 For this second finetuning step, we will use the same training script as before, but with a different training yaml. The [training yaml](./mcli-yamls/04_instruction_finetune_on_dolly_hh.yaml) will load the same model class and architecture from the HuggingFace Hub, but will set `pretrained: false` and instead load the weights from the Composer checkpoint from the previous step using `load_path`. See this [finetuning yaml](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/yamls/finetune/7b_dolly_sft.yaml) for an example of how to finetune directly with Composer without using HuggingFace Hub (note the difference in the `model` section).
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `OBJECT_STORE`, `BUCKET_NAME`, `PREVIOUS_RUN_NAME`
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME`, `PREVIOUS_RUN_NAME`
 
 **Inputs:** the final checkpoint from step 3
 
@@ -134,7 +140,7 @@ Before we can deploy our model, we need to convert it into the standard HuggingF
 
 Note: this conversion script is _specifically_ for MPT. If you have changed the model to a different HuggingFace model, you can use the `convert_composer_to_hf_transformers.py` script in _this_ repository instead.
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `OBJECT_STORE`, `BUCKET_NAME`, `PREVIOUS_RUN_NAME`
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME`, `PREVIOUS_RUN_NAME`
 
 **Inputs:** the final checkpoint from step 4
 
@@ -148,7 +154,7 @@ Note: this conversion script is _specifically_ for MPT. If you have changed the 
 Now that we have our trained model, we will deploy it using MosaicML inference. This will allow us to use the model as an API. We will additionally deploy a pretrained text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions. For more examples of inference deployments, see [inference-deployments](../../inference-deployments/)
 
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `OBJECT_STORE`, `BUCKET_NAME`, `PREVIOUS_RUN_NAME`
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME`, `PREVIOUS_RUN_NAME`
 
 **Inputs:** the HuggingFace format checkpoint from step 5
 
@@ -171,7 +177,7 @@ Play around with the application and imagine ways you could improve it or apply 
 
 You can find the names of your deployments by running `mcli get deployments`.
 
-**Command**: `gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path OBJECT_STORE://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full`
+**Command**: `gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full`
 
 
 ## What next?
