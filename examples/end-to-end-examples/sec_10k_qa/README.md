@@ -57,7 +57,7 @@ Each section of this tutorial will have a command to run, which fields you need 
 
 We will use the [version of the 10-K data](https://huggingface.co/datasets/JanosAudran/financial-reports-sec) kindly uploaded to HuggingFace by `JanosAudran`. Note that reprocessing the data may improve the quality, as this version of the data appears to largely be missing tables, which are an important part of financial statements. Each row in this dataset corresponds to a sentence, so we will need to reprocess the data into full text documents before we can use it. Throughout this tutorial we will use the `large_full` subset of the data, which means that all the steps will take some time, as the dataset is fairly large. If you would like to simply go through all of the steps quickly and make sure that they run, you can instead use the `small_full` subset (throughout the tutorial), which contains a small subset of the full data.
 
-The `convert_10ks_to_mds.py` script will download the dataset from the HuggingFace hub, recombine the rows (which each contain a single sentence) into full documents, and save them individually to the cloud for access through this tutorial.
+The `process_and_upload_10ks.py` script will download the dataset from the HuggingFace hub, recombine the rows (which each contain a single sentence) into full documents, and save them individually to the cloud for access through this tutorial.
 
 **Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER`, `CLOUD`, `BUCKET_NAME` (replace `large_full` with `small_full` if you would like to run through the tutorial more quickly)
 
