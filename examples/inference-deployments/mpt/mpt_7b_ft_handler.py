@@ -18,12 +18,14 @@ from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 from huggingface_hub import snapshot_download
 
-
 LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
 LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
 
 
-def download_convert(s3_path: str = None, hf_path: str = None, gpus: int = 1, force_conversion: bool = False):
+def download_convert(s3_path: str = None,
+                     hf_path: str = None,
+                     gpus: int = 1,
+                     force_conversion: bool = False):
     if not s3_path and not hf_path:
         raise RuntimeError(
             'Either s3_path or hf_path must be provided to download_convert')
@@ -37,18 +39,18 @@ def download_convert(s3_path: str = None, hf_path: str = None, gpus: int = 1, fo
         # Download model files
         if os.path.exists(LOCAL_MODEL_PATH):
             print(
-                f"[+] Path {LOCAL_MODEL_PATH} already exists, skipping download"
+                f'[+] Path {LOCAL_MODEL_PATH} already exists, skipping download'
             )
         else:
             Path(LOCAL_MODEL_PATH).mkdir(parents=True, exist_ok=True)
 
-            print(f"Downloading model from path: {s3_path}")
+            print(f'Downloading model from path: {s3_path}')
 
             parsed_path = urlparse(s3_path)
 
             objs = s3.list_objects_v2(
                 Bucket=parsed_path.netloc,
-                Prefix=parsed_path.path.lstrip("/"),
+                Prefix=parsed_path.path.lstrip('/'),
             )
             for obj in objs['Contents']:
                 file_key = obj['Key']
@@ -60,10 +62,10 @@ def download_convert(s3_path: str = None, hf_path: str = None, gpus: int = 1, fo
                                          LOCAL_MODEL_PATH, file_name))
                 except botocore.exceptions.ClientError as e:
                     print(
-                        f"Error downloading file with key: {file_key} with error: {e}"
+                        f'Error downloading file with key: {file_key} with error: {e}'
                     )
     elif hf_path:
-        print(f"Downloading HF model with name: {hf_path}")
+        print(f'Downloading HF model with name: {hf_path}')
         model_name_or_path = hf_path
         snapshot_download(repo_id=hf_path)
 
@@ -78,11 +80,12 @@ def download_convert(s3_path: str = None, hf_path: str = None, gpus: int = 1, fo
         # Datatype of weights in the HF checkpoint
         weight_data_type = 'fp32'
         convert_mpt_to_ft(model_name_or_path, LOCAL_CHECKPOINT_DIR, gpus,
-                            weight_data_type, force_conversion)
+                          weight_data_type, force_conversion)
         if not os.path.isfile(ckpt_config_path):
             raise RuntimeError('Failed to create FT checkpoint')
     else:
         print(f'Reusing existing FT checkpoint at {local_ft_model_path}')
+
 
 class MPTFTModelHandler:
 
