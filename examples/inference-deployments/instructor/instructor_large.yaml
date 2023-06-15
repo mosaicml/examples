@@ -9,7 +9,7 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: 55e1bfcbe6984f970e4b951a2d373e0e68962a31
+  git_commit: cd16fe3eb6712e0c76211ef0e68ec5920d2947e6
   ssh_clone: false
 - integration_type: pip_packages
   packages:
