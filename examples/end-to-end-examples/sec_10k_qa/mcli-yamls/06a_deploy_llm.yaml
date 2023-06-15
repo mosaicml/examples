@@ -2,7 +2,7 @@ name: mpt-7b-finetuned
 
 # Deployment configuration
 gpu_num: 1  # Number of GPUs to use
-cluster: REPLACE_WITH_YOUR_CLUSTER # Name of the cluster to use for this run
+# cluster: r0z0 # Name of the cluster to use for this run
 gpu_type: a10 # Type of GPU to use.
 replicas: 1 # Number of replicas to use for this run
 

@@ -73,7 +73,7 @@ The `process_and_upload_10ks.py` script will download the dataset from the Huggi
 
 **Command:**
 ```bash
-mcli run -f mcli-yamls/01_process_and_upload_10ks.yaml
+mcli run -f mcli-yamls/01_process_and_upload_10ks.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** the `sec-10ks-large` folder on your cloud object store, containing train, validation, and test splits of the 10k data, organized by ticker and year
@@ -91,7 +91,7 @@ The `convert_10ks_to_mds.py` script will convert the data from step 1 into the M
 
 **Command:**
 ```bash
-mcli run -f mcli-yamls/02_convert_10ks_to_mds.yaml
+mcli run -f mcli-yamls/02_convert_10ks_to_mds.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** the `sec-10ks-large-mds` folder on your cloud object store, containing train, validation, and test splits of the 10k data, concatenated, tokenized, and converted to MDS format
@@ -111,7 +111,7 @@ Note: this step will take a number of hours (~19hrs on 8xA100_80GB). Either use 
 
 **Command:**
 ```bash
-mcli run -f mcli-yamls/03_finetune_on_10ks.yaml
+mcli run -f mcli-yamls/03_finetune_on_10ks.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
@@ -148,7 +148,7 @@ For this second finetuning step, we will use the same training script as before,
 
 **Command:**
 ```bash
-mcli run -f mcli-yamls/04_instruction_finetune_on_dolly_hh.yaml
+mcli run -f mcli-yamls/04_instruction_finetune_on_dolly_hh.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
@@ -166,7 +166,7 @@ Note: this conversion script is _specifically_ for MPT. If you have changed the 
 
 **Command:**
 ```bash
-mcli run -f mcli-yamls/05_convert_composer_to_huggingface.yaml
+mcli run -f mcli-yamls/05_convert_composer_to_huggingface.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** the `mpt-7b-hf` folder, containing the HuggingFace checkpoint files
@@ -183,12 +183,12 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 **Command**:
 ```bash
-mcli deploy -f mcli-yamls/06a_deploy_llm.yaml
+mcli deploy -f mcli-yamls/06a_deploy_llm.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Command**:
 ```bash
-mcli deploy -f mcli-yamls/06b_deploy_embedding_model.yaml
+mcli deploy -f mcli-yamls/06b_deploy_embedding_model.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** Two deployments, one for the language model and one for the embedding model
