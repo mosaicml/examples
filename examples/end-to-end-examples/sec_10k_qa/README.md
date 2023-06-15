@@ -206,6 +206,9 @@ Play around with the application and imagine ways you could improve it or apply 
 
 You can find the names of your deployments by running `mcli get deployments`.
 
+After running the `gradio` command, you should see link to your application. It is the link after `Running on local URL:`, _not_ the url after `Launching in *reload mode* on:`.
+
+
 **Command**:
 ```bash
 gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full
