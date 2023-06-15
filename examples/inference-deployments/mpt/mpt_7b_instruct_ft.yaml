@@ -2,18 +2,18 @@ name: mpt-7b-ft
 gpu_num: 1
 gpu_type: a100_40gb
 image: mosaicml/inference:0.0.96
-cluster: r7z13
 command: |
   export PYTHONPATH=/code:/code/examples:/code/llm-foundry
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: aab5ef7315715509cff9e08e862d41b3cbac83ad
+  git_branch: margaret/ckpy-conversion-multi-gpu
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
   git_branch: v0.1.1
 model:
   backend: faster_transformers
+  downloader: examples.inference-deployments.mpt.mpt_7b_ft_handler.download_convert
   download_parameters:
     hf_path: mosaicml/mpt-7b-instruct
   model_handler: examples.inference-deployments.mpt.mpt_7b_ft_handler.MPTFTModelHandler
