@@ -115,6 +115,7 @@ class MPTFTModelHandler:
     INPUT_KEY = 'input'
     PARAMETERS_KEY = 'parameters'
 
+    @torch.no_grad()
     def __init__(self,
                  model_name_or_path: str,
                  ft_lib_path: str,
@@ -143,6 +144,13 @@ class MPTFTModelHandler:
         # Disable this optimization.
         # https://github.com/NVIDIA/FasterTransformer/blob/main/docs/gpt_guide.md#advanced-features
         shared_contexts_ratio = 0.0
+
+        # If this param transits through a json path, it will be a float.
+        int8_mode = int(int8_mode)
+
+        # When there are multiple GPUs, make sure they agree. Otherwise, we'll deadlock.
+        if gpus > 1:
+            torch.manual_seed(0)
 
         if 'gpt' in ckpt_config.keys():
             head_num = ckpt_config.getint('gpt', 'head_num')
@@ -270,6 +278,7 @@ class MPTFTModelHandler:
 
         return generate_inputs, generate_kwargs
 
+    @torch.no_grad()
     def predict(self, model_requests: List[Dict]) -> List[str]:
         generate_inputs, generate_kwargs = self._parse_model_requests(
             model_requests)
