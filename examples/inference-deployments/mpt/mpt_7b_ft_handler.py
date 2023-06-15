@@ -13,6 +13,7 @@ import boto3
 import botocore
 import torch
 from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # yapf: disable # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils import comm # yapf: disable # type: ignore
 from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # yapf: disable # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
@@ -132,9 +133,14 @@ class MPTFTModelHandler:
                 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32
             gpus (int): Number of gpus to use for inference (Default: 1)
         """
-        self.device = torch.cuda.current_device()
         self.model_name_or_path = model_name_or_path
 
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, trust_remote_code=True)
+
+        # Make sure the seed on all ranks is the same. This is important.
+        # Multi-gpu generate calls will hang without this.
+        torch.manual_seed(0)
+        
         model_path = os.path.join(LOCAL_CHECKPOINT_DIR, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
 
@@ -145,12 +151,8 @@ class MPTFTModelHandler:
         # https://github.com/NVIDIA/FasterTransformer/blob/main/docs/gpt_guide.md#advanced-features
         shared_contexts_ratio = 0.0
 
-        # If this param transits through a json path, it will be a float.
-        int8_mode = int(int8_mode)
-
-        # When there are multiple GPUs, make sure they agree. Otherwise, we'll deadlock.
-        if gpus > 1:
-            torch.manual_seed(0)
+        # # If this param transits through a json path, it will be a float.
+        # int8_mode = int(int8_mode)
 
         if 'gpt' in ckpt_config.keys():
             head_num = ckpt_config.getint('gpt', 'head_num')
@@ -179,6 +181,8 @@ class MPTFTModelHandler:
 
         self.end_id = end_id
 
+        comm.initialize_model_parallel(tensor_para_size, pipeline_para_size)
+
         print('Initializing FasterTransformer')
         self.model = ParallelGPT(
             head_num,
@@ -206,6 +210,8 @@ class MPTFTModelHandler:
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path,
                                                        trust_remote_code=True)
         print('FT initialization complete')
+        
+        self.device = comm.get_device()
 
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         if self.INPUT_KEY not in model_request:
