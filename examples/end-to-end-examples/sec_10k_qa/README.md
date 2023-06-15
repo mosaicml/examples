@@ -63,7 +63,10 @@ The `convert_10ks_to_mds.py` script will download the dataset from the HuggingFa
 
 **Inputs:** the `JanosAudran/financial-reports-sec` dataset on HuggingFace
 
-**Command:** `mcli run -f mcli-yamls/01_process_and_upload_10ks.yaml`
+**Command:**
+```bash
+mcli run -f mcli-yamls/01_process_and_upload_10ks.yaml
+```
 
 **Outputs:** the `sec-10ks-large` folder on your cloud object store, containing train, validation, and test splits of the 10k data, organized by ticker and year
 
@@ -78,7 +81,10 @@ The `convert_10ks_to_mds.py` script will convert the data from step 1 into the M
 
 **Inputs:** the `sec-10ks-large` folder from step 1
 
-**Command:** `mcli run -f mcli-yamls/02_convert_10ks_to_mds.yaml`
+**Command:**
+```bash
+mcli run -f mcli-yamls/02_convert_10ks_to_mds.yaml
+```
 
 **Outputs:** the `sec-10ks-large-mds` folder on your cloud object store, containing train, validation, and test splits of the 10k data, concatenated, tokenized, and converted to MDS format
 
@@ -95,7 +101,10 @@ Note: this step will take a number of hours (~19hrs on 8xA100_80GB). Either use 
 
 **Inputs:** the `sec-10ks-large-mds` folder from step 2
 
-**Command:** `mcli run -f mcli-yamls/03_finetune_on_10ks.yaml`
+**Command:**
+```bash
+mcli run -f mcli-yamls/03_finetune_on_10ks.yaml
+```
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
@@ -129,7 +138,10 @@ For this second finetuning step, we will use the same training script as before,
 
 **Inputs:** the final checkpoint from step 3
 
-**Command:** `mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml`
+**Command:**
+```bash
+mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml
+```
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
@@ -144,7 +156,10 @@ Note: this conversion script is _specifically_ for MPT. If you have changed the 
 
 **Inputs:** the final checkpoint from step 4
 
-**Command:** `mcli run -f yamls/mcli/05_convert_composer_to_huggingface.yaml`
+**Command:**
+```bash
+mcli run -f yamls/mcli/05_convert_composer_to_huggingface.yaml
+```
 
 **Outputs:** the `mpt-7b-hf` folder, containing the HuggingFace checkpoint files
 
@@ -158,9 +173,15 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 **Inputs:** the HuggingFace format checkpoint from step 5
 
-**Command**: `mcli deploy -f 06a_deploy_llm.yaml`
+**Command**:
+```bash
+mcli deploy -f 06a_deploy_llm.yaml
+```
 
-**Command**: `mcli deploy -f 06b_deploy_embedding_model.yaml`
+**Command**:
+```bash
+mcli deploy -f 06b_deploy_embedding_model.yaml
+```
 
 **Outputs:** Two deployments, one for the language model and one for the embedding model
 
@@ -177,7 +198,10 @@ Play around with the application and imagine ways you could improve it or apply 
 
 You can find the names of your deployments by running `mcli get deployments`.
 
-**Command**: `gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full`
+**Command**:
+```bash
+gradio app.py --llm_endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --embedding_endpoint_url https://REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --remote_folder_path CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/test --dataset_subset large_full
+```
 
 
 ## What next?
