@@ -23,7 +23,11 @@ LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
 LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
 
 
-def download_convert(s3_path: str, hf_path: str, gpus: int = 1, force_conversion: bool = False):
+def download_convert(s3_path: str = None, hf_path: str = None, gpus: int = 1, force_conversion: bool = False):
+    if not s3_path and not hf_path:
+        raise RuntimeError(
+            'Either s3_path or hf_path must be provided to download_convert')
+
     if s3_path:
         # s3 creds need to already be present as env vars
         s3 = boto3.client('s3')
