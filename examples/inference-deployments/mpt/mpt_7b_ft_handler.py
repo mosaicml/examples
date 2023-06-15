@@ -122,7 +122,7 @@ class MPTFTModelHandler:
         """Fastertransformer model handler for MPT foundation series.
 
         Args:
-            model_name (str): Name of the model as on HF hub (e.g., mosaicml/mpt-7b-instruct) or local model name (e.g., mpt-7b-instruct)
+            model_name_or_path (str): Name of the model as on HF hub (e.g., mosaicml/mpt-7b-instruct) or local model name (e.g., mpt-7b-instruct)
             ft_lib_path (str): Path to the libth_transformer dynamic lib file(.e.g., build/lib/libth_transformer.so).
             inference_data_type (str): Data type to use for inference (Default: bf16)
             int8_mode (int): The level of quantization to perform. 0: No quantization. All computation in data_type,
