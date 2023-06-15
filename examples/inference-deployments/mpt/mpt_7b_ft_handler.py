@@ -134,6 +134,13 @@ class MPTFTModelHandler:
         self.device = torch.cuda.current_device()
         self.model_name_or_path = model_name_or_path
 
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path,
+                                                       trust_remote_code=True)
+
+        # Make sure the seed on all ranks is the same. This is important.
+        # Multi-gpu generate calls will hang without this.
+        torch.manual_seed(0)
+
         model_path = os.path.join(LOCAL_CHECKPOINT_DIR, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
 
@@ -195,8 +202,8 @@ class MPTFTModelHandler:
             raise RuntimeError(
                 'Could not load model from a FasterTransformer checkpoint')
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path,
-                                                       trust_remote_code=True)
+        self.device = torch.cuda.current_device()
+
         print('FT initialization complete')
 
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
@@ -270,6 +277,7 @@ class MPTFTModelHandler:
 
         return generate_inputs, generate_kwargs
 
+    @torch.no_grad()
     def predict(self, model_requests: List[Dict]) -> List[str]:
         generate_inputs, generate_kwargs = self._parse_model_requests(
             model_requests)
