@@ -86,7 +86,8 @@ class MPTModelHandler():
             generate_inputs += [generate_input]
 
         print('Logging input to generate: ', generate_inputs)
-        outputs = self.generator(generate_inputs, **generate_kwargs)
+        with torch.autocast('cuda', dtype=torch.bfloat16):
+            outputs = self.generator(generate_inputs, **generate_kwargs)
         return self._extract_output(outputs)
 
     def predict_stream(self, **inputs: Dict):
