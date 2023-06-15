@@ -9,7 +9,7 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
-  git_commit: c92d827ebf76dd0a52bcec1ed63c0bab3730764e
+  git_commit: cd16fe3eb6712e0c76211ef0e68ec5920d2947e6
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b
