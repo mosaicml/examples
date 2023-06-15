@@ -189,17 +189,6 @@ parameters:
   # see https://github.com/mosaicml/llm-foundry/tree/main/scripts/eval for more details on evaluation using LLM-foundry
   icl_tasks:
   -
-    label: piqa
-    dataset_uri: eval/local_data/piqa.jsonl
-    num_fewshot: [0]
-    icl_task_type: multiple_choice
-    continuation_delimiter: 'Answer: '
-  -
-    label: hellaswag
-    dataset_uri: eval/local_data/hellaswag.jsonl
-    num_fewshot: [0]
-    icl_task_type: multiple_choice
-  -
     label: arc_easy
     dataset_uri: eval/local_data/arc_easy.jsonl
     num_fewshot: [0]
