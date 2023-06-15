@@ -25,8 +25,8 @@ command: |
     --tokenizer mosaicml/mpt-7b \
     --eos_text '<|endoftext|>' \
     --concat_tokens 2048 \
-    --out_root OBJECT_STORE://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large-mds/ \
-    --in_root OBJECT_STORE://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
+    --out_root CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large-mds/ \
+    --in_root CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
     --dataset_subset large_full
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

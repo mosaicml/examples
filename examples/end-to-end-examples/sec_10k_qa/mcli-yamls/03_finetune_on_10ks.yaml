@@ -29,13 +29,13 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 # The parameters section is mounted to /mnt/config/parameters.yaml in the container
 parameters:
   # Where to read the data from and save it to locally on the machine
-  data_remote: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large-mds/
+  data_remote: CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large-mds/
   data_local: ./local-dataset-cache
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: OBJECT_STORE://BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/
+  save_folder: CLOUD://BUCKET_NAME/sec_10k_demo/checkpoints/{run_name}/
   save_weights_only: True # Since we only need the weights for the next step, we can reduce the size of the checkpoint
   dist_timeout: 60000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 

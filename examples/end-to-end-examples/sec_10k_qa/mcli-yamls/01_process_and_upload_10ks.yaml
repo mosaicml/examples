@@ -22,7 +22,7 @@ command: |
   cd /workspace/examples/examples/end-to-end-examples/sec_10k_qa
   pip install -r requirements.txt
   python process_and_upload_10ks.py \
-    --folder_for_upload OBJECT_STORE://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
+    --folder_for_upload CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
     --dataset_subset large_full
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
