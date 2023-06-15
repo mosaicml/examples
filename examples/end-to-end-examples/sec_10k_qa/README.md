@@ -40,8 +40,10 @@ Before starting this tutorial, you should make sure that you have access to the 
 
 ### Local setup
 
-All that is needed for local setup is to install a few dependencies, as the only thing you will be running locally is the final application. Everything else will be run through the MosaicML platform.
+All that is needed for local setup is to clone this repository and install a few dependencies, as the only thing you will be running locally is the final application. Everything else will be run through the MosaicML platform.
 ```bash
+git clone https://github.com/mosaicml/examples
+cd cd examples/examples/end-to-end-examples/sec_10k_qa
 python -m venv examples-10k-venv
 source examples-10k-venv/bin/activate
 pip install -r requirements-cpu.txt
@@ -140,7 +142,7 @@ For this second finetuning step, we will use the same training script as before,
 
 **Command:**
 ```bash
-mcli run -f yamls/mcli/04_instruction_finetune_on_dolly_hh.yaml
+mcli run -f mcli-yamls/04_instruction_finetune_on_dolly_hh.yaml
 ```
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
@@ -158,7 +160,7 @@ Note: this conversion script is _specifically_ for MPT. If you have changed the 
 
 **Command:**
 ```bash
-mcli run -f yamls/mcli/05_convert_composer_to_huggingface.yaml
+mcli run -f mcli-yamls/05_convert_composer_to_huggingface.yaml
 ```
 
 **Outputs:** the `mpt-7b-hf` folder, containing the HuggingFace checkpoint files
@@ -175,12 +177,12 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 **Command**:
 ```bash
-mcli deploy -f 06a_deploy_llm.yaml
+mcli deploy -f mcli-yamls/06a_deploy_llm.yaml
 ```
 
 **Command**:
 ```bash
-mcli deploy -f 06b_deploy_embedding_model.yaml
+mcli deploy -f mcli-yamls/06b_deploy_embedding_model.yaml
 ```
 
 **Outputs:** Two deployments, one for the language model and one for the embedding model
