@@ -1,2 +1,2 @@
 composer[nlp,streaming,wandb]==0.14.1
-git+https://github.com/mosaicml/llm-foundry.git@f3f2d26c1df2d2535891c3b22fec7c4313911850#egg=llm-foundry[gpu]
+git+https://github.com/mosaicml/llm-foundry.git@main#egg=llm-foundry[gpu] # TODO: main
