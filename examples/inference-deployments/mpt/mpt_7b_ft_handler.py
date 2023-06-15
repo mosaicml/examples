@@ -5,7 +5,7 @@ import argparse
 import configparser
 import copy
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -22,18 +22,17 @@ LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
 LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
 
 
-def download_convert(s3_path: str = None,
-                     hf_path: str = None,
+def download_convert(s3_path: Optional[str] = None,
+                     hf_path: Optional[str] = None,
                      gpus: int = 1,
                      force_conversion: bool = False):
     if not s3_path and not hf_path:
         raise RuntimeError(
             'Either s3_path or hf_path must be provided to download_convert')
-
+    model_name_or_path: str = ''
     if s3_path:
         # s3 creds need to already be present as env vars
         s3 = boto3.client('s3')
-
         model_name_or_path = LOCAL_MODEL_PATH
 
         # Download model files
