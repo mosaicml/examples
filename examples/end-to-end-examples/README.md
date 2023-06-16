@@ -9,7 +9,7 @@ Our current examples are:
 
 # Before you start
 
-These tutorials are written to be used with the MosaicML platform. If you are signed up, make sure you've gone through the [getting started guide](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/getting_started.html). If you are not yet a customer but are interested in becoming one, please fill out our [interest form](https://forms.mosaicml.com/demo?utm_source=home&utm_medium=mosaicml.com&utm_campaign=always-on).
+These tutorials are written to be used with the MosaicML platform, which is only available to our customers. If you are signed up, make sure you've gone through the [getting started guide](https://docs.mosaicml.com/projects/mcli/en/latest/quick_start/getting_started.html). If you are not yet a customer but are interested in becoming one, please fill out our [interest form](https://forms.mosaicml.com/demo?utm_source=home&utm_medium=mosaicml.com&utm_campaign=always-on).
 
 We also have multiple open source repositories that are used in these tutorials. If you are looking for documentation and repository-specific tutorials, please see each individual repository:
 
