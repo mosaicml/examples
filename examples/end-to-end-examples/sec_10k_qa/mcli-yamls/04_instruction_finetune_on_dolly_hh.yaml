@@ -30,6 +30,7 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 parameters:
   # Path to load the weights from the previous step
   load_path: CLOUD://BUCKET_NAME/sec_10k_demo/checkpoints/PREVIOUS_RUN_NAME/latest-rank0.pt.symlink
+  load_weights_only: true
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
