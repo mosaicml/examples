@@ -1,0 +1,2 @@
+This will be an end-to-end example on making a chatbot but is currently unfinished! 
+The only things finished as of now is repo_converter and corrosponding tests as well as an untested chatbot that uses OpenAI.
