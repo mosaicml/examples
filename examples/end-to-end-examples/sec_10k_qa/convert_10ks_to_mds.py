@@ -26,15 +26,31 @@ def parse_args() -> Namespace:
         description=
         'Convert dataset into MDS format, optionally concatenating and tokenizing'
     )
-    parser.add_argument('--max_workers', type=int, default=64)
-    parser.add_argument('--remote', type=str, required=False, default=None)
-    parser.add_argument('--out_root', type=str, required=True)
-    parser.add_argument('--in_root', type=str, required=True)
-    parser.add_argument('--dataset_subset',
+    parser.add_argument(
+        '--max_workers',
+        type=int,
+        default=64,
+        help='The maximum number of workers to use for MDS writing')
+    parser.add_argument('--out_root',
                         type=str,
-                        required=False,
-                        default='small_full')
-    parser.add_argument('--compression', type=str, default='zstd')
+                        required=True,
+                        help='The folder to write output to')
+    parser.add_argument('--in_root',
+                        type=str,
+                        required=True,
+                        help='The folder to read input from')
+    parser.add_argument(
+        '--dataset_subset',
+        type=str,
+        required=False,
+        default='small_full',
+        help=
+        'The subset of the dataset to use. Options are large_full and small_full.'
+    )
+    parser.add_argument('--compression',
+                        type=str,
+                        default='zstd',
+                        help='The compression algorithm to use for MDS writing')
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
@@ -42,10 +58,31 @@ def parse_args() -> Namespace:
         type=int,
         help='Convert text to tokens and concatenate up to this many tokens')
 
-    parser.add_argument('--tokenizer', type=str, required=False, default=None)
-    parser.add_argument('--bos_text', type=str, required=False, default=None)
-    parser.add_argument('--eos_text', type=str, required=False, default=None)
-    parser.add_argument('--no_wrap', default=False, action='store_true')
+    parser.add_argument('--tokenizer',
+                        type=str,
+                        required=False,
+                        default=None,
+                        help='The name of the tokenizer to use')
+    parser.add_argument(
+        '--bos_text',
+        type=str,
+        required=False,
+        default=None,
+        help=
+        'The text to prepend to each example to separate concatenated examples')
+    parser.add_argument(
+        '--eos_text',
+        type=str,
+        required=False,
+        default=None,
+        help=
+        'The text to append to each example to separate concatenated examples')
+    parser.add_argument(
+        '--no_wrap',
+        default=False,
+        action='store_true',
+        help=
+        'Whether to let text examples wrap across multiple training examples')
 
     parsed = parser.parse_args()
 
@@ -113,6 +150,16 @@ class DownloadingIterable:
         output_folder: str,
         object_store: ObjectStore,
     ):
+        """Iterable that downloads files from an object store before yielding.
+
+        text samples.
+
+        Args:
+            identifiers (List[str]): List of identifiers (<doc id>|||<ticker>|||<report_date>) to iterate over
+            input_folder_prefix (str): Object store prefix to download from
+            output_folder (str): Local folder to write downloaded files to
+            object_store (ObjectStore): Object store to download from
+        """
         self.identifiers = [
             identifier.split('|||') for identifier in identifiers
         ]
@@ -166,7 +213,7 @@ def main(
         concat_tokens (int): Number of tokens to concatenate.
         eos_text (str): Text to append to end of each sample.
         bos_text (str): Text to prepend to beginning of each sample.
-        no_wrap (bool): Whether to wrap each sample in a dict.
+        no_wrap (bool): Whether to allow wrapping of text across samples.
         max_workers (int): Max # of workers to use.
         compression (str): Compression to use.
     """
@@ -210,6 +257,7 @@ def main(
                                                    os.path.join(tmp_dir, split),
                                                    object_store)
 
+            # Use the ConcatTokensDataset from LLM-foundry to concatenate sequences of tokens up to the maximum sequence length
             dataset = ConcatTokensDataset(
                 hf_dataset=downloading_iter,
                 max_length=concat_tokens,
@@ -218,12 +266,12 @@ def main(
                 bos_text=bos_text,
                 no_wrap=no_wrap,
             )
-            # Get samples
 
+            # Generate samples
             loader = build_dataloader(dataset=dataset, batch_size=512)
             samples = generate_samples(loader)
 
-            # Write samples
+            # Write samples in MDS format
             print(f'Converting to MDS format...')
             with MDSWriter(out=os.path.join(output_folder, split),
                            max_workers=max_workers,

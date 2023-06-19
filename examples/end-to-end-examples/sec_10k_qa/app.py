@@ -95,6 +95,7 @@ def greet(
         answer: The answer produced by the model
         context: The chunks of source text retrieved and passed to the model
     """
+    # Load the 10-K file, downloading it from object store if necessary
     ticker = ticker.upper()
     remote_file_path = os.path.join(args.remote_folder_path, ticker,
                                     f'sec_{year}_txt.txt')
@@ -125,7 +126,7 @@ def greet(
             r'(?<=\?) ',
             r'(?<=\!) ',
             r'\n',
-        ],  # Split on periods, question marks, exclamation marks, new lines, spaces, and empty strings, in the order
+        ],  # Split on periods, question marks, exclamation marks, and new lines. in that order
     )
     split_doc = text_splitter.split_documents([Document(page_content=doc)])
 

@@ -27,6 +27,8 @@ command: |
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
 
 # The parameters section is mounted to /mnt/config/parameters.yaml in the container
+# The mounted file is then passed directly to the train.py script
+# See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Where to read the data from and save it to locally on the machine
   data_remote: CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large-mds/

@@ -63,6 +63,7 @@ def dump_doc(doc_to_dump: Dict[str, Any], text_to_dump: List[str],
 
 
 def main(folder_for_upload: str, dataset_subset: str):
+    # Create the object store to use for uploading processed data
     object_store = maybe_create_object_store_from_uri(folder_for_upload)
     _, _, folder_prefix = parse_uri(folder_for_upload)
 
@@ -72,15 +73,24 @@ def main(folder_for_upload: str, dataset_subset: str):
     detected_cpus = os.cpu_count()
     if detected_cpus is not None:
         num_cpus = max(detected_cpus - 2, 1)
+
+    # Iterate over each split in the dataset
     for split in ['validation', 'test', 'train']:
         sub_prefix = os.path.join(folder_prefix, split)
+
+        # Load the split from the HuggingFace Hub
         sec_filing_data = datasets.load_dataset(
             'JanosAudran/financial-reports-sec',
             dataset_subset,
             num_proc=num_cpus,
             split=split)
+
+        # Remove a large, unused column
         sec_filing_data.remove_columns(['returns'])
+
+        # Sort so that sentences are processed in order
         sorted_by_doc = sec_filing_data.sort(['docID', 'sentenceCount'])
+        # Create a batched iterator for faster iteration
         dataset_iter = sorted_by_doc.iter(batch_size=batch_size)
 
         docs_to_dump = []
@@ -89,6 +99,7 @@ def main(folder_for_upload: str, dataset_subset: str):
         running_text_section = []
         previous_section_id = None
 
+        # Iterate over the dataset to recombined the sentences into full documents
         for packed_batch in tqdm(dataset_iter,
                                  total=math.ceil(
                                      len(sorted_by_doc) / batch_size),
@@ -156,6 +167,7 @@ def main(folder_for_upload: str, dataset_subset: str):
             doc_to_dump, text_to_dump, object_store, sub_prefix = args
             dump_doc(doc_to_dump, text_to_dump, object_store, sub_prefix)
 
+        # Upload the processed documents concurrently
         with concurrent.futures.ThreadPoolExecutor(
                 max_workers=min(32, num_cpus)) as executor:
             args = [(doc_to_dump, text_to_dump, object_store, sub_prefix)
@@ -169,8 +181,15 @@ def main(folder_for_upload: str, dataset_subset: str):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Process and upload 10k data to object store')
-    parser.add_argument('--folder_for_upload', type=str)
-    parser.add_argument('--dataset_subset', type=str, default='small_full')
+    parser.add_argument(
+        '--folder_for_upload',
+        type=str,
+        help='Object store prefix to upload the processed data to')
+    parser.add_argument(
+        '--dataset_subset',
+        type=str,
+        default='small_full',
+        help='Dataset subset to upload. Options are large_full and small_full')
     args = parser.parse_args()
 
     main(args.folder_for_upload, args.dataset_subset)

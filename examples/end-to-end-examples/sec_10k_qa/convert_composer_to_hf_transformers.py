@@ -1,8 +1,14 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Copyright 2022 MosaicML LLM Foundry authors
-# SPDX-License-Identifier: Apache-2.0
+"""Script to convert a Composer checkpoint to a HuggingFace.
+
+checkpoint directory.
+
+LLM-foundry contains a separate script specifically for MPT checkpoints, but
+this script will work for other HuggingFace models whose code is directly
+integrated into transformers.
+"""
 
 import json
 import os
@@ -182,11 +188,22 @@ def parse_args() -> Namespace:
         description=
         'Convert Composer checkpoint and Omegaconf model config into a standard HuggingFace checkpoint folder, and optionally upload to the hub.'
     )
-    parser.add_argument('--composer_path', type=str, required=True)
-    parser.add_argument('--hf_output_path', type=str, required=True)
-    parser.add_argument('--local_checkpoint_save_location',
+    parser.add_argument('--composer_path',
                         type=str,
-                        default=None)
+                        required=True,
+                        help='Path to the input Composer checkpoint')
+    parser.add_argument(
+        '--hf_output_path',
+        type=str,
+        required=True,
+        help='Path to the HuggingFace checkpoint folder to write output to')
+    parser.add_argument(
+        '--local_checkpoint_save_location',
+        type=str,
+        default=None,
+        help=
+        'If specified, where to save the checkpoint file to locally. If the input ``checkpoint_path`` is already a local path, this will be a symlink. Defaults to None, which will use a temporary file.'
+    )
 
     return parser.parse_args()
 

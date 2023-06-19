@@ -27,6 +27,8 @@ command: |
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
 
 # The parameters section is mounted to /mnt/config/parameters.yaml in the container
+# The mounted file is then passed directly to the train.py script
+# See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Path to load the weights from the previous step
   load_path: CLOUD://BUCKET_NAME/sec_10k_demo/checkpoints/PREVIOUS_RUN_NAME/latest-rank0.pt.symlink

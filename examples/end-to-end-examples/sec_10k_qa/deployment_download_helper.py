@@ -9,6 +9,16 @@ LOCAL_BASE_FOLDER = '/downloaded_hf_checkpoint/'
 
 
 def download_model(remote_uri: str):
+    """Helper function used to download the model at startup time of an.
+
+    inference deployment.
+
+    It is specifically written for MPT, and the file list would need to be adapted to use with
+    a different model.
+
+    Args:
+        remote_uri (str): Object store prefix of the folder containing the model files.
+    """
     object_store = maybe_create_object_store_from_uri(remote_uri)
     assert object_store is not None  # pyright
     _, _, remote_base_key = parse_uri(remote_uri)
