@@ -51,9 +51,10 @@ parameters:
   run_name: # If left blank, will be read from env var $RUN_NAME
 
   # Model
+  # This section is used by LLM-foundry to construct the model
   model:
     name: hf_causal_lm
-    init_device: mixed
+    init_device: mixed # Initially only create the model on CPU once per node to reduce system memory requirements
     pretrained_model_name_or_path: mosaicml/mpt-7b
     pretrained: false # We will load the Composer checkpoint from the previous step, so don't need the original weights
     config_overrides: # Override the default model config (comment this out if you change the model from MPT)
@@ -62,6 +63,7 @@ parameters:
         attn_uses_sequence_id: false # We are not concatenating samples together, so this is false
 
   # Tokenizer
+  # This section is used by LLM-foundry to construct the tokenizer
   tokenizer:
     name: mosaicml/mpt-7b
     kwargs:
@@ -159,6 +161,7 @@ parameters:
   python_log_level: debug
 
   # Uncomment to log to WandB
+  # see LLM-foundry llmfoundry/utils/builders.py::build_logger for other built-in options
   # loggers:
   #   wandb: {}
 

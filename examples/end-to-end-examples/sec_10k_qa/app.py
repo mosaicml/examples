@@ -28,6 +28,7 @@ parser.add_argument('--dataset_subset', type=str, default='small_full')
 
 args, unknown = parser.parse_known_args()
 
+# Load in the available tickers/years for the test set
 path_to_current_file = os.path.realpath(__file__)
 if args.dataset_subset == 'small_full':
     ticker_file_name = 'test_ticker_to_years_small.json'
@@ -45,7 +46,9 @@ with open(os.path.join(os.path.dirname(path_to_current_file), ticker_file_name),
 
 
 def clean_response(input_text: str) -> str:
-    """Clean the response from the model.
+    """Clean the response from the model by stripping some bad answer prefixes,
+
+    new lines, etc.
 
     Args:
         input_text (str): The response from the model.
@@ -79,6 +82,19 @@ def greet(
     year: str,
     query: str,
 ):
+    """The main function that computes the answer and returns the.
+
+    response to the gradio application.
+
+    Args:
+        ticker (str): The ticker of the company to query
+        year (str): The year of the 10-K to query
+        query (str): The query to ask the model
+
+    Returns:
+        answer: The answer produced by the model
+        context: The chunks of source text retrieved and passed to the model
+    """
     ticker = ticker.upper()
     remote_file_path = os.path.join(args.remote_folder_path, ticker,
                                     f'sec_{year}_txt.txt')
@@ -118,7 +134,7 @@ def greet(
         endpoint_url=args.embedding_endpoint_url,
         embed_instruction='Represent the Financial statement for retrieval: ',
         query_instruction=
-        'Represent the Financial question for retrieving supporting documents: ',
+        'Represent the Financial question for retrieving supporting documents: '
     )
 
     # Embed the text in batches, to avoid exceeding the maximum payload size
@@ -209,6 +225,7 @@ def greet(
         [d.page_content for d in answer_response['source_documents']])
 
 
+# Set default tickers, years, and queries for the gradio application
 if args.dataset_subset == 'small_full':
     default_ticker = 'FRTG'
     default_year = '2020'
