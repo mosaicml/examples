@@ -2,7 +2,7 @@ name: mpt-7b-ft
 compute:
   gpu_num: 1
   gpu_type: a10
-image: mosaicml/inference:0.0.96
+image: mosaicml/inference:0.0.100
 command: |
   export PYTHONPATH=/code/llm-foundry:/code/examples:/code
 integrations:

@@ -1,11 +1,11 @@
 name: instructor-xl
-compute:
-  gpu_num: 1
-  gpu_type: a100_40gb
-image: mosaicml/inference:0.0.96
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:0.0.80
 replicas: 1
 command: |
-  export PYTHONPATH=$PYTHONPATH:/code/examples
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
