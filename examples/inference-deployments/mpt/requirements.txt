@@ -1,2 +1,4 @@
 torch==1.13.1
 transformers==4.29.2
+boto3==1.26.134
+botocore==1.29.154

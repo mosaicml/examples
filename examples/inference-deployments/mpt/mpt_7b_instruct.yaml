@@ -1,15 +1,20 @@
 name: mpt-7b-instruct
 gpu_num: 1
+<<<<<<< HEAD
 gpu_type: a100_40gb
 image: mosaicml/inference:0.0.96
 replicas: 1
+=======
+gpu_type: a10
+image: mosaicml/inference:0.0.96
+>>>>>>> 679fd5b (small fix)
 command: |
   export PYTHONPATH=$PYTHONPATH:/code/examples
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
-  git_commit: c92d827ebf76dd0a52bcec1ed63c0bab3730764e
+  git_commit: 0b348f765c8ba6b2896a6a0834446bfc4a333811
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b-instruct

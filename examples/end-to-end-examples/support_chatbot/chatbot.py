@@ -4,13 +4,17 @@ from repo_converter import RepoConverter
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pickle
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.chains import RetrievalQAWithSourcesChain
-from langchain import OpenAI
 from langchain.prompts import PromptTemplate
+from langchain.vectorstores import FAISS
+from langchain.embeddings import MosaicMLInstructorEmbeddings, OpenAIEmbeddings
+from langchain.chains import RetrievalQAWithSourcesChain, LLMChain
+from langchain import OpenAI
+from langchain.llms import MosaicML
 from langchain.schema import Document
+from tqdm import tqdm
 from typing import Any
+from getpass import getpass
+MOSAICML_API_TOKEN = getpass()
 
 class ChatBot:
     def __init__(self, 
@@ -31,7 +35,7 @@ class ChatBot:
         """Given a directory find all .txt files and load them as documents into a list
     
         Returns:
-            list[langchain.document_loaders.Document]: list of documents loaded from data_dir
+            list[Document]: list of documents loaded from data_dir
         """
         data = []
         for dirpath, _, filenames in os.walk(self.data_path):
@@ -64,10 +68,47 @@ class ChatBot:
         )
         return text_splitter.split_documents(pages)
     
+    def documents_to_str(self, 
+                         documents: list[Document]) -> list[str]:
+        return map(lambda doc: doc.page_content, documents)
+    '''
+    def store_vectors(self, 
+                      pages: list[Document]) -> None:
+        batches = []
+        current_char_count = 0
+        current_batch = []
+        for page in pages:
+            current_batch.append(page)
+            current_char_count += len(page.page_content)
+
+            if current_char_count > 1e5:
+                batches.append(current_batch)
+                current_batch = []
+                current_char_count = 0
+
+        if len(current_batch) > 0:
+            batches.append(current_batch)
+
+        
+        txt_embeddings = []
+        for batch in tqdm(batches, desc='Embedding documents', total=len(batches)):
+            batch_embeddings = self.embedding.embed_documents([p.page_content for p in batch])
+            txt_embeddings.extend(list(zip([p.page_content for p in batch], batch_embeddings)))
+
+        # Component for storing the embeddings in a vector store, using FAISS
+        vector_store = FAISS.from_embeddings(
+            text_embeddings=txt_embeddings,
+            metadatas=[p.metadata for p in pages],
+            embedding=self.embedding
+        )
+        
+        with open('examples/end-to-end-examples/support_chatbot/data/vectors.pickle', 'wb') as f:
+            pickle.dump(vector_store, f)
+    '''
     def store_vectors(self, 
                       documents: list[Document]) -> None:
-        vectoreStore_openAI = FAISS.from_documents(documents, self.embeddings)
-        with open('scripts/train/support_chatbot/data/vectors.pickle', 'wb') as f:
+        vectoreStore_openAI = FAISS.from_documents(documents, self.embedding)
+        with open('examples/end-to-end-examples/support_chatbot/data/vectors.pickle', 'wb') as f:
             pickle.dump(vectoreStore_openAI, f)
 
     def chat(self):
@@ -80,41 +121,65 @@ class ChatBot:
         with open(os.path.join(self.data_path, 'vectors.pickle'), 'rb') as f:
             vector_store = pickle.load(f) 
 
-        template = """
-        Return a robust and in depth answer that is at least seven sentences to the question with examples: {summaries}. If you don't know, just say "I don't know".
-        """
-
-        prompt = PromptTemplate(
-            input_variables=["summaries"],
-            template=template,
+        retriever = vector_store.as_retriever(
+            search_type='similarity',
+            search_kwargs={
+                'k': 8
+            }
         )
 
+        # Prompt template for the query
+        answer_question_string_template = (
+            f'Return a answer to the question  and provide an example if one would be helpful. If you do not know, just say "I do not know".'
+            '\nQuestion: {summaries}')
+        answer_question_prompt_template = PromptTemplate(
+            template=answer_question_string_template,
+            input_variables=['summaries'])
+
         chain = RetrievalQAWithSourcesChain.from_chain_type(llm=self.model, 
+                                                            #retriever=retriever,
                                                             retriever=vector_store.as_retriever(),
                                                             return_source_documents=True,
-                                                            chain_type_kwargs = {"prompt": prompt})
-        summaries = input("Ask a question: ")
-        while summaries != "exit":
-            print(chain(summaries, return_only_outputs=True)['answer'])
-            summaries = input("Ask a question: ")
+                                                            chain_type_kwargs = {"prompt": answer_question_prompt_template})
 
+        question = input("Ask a question: ")
+        while question != "exit":
+            response = chain({"question": question}, return_only_outputs=True)
+            answer = response['answer']
+            print(answer)
+            question = input("Ask a question: ")
+        
 
 def main():
     output_dir = 'examples/end-to-end-examples/support_chatbot/data'
     current_dir = os.path.dirname('examples/end-to-end-examples/support_chatbot')
+    os.environ["MOSAICML_API_TOKEN"] = MOSAICML_API_TOKEN
     if len(sys.argv) < 2:
         raise ValueError("At least one repository URL must be provided as an argument.")
     
-    openAI_key = input("Enter your OpenAI API key: ")
-    os.environ["OPENAI_API_KEY"] = openAI_key
-
     for repo_url in sys.argv[1:]:
         converter = RepoConverter(output_dir, current_dir, repo_url)
         converter.convert_repo()
 
+    embeddings = MosaicMLInstructorEmbeddings()
+    llm = MosaicML(
+        inject_instruction_format=True,
+        model_kwargs={
+            'max_new_tokens':
+                500,  # maximum number of response tokens to generate
+            'do_sample': False,  # perform greedy decoding
+            'use_cache': True
+            # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
+        },
+    )
+
+    api_key = input()
+    os.environ["OPENAI_API_KEY"] = api_key
+
     chatbot = ChatBot(data_path= "examples/end-to-end-examples/support_chatbot/data", 
-                      embedding=OpenAIEmbeddings(), 
-                      model=OpenAI(temperature=0.7, max_tokens=100))
+                      embedding=embeddings, 
+                      #embedding=OpenAIEmbeddings(), 
+                      model=llm)
     chatbot.chat()
 
 if __name__ == "__main__":

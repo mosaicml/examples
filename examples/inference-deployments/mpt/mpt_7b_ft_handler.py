@@ -5,15 +5,108 @@ import argparse
 import configparser
 import copy
 import os
+<<<<<<< HEAD
 from typing import Dict, List, Tuple
+=======
+from typing import Dict, List, Tuple, Optional
+from pathlib import Path
+from urllib.parse import urlparse
+>>>>>>> 679fd5b (small fix)
 
+import boto3
+import botocore
 import torch
+<<<<<<< HEAD
 from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # yapf: disable # type: ignore
+=======
+import torch.distributed as dist
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # yapf: disable # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils import comm  # yapf: disable # type: ignore
+>>>>>>> 679fd5b (small fix)
 from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # yapf: disable # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
+from huggingface_hub import snapshot_download
 
+<<<<<<< HEAD
 LOCAL_CHECKPOINT_PATH = '/tmp/mpt'
+=======
+LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
+LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
+
+
+def download_convert(s3_path: Optional[str] = None,
+                     hf_path: Optional[str] = None,
+                     gpus: int = 1,
+                     force_conversion: bool = False):
+    """Download model and convert to FasterTransformer format.
+
+    Args:
+        s3_path (str): Path for model location in an s3 bucket.
+        hf_path (str): Name of the model as on HF hub (e.g., mosaicml/mpt-7b-instruct) or local folder name containing
+            the model (e.g., mpt-7b-instruct)
+        gpus (int): Number of gpus to use for inference (Default: 1)
+        force_conversion (bool): Force conversion to FT even if some features may not work as expected in FT (Default: False)
+    """
+    if not s3_path and not hf_path:
+        raise RuntimeError(
+            'Either s3_path or hf_path must be provided to download_convert')
+    model_name_or_path: str = ''
+    if s3_path:
+        # s3 creds need to already be present as env vars
+        s3 = boto3.client('s3')
+        model_name_or_path = LOCAL_MODEL_PATH
+
+        # Download model files
+        if os.path.exists(LOCAL_MODEL_PATH):
+            print(
+                f'[+] Path {LOCAL_MODEL_PATH} already exists, skipping download'
+            )
+        else:
+            Path(LOCAL_MODEL_PATH).mkdir(parents=True, exist_ok=True)
+
+            print(f'Downloading model from path: {s3_path}')
+
+            parsed_path = urlparse(s3_path)
+
+            objs = s3.list_objects_v2(
+                Bucket=parsed_path.netloc,
+                Prefix=parsed_path.path.lstrip('/'),
+            )
+            for obj in objs['Contents']:
+                file_key = obj['Key']
+                try:
+                    file_name = os.path.basename(file_key)
+                    s3.download_file(Bucket=parsed_path.netloc,
+                                     Key=file_key,
+                                     Filename=os.path.join(
+                                         LOCAL_MODEL_PATH, file_name))
+                except botocore.exceptions.ClientError as e:
+                    print(
+                        f'Error downloading file with key: {file_key} with error: {e}'
+                    )
+    elif hf_path:
+        print(f'Downloading HF model with name: {hf_path}')
+        model_name_or_path = hf_path
+        snapshot_download(repo_id=hf_path)
+
+    # This is the format the the conversion script saves the converted checkpoint in
+    local_ft_model_path = os.path.join(LOCAL_CHECKPOINT_DIR, f'{gpus}-gpu')
+    ckpt_config_path = os.path.join(local_ft_model_path, 'config.ini')
+
+    # Convert model to FT format
+    # If FT checkpoint doesn't exist, create it.
+    if not os.path.isfile(ckpt_config_path):
+        print('Converting model to FT format')
+        # Datatype of weights in the HF checkpoint
+        weight_data_type = 'fp32'
+        convert_mpt_to_ft(model_name_or_path, LOCAL_CHECKPOINT_DIR, gpus,
+                          weight_data_type, force_conversion)
+        if not os.path.isfile(ckpt_config_path):
+            raise RuntimeError('Failed to create FT checkpoint')
+    else:
+        print(f'Reusing existing FT checkpoint at {local_ft_model_path}')
+>>>>>>> 679fd5b (small fix)
 
 
 class MPTFTModelHandler:
@@ -46,7 +139,7 @@ class MPTFTModelHandler:
     PARAMETERS_KEY = 'parameters'
 
     def __init__(self,
-                 model_name: str,
+                 model_name_or_path: str,
                  ft_lib_path: str,
                  inference_data_type: str = 'bf16',
                  int8_mode: int = 0,
@@ -54,29 +147,25 @@ class MPTFTModelHandler:
         """Fastertransformer model handler for MPT foundation series.
 
         Args:
-            model_name (str): Name of the model as on HF hub (e.g., mosaicml/mpt-7b-instruct).
+            model_name_or_path (str): Name of the model as on HF hub (e.g., mosaicml/mpt-7b-instruct) or local model name (e.g., mpt-7b-instruct)
             ft_lib_path (str): Path to the libth_transformer dynamic lib file(.e.g., build/lib/libth_transformer.so).
             inference_data_type (str): Data type to use for inference (Default: bf16)
             int8_mode (int): The level of quantization to perform. 0: No quantization. All computation in data_type,
                 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32
             gpus (int): Number of gpus to use for inference (Default: 1)
         """
-        self.device = torch.cuda.current_device()
-        self.model_name = model_name
+        self.model_name_or_path = model_name_or_path
 
-        model_path = os.path.join(LOCAL_CHECKPOINT_PATH, f'{gpus}-gpu')
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path,
+                                                       trust_remote_code=True)
+
+        # Make sure the seed on all ranks is the same. This is important.
+        # Multi-gpu generate calls will hang without this.
+        torch.manual_seed(0)
+
+        model_path = os.path.join(LOCAL_CHECKPOINT_DIR, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
-        # If FT checkpoint doesn't exist, create it.
-        if not os.path.isfile(ckpt_config_path):
-            print('Converting model to FT format')
-            # Datatype of weights in the HF checkpoint
-            weight_data_type = 'fp32'
-            convert_mpt_to_ft(self.model_name, LOCAL_CHECKPOINT_PATH, gpus,
-                              weight_data_type, False)
-            if not os.path.isfile(ckpt_config_path):
-                raise RuntimeError('Failed to create FT checkpoint')
-        else:
-            print(f'Reusing existing FT checkpoint at {model_path}')
+
         ckpt_config = configparser.ConfigParser()
         ckpt_config.read(ckpt_config_path)
 
@@ -111,6 +200,9 @@ class MPTFTModelHandler:
 
         self.end_id = end_id
 
+        if not comm.is_model_parallel_initailized():
+            comm.initialize_model_parallel(tensor_para_size, pipeline_para_size)
+
         print('Initializing FasterTransformer')
         self.model = ParallelGPT(
             head_num,
@@ -134,11 +226,13 @@ class MPTFTModelHandler:
         if not self.model.load(ckpt_path=model_path):
             raise RuntimeError(
                 'Could not load model from a FasterTransformer checkpoint')
-
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name,
-                                                       trust_remote_code=True)
         print('FT initialization complete')
 
+<<<<<<< HEAD
+=======
+        self.device = comm.get_device()
+
+>>>>>>> 679fd5b (small fix)
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
@@ -210,6 +304,10 @@ class MPTFTModelHandler:
 
         return generate_inputs, generate_kwargs
 
+<<<<<<< HEAD
+=======
+    @torch.no_grad()
+>>>>>>> 679fd5b (small fix)
     def predict(self, model_requests: List[Dict]) -> List[str]:
         generate_inputs, generate_kwargs = self._parse_model_requests(
             model_requests)
@@ -278,7 +376,34 @@ if __name__ == '__main__':
                         default=1,
                         help='The number of gpus to use for inference.')
 
+    parser.add_argument(
+        '--force',
+        action='store_true',
+        help=
+        'Force conversion to FT even if some features may not work as expected in FT'
+    )
+
     args = parser.parse_args()
+
+    s3_path = None
+    hf_path = None
+    if 's3' in args.name_or_dir:
+        s3_path = args.name_or_dir
+    else:
+        hf_path = args.name_or_dir
+
+    if not comm.is_model_parallel_initailized():
+        # pipeline parallelism is 1 for now
+        comm.initialize_model_parallel(tensor_para_size=args.gpus,
+                                       pipeline_para_size=1)
+
+    if comm.get_rank() == 0:
+        download_convert(s3_path=s3_path,
+                         hf_path=hf_path,
+                         gpus=args.gpus,
+                         force_conversion=args.force)
+    if dist.is_initialized():
+        dist.barrier()
 
     model_handle = MPTFTModelHandler(args.name_or_dir, args.ft_lib_path,
                                      args.inference_data_type, args.int8_mode,
