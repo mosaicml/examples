@@ -4,9 +4,7 @@
 FROM mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
 ARG EXAMPLE
-COPY requirements.txt requirements.txt
-COPY examples/${EXAMPLE}/requirements.txt ${EXAMPLE}-requirements.txt
+COPY examples/${EXAMPLE}/requirements.txt requirements.txt
 
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -r ${EXAMPLE}-requirements.txt && \
+RUN cd ${EXAMPLE} && pip install --no-cache-dir -r requirements.txt && \
     rm requirements.txt ${EXAMPLE}-requirements.txt
