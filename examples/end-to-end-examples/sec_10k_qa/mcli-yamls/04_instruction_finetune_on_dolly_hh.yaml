@@ -14,7 +14,7 @@ integrations:
   git_branch: main # TODO: pin
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
-# Uncomment and fill in to log to WandB, also uncomment the loggers section near the bottom of the yaml
+# Uncomment and fill in to log to WandB. Also uncomment the loggers section near the bottom of the yaml
 # - integration_type: wandb
 #   entity:
 #   project:
