@@ -5,14 +5,12 @@ import argparse
 import configparser
 import copy
 import os
-<<<<<<< HEAD
-from typing import Dict, List, Tuple
-=======
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 from urllib.parse import urlparse
->>>>>>> 679fd5b (small fix)
 
+import boto3
+import botocore
 import boto3
 import botocore
 import torch
@@ -28,9 +26,6 @@ from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
 from huggingface_hub import snapshot_download
 
-<<<<<<< HEAD
-LOCAL_CHECKPOINT_PATH = '/tmp/mpt'
-=======
 LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
 LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
 
@@ -39,15 +34,6 @@ def download_convert(s3_path: Optional[str] = None,
                      hf_path: Optional[str] = None,
                      gpus: int = 1,
                      force_conversion: bool = False):
-    """Download model and convert to FasterTransformer format.
-
-    Args:
-        s3_path (str): Path for model location in an s3 bucket.
-        hf_path (str): Name of the model as on HF hub (e.g., mosaicml/mpt-7b-instruct) or local folder name containing
-            the model (e.g., mpt-7b-instruct)
-        gpus (int): Number of gpus to use for inference (Default: 1)
-        force_conversion (bool): Force conversion to FT even if some features may not work as expected in FT (Default: False)
-    """
     if not s3_path and not hf_path:
         raise RuntimeError(
             'Either s3_path or hf_path must be provided to download_convert')
@@ -106,7 +92,6 @@ def download_convert(s3_path: Optional[str] = None,
             raise RuntimeError('Failed to create FT checkpoint')
     else:
         print(f'Reusing existing FT checkpoint at {local_ft_model_path}')
->>>>>>> 679fd5b (small fix)
 
 
 class MPTFTModelHandler:
@@ -154,14 +139,8 @@ class MPTFTModelHandler:
                 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32
             gpus (int): Number of gpus to use for inference (Default: 1)
         """
-        self.model_name_or_path = model_name_or_path
-
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path,
-                                                       trust_remote_code=True)
-
-        # Make sure the seed on all ranks is the same. This is important.
-        # Multi-gpu generate calls will hang without this.
-        torch.manual_seed(0)
+        self.device = torch.cuda.current_device()
+        self.model_name = model_name
 
         model_path = os.path.join(LOCAL_CHECKPOINT_DIR, f'{gpus}-gpu')
         ckpt_config_path = os.path.join(model_path, 'config.ini')
@@ -226,6 +205,9 @@ class MPTFTModelHandler:
         if not self.model.load(ckpt_path=model_path):
             raise RuntimeError(
                 'Could not load model from a FasterTransformer checkpoint')
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name,
+                                                       trust_remote_code=True)
         print('FT initialization complete')
 
 <<<<<<< HEAD
