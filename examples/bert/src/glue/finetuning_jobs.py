@@ -425,7 +425,7 @@ class QQPJob(GlueClassificationJob):
         scheduler: Optional[ComposerScheduler] = None,
         optimizer: Optional[dict] = None,
         max_sequence_length: Optional[int] = 256,
-        max_duration: Optional[str] = '5ep',
+        max_duration: Optional[str] = '3ep',
         batch_size: Optional[int] = 16,
         load_path: Optional[str] = None,
         save_folder: Optional[str] = None,
