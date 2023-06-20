@@ -10,10 +10,9 @@ replicas: 1 # Number of replicas to use for this run
 integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
-  git_repo: dakinggg/examples # TODO: CHANGE BACK TO MAIN
+  git_repo: mosaicml/examples # TODO: CHANGE BACK TO MAIN
+  git_branch: main
   ssh_clone: false
-  # git_commit: c92d827ebf76dd0a52bcec1ed63c0bab3730764e
-  git_branch: fqa2
 
 # Add the examples folder to the PYTHONPATH so we can import the deployment helper
 # Install composer to use the cloud download helper
