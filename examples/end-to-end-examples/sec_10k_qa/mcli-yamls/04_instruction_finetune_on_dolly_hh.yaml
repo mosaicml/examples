@@ -62,7 +62,13 @@ parameters:
     config_overrides: # Override the default model config (comment this out if you change the model from MPT)
       attn_config:
         attn_impl: triton # Use the triton implementation of attention
-        attn_uses_sequence_id: false # We are not concatenating samples together, so this is false
+        # We are not concatenating samples together, so this is false
+        # If you turn on packing_ratio below, you may want to set this to true
+        # to restrict attention to within each concatenated sequence
+        # Setting this to true does use some additional GPU memory, so for a large model
+        # and/or large max sequence length, you may want to leave it false.
+        # In our runs, we have successfully trained models both with and without this set to true.
+        attn_uses_sequence_id: false
 
   # Tokenizer
   # This section is used by LLM-foundry to construct the tokenizer
@@ -82,6 +88,13 @@ parameters:
       max_seq_len: ${max_seq_len}
       allow_pad_trimming: false
       decoder_only_format: true
+      # Use `python llmfoundry/data/packing.py --yaml-path /path/to/this/yaml/ ...`
+      # to profile this run's optimal packing_ratio as it depends on GPU count,
+      # batch size, sequence length. Turning on packing by setting packing_ratio
+      # here will pack multiple examples into one sequence for increased efficiency.
+      # For the mosaicml/dolly_hhrlhf, 3 is a good packing_ratio that will not cause
+      # any examples to be trimmed.
+      # packing_ratio:
       shuffle: true
     drop_last: true
     num_workers: 8
