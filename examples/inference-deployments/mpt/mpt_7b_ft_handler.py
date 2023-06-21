@@ -22,6 +22,7 @@ from huggingface_hub import snapshot_download
 
 LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
 LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
+HF_COMMIT = 'bbe7a55d70215e16c00c1825805b81e4badb57d7'
 
 
 def download_convert(s3_path: Optional[str] = None,
@@ -77,7 +78,7 @@ def download_convert(s3_path: Optional[str] = None,
     elif hf_path:
         print(f'Downloading HF model with name: {hf_path}')
         model_name_or_path = hf_path
-        snapshot_download(repo_id=hf_path)
+        snapshot_download(repo_id=hf_path, revision=HF_COMMIT)
 
     # This is the format the the conversion script saves the converted checkpoint in
     local_ft_model_path = os.path.join(LOCAL_CHECKPOINT_DIR, f'{gpus}-gpu')
