@@ -236,7 +236,12 @@ class MPTFTModelHandler:
         for param_key in model_request[self.PARAMETERS_KEY]:
             if param_key in self.HF_TO_FT_KWARGS_MAPPING:
                 ft_param_key = self.HF_TO_FT_KWARGS_MAPPING[param_key]
-                if ft_param_key is None:
+                if param_key == 'do_sample':
+                    raise RuntimeError(
+                        f'''do_sample is not supported by FasterTransformers. Instead, you can set
+                        top_k=1 to turn sampling off.'''
+                    )
+                elif ft_param_key is None:
                     raise RuntimeError(
                         f'''{param_key} looks like it may be a HuggingFace generate parameter that is
                         not supported by FasterTransformers.'''
