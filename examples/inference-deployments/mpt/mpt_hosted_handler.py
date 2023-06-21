@@ -100,7 +100,7 @@ def download_convert(s3_path: Optional[str] = None,
 class MPTFTHostedModelHandler:
     # This is what the user request will contain
     INPUT_GENERATE_KWARGS = {
-        'max_new_tokens': 256,
+        'max_tokens': 256,
         'top_p': 0.95,
         'top_k': 50,
         'temperature': 0.8,
@@ -247,8 +247,8 @@ class MPTFTHostedModelHandler:
         # Use the default ft args as the base
         ft_args = copy.deepcopy(self.FT_GENERATE_ARGS)
 
-        # max_new_tokens is called output_len in FasterTransformer
-        ft_args['output_len'] = generate_kwargs['max_new_tokens']
+        # max_tokens is called output_len in FasterTransformer
+        ft_args['output_len'] = generate_kwargs['max_tokens']
 
         # top_p, top_k, and temperature map 1:1
         ft_args['top_p'] = generate_kwargs['top_p']
