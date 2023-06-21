@@ -92,8 +92,9 @@ parameters:
       # to profile this run's optimal packing_ratio as it depends on GPU count,
       # batch size, sequence length. Turning on packing by setting packing_ratio
       # here will pack multiple examples into one sequence for increased efficiency.
-      # For the mosaicml/dolly_hhrlhf, 3 is a good packing_ratio that will not cause
-      # any examples to be trimmed.
+      # For the mosaicml/dolly_hhrlhf and max sequence length 2048,
+      # 3 is a good packing_ratio that will not cause any examples to be trimmed.
+      # As an approximate rule of thumb, if you, for example, double max_seq_len you can double packing_ratio.
       # packing_ratio:
       shuffle: true
     drop_last: true
