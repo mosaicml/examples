@@ -3,13 +3,14 @@
 
 import os
 import shutil
+from tqdm import tqdm
 
 from git.repo import Repo
 
 
 class RepoConverter:
     """Converts .md, .py, and .YAML files in git repositories to text files that
-    land in /scripts/train/support_chatbot/data/{REPOSITORY_NAME}
+    land in /scripts/train/support_chatbot/retrieval_data/{REPOSITORY_NAME}
 
     Args:
         output_dir (str): The path of the directory where the converted repository will be saved
@@ -77,7 +78,7 @@ class RepoConverter:
     def yaml_to_txt(self, file_path: (str)) -> None:
         """Given the file_path of a .YAML file in cloned repository, converts it
         to a .txt file and saves it in the same directory structure in
-        /scripts/train/support_chatbot/data/{self.repo_name}
+        /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Args:
             file_path (str): the file_path of a .YAML file in cloned repository
@@ -91,7 +92,7 @@ class RepoConverter:
     def py_to_txt(self, file_path: (str)) -> None:
         """Given the file_path of a .py file in cloned repository, converts it
         to a .txt file and saves it in the same directory structure in
-        /scripts/train/support_chatbot/data/{self.repo_name}
+        /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Args:
             file_path (str): the file_path of a .py file in cloned repository
@@ -105,7 +106,7 @@ class RepoConverter:
     def md_to_txt(self, file_path: (str)) -> None:
         """Given the file_path of a .py file in cloned repository, converts it
         to a .md file and saves it in the same directory structure in
-        /scripts/train/support_chatbot/data/{self.repo_name}
+        /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Args:
             file_path (str): the file_path of a .md file in cloned repository
@@ -136,10 +137,10 @@ class RepoConverter:
     def convert_repo(self) -> str:
         """Given a git repository url clone the repository, then convert all
         repository .yaml, .py, and .md files to .txt files and save them in
-        /scripts/train/support_chatbot/data/{self.repo_name}
+        /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Returns:
-            The path of the converted repository (/scripts/train/support_chatbot/data/{self.repo_name})
+            The path of the converted repository (/scripts/train/support_chatbot/retrieval_data/{self.repo_name})
         """
         # Cloning the repo
         Repo.clone_from(self.repo_url, self.clone_dir)

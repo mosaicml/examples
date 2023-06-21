@@ -1,0 +1,51 @@
+Title: Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and pip install .[gpu], or (2) set your config model.loss_fn=torch_crossentropy.
+Date: 05/2023
+
+Question:
+
+Initializing model...
+Traceback (most recent call last):
+File "/content/llm-foundry/llmfoundry/models/mpt/modeling_mpt.py", line 619, in init
+from flash_attn.losses.cross_entropy import CrossEntropyLoss as FusedCrossEntropyLoss # type: ignore # isort: skip
+File "/usr/local/lib/python3.10/dist-packages/flash_attn/losses/cross_entropy.py", line 9, in
+import xentropy_cuda_lib
+ImportError: /usr/local/lib/python3.10/dist-packages/xentropy_cuda_lib.cpython-310-x86_64-linux-gnu.so: undefined symbol: _ZN3c104cuda20CUDACachingAllocator9allocatorE
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+File "/content/llm-foundry/scripts/train/train.py", line 254, in
+main(cfg)
+File "/content/llm-foundry/scripts/train/train.py", line 144, in main
+model = build_composer_model(cfg.model, tokenizer)
+File "/content/llm-foundry/scripts/train/train.py", line 67, in build_composer_model
+return COMPOSER_MODEL_REGISTRY[model_cfg.name](model_cfg, tokenizer)
+File "/content/llm-foundry/llmfoundry/models/mpt/modeling_mpt.py", line 624, in init
+raise ValueError(
+ValueError: Fused Cross Entropy is not installed. Either (1) have a CUDA-compatible GPU and pip install .[gpu], or (2) set your config model.loss_fn=torch_crossentropy.
+ERROR:composer.cli.launcher:Rank 0 crashed with exit code 1.
+Waiting up to 30 seconds for all training processes to terminate. Press Ctrl-C to exit immediately.
+Global rank 0 (PID 13871) exited with code 1
+ERROR:composer.cli.launcher:Global rank 0 (PID 13871) exited with code 1
+
+Answer:
+
+It looks like you didn't install all the requirements (pip install .[gpu] from the top level dir).
+
+Question:
+
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+torchdata 0.6.0 requires torch==2.0.0, but you have torch 1.13.1 which is incompatible.
+torchaudio 2.0.1+cu118 requires torch==2.0.0, but you have torch 1.13.1 which is incompatible.
+
+it installs the old version of torch
+pip install .[gpu] thats the command i ran
+
+Answer:
+
+Yes the current setup depends on torch==1.13.1
+torch2 has some issues but we will upgrade when these are resolved
+(Note: people have run our repo with torch2, but it does disable some of the features)
+
+I'd recommend creating a new venv (python -m venv venv) and installing the requirements from scratch (pip install .[gpu])
+(you might need to install torch first: pip install torch==1.13.1)

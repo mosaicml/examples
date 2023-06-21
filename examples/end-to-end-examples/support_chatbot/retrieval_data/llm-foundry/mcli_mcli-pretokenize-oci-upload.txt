@@ -1,0 +1,36 @@
+name: c4-2k-pre-tokenized
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: TODO # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use. We use a100_80gb in our experiments
+
+integrations:
+- integration_type: pip_packages
+  # Install necessary oci-cli
+  packages:
+  - oci-cli==3.23.2
+- integration_type: git_repo
+  git_repo: mosaicml/llm-foundry
+  # git_branch:
+  # git_commit: # OR use your commit hash
+  pip_install: '.'
+  ssh_clone: false # Should be true if using a private repo
+
+command: |
+  cd llm-foundry/scripts/data_prep/
+
+  # Run the dataset conversion
+  python convert_dataset_hf.py \
+    --dataset c4 --data_subset en \
+    --out_root ./my-copy-c4 \
+    --splits val_small val train_small train \
+    --concat_tokens 2048 --tokenizer EleutherAI/gpt-neox-20b --eos_text '<|endoftext|>'
+
+  # Upload the dataset to OCI
+  oci os object bulk-upload \
+    -bn YOUR_BUCKET_HERE --region BUCKET_REGION \
+    --object-prefix c4/base/pretok-neox-2k/ \
+    --src-dir my-copy-c4/

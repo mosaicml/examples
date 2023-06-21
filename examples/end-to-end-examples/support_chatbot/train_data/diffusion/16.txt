@@ -1,0 +1,44 @@
+Title: Inference Code?
+Date: 05/2023
+
+Question:
+
+Hello, can you provide a script to convert a trained model to diffusers ckpt format so I can inference my trained model using diffusers? I want to convert the generated weight so I can load it with StableDiffusionPipeline.from_pretrained().
+
+Answer:
+
+Apologies for the delay! Since this repo, uses diffusers, it's easy to convert the checkpoint. Below is code snippet to save a checkpoint the can be loaded from StablediffusionPipeline.from_pretrained(). Let me know if you have any issues!
+
+import argparse
+
+import torch
+from diffusers import StableDiffusionPipeline
+
+from diffusion.models import stable_diffusion_2
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--load_path', type=str, required=True, help='Path to the checkpoint to convert.')
+parser.add_argument('--save_path', type=str, required=True, help='Path to save the converted checkpoin.')
+args = parser.parse_args()
+
+def main(args):
+    model = stable_diffusion_2(pretrained=False, train_metrics=[], val_metrics=[])
+
+    ckpt = torch.load(args.load_path, map_location="cpu")
+
+    model.load_state_dict(ckpt["state"]["model"])
+
+    pipe = StableDiffusionPipeline(
+        vae=model.vae,
+        text_encoder=model.text_encoder,
+        tokenizer=model.tokenizer,
+        unet=model.unet,
+        scheduler=model.inference_scheduler,
+        safety_checker=None,
+        feature_extractor=None,
+        requires_safety_checker=False,
+    )
+    pipe.save_pretrained(args.save_path)
+
+if __name__ == "__main__":
+    main(args)

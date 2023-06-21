@@ -1,0 +1,10 @@
+Title: NaN loss after 6K steps with batch size 2048
+Date: 06/2023
+
+Question:
+
+Hi, I got NaN loss during the training of SD-2-base-256.yaml
+
+Answer:
+
+Try adding gradient clipping to avoid the NaN loss

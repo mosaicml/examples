@@ -1,0 +1,14 @@
+Title: How long does it take to run laion_cloudwriter.py and precompute_latents.py for aesthetic-4.5
+Date: 06/2023
+
+Question:
+
+Hope this finds you well.
+I am trying to run laion_cloudwriter.py and precompute_latents.py on the aesthetic-4.5 dataset. However, I found that it takes very long time to finish these two tasks. For example, laion_cloudwriter.py takes about 80 seconds for each parquet file (the row data), while the whole dataset contains about 25K parquet files.
+Thanks in advance.
+
+Answer:
+
+Are you downloading the data and running laion_cloudwriter.py at the same time? It does take a lot of time to run, but this will depend on the number of CPUs, network bandwidth, disk I/O, etc. We need to dig up the exact time it took us, but it will vary greatly based on the machine specs you are using.
+
+Since the parquets can be processed in parallel, we divided the parquets into 4 subsets and processed each subset on a different machine. If you have access to more than one machine, I highly recommend this strategy. Our Streaming library can seamlessly use multiple streaming datasets, so no need to combine separately processed streaming datasets.

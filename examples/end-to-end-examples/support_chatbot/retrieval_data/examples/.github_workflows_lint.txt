@@ -1,0 +1,49 @@
+name: Lint
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+  workflow_dispatch: {}
+defaults:
+  run:
+    working-directory: .
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python_version:
+        - '3.9'
+        subdir:
+        - benchmarks/bert
+        - benchmarks/resnet_cifar
+        - benchmarks/deeplab
+        - benchmarks/resnet_imagenet
+        - end-to-end-examples/sec_10k_qa
+        - end-to-end-examples/stable_diffusion
+        - end-to-end-examples/stable_diffusion_dreambooth
+        - third-party/nemo
+        - third-party/gpt_neox
+        - third-party/trlx
+        - inference-deployments/instructor
+        - inference-deployments/mosaic_diffusion
+        - inference-deployments/mpt
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python_version }}
+    - name: Setup
+      run: |
+        set -ex
+        python -m pip install --upgrade 'pip<23' wheel
+    - name: Lint
+      run: |
+        bash scripts/lint_subdirectory.sh ${{ matrix.subdir }}

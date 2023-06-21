@@ -1,0 +1,18 @@
+name: sd-o1ema
+gpu_num: 1
+gpu_type: a100_40gb
+image: mosaicml/inference:latest
+replicas: 1
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/diffusion
+  git_commit: e36f068e33115090a6d59e5a6652148b63ecf32c
+  pip_install: .[all]
+- integration_type: git_repo
+  git_repo: mosaicml/inference-model-registry
+model:
+  downloader: mosaic_diffusion.download_model
+  model_handler: examples.inference-deployments.mosaic_diffusion.mosaic_diffusion_handler.StableDiffusionHandler
+command: |
+  cd examples
+  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080

@@ -1,0 +1,21 @@
+Title: No initialize_dist in precompute_latent.py
+Date: 06/2023
+
+Question:
+
+I got this error running mainline precompute_latent.py with composer,
+
+RuntimeError: The world_size(8) > 1, but the distributed package is not available or has not been initialized. Please check y$
+u have initialized the distributed runtime and that PyTorch has been built with distributed support. If calling this function
+outside Trainer, please ensure that `composer.utils.dist.initialize_dist` has been called first.
+My understanding is that I need add dist.intialize_dist(device, timeout) right after get_device()
+is this understanding correct? Thanks
+
+Answer:
+
+I believe that's correct, it looks like we're missing dist.initialize_dist. If you call
+
+from composer.utils import dist
+
+dist.initialize_dist('gpu')
+that should work. Let me know if you have any issues!

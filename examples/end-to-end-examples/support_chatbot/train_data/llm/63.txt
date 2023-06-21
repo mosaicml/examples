@@ -1,0 +1,24 @@
+Title: Issues following instructions on Ubuntu 22.04
+Date: 05/2023
+
+Question:
+
+Hi,
+
+I could do with a pointer on what's going wrong here. I've followed instructions, and somehow ended up with Torch 1.13.1 when I think it needs 2.x
+
+Answer:
+
+This repo is currently on torch 1.13.1. Try manually installing torch 1.13.1 (https://pytorch.org/get-started/previous-versions/#v1131) before installing llmfoundry.
+
+Question:
+
+Thank you for the help. That got rid of the torch error (on installation of llm-foundry), but still I have the line:
+
+trainer 0.0.20 requires protobuf<3.20,>=3.9.2, but you have protobuf 3.20.3 which is incompatible
+
+Unfortunately I wasn't able to find any obvious answer while searching, and I've found randomly trying things rarely gets me there with python dependency issues
+
+Answer:
+
+It looks like trainer is a package you have unrelated to foundry. I'd suggest trying out foundry in a new, clean environment.

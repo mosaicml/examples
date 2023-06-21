@@ -1,0 +1,16 @@
+Title: Configs say optimizer is AdamW but blog post says the optimizer is LION
+Date: 05/2023
+
+Question:
+
+The training configs (e.g. https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/yamls/mpt/7b.yaml#L60) say the optimizer is decoupled_adamw, which calls through to here returning a DecoupledAdamW. The announcement blog post says all the models are trained with the LION optimizer:
+
+We also train our MPT models with [the Lion optimizer](https://arxiv.org/abs/2302.06675) rather than AdamW,
+which provides stable update magnitudes and cuts optimizer state memory in half.
+Are the training config yamls in this repository supposed to be the ones used for the MPT training runs? If not, will the actual configs be made available?
+Relatedly: I noticed that the linked config shows weight_decay: 0.0. Is that also correct for the official MPT models on Huggingface?
+We'd also be interested in seeing the configs for how llm-foundry was used to fine-tune storywriter (long context) on 8xA100.
+
+Answer:
+
+The scripts in the repo are just examples to show all the fields that are available for you to set. They aren't the configs for the actual hero run. We make those configs available to our customers.

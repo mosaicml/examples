@@ -1,0 +1,218 @@
+Title: Finetuning
+Date: 05/2023
+
+Hi Team, I tried the finetuning code given in repo with 7b_dolly_sft.yaml, I ran for one epoch. Please find the details below:
+
+[epoch=1][batch=927/927]:
+Train time/batch: 926
+Train time/sample: 59238
+Train time/batch_in_epoch: 926
+Train time/sample_in_epoch: 59238
+Train time/token: 121319424
+Train time/token_in_epoch: 121319424
+Train memory/allocated_mem: 57.2720
+Train memory/active_mem: 57.2720
+Train memory/inactive_mem: 4.2835
+Train memory/reserved_mem: 78.8820
+Train memory/alloc_retries: 1
+Train trainer/device_train_microbatch_size: 8
+Train loss/train/total: 5.4634
+Train metrics/train/LanguageCrossEntropy: 5.4463
+Train metrics/train/LanguagePerplexity: 231.9032
+Train throughput/batches_per_sec: 0.0554
+Train throughput/samples_per_sec: 3.4448
+Train throughput/device/batches_per_sec: 0.0277
+Train throughput/device/samples_per_sec: 1.7224
+Train throughput/flops_per_sec: 304591151416294.6250
+Train throughput/device/flops_per_sec: 152295575708147.3125
+Train throughput/device/mfu: 0.4881
+Train time/train: 4.8149
+Train time/val: 0.0000
+Train time/total: 4.8149
+
+After that converted the composer checkpoint into a standard HF checkpoint folder using the convert_composer_to_hf.py .
+And tried running the inference code as given in repo:
+
+python hf_generate.py --name_or_path hf_test_model --temperature 1.0 --top_p 0.95 --top_k 50 --seed 1 --max_new_tokens 256 --prompts "Who invented Ford vehicles ?"
+
+But I am not sure why I am getting grabage output, please find the logs below :
+
+python hf_generate.py --name_or_path hf_test_model --temperature 1.0 --top_p 0.95 --top_k 50 --seed 1 --max_new_tokens 256 --prompts "Who invented Ford vehicles ?"
+Loading HF Config...
+Explicitly passing a revision is encouraged when loading a configuration with custom code to ensure no malicious code has been contributed in a newer revision.
+Loading HF model to device=cuda:0 and dtype=torch.bfloat16...
+Explicitly passing a revision is encouraged when loading a model with custom code to ensure no malicious code has been contributed in a newer revision.
+You are using config.init_device='cpu', but you can also use config.init_device="meta" with Composer + FSDP for fast initialization.
+n_params=6658859008
+
+Loading HF tokenizer...
+
+Generate kwargs:
+{'max_new_tokens': 256, 'temperature': 1.0, 'top_p': 0.95, 'top_k': 50, 'use_cache': True, 'do_sample': True, 'eos_token_id': 0, 'pad_token_id': 0}
+
+Tokenizing prompts...
+NOT using autocast...
+Warming up...
+Generating responses...
+####################################################################################################
+Who invented Ford vehicles ?term that of of, state. people than to of that of state is " health people people to people a country time of people, and American important known known first the in are known of. the country include modern people the state of people, as people. A, on of the one of a group of his. B-.
+####################################################################################################
+
+Can you please guide if I am going somewhere wrong?
+
+I don't see any warnings on layer weights. Please find the training logs below:
+
+Initializing model...
+cfg.n_params=6.66e+09
+Building train loader...
+Using pad_token, but it is not set yet.
+No preprocessor was supplied and no preprocessing function is registered for dataset name "mosaicml/dolly_hhrlhf". No additional preprocessing will be applied. If the dataset is already formatted correctly, you can ignore this message.
+Found cached dataset parquet (/home/anamikac/.cache/huggingface/datasets/mosaicml___parquet/mosaicml--dolly_hhrlhf-9d0c74ee24e2b1d0/0.0.0/2a3b91fbd88a2c90d1dbbb32b460cf621d31bd5b05b934492fdef7d8d6f236ec)
+Loading cached processed dataset at /home/anamikac/.cache/huggingface/datasets/mosaicml___parquet/mosaicml--dolly_hhrlhf-9d0c74ee24e2b1d0/0.0.0/2a3b91fbd88a2c90d1dbbb32b460cf621d31bd5b05b934492fdef7d8d6f236ec/cache-3bcd1e44cf82aa63.arrow
+Building eval loader...
+Building trainer...
+/home/anamikac/anaconda3/envs/mpt-train/lib/python3.10/site-packages/composer/optim/scheduler.py:681: UserWarning: The warmup duration is 0. If you specified warmup as a fraction of total
+training duration, take note that the warmup duration is calculated in the
+same unit as the trainer's max_duration parameter.
+warnings.warn(
+Logging config...
+max_seq_len: 2048
+global_seed: 17
+run_name: llm
+model:
+name: mpt_causal_lm
+init_device: meta
+d_model: 4096
+n_heads: 32
+n_layers: 32
+expansion_ratio: 4
+max_seq_len: ${max_seq_len}
+vocab_size: 50368
+attn_config:
+attn_impl: triton
+tokenizer:
+name: EleutherAI/gpt-neox-20b
+kwargs:
+model_max_length: ${max_seq_len}
+train_loader:
+name: finetuning
+dataset:
+hf_name: mosaicml/dolly_hhrlhf
+split: train
+max_seq_len: ${max_seq_len}
+allow_pad_trimming: false
+decoder_only_format: true
+shuffle: true
+drop_last: true
+num_workers: 8
+pin_memory: false
+prefetch_factor: 2
+persistent_workers: true
+timeout: 0
+scheduler:
+name: linear_decay_with_warmup
+t_warmup: 0ba
+alpha_f: 0
+optimizer:
+name: decoupled_adamw
+lr: 1.0e-05
+betas:
+
+0.9
+0.999
+eps: 1.0e-08
+weight_decay: 0
+algorithms:
+gradient_clipping:
+clipping_type: norm
+clipping_threshold: 1.0
+max_duration: 1ep
+eval_interval: 1
+global_train_batch_size: 64
+seed: ${global_seed}
+device_eval_batch_size: 8
+device_train_microbatch_size: 8
+precision: amp_bf16
+fsdp_config:
+sharding_strategy: FULL_SHARD
+mixed_precision: PURE
+activation_checkpointing: true
+activation_checkpointing_reentrant: false
+activation_cpu_offload: false
+limit_all_gathers: true
+verbose: false
+progress_bar: false
+log_to_console: true
+console_log_interval: 1ba
+callbacks:
+speed_monitor:
+window_size: 10
+lr_monitor: {}
+memory_monitor: {}
+runtime_estimator: {}
+save_interval: 500ba
+save_num_checkpoints_to_keep: 1
+save_folder: /home/anamikac/llm-foundry/scripts/llm/checkpoints
+dist_timeout: 600.0
+n_gpus: 2
+device_train_batch_size: 32
+device_train_grad_accum: 4
+n_params: 6658859008
+Starting training...
+
+Config:
+enabled_algorithms/GradientClipping: true
+node_name: unknown because NODENAME environment variable not set
+num_gpus_per_node: 2
+num_nodes: 1
+rank_zero_seed: 17
+
+/home/anamikac/llm-foundry/llmfoundry/data/finetuning/collator.py:188: UserWarning: Truncating TARGET sequence of length=37 to length=20, so context+target fit max_seq_len=2048. If truncation is a problem, consider increasing max_seq_len.
+warnings.warn(
+/home/anamikac/llm-foundry/llmfoundry/data/finetuning/collator.py:151: UserWarning: Skipping example because CONTEXT length=4385 leaves no room for TARGET tokens because max_seq_len=2048. If this causes downstream issues because of inconsistent batch sizes, consider increasing max_seq_len or using example packing.
+warnings.warn(
+/home/anamikac/anaconda3/envs/mpt-train/lib/python3.10/site-packages/composer/optim/scheduler.py:681: UserWarning: The warmup duration is 0. If you specified warmup as a fraction of total
+training duration, take note that the warmup duration is calculated in the
+same unit as the trainer's max_duration parameter.
+warnings.warn(
+[epoch=1][batch=1/927]:
+Train time/epoch: 0
+Train time/batch: 0
+Train time/sample: 0
+Train time/batch_in_epoch: 0
+Train time/sample_in_epoch: 0
+Train time/token: 0
+Train time/token_in_epoch: 0
+Train memory/allocated_mem: 29.3670
+Train memory/active_mem: 29.3670
+Train memory/inactive_mem: 1.2430
+Train memory/reserved_mem: 71.3950
+Train memory/alloc_retries: 0
+Train trainer/device_train_microbatch_size: 8
+Train loss/train/total: 11.9121
+Train metrics/train/LanguageCrossEntropy: 11.9092
+Train metrics/train/LanguagePerplexity: 148630.7969
+Train time/train: 0.0058
+Train time/val: 0.0000
+Train time/total: 0.0058
+
+Answer:
+
+I see you are building an mpt_causal_lm model but I do not see a load_path. This looks like the run is starting from a randomly initialized MPT model and finetuning on the Dolly dataset, which would explain the poor results. This 7b_dolly_sft.yaml YAML was intended to reference a Composer checkpoint that had been pre-trained. Without the load_path, it's just starting from scratch.
+
+If you'd like to start from our MPT-7B base model on the HF Hub, you just need to make some small changes to the training config. Instead of defining an mpt_causal_lm from scratch, you'll reference the HF Hub model like so:
+
+model:
+    name: hf_causal_lm
+    device: cpu
+    pretrained: true
+    pretrained_model_name_or_path: mosaicml/mpt-7b
+In this situation, since you are loading the model definition and weights (pretrained: true) directly from HF Hub, there is no need for a Composer checkpoint aka no need for a load_path.
+
+The primary issue here is certainly the from-scratch fine-tuning. Once you have fine-tuned from the mosaicml/mpt-7b weights, you will also want to make sure that your prompts are formatted correctly, which hf_generate.py will not do any prompt formatting for you.
+
+The 7b_dolly_sft.yaml config uses a dataset which our finetuning code automatically reformats, so that prompt instructions get wrapped like so:
+
+PROMPT_FORMAT = 'Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n{instruction}\n\n### Response:\n'
+prompt = PROMPT_FORMAT.format(instruction=instruction)
+At inference time, make sure you structure your prompt with the same format to get the best results!

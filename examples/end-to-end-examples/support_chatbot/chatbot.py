@@ -7,14 +7,14 @@ import pickle
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores import FAISS
 from langchain.embeddings import MosaicMLInstructorEmbeddings
-from langchain.chains import RetrievalQAWithSourcesChain, LLMChain
+from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.llms import MosaicML
 from langchain.schema import Document
 from tqdm import tqdm
 from typing import Any
-from getpass import getpass
+#from getpass import getpass
 
-MOSAICML_API_TOKEN = getpass()
+#MOSAICML_API_TOKEN = getpass()
 MOSAICML_MAX_LENGTH = 2048
 
 class ChatBot:
@@ -39,7 +39,7 @@ class ChatBot:
 
    from langchain.embeddings import MosaicMLInstructorEmbeddings
    from langchain.llms import MosaicML
-   chatbot = ChatBot(data_path= "examples/end-to-end-examples/support_chatbot/data",
+   chatbot = ChatBot(data_path= "examples/end-to-end-examples/support_chatbot/retrieval_data",
                    embedding=MosaicMLInstructorEmbeddings(),
                    k=3,
                    model=MosaicML())
@@ -53,7 +53,7 @@ class ChatBot:
                 model: Any,
                 k: int = 4,
                 chunk_size: int = 1000,
-                chunk_overlap: int = 100,
+                chunk_overlap: int = 200,
                 ) -> None:
       
        self.data_path = data_path
@@ -128,23 +128,19 @@ class ChatBot:
 
 
        txt_embeddings = []
-       meta_stores = []
-
 
        for batch in tqdm(content_batches, desc='Embedding documents', total=len(content_batches)):
            batch_embeddings = self.embedding.embed_documents([p.page_content for p in batch])
            txt_embeddings.extend(list(zip([p.page_content for p in batch], batch_embeddings)))
-           meta_stores.extend([p.metadata for p in batch])
-
 
        # Component for storing the embeddings in a vector store, using FAISS
        vector_store = FAISS.from_embeddings(
            text_embeddings=txt_embeddings,
-           metadatas=meta_stores,
+           metadatas=[p.metadata for p in pages],
            embedding=self.embedding
        )
       
-       with open('examples/end-to-end-examples/support_chatbot/data/vectors.pickle', 'wb') as f:
+       with open('examples/end-to-end-examples/support_chatbot/retrieval_data/vectors.pickle', 'wb') as f:
            pickle.dump(vector_store, f)
 
 
@@ -170,11 +166,10 @@ class ChatBot:
        answer_question_string_template = (
            f'Return a robust answer to the question by first summarizing the object of the request and '
             'answer the prompt. If you do not know, just say "I do not know".'
-           '\nQuestion: {summaries}')
+            '\nQuestion: {summaries}')
        answer_question_prompt_template = PromptTemplate(
            template=answer_question_string_template,
            input_variables=['summaries'])
-
 
        chain = RetrievalQAWithSourcesChain.from_chain_type(llm=self.model,
                                                            retriever=retriever,
@@ -189,14 +184,16 @@ class ChatBot:
            question = input("Ask a question: ")
 
 def main():
-   output_dir = 'examples/end-to-end-examples/support_chatbot/data'
+   output_dir = 'examples/end-to-end-examples/support_chatbot/retrieval_data'
    current_dir = os.path.dirname('examples/end-to-end-examples/support_chatbot')
-   os.environ["MOSAICML_API_TOKEN"] = MOSAICML_API_TOKEN
+   #os.environ["MOSAICML_API_TOKEN"] = MOSAICML_API_TOKEN
    if len(sys.argv) < 2:
        raise ValueError("At least one repository URL must be provided as an argument.")
   
    for repo_url in sys.argv[1:]:
        converter = RepoConverter(output_dir, current_dir, repo_url)
+       if os.path.exists(converter.clone_dir):
+           continue
        converter.convert_repo()
 
 
@@ -211,12 +208,11 @@ def main():
        },
    )
 
-
-   chatbot = ChatBot(data_path= "examples/end-to-end-examples/support_chatbot/data",
+   chatbot = ChatBot(data_path= "examples/end-to-end-examples/support_chatbot/retrieval_data",
                      embedding=embeddings,
                      model=llm,
                      k=3,
-                     chunk_size=2000)
+                     chunk_size=2500)
    chatbot.chat()
 
 

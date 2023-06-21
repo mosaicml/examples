@@ -1,0 +1,17 @@
+Title: Installation issue
+Date: 05/2023
+
+Question:
+
+Cannot run python data_prep/convert_dataset_hf.py   --dataset c4 --data_subset en   --out_root my-copy-c4 --splits train_small val_small   --concat_tokens 2048 --tokenizer EleutherAI/gpt-neox-20b --eos_text '<|endoftext|>'
+
+Getting Traceback (most recent call last): File "/home/ighodgao/llm-foundry/scripts/data_prep/convert_dataset_hf.py", line 14, in <module> from streaming import MDSWriter ModuleNotFoundError: No module named 'streaming'
+
+pip3 install streaming returns a ModuleNotFound error for Cython, which I then install manually but then am not able to install streaming due to more installation problems..
+
+I am in a python venv and have installed requirements already as outlined in the docs.
+
+Answer:
+
+The name when installing is different than importing,
+pip install mosaicml-streaming

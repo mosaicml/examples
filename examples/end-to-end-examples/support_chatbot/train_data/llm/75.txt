@@ -1,0 +1,36 @@
+Title: does it work on local machine or someone with limited resources
+Date: 05/2023
+
+Question:
+
+does it work on my local machine or is necessary in need GPU for it to run this model?
+
+I tried to load a model on my local machine with 15GB of ram but it's stuck model loading because of the size of the model.
+
+Is there any way to run it on the local machine? if so please guide me on what the additional parameter needs to pass
+
+`
+import transformers
+import torch
+config = transformers.AutoConfig.from_pretrained(
+'mosaicml/mpt-7b',
+trust_remote_code=True
+)
+
+config.attn_config['attn_impl'] = 'triton'
+
+model = transformers.AutoModelForCausalLM.from_pretrained(
+'mosaicml/mpt-7b',
+trust_remote_code=True,
+config=config,
+torch_dtype=torch.bfloat16
+)
+model.to(device='cuda:0')
+`
+
+Answer:
+
+It should work on a local machine with enough RAM. I have just tried this on my machine with 16 GB of RAM (no GPU). It loaded successfully. Each parameter is 2 bytes (bf16 = 16 bits) * 7B parameters ≈ 14 GB. I don't know why this wouldn't work on your machine, but it is possible that accounting for some overhead, 15 GB is not quite enough RAM.
+You might be able to load it w/ 15 GB of RAM, but I don' think you will have enough memory left to actually run it or train it.
+
+The llm-foundry code generally works on my local machine (16GB RAM, no GPUs), but I am limited to using small models.
