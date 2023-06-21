@@ -125,7 +125,8 @@ class MPTFTModelHandler:
 
     HF_TO_FT_KWARGS_MAPPING = {
         'max_new_tokens': 'output_len',
-        'num_beams': 'beam_width'
+        'num_beams': 'beam_width',
+        'do_sample': None
     }
 
     INPUT_KEY = 'input'
@@ -234,11 +235,18 @@ class MPTFTModelHandler:
 
         for param_key in model_request[self.PARAMETERS_KEY]:
             if param_key in self.HF_TO_FT_KWARGS_MAPPING:
-                raise RuntimeError(
-                    f'''{param_key} is not a parameter supported by FasterTransformers.
-                    It looks like it may be HF generate parameter. Please conside using
-                    {self.HF_TO_FT_KWARGS_MAPPING[param_key]} instad.'''
-                )
+                ft_param_key = self.HF_TO_FT_KWARGS_MAPPING[param_key]
+                if ft_param_key is None:
+                    raise RuntimeError(
+                        f'''{param_key} looks like it may be a HF generate parameter that is
+                        not supported by FasterTransformers.'''
+                    )
+                else:
+                    raise RuntimeError(
+                        f'''{param_key} is not a parameter supported by FasterTransformers.
+                        It looks like it may be HF generate parameter. Please conside using
+                        {ft_param_key} instad.'''
+                    )
 
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         generate_input = model_request[self.INPUT_KEY]
