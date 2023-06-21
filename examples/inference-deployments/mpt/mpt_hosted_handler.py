@@ -132,7 +132,7 @@ class MPTFTHostedModelHandler:
         'random_seed': True
     }
 
-    INPUT_KEY = 'inputs'
+    INPUT_KEY = 'input'
     PARAMETERS_KEY = 'parameters'
 
     def __init__(self,
