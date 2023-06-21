@@ -123,6 +123,11 @@ class MPTFTModelHandler:
         'random_seed': True
     }
 
+    HF_TO_FT_KWARGS_MAPPING = {
+        'max_new_tokens': 'output_len',
+        'num_beams': 'beam_width'
+    }
+
     INPUT_KEY = 'input'
     PARAMETERS_KEY = 'parameters'
 
@@ -218,11 +223,24 @@ class MPTFTModelHandler:
 
         self.device = comm.get_device()
 
-    def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
+    def _validate_inputs(self, model_request: Dict) -> None:
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
                 f'"{self.INPUT_KEY}" must be provided to generate call')
 
+        if self.PARAMETERS_KEY not in model_request:
+            raise RuntimeError(
+                f'"{self.PARAMETERS_KEY}" must be provided to generate call')
+
+        for param_key in model_request[self.PARAMETERS_KEY]:
+            if param_key in self.HF_TO_FT_KWARGS_MAPPING:
+                raise RuntimeError(
+                    f'''{param_key} is not a parameter supported by FasterTransformers.
+                    It looks like it may be HF generate parameter. Please conside using
+                    {self.HF_TO_FT_KWARGS_MAPPING[param_key]} instad.'''
+                )
+
+    def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         generate_input = model_request[self.INPUT_KEY]
 
         # Set default generate kwargs
