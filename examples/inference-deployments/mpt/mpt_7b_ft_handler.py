@@ -152,6 +152,7 @@ class MPTFTModelHandler:
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path,
                                                        trust_remote_code=True)
+        self.tokenizer.eos_token_id = '<|im_end|>'
 
         # Make sure the seed on all ranks is the same. This is important.
         # Multi-gpu generate calls will hang without this.
