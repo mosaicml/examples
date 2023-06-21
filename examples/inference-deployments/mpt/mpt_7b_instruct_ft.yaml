@@ -7,12 +7,10 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: 75e068f90c613a2cced553c5dc449d98c5470454
-  ssh_clone: false
+  git_commit: 4414b7959e9baf5fc74435f190bc03606fd6d790
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
   git_commit: 2c92faa5ce31888214bdb582ac7f5756d0d3dacd
-  ssh_clone: false
 model:
   backend: faster_transformers
   downloader: examples.inference-deployments.mpt.mpt_7b_ft_handler.download_convert

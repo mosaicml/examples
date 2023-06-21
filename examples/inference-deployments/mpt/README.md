@@ -1,9 +1,14 @@
 ## Inference with MPT-7B
 
+<<<<<<< HEAD
+[MosaicML’s inference service](https://www.mosaicml.com/blog/inference-launch) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a family of 6.7B parameter large language models, including the base model, an instruction finetuned variant, and a variant finetuned on long context books. Check out [this link](https://www.mosaicml.com/blog/mpt-7b) for more information!
+
+=======
 [MosaicML’s inference service](https://www.mosaicml.com/inference) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to use MPT-7B, a family of 6.7B parameter large language models, including the base model, an instruction fine-tuned variant, and a variant fine-tuned on long context books.
 
 Check out [this blog post](https://www.mosaicml.com/blog/mpt-7b) for more information!
 
+>>>>>>> 679fd5b (small fix)
 You’ll find in this folder:
 
 - Model YAMLS - read [docs](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) for an explanation of each field.
@@ -127,7 +132,11 @@ llm_chain.run(question)
 | top_p | float | no | 0.95 | Defines the tokens that are within the sample operation of text generation. Add tokens in the sample for more probable to least probable until the sum of the probabilities is greater than top_p |
 | temperature | float | no | 0.8 | The temperature of the sampling operation. 1 means regular sampling, 0 means always take the highest score, 100.0 is getting closer to uniform probability |
 | max_length | int | no | 256 | Defines the maximum length in tokens of the output summary |
+<<<<<<< HEAD
+| use_cache | bool | no | true | Whether to use KV cacheing during autoregressive decoding. This will use more memory but improve speed |
+=======
 | use_cache | bool | no | true | Whether to use KV caching during autoregressive decoding. This will use more memory but improve speed |
+>>>>>>> 679fd5b (small fix)
 | do_sample | bool | no | true | Whether or not to use sampling, use greedy decoding otherwise |
 
 
@@ -143,6 +152,15 @@ llm_chain.run(question)
 
 ## Before you go
 
+<<<<<<< HEAD
+Your deployments will be live and using resources until you manually shut them down. Remember to run:
+```
+mcli delete deployment --name <deployment_name>
+```
+
+## What's Next
+ - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, finetune, evaluate and deploy LLMs.
+=======
 Your deployments will be live and using resources until you manually shut them down. In order to delete your deployment, remember to run:
 ```
 mcli delete deployment --name <deployment_name>
@@ -150,6 +168,7 @@ mcli delete deployment --name <deployment_name>
 
 ## What's Next
  - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, fine-tune, evaluate and deploy LLMs.
+>>>>>>> 679fd5b (small fix)
  - Check out the [Prompt Engineering Guide](https://www.promptingguide.ai) to better understand LLMs and how to use them.
 
 

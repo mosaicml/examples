@@ -1,7 +1,13 @@
 name: mpt-7b-storywriter
 gpu_num: 1
+<<<<<<< HEAD
+gpu_type: a100_40gb
+image: mosaicml/inference:0.0.96
+replicas: 1
+=======
 gpu_type: a10
 image: mosaicml/inference:0.0.96
+>>>>>>> 679fd5b (small fix)
 command: |
   export PYTHONPATH=$PYTHONPATH:/code/examples
 integrations:
