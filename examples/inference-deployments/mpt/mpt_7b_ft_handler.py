@@ -238,13 +238,13 @@ class MPTFTModelHandler:
                 ft_param_key = self.HF_TO_FT_KWARGS_MAPPING[param_key]
                 if ft_param_key is None:
                     raise RuntimeError(
-                        f'''{param_key} looks like it may be a HF generate parameter that is
+                        f'''{param_key} looks like it may be a HuggingFace generate parameter that is
                         not supported by FasterTransformers.'''
                     )
                 else:
                     raise RuntimeError(
                         f'''{param_key} is not a parameter supported by FasterTransformers.
-                        It looks like it may be HF generate parameter. Please conside using
+                        It looks like it may be a HuggingFace generate parameter. Please conside using
                         {ft_param_key} instad.'''
                     )
 
