@@ -132,7 +132,7 @@ class MPTFTHostedModelHandler:
         'random_seed': True
     }
 
-    INPUT_KEY = 'inputs'
+    INPUT_KEY = 'input'
     PARAMETERS_KEY = 'parameters'
 
     def __init__(self,
@@ -245,7 +245,7 @@ class MPTFTHostedModelHandler:
     def _map_input_generate_params_to_ft_params(self,
                                                 generate_kwargs: Dict) -> Dict:
         # Use the default ft args as the base
-        ft_args = copy.deepcopy(self.FT_GENERATE_ARGS)
+        ft_args = copy.deepcopy(self.FT_GENERATE_KWARGS)
 
         # max_new_tokens is called output_len in FasterTransformer
         ft_args['output_len'] = generate_kwargs['max_new_tokens']
