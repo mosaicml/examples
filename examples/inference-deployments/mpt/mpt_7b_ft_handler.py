@@ -239,19 +239,16 @@ class MPTFTModelHandler:
                 if param_key == 'do_sample':
                     raise RuntimeError(
                         f'''do_sample is not supported by FasterTransformers. Instead, you can set
-                        top_k=1 to turn sampling off.'''
-                    )
+                        top_k=1 to turn sampling off.''')
                 elif ft_param_key is None:
                     raise RuntimeError(
                         f'''{param_key} looks like it may be a HuggingFace generate parameter that is
-                        not supported by FasterTransformers.'''
-                    )
+                        not supported by FasterTransformers.''')
                 else:
                     raise RuntimeError(
                         f'''{param_key} is not a parameter supported by FasterTransformers.
                         It looks like it may be a HuggingFace generate parameter. Please conside using
-                        {ft_param_key} instad.'''
-                    )
+                        {ft_param_key} instad.''')
 
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         generate_input = model_request[self.INPUT_KEY]
