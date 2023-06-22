@@ -314,7 +314,7 @@ class MPTFTModelHandler:
                 token = tokens[beam_id]
                 # stop at end_id; This is the same as eos_token_id
                 token = token[token != self.end_id]
-                output = self.tokenizer.decode(token)
+                output = self.tokenizer.decode(token, skip_special_tokens=True)
                 outputs.append(output)
         return outputs
 
