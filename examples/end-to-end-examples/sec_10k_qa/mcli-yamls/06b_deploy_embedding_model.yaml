@@ -1,9 +1,10 @@
 name: instructor-large
 
-# Deployment configuration
-gpu_num: 1 # Number of GPUs to use
-# cluster: r0z0 # Name of the cluster to use for this run
-gpu_type: a10 # Type of GPU to use.
+compute:
+  # Deployment configuration
+  gpu_num: 1 # Number of GPUs to use
+  # cluster: r0z0 # Name of the cluster to use for this run
+  gpu_type: a10 # Type of GPU to use.
 replicas: 1
 
 
@@ -19,9 +20,8 @@ integrations:
   - sentence-transformers==2.2.2
 
 command: |
-  cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
-
+  export PYTHONPATH=$PYTHONPATH:/code/examples
+  
 model:
   download_parameters:
     hf_path: hkunlp/instructor-large
@@ -29,4 +29,4 @@ model:
   model_parameters:
     model_name: hkunlp/instructor-large
 
-image: mosaicml/inference:0.0.80 # Use the Docker image provided by MosaicML
+image: mosaicml/inference-testing:29eb4d0 # Use the Docker image provided by MosaicML
