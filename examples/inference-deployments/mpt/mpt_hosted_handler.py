@@ -140,7 +140,8 @@ class MPTFTHostedModelHandler:
                  ft_lib_path: str,
                  inference_data_type: str = 'bf16',
                  int8_mode: int = 0,
-                 gpus: int = 1):
+                 gpus: int = 1,
+                 exclude_input_from_output: bool = False):
         """Fastertransformer model handler for MPT foundation series.
 
         Args:
@@ -150,6 +151,7 @@ class MPTFTHostedModelHandler:
             int8_mode (int): The level of quantization to perform. 0: No quantization. All computation in data_type,
                 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32
             gpus (int): Number of gpus to use for inference (Default: 1)
+            exclude_input_from_output (bool): True to exclude input from the model output, false otherwise.
         """
         self.model_name_or_path = model_name_or_path
 
@@ -226,6 +228,8 @@ class MPTFTHostedModelHandler:
         print('FT initialization complete')
 
         self.device = comm.get_device()
+
+        self.exclude_input_from_output = exclude_input_from_output
 
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         if self.INPUT_KEY not in model_request:
@@ -338,11 +342,10 @@ class MPTFTHostedModelHandler:
         outputs = []
         for i, tokens in enumerate(tokens_batch):
             for beam_id in range(generate_kwargs['beam_width']):
+                token = tokens[beam_id]
                 # Exclude context input from the output
-                token = tokens[beam_id][start_lengths[i]:]
-
-                # Do this to exclude context input from the output
-                # token = tokens[beam_id]
+                if self.exclude_input_from_output:
+                    token = token[start_lengths[i]:]
 
                 # stop at end_id; This is the same as eos_token_id
                 token = token[token != self.end_id]
