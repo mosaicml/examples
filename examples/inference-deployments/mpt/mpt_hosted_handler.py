@@ -97,15 +97,24 @@ def download_convert(s3_path: Optional[str] = None,
         print(f'Reusing existing FT checkpoint at {local_ft_model_path}')
 
 
-class MPTFTModelHandler:
+class MPTFTHostedModelHandler:
+    # This is what the user request will contain
+    INPUT_GENERATE_KWARGS = {
+        'max_new_tokens': 256,
+        'top_p': 0.95,
+        'top_k': 50,
+        'temperature': 0.8,
+    }
 
-    DEFAULT_GENERATE_KWARGS = {
+    # These are the args we need to map the user request to before running generate()
+    # with FasterTransformer
+    FT_GENERATE_KWARGS = {
         # Output sequence length to generate.
         'output_len': 256,
         # Beam width for beam search
         'beam_width': 1,
         # top k candidate number
-        'top_k': 0,
+        'top_k': 50,
         # top p probability threshold
         'top_p': 0.95,
         # temperature parameter
@@ -131,7 +140,8 @@ class MPTFTModelHandler:
                  ft_lib_path: str,
                  inference_data_type: str = 'bf16',
                  int8_mode: int = 0,
-                 gpus: int = 1):
+                 gpus: int = 1,
+                 exclude_input_from_output: bool = False):
         """Fastertransformer model handler for MPT foundation series.
 
         Args:
@@ -141,6 +151,7 @@ class MPTFTModelHandler:
             int8_mode (int): The level of quantization to perform. 0: No quantization. All computation in data_type,
                 1: Quantize weights to int8, all compute occurs in fp16/bf16. Not supported when data_type is fp32
             gpus (int): Number of gpus to use for inference (Default: 1)
+            exclude_input_from_output (bool): True to exclude input from the model output, false otherwise.
         """
         self.model_name_or_path = model_name_or_path
 
@@ -218,6 +229,8 @@ class MPTFTModelHandler:
 
         self.device = comm.get_device()
 
+        self.exclude_input_from_output = exclude_input_from_output
+
     def _parse_model_request(self, model_request: Dict) -> Tuple[str, Dict]:
         if self.INPUT_KEY not in model_request:
             raise RuntimeError(
@@ -226,12 +239,27 @@ class MPTFTModelHandler:
         generate_input = model_request[self.INPUT_KEY]
 
         # Set default generate kwargs
-        generate_kwargs = copy.deepcopy(self.DEFAULT_GENERATE_KWARGS)
+        generate_kwargs = copy.deepcopy(self.INPUT_GENERATE_KWARGS)
         # If request contains any additional kwargs, add them to generate_kwargs
         for k, v in model_request.get(self.PARAMETERS_KEY, {}).items():
             generate_kwargs[k] = v
 
         return generate_input, generate_kwargs
+
+    def _map_input_generate_params_to_ft_params(self,
+                                                generate_kwargs: Dict) -> Dict:
+        # Use the default ft args as the base
+        ft_args = copy.deepcopy(self.FT_GENERATE_KWARGS)
+
+        # max_new_tokens is called output_len in FasterTransformer
+        ft_args['output_len'] = generate_kwargs['max_new_tokens']
+
+        # top_p, top_k, and temperature map 1:1
+        ft_args['top_p'] = generate_kwargs['top_p']
+        ft_args['top_k'] = generate_kwargs['top_k']
+        ft_args['temperature'] = generate_kwargs['temperature']
+
+        return ft_args
 
     def _convert_kwargs(self, generate_inputs: List[str],
                         generate_kwargs: Dict):
@@ -281,6 +309,8 @@ class MPTFTModelHandler:
             generate_input, generate_kwarg = self._parse_model_request(req)
             generate_inputs += [generate_input]
 
+            # In the case of batched requests, make sure that all requests in the batch
+            # have the same generate kwargs and if not throw an error
             for k, v in generate_kwarg.items():
                 if k in generate_kwargs and generate_kwargs[k] != v:
                     raise RuntimeError(
@@ -291,8 +321,11 @@ class MPTFTModelHandler:
 
     @torch.no_grad()
     def predict(self, model_requests: List[Dict]) -> List[str]:
-        generate_inputs, generate_kwargs = self._parse_model_requests(
+        generate_inputs, input_generate_kwargs = self._parse_model_requests(
             model_requests)
+        # Map our input generate kwargs to the ones FasterTransformer expects
+        generate_kwargs = self._map_input_generate_params_to_ft_params(
+            input_generate_kwargs)
         self._convert_kwargs(generate_inputs, generate_kwargs)
 
         start_ids = [
@@ -309,15 +342,14 @@ class MPTFTModelHandler:
         outputs = []
         for i, tokens in enumerate(tokens_batch):
             for beam_id in range(generate_kwargs['beam_width']):
+                token = tokens[beam_id]
                 # Exclude context input from the output
-                token = tokens[beam_id][start_lengths[i]:]
-
-                # Do this to exclude context input from the output
-                # token = tokens[beam_id]
+                if self.exclude_input_from_output:
+                    token = token[start_lengths[i]:]
 
                 # stop at end_id; This is the same as eos_token_id
                 token = token[token != self.end_id]
-                output = self.tokenizer.decode(token)
+                output = self.tokenizer.decode(token, skip_special_tokens=True)
                 outputs.append(output)
         return outputs
 
