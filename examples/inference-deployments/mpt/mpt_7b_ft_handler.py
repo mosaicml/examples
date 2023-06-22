@@ -307,11 +307,14 @@ class MPTFTModelHandler:
         start_lengths = torch.IntTensor(start_lengths)
         tokens_batch = self.model(start_ids, start_lengths, **generate_kwargs)
         outputs = []
-        for tokens in tokens_batch:
+        for i, tokens in enumerate(tokens_batch):
             for beam_id in range(generate_kwargs['beam_width']):
-                # Do not exclude context input from the output
-                # token = tokens[beam_id][start_lengths[i]:]
-                token = tokens[beam_id]
+                # Exclude context input from the output
+                token = tokens[beam_id][start_lengths[i]:]
+
+                # Do this to exclude context input from the output
+                # token = tokens[beam_id]
+
                 # stop at end_id; This is the same as eos_token_id
                 token = token[token != self.end_id]
                 output = self.tokenizer.decode(token)
