@@ -6,14 +6,14 @@ from urllib.parse import urlparse
 import os
 import hashlib
 
-MOSAICML_API_TOKEN = getpass()
+#MOSAICML_API_TOKEN = getpass()
 DATA_PATH = 'examples/end-to-end-examples/support_chatbot/retrieval_data/pypi_documentation'
 
 MAX_ENTRIES_PER_FILE = 5000  # Maximum number of entries per file
 
 def main():
     remote_dir = 'oci://mosaicml-internal-datasets/mpt-swe-filtered'
-    local_dir = 'local_dir'
+    local_dir = DATA_PATH
     dataset = StreamingDataset(local=local_dir, remote=remote_dir, split=None, shuffle=False)
     dataloader = DataLoader(dataset)
     os.makedirs(DATA_PATH, exist_ok=True)

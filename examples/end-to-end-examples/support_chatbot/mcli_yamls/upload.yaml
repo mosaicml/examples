@@ -9,8 +9,8 @@ gpu_type: a100_80gb # Type of GPU to use
 integrations:
 # Clone your repository
 - integration_type: git_repo
-  git_repo: https://github.com/KuuCi/examples # TODO: CHANGE THIS TO YOUR GIT REPO URL
-  git_branch: main # TODO: CHANGE THIS TO YOUR BRANCH IF NEEDED
+  git_repo: KuuCi/examples # TODO: CHANGE THIS TO YOUR GIT REPO URL
+  git_branch: support-bot # TODO: CHANGE THIS TO YOUR BRANCH IF NEEDED
   ssh_clone: false # Should be true if using a private repo
   path: /workspace/examples # Tell MCLI what path to clone the repo to
 
