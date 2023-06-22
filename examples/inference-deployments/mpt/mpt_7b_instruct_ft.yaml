@@ -16,10 +16,10 @@ integrations:
   ssh_clone: false
 model:
   backend: faster_transformers
-  downloader: examples.inference-deployments.mpt.mpt_7b_ft_handler.download_convert
+  downloader: examples.inference-deployments.mpt.mpt_ft_handler.download_convert
   download_parameters:
     hf_path: mosaicml/mpt-7b-instruct
-  model_handler: examples.inference-deployments.mpt.mpt_7b_ft_handler.MPTFTModelHandler
+  model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler
   model_parameters:
     model_name_or_path: mosaicml/mpt-7b-instruct
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
