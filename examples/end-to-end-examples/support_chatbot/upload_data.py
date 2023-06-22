@@ -13,14 +13,14 @@ def main(file_path: str, cloud_folder_for_upload: str):
 
     """
     print(os.getcwd())
-    print(os.path.join(os.getcwd(), 'train').listdir())
+    print(os.listdir((os.path.join(os.getcwd(), 'train'))))
     # Create the object store to use for uploading data
     object_store = maybe_create_object_store_from_uri(cloud_folder_for_upload)
     _, _, cloud_folder_prefix = parse_uri(cloud_folder_for_upload)
 
     # Upload the file to the cloud storage
     object_store.upload_object(object_name=os.path.join(cloud_folder_prefix, os.path.basename(file_path)),
-                               filename=os.path.join(os.getcwd(), file_path))
+                               filename=file_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
