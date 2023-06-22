@@ -21,7 +21,7 @@ command: |
   cd /workspace/examples/examples/end-to-end-examples/support_chatbot
   pip install -r requirements.txt
   python upload_data.py \
-    --local_file_path /path/to/your/local/file.jsonl \
+    --local_file_path /train_data/pipeline_testing/coqa.jsonl \
     --cloud_folder_for_upload oci://mosaic-internal-checkpoints/vincent/support_chatbot/data/support-chatbot-large/
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
