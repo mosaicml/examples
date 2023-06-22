@@ -13,7 +13,7 @@ integrations:
   git_commit: dcc4c4dff002d282a2f432ccfcab4b61dc6a53af
 model:
   download_parameters:
-    hf_path: mosaicml/mpt-7b
+    hf_path: mosaicml/mpt-30b
   model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
   model_parameters:
-    model_name: mosaicml/mpt-7b
+    model_name: mosaicml/mpt-30b
