@@ -16,6 +16,7 @@ def main(file_path: str, cloud_folder_for_upload: str):
     print(os.path.abspath(file_path))
     print(os.path.dirname(file_path))
     print(os.path.basename(file_path))
+    print(os. getcwd())
     object_store = maybe_create_object_store_from_uri(cloud_folder_for_upload)
     _, _, cloud_folder_prefix = parse_uri(cloud_folder_for_upload)
 
