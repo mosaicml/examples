@@ -19,8 +19,8 @@ integrations:
   - sentence-transformers==2.2.2
 
 command: |
-  export PYTHONPATH=$PYTHONPATH:/code/examples
-  
+  export PYTHONPATH=$PYTHONPATH:/code/example
+
 model:
   download_parameters:
     hf_path: hkunlp/instructor-large
