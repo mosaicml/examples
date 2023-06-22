@@ -14,6 +14,6 @@ integrations:
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b-storywriter
-  model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
+  model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler
   model_parameters:
     model_name: mosaicml/mpt-7b-storywriter
