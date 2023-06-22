@@ -13,9 +13,9 @@ def main(file_path: str, cloud_folder_for_upload: str):
 
     """
     # Create the object store to use for uploading data
-    print(os.path.abspath())
-    print(os.path.dirname())
-    print(os.path.basename())
+    print(os.path.abspath(file_path))
+    print(os.path.dirname(file_path))
+    print(os.path.basename(file_path))
     object_store = maybe_create_object_store_from_uri(cloud_folder_for_upload)
     _, _, cloud_folder_prefix = parse_uri(cloud_folder_for_upload)
 
