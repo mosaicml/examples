@@ -13,7 +13,7 @@ def main(file_path: str, cloud_folder_for_upload: str):
 
     """
     print(os.getcwd())
-    print(os.listdir((os.path.join(os.getcwd(), 'train'))))
+    print(os.listdir((os.path.join(os.getcwd(), 'train_data'))))
     # Create the object store to use for uploading data
     object_store = maybe_create_object_store_from_uri(cloud_folder_for_upload)
     _, _, cloud_folder_prefix = parse_uri(cloud_folder_for_upload)
