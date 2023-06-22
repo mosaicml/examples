@@ -1,4 +1,4 @@
-name: mpt-30b-ft
+name: mpt-30b-instruct-ft
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
@@ -18,8 +18,8 @@ model:
   backend: faster_transformers
   downloader: examples.inference-deployments.mpt.mpt_ft_handler.download_convert
   download_parameters:
-    hf_path: mosaicml/mpt-30b
+    hf_path: mosaicml/mpt-30b-instruct
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler
   model_parameters:
-    model_name_or_path: mosaicml/mpt-30b
+    model_name_or_path: mosaicml/mpt-30b-instruct
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
