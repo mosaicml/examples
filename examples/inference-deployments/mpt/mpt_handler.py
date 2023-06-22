@@ -13,7 +13,8 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
 class MPTModelHandler():
 
     DEFAULT_GENERATE_KWARGS = {
-        'max_length': 256,
+        'max_length': 256,  # Counts input + output tokens (deprecated)
+        'max_new_tokens': 256,  # Only counts output tokens
         'use_cache': True,
         'do_sample': True,
         'top_p': 0.95,
