@@ -178,11 +178,10 @@ def greet(
         endpoint_url=args.llm_endpoint_url,
         inject_instruction_format=True,
         model_kwargs={
-            'max_new_tokens':
-                200,  # maximum number of response tokens to generate
-            'do_sample': False,  # perform greedy decoding
-            'use_cache': True
-            # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
+            # see examples/inference-deployments/mpt/mpt_ft_handler.py for a description of these arguments.
+            'output_len': 200,  # maximum number of response tokens to generate
+            'top_k': 1,  # perform greedy decoding
+            # other generation parameters can be set as kwargs here to experiment with different decoding parameters
         },
     )
 
