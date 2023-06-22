@@ -1,10 +1,9 @@
 name: instructor-large
 
-compute:
-  # Deployment configuration
-  gpu_num: 1 # Number of GPUs to use
-  # cluster: r0z0 # Name of the cluster to use for this run
-  gpu_type: a10 # Type of GPU to use.
+# Deployment configuration
+gpu_num: 1 # Number of GPUs to use
+# cluster: r0z0 # Name of the cluster to use for this run
+gpu_type: a10 # Type of GPU to use.
 replicas: 1
 
 
