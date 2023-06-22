@@ -5,20 +5,23 @@ import argparse
 import configparser
 import copy
 import os
-from typing import Dict, List, Tuple, Optional
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import boto3
 import botocore
 import torch
 import torch.distributed as dist
-from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import ParallelGPT  # yapf: disable # type: ignore
-from FasterTransformer.examples.pytorch.gpt.utils import comm  # yapf: disable # type: ignore
-from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # yapf: disable # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils import \
+    comm  # yapf: disable # type: ignore
+from FasterTransformer.examples.pytorch.gpt.utils.parallel_gpt import \
+    ParallelGPT  # yapf: disable # type: ignore
+from huggingface_hub import snapshot_download
+from scripts.inference.convert_hf_mpt_to_ft import \
+    convert_mpt_to_ft  # yapf: disable # type: ignore
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer
-from huggingface_hub import snapshot_download
 
 LOCAL_CHECKPOINT_DIR = '/tmp/mpt'
 LOCAL_MODEL_PATH = os.path.join(LOCAL_CHECKPOINT_DIR, 'local_model')
