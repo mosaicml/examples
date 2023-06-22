@@ -1,7 +1,7 @@
-name: mpt-7b-instruct-ft
+name: mpt-30b-instruct-ft
 compute:
-  gpus: 1
-  instance: oci.vm.gpu.a10.1
+  gpus: 2
+  gpu_type: a100_40gb
 image: mosaicml/inference:0.1.1
 replicas: 1
 command: |
@@ -9,7 +9,7 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: dcc4c4dff002d282a2f432ccfcab4b61dc6a53af
+  git_commit: 27230fa1c883c17a2a45a3762239ff7f5b0ef8ce
   ssh_clone: false
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
@@ -19,8 +19,8 @@ model:
   backend: faster_transformers
   downloader: examples.inference-deployments.mpt.mpt_ft_handler.download_convert
   download_parameters:
-    hf_path: mosaicml/mpt-7b-instruct
+    hf_path: mosaicml/mpt-30b-instruct
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler
   model_parameters:
-    model_name_or_path: mosaicml/mpt-7b-instruct
+    model_name_or_path: mosaicml/mpt-30b-instruct
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
