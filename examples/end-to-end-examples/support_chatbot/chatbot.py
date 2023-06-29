@@ -12,9 +12,7 @@ from langchain.llms import MosaicML
 from langchain.schema import Document
 from tqdm import tqdm
 from typing import Any
-#from getpass import getpass
 
-#MOSAICML_API_TOKEN = getpass()
 MOSAICML_MAX_LENGTH = 2048
 
 class ChatBot:
@@ -186,7 +184,6 @@ class ChatBot:
 def main():
    output_dir = 'examples/end-to-end-examples/support_chatbot/retrieval_data'
    current_dir = os.path.dirname('examples/end-to-end-examples/support_chatbot')
-   #os.environ["MOSAICML_API_TOKEN"] = MOSAICML_API_TOKEN
    if len(sys.argv) < 2:
        raise ValueError("At least one repository URL must be provided as an argument.")
   
