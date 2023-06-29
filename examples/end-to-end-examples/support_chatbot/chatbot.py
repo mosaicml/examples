@@ -1,6 +1,6 @@
 import os
 import sys
-from repo_converter import RepoConverter
+from scripts.repo_converter import RepoConverter
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pickle
