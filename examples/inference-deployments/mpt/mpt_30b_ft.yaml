@@ -20,7 +20,10 @@ model:
   downloader: examples.inference-deployments.mpt.mpt_ft_handler.download_convert
   download_parameters:
     hf_path: mosaicml/mpt-30b
+    gpus: 2
+    force_conversion: true
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler
   model_parameters:
     model_name_or_path: mosaicml/mpt-30b
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
+    gpus: 2
