@@ -23,7 +23,10 @@ class MPTModelHandler():
     INPUT_KEY = 'input'
     PARAMETERS_KEY = 'parameters'
 
-    def __init__(self, model_name: str, attn_impl: str = 'torch', clean_up_tokenization_spaces: bool = False):
+    def __init__(self,
+                 model_name: str,
+                 attn_impl: str = 'torch',
+                 clean_up_tokenization_spaces: bool = False):
         self.device = torch.cuda.current_device()
         self.model_name = model_name
         self.clean_up_tokenization_spaces = clean_up_tokenization_spaces
@@ -88,7 +91,10 @@ class MPTModelHandler():
 
         print('Logging input to generate: ', generate_inputs)
         with torch.autocast('cuda', dtype=torch.bfloat16):
-            outputs = self.generator(generate_inputs, clean_up_tokenization_spaces=self.clean_up_tokenization_spaces, **generate_kwargs)
+            outputs = self.generator(
+                generate_inputs,
+                clean_up_tokenization_spaces=self.clean_up_tokenization_spaces,
+                **generate_kwargs)
         return self._extract_output(outputs)
 
     def predict_stream(self, **inputs: Dict):

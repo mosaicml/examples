@@ -1,0 +1,24 @@
+name: replit
+compute:
+  gpus: 1
+  instance: oci.vm.gpu.a10.1
+image: mosaicml/inference:0.1.4
+replicas: 1
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/examples
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  ssh_clone: false
+  git_branch: margaret/mpt-tokenizer-update
+- integration_type: pip_packages
+  packages:
+  - sentencepiece==0.1.99
+  - einops==0.6.1
+model:
+  download_parameters:
+    hf_path: replit/replit-code-v1-3b
+  model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
+  model_parameters:
+    model_name: replit/replit-code-v1-3b
+    clean_up_tokenization_spaces: true
