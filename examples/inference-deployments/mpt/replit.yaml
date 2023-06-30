@@ -10,7 +10,7 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
-  git_branch: margaret/mpt-tokenizer-update
+  git_commit: 63b6e009a36768fcc295c6676c7a775715f45e91
 - integration_type: pip_packages
   packages:
   - sentencepiece==0.1.99
