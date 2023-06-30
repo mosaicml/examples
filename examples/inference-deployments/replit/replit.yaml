@@ -1,0 +1,18 @@
+name: mpt-7b
+compute:
+  gpus: 1
+  instance: oci.vm.gpu.a10.1
+image: mosaicml/inference:0.1.4
+replicas: 1
+# command: |
+#   export PYTHONPATH=$PYTHONPATH:/code/examples
+command: sleep infinity
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  ssh_clone: false
+  git_branch: margaret/replit-example
+model:
+  download_parameters:
+    hf_path: replit/replit-code-v1-3b
+  model_handler: examples.inference-deployments.replit.replit_handler.ReplitModelHandler
