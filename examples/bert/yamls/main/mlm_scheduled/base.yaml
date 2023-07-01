@@ -71,11 +71,13 @@ parameters:
       tokenizer_name: *tokenizer_name
       max_seq_len: *max_seq_len
       group_method: truncate
-      shuffle: false
+      shuffle: true
+      shuffle_seed: 9176
       mlm_schedule:
         name: constant
         initial_mlm_rate: 0.15 # We always evaluate at 15% masking for consistent comparison
         final_mlm_rate: 0.15
+        subset_masking_rate: null
     drop_last: false
     num_workers: 8
 
