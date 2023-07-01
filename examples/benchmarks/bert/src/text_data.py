@@ -4,8 +4,9 @@
 """Build a StreamingTextDataset dataset and dataloader for training."""
 
 import os
+import multiprocessing
 from itertools import islice
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -184,6 +185,23 @@ class StreamingTextDataset(StreamingDataset):
         return token_sample
 
 
+class ScheduledDataCollatorForLanguageModeling(
+        transformers.DataCollatorForLanguageModeling):
+
+    def __init__(self, distributed_mlm_probability: multiprocessing.Value,
+                 *args: Tuple[Any], **kwargs: Dict[str, Any]):
+        super().__init__(*args, **kwargs)
+        self.distributed_mlm_probability = distributed_mlm_probability
+
+    @property
+    def mlm_probability(self):
+        return self.distributed_mlm_probability.value
+
+    @mlm_probability.setter
+    def mlm_probability(self, _):
+        return
+
+
 class ConcatenatedSequenceCollatorWrapper:
     """Collator wrapper to add sequence_id to batch."""
 
@@ -293,11 +311,15 @@ def build_text_dataloader(
         shuffle_seed=cfg.dataset.get('shuffle_seed', 9176),
     )
 
-    mlm_probability = cfg.dataset.get('mlm_probability', None)
-    collate_fn = transformers.DataCollatorForLanguageModeling(
+    mlm_schedule = cfg.dataset.get('mlm_schedule', None)
+    distributed_mlm_probability = None
+    if mlm_schedule:
+        distributed_mlm_probability = multiprocessing.Value(
+            "d", mlm_schedule.initial_masking_rate)
+    collate_fn = ScheduledDataCollatorForLanguageModeling(
         tokenizer=dataset.tokenizer,
-        mlm=mlm_probability is not None,
-        mlm_probability=mlm_probability)
+        mlm=mlm_schedule is not None,
+        distributed_mlm_probability=distributed_mlm_probability)
 
     eos_token_id = cfg.dataset.get('eos_token_id')
     bos_token_id = cfg.dataset.get('bos_token_id')
@@ -318,7 +340,7 @@ def build_text_dataloader(
         prefetch_factor=cfg.get('prefetch_factor', 2),
         persistent_workers=cfg.get('persistent_workers', True),
         timeout=cfg.get('timeout', 0),
-    )
+    ), distributed_mlm_probability
 
 
 # Helpful to test if your dataloader is working locally
