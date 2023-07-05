@@ -1,15 +1,14 @@
 name: instructor-xl
-gpu_num: 1
-gpu_type: a100_40gb
-image: mosaicml/inference:0.0.80
+compute:
+  gpus: 1
+  gpu_type: a100_40gb
+image: mosaicml/inference-testing:29eb4d0
 replicas: 1
-command: |
-  cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
+command:
+  export PYTHONPATH=/code/llm-foundry:/code/examples:/code
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: 55e1bfcbe6984f970e4b951a2d373e0e68962a31
   ssh_clone: false
 - integration_type: pip_packages
   packages:
