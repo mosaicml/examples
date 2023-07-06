@@ -1,2 +1,2 @@
-composer[nlp,streaming,wandb]==0.14.1
-git+https://github.com/mosaicml/llm-foundry.git@main#egg=llm-foundry[gpu] # TODO: main
+composer[nlp,streaming,wandb]==0.15.0
+git+https://github.com/mosaicml/llm-foundry.git@v0.2.0#egg=llm-foundry[gpu] # TODO: main
