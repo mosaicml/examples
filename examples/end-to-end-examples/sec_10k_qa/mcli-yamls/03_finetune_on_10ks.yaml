@@ -197,7 +197,7 @@ parameters:
   icl_tasks:
   -
     label: arc_easy
-    dataset_uri: eval/local_data/arc_easy.jsonl
+    dataset_uri: eval/local_data/world_knowledge/arc_easy.jsonl
     num_fewshot: [0]
     icl_task_type: multiple_choice
     continuation_delimiter: 'Answer: '
