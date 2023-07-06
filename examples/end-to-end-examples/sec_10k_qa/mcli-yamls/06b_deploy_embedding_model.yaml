@@ -19,8 +19,7 @@ integrations:
   - sentence-transformers==2.2.2
 
 command: |
-  cd examples
-  PYTHONPATH=.. uvicorn serve:app --host 0.0.0.0 --port 8080 || exit 1;
+  export PYTHONPATH=$PYTHONPATH:/code/example
 
 model:
   download_parameters:
@@ -29,4 +28,4 @@ model:
   model_parameters:
     model_name: hkunlp/instructor-large
 
-image: mosaicml/inference:0.0.80 # Use the Docker image provided by MosaicML
+image: mosaicml/inference-testing:29eb4d0 # Use the Docker image provided by MosaicML

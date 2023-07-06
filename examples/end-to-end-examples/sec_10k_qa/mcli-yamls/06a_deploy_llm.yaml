@@ -1,35 +1,48 @@
 name: mpt-7b-finetuned
 
 # Deployment configuration
-gpu_num: 1  # Number of GPUs to use
-# cluster: r0z0 # Name of the cluster to use for this run
-gpu_type: a10 # Type of GPU to use.
+# For 30B model deployed with bf16 datatype, the model needs atleast ~60GB of memory.
+# So should be hosted on atleast 2x A100-40G or 4x A10s
+compute:
+  gpus: 1  # Number of GPUs to use
+  # cluster: r0z0 # Name of the cluster to use for this run
+  gpu_type: a10 # Type of GPU to use.
+  instance: oci.vm.gpu.a10.1
 replicas: 1 # Number of replicas to use for this run
 
 
 integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
-  git_repo: mosaicml/examples # TODO: CHANGE BACK TO MAIN
+  git_repo: mosaicml/examples
   git_branch: main
+  ssh_clone: false
+# Clone the llm-foundry repo so we can use the HF to FasterTransformer convert script from it
+- git_commit: 2c92faa5ce31888214bdb582ac7f5756d0d3dacd
+  git_repo: mosaicml/llm-foundry
+  integration_type: git_repo
   ssh_clone: false
 
 # Add the examples folder to the PYTHONPATH so we can import the deployment helper
 # Install composer to use the cloud download helper
 command: |
-  export PYTHONPATH=$PYTHONPATH:/code/examples
+  export PYTHONPATH=$PYTHONPATH:/code/llm-foundry:/code/examples:/code
   pip uninstall packaging -y
   rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
   pip install composer[streaming,libcloud,oci]==0.14.1
   pip install packaging==23.1
 
 model:
+  backend: faster_transformers
   # Specify how to download the model from object store
-  downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_model
+  downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: CLOUD://BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf/
-  model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler # Use the provided MPT handler
+    remote_uri: CLOUD://BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf-large/
+  model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
-    model_name: /downloaded_hf_checkpoint/ # Path is hardcoded in deployment_download_helper.download_model
+    ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
+    # FT checkpoint path is hardcoded in MPTFTModelHandler at /tmp/mpt
+    model_name_or_path: mosaicml/mpt-7b # This is used for the tokenzier
+    gpus: 1 # number of gpus to use for inference
 
-image: mosaicml/inference:0.0.96 # Use the Docker image provided by MosaicML
+image: mosaicml/inference:0.1.1 # Use the Docker image provided by MosaicML
