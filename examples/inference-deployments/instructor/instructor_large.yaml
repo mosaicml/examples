@@ -2,7 +2,7 @@ name: instructor-large
 compute:
   gpus: 1
   gpu_type: a100_40gb
-image: mosaicml/inference-testing:29eb4d0
+image: mosaicml/inference:29eb4d0
 replicas: 1
 command:
   export PYTHONPATH=/code/llm-foundry:/code/examples:/code
