@@ -39,7 +39,8 @@ class RepoConverter:
             converter.convert_repo()
     """
 
-    def __init__(self, output_dir: (str), 
+    def __init__(self, 
+                 output_dir: (str), 
                  current_dir: (str),
                  repo_url: (str)) -> None:
         

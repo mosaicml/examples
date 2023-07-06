@@ -4,7 +4,6 @@ import os
 from argparse import ArgumentParser, Namespace
 from typing import Dict, Iterable, Optional
 import json
-import glob
 
 import datasets
 # type ignore because we don't want to add foundry to the local dependencies
@@ -33,6 +32,9 @@ def parse_args() -> Namespace:
                         type=str,
                         required=True,
                         help='The folder to read input from')
+
+    parser.add_argument('--no_splits', action='store_true', help='Does not parse data in splits')
+
     parser.add_argument('--compression',
                         type=str,
                         default='zstd',
@@ -42,12 +44,13 @@ def parse_args() -> Namespace:
     group.add_argument(
         '--concat_tokens',
         type=int,
+        default=2048,
         help='Convert text to tokens and concatenate up to this many tokens')
 
     parser.add_argument('--tokenizer',
                         type=str,
                         required=False,
-                        default=None,
+                        default='mosaicml/mpt-7b',
                         help='The name of the tokenizer to use')
     parser.add_argument(
         '--bos_text',
@@ -60,7 +63,7 @@ def parse_args() -> Namespace:
         '--eos_text',
         type=str,
         required=False,
-        default=None,
+        default='<|endoftext|>',
         help=
         'The text to append to each example to separate concatenated examples')
     parser.add_argument(
@@ -135,8 +138,9 @@ class DatasetIterable:
         for item in self.dataset:
             yield {'text': json.dumps(item)}
 
-def main(input_folder: str,
+def main(input_file: str,
          output_folder: str,
+         no_splits: bool,
          tokenizer_name: str,
          concat_tokens: int,
          eos_text: str,
@@ -155,15 +159,42 @@ def main(input_folder: str,
     tokenizer.model_max_length = int(1e30)
     columns = {'tokens': 'bytes'}
 
-    input_files = glob.glob(f'{input_folder}*.jsonl')
-    split_dataset = {
-        'train': datasets.load_dataset('json', data_files=input_files, split='train[:80%]'),
-        'validation': datasets.load_dataset('json', data_files=input_files, split='train[80%:90%]'),
-        'test': datasets.load_dataset('json', data_files=input_files, split='train[90%:]'),
-    }
-    for split in ['validation', 'test', 'train']:
-        print(f'Processing {split}')
-        data = split_dataset[split]
+    if not no_splits:
+        split_dataset = {
+            'train': datasets.load_dataset('json', data_files=input_file, split='train[:80%]'),
+            'validation': datasets.load_dataset('json', data_files=input_file, split='train[80%:90%]'),
+            'test': datasets.load_dataset('json', data_files=input_file, split='train[90%:]'),
+        }
+        for split in ['train', 'validation', 'test']:
+            print(f'Processing {split}')
+            data = split_dataset[split]
+
+            # Use the ConcatTokensDataset from LLM-foundry to concatenate sequences of tokens up to the maximum sequence length
+            dataset = ConcatTokensDataset(
+                hf_dataset=DatasetIterable(dataset=data),
+                max_length=concat_tokens,
+                tokenizer=tokenizer,
+                eos_text=eos_text,
+                bos_text=bos_text,
+                no_wrap=no_wrap,
+            )
+
+            # Generate samples
+            loader = build_dataloader(dataset=dataset, batch_size=512)
+            samples = generate_samples(loader)
+
+            # Write samples in MDS format
+            print(f'Converting to MDS format...')
+            with MDSWriter(out=os.path.join(output_folder, split),
+                            max_workers=max_workers,
+                            progress_bar=False,
+                            columns=columns,
+                            compression=compression) as out:
+                for sample in tqdm(samples):
+                    out.write(sample)
+    else:
+        print(f'Processing Everything')
+        data = datasets.load_dataset('json', data_files=input_file, split='train')
 
         # Use the ConcatTokensDataset from LLM-foundry to concatenate sequences of tokens up to the maximum sequence length
         dataset = ConcatTokensDataset(
@@ -181,7 +212,7 @@ def main(input_folder: str,
 
         # Write samples in MDS format
         print(f'Converting to MDS format...')
-        with MDSWriter(out=os.path.join(output_folder, split),
+        with MDSWriter(out=os.path.join(output_folder),
                         max_workers=max_workers,
                         progress_bar=False,
                         columns=columns,
@@ -194,7 +225,8 @@ if __name__ == '__main__':
     main(
         tokenizer_name=args.tokenizer,
         output_folder=args.out_root,
-        input_folder=args.in_root,
+        input_file=args.in_root,
+        no_splits=args.no_splits,
         concat_tokens=args.concat_tokens,
         eos_text=args.eos_text,
         bos_text=args.bos_text,
