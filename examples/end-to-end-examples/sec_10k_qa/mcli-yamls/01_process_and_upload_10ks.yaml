@@ -10,8 +10,8 @@ compute:
 integrations:
 # Clone the examples repository so that we have access to the code in sec_10k_qa
 - integration_type: git_repo
-  git_repo: mosaicml/examples # TODO: CHANGE BACK TO MAIN
-  git_branch: main # TODO: CHANGE BACK TO MAIN
+  git_repo: mosaicml/examples
+  git_branch: main
   ssh_clone: false # Should be true if using a private repo
   path: /workspace/examples # Tell MCLI what path to clone the repo to
 
