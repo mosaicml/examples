@@ -251,6 +251,10 @@ class MPTFTHostedModelHandler:
         # Use the default ft args as the base
         ft_args = copy.deepcopy(self.FT_GENERATE_KWARGS)
 
+        # Allow 'max_length' to be an alias for 'output_len' for backward compatibility
+        if 'max_length' in generate_kwargs:
+            ft_args['output_len'] = generate_kwargs['max_length']
+
         # max_new_tokens is called output_len in FasterTransformer
         ft_args['output_len'] = generate_kwargs['max_new_tokens']
 
@@ -265,12 +269,6 @@ class MPTFTHostedModelHandler:
                         generate_kwargs: Dict):
         """Converts generate_kwargs into required torch types."""
         batch_size = len(generate_inputs)
-
-        # Allow 'max_length' to be an alias for 'output_len'. Makes it less
-        # likely clients break when we swap in the FT handler.
-        if 'max_length' in generate_kwargs:
-            generate_kwargs['output_len'] = generate_kwargs['max_length']
-            del generate_kwargs['max_length']
 
         # Integer args may be floats if the values are from a json payload.
         generate_kwargs['output_len'] = int(generate_kwargs['output_len'])
