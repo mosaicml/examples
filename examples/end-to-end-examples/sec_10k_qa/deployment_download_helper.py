@@ -5,10 +5,15 @@ import os
 
 from composer.utils import maybe_create_object_store_from_uri, parse_uri
 
+# This api exists in llm-foundry repo
+from scripts.inference.convert_hf_mpt_to_ft import convert_mpt_to_ft  # isort: skip # yapf: disable # type: ignore
+
 LOCAL_BASE_FOLDER = '/downloaded_hf_checkpoint/'
+# should match with LOCAL_CHECKPOINT_DIR in mpt_ft_handler.py
+LOCAL_FT_FOLDER = '/tmp/mpt'
 
 
-def download_model(remote_uri: str):
+def download_and_convert(remote_uri: str, gpus: int = 1):
     """Helper function used to download the model at startup time of an.
 
     inference deployment.
@@ -18,6 +23,7 @@ def download_model(remote_uri: str):
 
     Args:
         remote_uri (str): Object store prefix of the folder containing the model files.
+        gpus (int): Number of gpus to use for inference
     """
     object_store = maybe_create_object_store_from_uri(remote_uri)
     assert object_store is not None  # pyright
@@ -38,3 +44,6 @@ def download_model(remote_uri: str):
             object_name=os.path.join(remote_base_key, file),
             filename=os.path.join(LOCAL_BASE_FOLDER, file),
         )
+    convert_mpt_to_ft(model_name_or_path=LOCAL_BASE_FOLDER,
+                      output_dir=LOCAL_FT_FOLDER,
+                      infer_gpu_num=gpus)
