@@ -1,52 +1,70 @@
-
-import sys
 from enum import Enum
 from mcli.sdk import create_run, RunConfig
+from utils import get_mpt_parameters_dict
 
 # from config_registry import CONFIG_REGISTRY
-
-# User fills these in
-# TODO: make this work with argparse so the user doesn't have to modify the python file
-MODEL_NAME = '' # mpt-30b or mpt-7b
-TRAIN_DATA_PATH = '' # blobstore path to training data
-SAVE_FOLDER = '' # where to upload checkpoints
 
 class Models(Enum):
   MPT_7B = 'mpt-7b'
   MPT_30B = 'mpt-30b'
 
+# User fills these in
+MODEL_NAME: Models = Models.MPT_7B # mpt-30b or mpt-7b
+TRAIN_DATA_PATH: str = 'mosaicml/dolly_hhrlhf' # blobstore path or hugging face path to training data
+EVAL_DATA_PATH: str = 'mosaicml/dolly_hhrlhf' # hugging face path to eval data
+SAVE_FOLDER: str = '' # where to upload checkpoints
+CLUSTER_NAME: str = ''
 
-def main(model_name: str, train_data_path: str, save_folder: str):
-    # Load the finetuning config
-    config: RunConfig = None
-    if model_name == Models.MPT_7B.value:
-        # TODO: Copy / move this YAML to the same folder as this python script
-        # Note that we use this one because it loads a model with pretrained: true
-        config = RunConfig.from_file('../sec_10k_qa/mcli-yamls/03_finetune_on_10ks.yaml')
-    elif model_name == Models.MPT_30B.value:
-        # TODO: load 30B config
-        config = RunConfig.from_file('../sec_10k_qa/')
-        # config = CONFIG_REGISTRY[Models.MPT_30B.value]
+# For testing
+run_name = f'finetune-{MODEL_NAME}'
+SAVE_FOLDER = f'oci://nancy-test/checkpoints/{run_name}/'
+CLUSTER_NAME = 'r1z1'
+
+def main(model_name: Models, train_data_path: str, eval_data_path: str, save_folder: str, cluster_name: str):
+    # Set up the finetuning run config
+    parameters = get_mpt_parameters_dict(
+        model_name=model_name.value,
+        train_data_path=train_data_path,
+        eval_data_path=eval_data_path,
+        save_folder=save_folder)
+    command: str = 'cd llm-foundry/scripts && composer train/train.py /mnt/config/parameters.yaml'
+    integrations: list = [{
+        'integration_type': 'git_repo',
+        'git_repo': 'mosaicml/llm-foundry',
+        'pip_install': '-e .[gpu]',
+        'ssh_clone': False, # Should be true if using a private repo
+    }]
+
+    run_config: RunConfig = None
+    gpu_num: int = None
+    gpu_type: str = None
+    if model_name == Models.MPT_7B:
+        gpu_num = 8
+        gpu_type = 'a100_80gb'
+    elif model_name == Models.MPT_30B:
+        gpu_num = 16
+        gpu_type = 'a100_80gb'
     else:
-        print(f'Error unsupported model {model_name} please choose one of {Models.MPT_7B.value} or {Models.MPT_30B.value}')
-        sys.exit(1)
-
-    # Fill in the config with user-supplied values
-    config.parameters['data_remote'] = train_data_path
-    config.parameters['save_folder'] = save_folder
+        raise ValueError(f'Invalid model name: {model_name}')
+    
+    run_config = RunConfig(
+        run_name=run_name,
+        gpu_num=gpu_num,
+        gpu_type=gpu_type,
+        cluster=cluster_name,
+        image='mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04',
+        integrations=integrations,
+        command=command,
+        parameters=parameters)
 
     # Run the finetuning job
-    run = create_run(config)
-
-    # TODO: Monitor the run until it is complete
-
-    # TODO: When complete, deploy the model
-
-
-
-
+    run = create_run(run_config)
+    print(f'Created finetuning run with name: {run.name}. Tail the logs with `mcli logs --follow {run.name}`')
 
 
 if __name__ == '__main__':
-
-    main(MODEL_NAME, TRAIN_DATA_PATH, SAVE_FOLDER)
+    main(
+        model_name=MODEL_NAME,
+        train_data_path=TRAIN_DATA_PATH,
+        cluster_name=CLUSTER_NAME,
+        save_folder=SAVE_FOLDER)
