@@ -7,14 +7,19 @@ import pickle
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores import FAISS
 from langchain.embeddings import MosaicMLInstructorEmbeddings
-from langchain.chains import RetrievalQAWithSourcesChain
+from langchain.chains import RetrievalQAWithSourcesChain, LLMChain, RetrievalQA
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.llms import MosaicML
 from langchain.schema import Document
 from tqdm import tqdm
 from typing import Any
 import json
+import re
+import string
 
-MOSAICML_MAX_LENGTH = 2048
+MOSAICML_MAX_LENGTH = 150
+DOCUMENT_PROMPT = PromptTemplate(input_variables=['page_content'],
+                                 template='Context:\n{page_content}')
 
 class ChatBot:
     """Given a folder of .txt files from data_path, create a Chatbot object that can process the files into documents, split them
@@ -104,6 +109,37 @@ class ChatBot:
                          documents: list[Document]) -> list[str]:
         return map(lambda doc: doc.page_content, documents)
     
+    def clean_response(self, input_text: str) -> str:
+        """Clean the response from the model by stripping some bad answer prefixes,
+
+        new lines, etc.
+
+        Args:
+            input_text (str): The response from the model.
+
+        Returns:
+            str: The cleaned response.
+        """
+        input_text = input_text.strip('\n')
+
+        context_prefix = 'Context:'
+        answer_prefix = 'Answer:'
+        prefixes = [context_prefix, answer_prefix]
+        while True:
+            prefix_found = False
+            for prefix in prefixes:
+                if input_text.startswith(prefix):
+                    input_text = input_text[len(prefix):].strip()
+                    input_text = input_text.strip('\n')
+                    prefix_found = True
+                    break
+            if not prefix_found:
+                break
+
+        input_text = input_text.lstrip('\n :')
+
+        return input_text
+    
     def store_vectors(self,
                       pages: list[Document]) -> None:
         content_batches = []
@@ -162,54 +198,107 @@ class ChatBot:
 
         answer_question_prompt_template = PromptTemplate(
             template=prompt_template,
-            input_variables=['summaries'])
+            input_variables=['context', 'question'])
 
-        chain = RetrievalQAWithSourcesChain.from_chain_type(llm=self.model,
-                                                            retriever=retriever,
-                                                            return_source_documents=True,
-                                                            chain_type_kwargs = {"prompt": answer_question_prompt_template})
+        # Component connecting the LLM with the prompt template
+        llm_chain = LLMChain(
+            llm=self.model,
+            prompt=answer_question_prompt_template,
+        )
+
+        # Component connecting the context documents with the LLM chain
+        stuff_documents_chain = StuffDocumentsChain(
+            llm_chain=llm_chain,
+            document_variable_name='context',
+            document_prompt=DOCUMENT_PROMPT,
+        )
+
+        # Complete component for retrieval question answering
+        chain = RetrievalQA(
+            retriever=retriever,
+            combine_documents_chain=stuff_documents_chain,
+            return_source_documents=True,
+        )
+
         return chain
     
+    def normalize_str(self, 
+                      answer: str):
+        """Lower text and remove punctuation, articles and extra whitespace.
+
+        Copied from https://github.com/mandarjoshi90/triviaqa/blob/master/evaluation/triviaqa_evaluation.py
+        """
+
+        def remove_articles(text: str) -> str:
+            return re.sub(r'\b(a|an|the)\b', ' ', text)
+
+        def white_space_fix(text: str) -> str:
+            return ' '.join(text.split())
+
+        def handle_punc(text: str) -> str:
+            exclude = set(string.punctuation + ''.join([u'‘', u'’', u'´', u'`']))
+            return ''.join(ch if ch not in exclude else ' ' for ch in text)
+
+        def lower(text: str) -> str:
+            return text.lower()
+        
+        def remove_parentheses(s):
+            return re.sub(r'\(.*?\)', '', s)
+
+        return white_space_fix(remove_parentheses(remove_articles(handle_punc(lower(answer))))).strip()
+    
+    
+        
     def evaluate(self, 
-                 data_path: str) -> int:
+                data_path: str) -> int:
         if not data_path.endswith('.jsonl'):
             raise ValueError('File is not a .jsonl file')
-        
-        # Prompt template for the query
-        prompt_template = (
-            f'Return one class, module, or function that is the answer to the question. If you do not know, just say "I do not know".'
-            '\nQuestion: {summaries}')
-        chain = self.create_chain(prompt_template)
 
-        correct = 0
+        # Prompt template for the query
+        answer_question_string_template = (
+            f'Answer the following question as one function, class, or object. If you do not know, just say "I do not know".'
+            '\n{context}'
+            '\nQuestion: {question}')
+        exact_match = 0
+        close_match = 0
         total = 0
+        total_lines = sum(1 for _ in open(data_path))
+        chain = self.create_chain(answer_question_string_template)
+
         with open(data_path, 'r') as file:
-            for line in file:
+            for line in tqdm(file, total=total_lines, desc="Processing lines"):
                 data = json.loads(line)
-                context = data.get('context')
+                question = data.get('context')
                 continuation = data.get('continuation')
-                response = chain({"question": context}, return_only_outputs=True)
-                answer = response['answer']
-                if answer == continuation:
-                    correct += 1
+                response = chain(question)
+                answer = self.clean_response(response['result'].lstrip('\n'))
+                if self.normalize_str(answer) == self.normalize_str(continuation):
+                    exact_match += 1
+                elif self.normalize_str(continuation) in self.normalize_str(answer):
+                    close_match += 1
+                else:
+                    print('\n', answer, '||', continuation, '\n')
                 total += 1
-        return correct / total
+        return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
 
     def chat(self):
         # Prompt template for the query
-        prompt_template = (
-            f'Return a robust answer to the question and provide an example. If you do not know, just say "I do not know".'
-            '\nQuestion: {summaries}')
-        chain = self.create_chain(prompt_template)
+        answer_question_string_template = (
+            f'Provide a robust answer given the following context to the question. If you do not know, just say "I do not know".'
+            '\n{context}'
+            '\nQuestion: {question}')
+        chain = self.create_chain(answer_question_string_template)
         
         question = input("Ask a question: ")
         while question != "!exit":
             if question == "!eval":
+                self.model.model_kwargs['max_new_tokens'] = 25
                 print(self.evaluate("train_data/pipeline_data/composer_docstrings.jsonl"))
+                self.model.model_kwargs['max_new_tokens'] = MOSAICML_MAX_LENGTH
                 question = input("Ask a question: ")
                 continue
-            response = chain({"question": question}, return_only_outputs=True)
-            answer = response['answer']
+            response = chain(question)
+            answer = self.clean_response(response['result'].lstrip('\n'))
             print(answer)
             question = input("Ask a question: ")
 
@@ -239,7 +328,7 @@ def main():
     chatbot = ChatBot(data_path= "retrieval_data",
                       embedding=embeddings,
                       model=llm,
-                      k=3,
+                      k=5,
                       chunk_size=1000,
                       chunk_overlap=100)
     chatbot.chat()

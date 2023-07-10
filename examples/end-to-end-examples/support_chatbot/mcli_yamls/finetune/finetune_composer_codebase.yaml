@@ -1,4 +1,4 @@
-name: mpt-support-bot-finetune-stackexchange
+name: mpt-support-bot-finetune-composer-codebase
 
 compute:
   gpus: 8  # Number of GPUs to use
@@ -31,9 +31,8 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Where to read the data from and save it to locally on the machine
-  data_remote: oci://mosaicml-internal-dataset-red-pajama/stackexchange/gptneox-tok/
-  data_local_train: /tmp/dataset/stack-exchange-train
-  data_local_val: /tmp/dataset/stack-exchange-val
+  data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/
+  data_local: ./local-dataset-composercodebase-cache
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
@@ -48,7 +47,7 @@ parameters:
   max_seq_len: 2048
 
   # Random seed to ensure reproducibility
-  global_seed: 17
+  global_seed: 15
 
   # Run Name
   run_name: # If left blank, will be read from env var $RUN_NAME
@@ -77,9 +76,9 @@ parameters:
     name: text
     # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
-      local: ${data_local_train}
+      local: ${data_local}
       remote: ${data_remote}
-      split: null
+      split: train
       shuffle: true
       max_seq_len: ${max_seq_len}
       shuffle_seed: ${global_seed}
@@ -91,9 +90,9 @@ parameters:
     name: text
     # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
-      local: ${data_local_val}
+      local: ${data_local}
       remote: ${data_remote}
-      split: null
+      split: validation
       shuffle: false
       max_seq_len: ${max_seq_len}
       shuffle_seed: ${global_seed}
@@ -127,7 +126,7 @@ parameters:
       clipping_threshold: 1.0
 
   # Run configuration
-  max_duration: 1ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
+  max_duration: 2ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
   eval_interval: 500ba # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
