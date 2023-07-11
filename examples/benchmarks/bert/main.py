@@ -53,6 +53,26 @@ def update_batch_size_info(cfg: DictConfig):
     return cfg
 
 
+def update_mlm_schedule(cfg: DictConfig):
+
+    def convert_constant_rate(dataset_cfg: DictConfig):
+        mlm_schedule = dataset_cfg.get('mlm_schedule', None)
+        if mlm_schedule is None:
+            mlm_probability = dataset_cfg.mlm_probability
+            mlm_schedule = om.create({
+                'name': 'constant',
+                'initial_masking_rate': mlm_probability,
+                'final_masking_rate': mlm_probability,
+            })
+        return mlm_schedule
+
+    cfg.train_loader.dataset.mlm_schedule = convert_constant_rate(
+        cfg.train_loader.dataset)
+    cfg.eval_loader.dataset.mlm_schedule = convert_constant_rate(
+        cfg.eval_loader.dataset)
+    return cfg
+
+
 def log_config(cfg: DictConfig):
     print(om.to_yaml(cfg))
     if 'wandb' in cfg.get('loggers', {}):
@@ -269,5 +289,6 @@ if __name__ == '__main__':
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
+    cfg = update_mlm_schedule(cfg)
     cfg = cast(DictConfig, cfg)  # for type checking
     main(cfg)
