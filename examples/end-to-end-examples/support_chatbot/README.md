@@ -105,4 +105,19 @@ python scripts/conversion/convert_jsonl_to_stream.py \
 
 ## Step 3: Finetuning on our Repository
 
-Now that we have our data in the correct format, we want to finally finetune our model! To do so...
+Next, we will finetune our pretrained base model on the train split of the our data, whether that be PyPi documentation, MosaicML code base, or CoQA in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
+
+Please check out the [training yaml](./mcli-yamls/03_finetune_on_10ks.yaml) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on our datasets that we processed in the previous step. The [training script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/train.py) itself, is from LLM-foundry.
+
+To run finetuning, run the following where `CoQA` can be replaced with `PyPi` or `composer_codebase`
+
+```bash
+mcli run -f mcli_yamls/finetune/finetune_CoQA.yaml --cluster CLUSTER
+```
+**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml).
+
+**Inputs:** the `coqa_mds`, `PyPi_mds`, or `composer_codebase_mds` folder from step 2
+
+**Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
+
+
