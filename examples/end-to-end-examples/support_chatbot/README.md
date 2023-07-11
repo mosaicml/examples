@@ -69,39 +69,21 @@ python scripts/repo_downloader.py https://github.com/mosaicml/composer https://g
 
 As mentioned in the [MosaicML platform setup](#mosaicml-platform-setup) section, the MosaicML platform does not have permanent storage on the compute nodes. This means that all data will be streamed in and out from a cloud provider. In order to make this process as efficient as possible during a training run, we will convert the data into a format that is optimized for streaming, using our [Streaming](https://github.com/mosaicml/streaming) library. This format is called [MDS](https://docs.mosaicml.com/projects/streaming/en/stable/fundamentals/dataset_format.html#mds), and is a simple format that is optimized for streaming.
 
-This example will contain scripts for 3 different conversions: [text to MDS](./scripts/conversion/convert_txt_to_stream.py), [jsonl to MDS](./scripts/conversion/convert_jsonl_to_stream.py), and [MDS to MDS reconcatonization](./scripts/conversion/convert_PyPi_stream_to_mds.py). For the sake of this example, we will only focus on the first two conversions as the last conversion is tedious, long, and complicated. For text to MDS conversion, we will run:
+This example will contain scripts for 3 different conversions: [text to MDS](./scripts/conversion/convert_txt_to_stream.py), [jsonl to MDS](./scripts/conversion/convert_jsonl_to_stream.py), and [MDS to MDS reconcatonization for PyPi](./scripts/conversion/convert_PyPi_stream_to_mds.py). For the sake of this example, we will only focus on the first two conversions as the last conversion is tedious, long, and complicated (we can provide the PyPi data for you). For text to MDS conversion, we will run:
 
 ```bash
-python scripts/conversion/convert_txt_to_stream.py \
-    --out_root CLOUD://BUCKET/support-bot-demo/PATH_TO_MDS_DATA/ \
-    --in_root PATH_TO_TXT_FOLDER
+mcli run -f mcli_yamls/conversion/convert_txt_to_stream.yaml --cluster CLUSTER
 ```
-**Fields to replace with your values:** `CLOUD` (in the command line), `BUCKET` (in the command line), 'PATH_TO_MDS_DATA' (in the command line), `PATH_TO_TXT_FOLDER` (in the command line). Please note that in_root **MUST** be a local directory due to some limitations from OCI. To follow with our previous example in Step 1, if we want to convert the folder containing all of composer as text, we will run:
-
-```bash
-python scripts/conversion/convert_txt_to_stream.py \
-    --out_root CLOUD://BUCKET/support-bot-demo/data/composer_codebase_mds/ \
-    --in_root retrieval_data/composer
-```
-
-**Fields to replace with your values:** `CLOUD` (in the command line), `BUCKET` (in the command line)
+**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), 'DATA_NAME_MDS' (in the yaml), `PATH_TO_TXT_FOLDER` (in the yaml). Please note that PATH_TO_TXT_FOLDER **MUST** be a local directory (not an OCI link) due to some limitations from OCI. To follow with our previous example in Step 1, if we want to convert the folder containing all of composer as text, we will run with `DATA_NAME_MDS = composer_codebase_mds` and `PATH_TO_TXT_FOLDER = retrieval_data/composer`
 
 To convert jsonl files to MDS, we will run:
 
 **Command:**
 ```bash
-python scripts/conversion/convert_jsonl_to_stream.py \
-    --out_root CLOUD://BUCKET/support-bot-demo/data/PATH_TO_MDS_DATA/ \
-    --in_root PATH_TO_JSONL_FILE
+mcli run -f mcli_yamls/conversion/convert_jsonl_to_stream.yaml --cluster CLUSTER
 ```
 
-**Fields to replace with your values:** `CLOUD` (in the command line), `BUCKET` (in the command line), 'PATH_TO_MDS_DATA' (in the command line), `PATH_TO_JSONL_FILE` (in the command line). Please note that in_root **MUST** be a local directory due to some limitations from OCI. To follow with our example, if we want to convert the [coqa.jsonl file](./train_data/pipeline_data/coqa.jsonl) in the directory `/train_data/pipeline_data/coqa.jsonl`, we would run:
-
-```bash
-/Users/vincent/miniconda3/envs/foundry-venv/bin/python /Users/vincent/examples/examples/end-to-end-examples/support_chatbot/scripts/convert_jsonl_to_stream.py \
-    --out_root oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_docstrings_mds/ \
-    --in_root /Users/vincent/examples/examples/end-to-end-examples/support_chatbot/train_data/pipeline_data/composer_docstrings.jsonl
-```
+**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), 'DATA_NAME_MDS' (in the yaml), `PATH_TO_JSONL_FILE` (in the yaml). As an example, if we want to convert the CoQA dataset into MDS, we will run with `DATA_NAME_MDS = CoQA_mds` and `PATH_TO_TXT_FOLDER = train_data/pipeline_data/coqa.jsonl`. Note that in this case, because we don't need to give the converter a whole folder, we can also give it an OCI link.
 
 ## Step 3: Finetuning on our Repository
 
