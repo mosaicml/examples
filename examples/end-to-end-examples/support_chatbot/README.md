@@ -51,3 +51,58 @@ export MOSAICML_API_TOKEN=<your api token>
 ## How to follow this tutorial
 
 Each section of this tutorial will have a command to run, which fields you need to edit before running the command, the expected input and output of that section, and a description of what is happening. The steps should be run sequentially, and you must wait for each prior step to complete before running the next one. The commands will be run using MCLI yamls (except the final front end which will run locally). All intermediate output will be written to cloud object store. Everywhere that a path is used, it will be of the form `CLOUD://BUCKET_NAME/path/to/my/folder/`. You will need to fill in the `CLOUD` (e.g. `s3`, `oci`, `gs`) and the `BUCKET_NAME` (e.g. `my-bucket`). The description of what is happening will be a high level overview of the steps that are being taken, and will not go into detail about the code, but the code and yamls will have detailed comments, and the description will contain pointers to where to learn more. We encourage you to read the yamls in detail to gain a better understanding of the various options that are available.
+
+## Step 1: Getting Our Data
+
+Let's first start with downloading the github repository that we want to finetune our model on so that it can get a basic understanding of the codebase. The [repo_downloader](./scripts/repo_downloader.py) will clone the git repository into a designated cloning directory where it will essentially flatten the repository to be an assortment of text files in local directory: `retrieval_data/{REPOSITORY_NAME}`. It will then erase the cloning directory.
+
+```bash
+python scripts/repo_downloader.py REPO_LINKS
+```
+
+**Fields to replace with your values:** `REPO_LINKS` (in the command line). For instance, to download all MosaicML repositories, we run:
+```bash
+python scripts/repo_downloader.py https://github.com/mosaicml/composer https://github.com/mosaicml/streaming https://github.com/mosaicml/examples https://github.com/mosaicml/diffusion https://github.com/mosaicml/llm-foundry
+```
+
+## Step 2: Converting to MDS
+
+As mentioned in the [MosaicML platform setup](#mosaicml-platform-setup) section, the MosaicML platform does not have permanent storage on the compute nodes. This means that all data will be streamed in and out from a cloud provider. In order to make this process as efficient as possible during a training run, we will convert the data into a format that is optimized for streaming, using our [Streaming](https://github.com/mosaicml/streaming) library. This format is called [MDS](https://docs.mosaicml.com/projects/streaming/en/stable/fundamentals/dataset_format.html#mds), and is a simple format that is optimized for streaming.
+
+This example will contain scripts for 3 different conversions: [text to MDS](./scripts/conversion/convert_txt_to_stream.py), [jsonl to MDS](./scripts/conversion/convert_jsonl_to_stream.py), and [MDS to MDS reconcatonization](./scripts/conversion/convert_PyPi_stream_to_mds.py). For the sake of this example, we will only focus on the first two conversions as the last conversion is tedious, long, and complicated. For text to MDS conversion, we will run:
+
+```bash
+python scripts/conversion/convert_txt_to_stream.py \
+    --out_root CLOUD://BUCKET/support-bot-demo/PATH_TO_MDS_DATA/ \
+    --in_root PATH_TO_TXT_FOLDER
+```
+**Fields to replace with your values:** `CLOUD` (in the command line), `BUCKET` (in the command line), 'PATH_TO_MDS_DATA' (in the command line), `PATH_TO_TXT_FOLDER` (in the command line). Please note that in_root **MUST** be a local directory due to some limitations from OCI. To follow with our previous example in Step 1, if we want to convert the folder containing all of composer as text, we will run:
+
+```bash
+python scripts/conversion/convert_txt_to_stream.py \
+    --out_root CLOUD://BUCKET/support-bot-demo/data/composer_codebase_mds/ \
+    --in_root retrieval_data/composer
+```
+
+**Fields to replace with your values:** `CLOUD` (in the command line), `BUCKET` (in the command line)
+
+To convert jsonl files to MDS, we will run:
+
+**Command:**
+```bash
+python scripts/conversion/convert_jsonl_to_stream.py \
+    --out_root CLOUD://BUCKET/support-bot-demo/data/PATH_TO_MDS_DATA/ \
+    --in_root PATH_TO_JSONL_FILE
+```
+
+**Fields to replace with your values:** `CLOUD` (in the command line), `BUCKET` (in the command line), 'PATH_TO_MDS_DATA' (in the command line), `PATH_TO_JSONL_FILE` (in the command line). Please note that in_root **MUST** be a local directory due to some limitations from OCI. To follow with our example, if we want to convert the [coqa.jsonl file](./train_data/pipeline_data/coqa.jsonl) in the directory `/train_data/pipeline_data/coqa.jsonl`, we would run:
+
+```bash
+/Users/vincent/miniconda3/envs/foundry-venv/bin/python /Users/vincent/examples/examples/end-to-end-examples/support_chatbot/scripts/convert_jsonl_to_stream.py \
+    --out_root oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_docstrings_mds/ \
+    --in_root /Users/vincent/examples/examples/end-to-end-examples/support_chatbot/train_data/pipeline_data/composer_docstrings.jsonl
+```
+
+## Step 3: Finetuning on our Repository
+
+Now that we have our data in the correct format, we want to finally finetune our model! To do so...
