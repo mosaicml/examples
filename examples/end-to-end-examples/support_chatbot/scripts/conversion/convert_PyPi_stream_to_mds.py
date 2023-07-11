@@ -14,7 +14,7 @@ from transformers import AutoTokenizer
 DATA_PATH = 'train_data/pipeline_data/pypi_documentation/'
 MAX_ENTRIES_PER_FILE = 25000  # Maximum number of entries per file
 
-def parse_args():
+def parse_args()-> Namespace:
     parser = ArgumentParser(
         description=
         'Convert dataset into MDS format, optionally concatenating and tokenizing'
@@ -81,7 +81,8 @@ def parse_args():
         parsed.eos_text = ''
     return parsed
 
-def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:
+def build_dataloader(dataset: Dataset, 
+                     batch_size: int) -> DataLoader:
     return DataLoader(
         dataset=dataset,
         sampler=None,
@@ -201,6 +202,7 @@ def main(
         compression (str): Compression to use.
     """
 
+    os.makedirs(DATA_PATH, exist_ok=True)
     remote_source_folders = ['source_code_processed_train', 'source_code_processed_val']
     for folder in remote_source_folders:
         remote_dir = os.path.join('oci://mosaicml-internal-datasets/mpt-swe-filtered/', folder)
@@ -270,6 +272,8 @@ def main(
                        compression=compression)
         
         os.remove(file_path)
+
+    os.remove(DATA_PATH)
 
 if __name__ == '__main__':
     args = parse_args()

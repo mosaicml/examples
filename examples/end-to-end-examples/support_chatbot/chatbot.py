@@ -1,6 +1,6 @@
 import os
 import sys
-from scripts.repo_converter import RepoConverter
+from scripts.repo_downloader import RepoDownloader
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pickle
@@ -308,10 +308,10 @@ def main():
         raise ValueError("At least one repository URL must be provided as an argument.")
     
     for repo_url in sys.argv[1:]:
-        converter = RepoConverter(output_dir, "", repo_url)
-        if os.path.exists(converter.clone_dir):
+        downloader = RepoDownloader(output_dir, "", repo_url)
+        if os.path.exists(downloader.clone_dir):
             continue
-        converter.convert_repo()
+        downloader.download_repo()
 
 
     embeddings = MosaicMLInstructorEmbeddings()

@@ -4,20 +4,20 @@
 import os
 import shutil
 from tqdm import tqdm
+import sys
 
 from git.repo import Repo
 
-
-class RepoConverter:
-    """Converts .md, .py, and .YAML files in git repositories to text files that
+class RepoDownloader:
+    """Downloades .md, .py, and .YAML files in git repositories to text files that
     land in /scripts/train/support_chatbot/retrieval_data/{REPOSITORY_NAME}
 
     Args:
-        output_dir (str): The path of the directory where the converted repository will be saved
+        output_dir (str): The path of the directory where the downloaded repository will be saved
         repo_url (str): The url for the git repository
 
     Attributes:
-        output_dir (str): The path of the directory where the converted repository will be saved
+        output_dir (str): The path of the directory where the downloaded repository will be saved
         repo_url (str): The url for the git repository
         repo_name (str): The name of the git repository
         clone_dir (str): The path of the directory where the git repository will be cloned
@@ -35,8 +35,8 @@ class RepoConverter:
         import sys
 
         for repo_url in sys.argv[1:]:
-            converter = RepoConverter(repo_url)
-            converter.convert_repo()
+            downloader = RepoDownloader(repo_url)
+            downloader.download_repo()
     """
 
     def __init__(self, 
@@ -77,7 +77,7 @@ class RepoConverter:
         return output_file
     
     def yaml_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a .YAML file in cloned repository, converts it
+        """Given the file_path of a .YAML file in cloned repository, downloads it
         to a .txt file and saves it in the same directory structure in
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
@@ -91,7 +91,7 @@ class RepoConverter:
             out_file.write(yaml_content)  # write the content to the output file
 
     def py_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a .py file in cloned repository, converts it
+        """Given the file_path of a .py file in cloned repository, downloads it
         to a .txt file and saves it in the same directory structure in
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
@@ -105,7 +105,7 @@ class RepoConverter:
             out_file.write(code_content)
 
     def md_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a .py file in cloned repository, converts it
+        """Given the file_path of a .py file in cloned repository, downloads it
         to a .md file and saves it in the same directory structure in
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
@@ -118,9 +118,9 @@ class RepoConverter:
         with open(output_file, 'w') as out_file:
             out_file.write(md_content)
 
-    def convert_to_txt(self, file_path: (str)) -> None:
+    def download_to_txt(self, file_path: (str)) -> None:
         """Given a file path in cloned repository, runs the appropriate
-        conversion function based on the file extension.
+        download function based on the file extension.
 
         Args:
             file_path (str): the file_path in cloned repository
@@ -135,18 +135,18 @@ class RepoConverter:
         else:
             print(f'Unsupported file type: {ext}')
 
-    def convert_repo(self) -> str:
-        """Given a git repository url clone the repository, then convert all
-        repository .yaml, .py, and .md files to .txt files and save them in
+    def download_repo(self) -> str:
+        """Given a git repository url clone the repository, then download all
+        repository .yaml, .py, and .md files as .txt files and save them in
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Returns:
-            The path of the converted repository (/scripts/train/support_chatbot/retrieval_data/{self.repo_name})
+            The path of the downloaded repository (/scripts/train/support_chatbot/retrieval_data/{self.repo_name})
         """
         # Cloning the repo
         Repo.clone_from(self.repo_url, self.clone_dir)
 
-        # Converting each file
+        # Downloading each file
         for root, _, files in os.walk(self.clone_dir):
             for file in files:
                 if file.endswith(('.yaml', '.py', '.md')):
@@ -163,3 +163,17 @@ class RepoConverter:
 
         shutil.rmtree(self.clone_dir)
         return os.path.join(self.output_dir, self.repo_name)
+
+def main() -> None:
+    output_dir = 'retrieval_data'
+    if len(sys.argv) < 2:
+        raise ValueError("At least one repository URL must be provided as an argument.")
+    
+    for repo_url in sys.argv[1:]:
+        downloader = RepoDownloader(output_dir, "", repo_url)
+        if os.path.exists(downloader.clone_dir):
+            continue
+        downloader.download_repo()
+
+if __name__ == "__main__":
+    main()

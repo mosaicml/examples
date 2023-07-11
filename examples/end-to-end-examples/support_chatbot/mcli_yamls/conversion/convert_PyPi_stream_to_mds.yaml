@@ -1,4 +1,4 @@
-name: upload-10ks-to-cloud
+name: convert-jsonl-to-stream
 
 compute:
   gpus: 8  # Number of GPUs to use
@@ -19,10 +19,9 @@ integrations:
 # Install the necessary dependencies
 # Run the script to process the raw data files and upload them to the cloud in the correct format
 command: |
-  cd /workspace/examples/examples/end-to-end-examples/sec_10k_qa
+  cd /workspace/examples/examples/end-to-end-examples/support_chatbot
   pip install -r requirements.txt
-  python process_and_upload_10ks.py \
-    --folder_for_upload CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
-    --dataset_subset large_full
+  python convert_jsonl_to_stream.py \
+    --folder_for_upload CLOUD://BUCKET/support-bot-demo/data/PyPi_mds/ \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
