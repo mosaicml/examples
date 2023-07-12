@@ -75,10 +75,10 @@ This example will contain scripts for 3 different conversions: [text to MDS](./s
 mcli run -f mcli_yamls/conversion/convert_txt_to_stream.yaml --cluster CLUSTER
 ```
 
-Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
+Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, either integrate the repository with the data into the `cli_yamls/conversion/convert_txt_to_stream.yaml` yaml, or we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
 
 ```bash
-python scripts/convert_txt_to_stream.py \
+python scripts/conversion/convert_txt_to_stream.py \
     --out_root CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
     --in_root PATH_TO_TXT_FOLDER
 ```
@@ -96,12 +96,12 @@ mcli run -f mcli_yamls/conversion/convert_jsonl_to_stream.yaml --cluster CLUSTER
 As mentioned above, please note that if you choose to use a local directory, it must be pushed to the repository included in the YAML To bypass this, we can also just run `convert_jsonl_to_stream.py` in local by running the following:
 
 ```bash
-python scripts/convert_jsonl_to_stream.py \
+python scripts/conversion/convert_jsonl_to_stream.py \
     --out_root CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
     --in_root PATH_TO_JSONL
 ```
 
-**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), 'DATA_NAME_MDS' (in the yaml), `PATH_TO_JSONL_FILE` (in the yaml). As an example, if we want to convert the CoQA dataset into MDS, we will run with `DATA_NAME_MDS = CoQA_mds` and `PATH_TO_JSONL = train_data/pipeline_data/coqa.jsonl`. Note that in this case, because we don't need to give the converter a whole folder, we can also give it an OCI link.
+**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), 'DATA_NAME_MDS' (in the yaml), `PATH_TO_JSONL_FILE` (in the yaml). As an example, if we want to convert the CoQA dataset into MDS, we will run with `DATA_NAME_MDS = CoQA_mds` and `PATH_TO_JSONL = train_data/pipeline_data/coqa.jsonl`.
 
 ## Step 3: Finetuning on our Repository
 
