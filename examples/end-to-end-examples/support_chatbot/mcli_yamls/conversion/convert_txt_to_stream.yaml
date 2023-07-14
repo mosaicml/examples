@@ -15,11 +15,11 @@ integrations:
   ssh_clone: false # Should be true if using a private repo
   path: /workspace/examples # Tell MCLI what path to clone the repo to
 
-# cd into the sec_10k_qa folder
+# cd into the chatbot folder
 # Install the necessary dependencies
 # Run the script to process the raw data files and upload them to the cloud in the correct format
 command: |
-  cd /workspace/examples/examples/end-to-end-examples/support_chatbot
+  cd /workspace/examples/examples/end-to-end-examples/support_chatbot/scripts/
   pip install -r requirements.txt
   python convert_txt_to_stream.py \
     --folder_for_upload CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \

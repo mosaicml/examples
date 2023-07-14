@@ -37,8 +37,8 @@ parameters:
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/
-  save_weights_only: True # Since we only need the weights for the next step, we can reduce the size of the checkpoint
+  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/CoQA/
+  save_weights_only: False # Since we only need the weights for the next step, we can reduce the size of the checkpoint
   dist_timeout: 60000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
   # Maximum sequence length of the model

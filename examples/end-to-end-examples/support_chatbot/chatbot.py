@@ -16,6 +16,7 @@ from typing import Any
 import json
 import re
 import string
+import argparse
 
 MOSAICML_MAX_LENGTH = 150
 DOCUMENT_PROMPT = PromptTemplate(input_variables=['page_content'],
@@ -313,10 +314,16 @@ def main():
             continue
         downloader.download_repo()
 
+    embeddings = MosaicMLInstructorEmbeddings(
+        endpoint_url='https://instructor-large-3c2sg4.inf.hosted-on.mosaicml.hosting/predict',
+        embed_instruction='Represent the documentation statement for retrieval: ',
+        query_instruction=
+        'Represent the documentation question for retrieving supporting documents: '
+    )
 
-    embeddings = MosaicMLInstructorEmbeddings()
     llm = MosaicML(
         inject_instruction_format=True,
+        endpoint_url='https://mpt-7b-support-bot-finetuned-b0lazw.inf.hosted-on.mosaicml.hosting/predict',
         model_kwargs={
             'max_new_tokens': MOSAICML_MAX_LENGTH, 
             'do_sample': True,  # perform greedy decoding

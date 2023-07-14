@@ -1,4 +1,4 @@
-name: mpt-7b-finetuned
+name: mpt-7b-support-bot-finetuned
 
 # Deployment configuration
 # For 30B model deployed with bf16 datatype, the model needs atleast ~60GB of memory.
@@ -14,7 +14,7 @@ replicas: 1 # Number of replicas to use for this run
 integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
-  git_repo: mosaicml/examples
+  git_repo: KuuCi/examples
   git_branch: main
   ssh_clone: false
 # Clone the llm-foundry repo so we can use the HF to FasterTransformer convert script from it
@@ -35,9 +35,9 @@ command: |
 model:
   backend: faster_transformers
   # Specify how to download the model from object store
-  downloader: examples.end-to-end-examples.sec_10k_qa.deployment_download_helper.download_and_convert
+  downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: CLOUD://BUCKET_NAME/sec_10k_demo/checkpoints/mpt-7b-hf-large/
+    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-composer_codebase-hf/
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
