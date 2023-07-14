@@ -1,3 +1,23 @@
+from mcli.sdk import Run, RunStatus, get_run
+import oci
+from time import sleep
+from datetime import datetime
+import sys
+
+def check_run_status_and_raise_if_error(run: Run) -> None:
+  terminated_run_states = [RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.STOPPED, RunStatus.UNKNOWN, RunStatus.FAILED_PULL]
+    
+  start_time = datetime.now()
+  while run.status not in terminated_run_states:
+      sleep(10)
+      run = get_run(run.name)
+      print(f'Run status: {run.status}, elapsed time: {datetime.now() - start_time}')
+  
+  if run.status != 'COMPLETED':
+      print(f'Run failed with status: {run.status}')
+      sys.exit(1)
+  print(f'Run completed successfully with status: {run.status}, elapsed time: {datetime.now() - start_time}')
+
 def get_mpt_parameters_dict(model_name: str, save_folder: str, train_data_path: str, eval_data_path: str) -> dict:
   return {
     # Checkpoint to local filesystem or remote object store
@@ -112,14 +132,17 @@ def get_mpt_parameters_dict(model_name: str, save_folder: str, train_data_path: 
         'clipping_threshold': 1.0}},
 
     # Run configuration
-    'max_duration': '2ep', # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
+    # TODO: change to 2ep for final run
+    'max_duration': '10ba', # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
     'eval_interval': '500ba', # How frequently to evaluate the model
     'eval_first': True, # Whether to evaluate the model before training
     'eval_subset_num_batches': -1, # How many batches to evaluate on. -1 means evaluate on the entire dataset
     'global_train_batch_size': 128,  # Global batch size. This is the batch size across all GPUs
     'seed': 17,
     'device_eval_batch_size': 8, # Evaluation batch size per GPU
-    'device_train_microbatch_size': 'auto', # Automatically determine the microbatch size per GPU
+    # TODO: change to 'auto' for final run
+    'device_train_microbatch_size': 1,
+    # 'device_train_microbatch_size': 'auto', # Automatically determine the microbatch size per GPU
     'precision': 'amp_bf16',
 
     # Configuration settings for FSDP
@@ -179,3 +202,18 @@ def get_mpt_parameters_dict(model_name: str, save_folder: str, train_data_path: 
       # Log an estimate of how long the training run has left to complete
       'runtime_estimator': {}},
   }
+
+def validate_oci_bucket(bucket_name: str, filepath: str):
+   object_name = filepath.split(f'{bucket_name}/')[-1]
+   config = oci.config.from_file()
+   object_storage = oci.object_storage.ObjectStorageClient(config)
+   namespace = object_storage.get_namespace().data
+   try:
+      response = object_storage.get_object(namespace, bucket_name, object_name)
+      if response.status != 200:
+        print(f'Error reading OCI bucket {bucket_name} with object_name: {object_name}. Status was: {response.status}')
+        sys.exit(1)
+      return
+   except Exception as e:
+      print(f'Error reading OCI bucket {bucket_name} with object_name: {object_name}. Error was: {e}')
+      sys.exit(1)
