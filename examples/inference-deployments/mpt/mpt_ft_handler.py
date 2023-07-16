@@ -42,7 +42,8 @@ def download_convert(s3_path: Optional[str] = None,
     """
     if not s3_path and not gcp_path and not hf_path:
         raise RuntimeError(
-            'Either s3_path, gcp_path, or hf_path must be provided to download_convert')
+            'Either s3_path, gcp_path, or hf_path must be provided to download_convert'
+        )
     model_name_or_path: str = ''
 
     # If s3_path or gcp_path is provided, initialize the s3 client for download
@@ -54,11 +55,11 @@ def download_convert(s3_path: Optional[str] = None,
         download_from_path = s3_path
     if gcp_path:
         s3 = boto3.client(
-            "s3",
-            region_name="auto",
-            endpoint_url="https://storage.googleapis.com",
-            aws_access_key_id=os.environ["GCS_KEY"],
-            aws_secret_access_key=os.environ["GCS_SECRET"],
+            's3',
+            region_name='auto',
+            endpoint_url='https://storage.googleapis.com',
+            aws_access_key_id=os.environ['GCS_KEY'],
+            aws_secret_access_key=os.environ['GCS_SECRET'],
         )
         download_from_path = gcp_path
 
@@ -87,16 +88,17 @@ def download_convert(s3_path: Optional[str] = None,
                 file_key = obj['Key']
                 try:
                     file_name = os.path.basename(file_key)
-                    if not file_name or file_name.startswith("."):
+                    if not file_name or file_name.startswith('.'):
                         # Ignore hidden files
                         continue
                     if file_name not in downloaded_file_set:
                         print(
-                            f"Downloading {os.path.join(LOCAL_MODEL_PATH, file_name)}...")
+                            f'Downloading {os.path.join(LOCAL_MODEL_PATH, file_name)}...'
+                        )
                         s3.download_file(Bucket=parsed_path.netloc,
-                                        Key=file_key,
-                                        Filename=os.path.join(
-                                            LOCAL_MODEL_PATH, file_name))
+                                         Key=file_key,
+                                         Filename=os.path.join(
+                                             LOCAL_MODEL_PATH, file_name))
                 except botocore.exceptions.ClientError as e:
                     print(
                         f'Error downloading file with key: {file_key} with error: {e}'
