@@ -1,7 +1,8 @@
 from enum import Enum
 from mcli.sdk import create_run, create_inference_deployment, get_run, \
-                    InferenceDeploymentConfig, RunConfig, Run
+                    InferenceDeployment, InferenceDeploymentConfig, RunConfig, Run
 from utils import get_mpt_parameters_dict, check_run_status_and_raise_if_error, validate_oci_bucket
+from utils_convert_to_mds import convert_data
 from datetime import datetime
 
 class Models(Enum):
@@ -17,22 +18,20 @@ TRAIN_DATA_PATH: str = f'oci://nancy-test' # Directory where your jsonl, pq, or 
 # TRAIN_DATA_PATH: str = 'mosaicml/dolly_hhrlhf' # blobstore path or hugging face path to training data
 EVAL_DATA_PATH: str = 'mosaicml/dolly_hhrlhf' # hugging face path to eval data
 SAVE_FOLDER: str = 'oci://nancy-test/checkpoints/finetune-mpt-7b' # where to upload checkpoints
-CLUSTER_NAME: str = ''
+CLUSTER_NAME: str = 'r1z1'
 # For inference
 # HUGGING_FACE_PATH: str = f'oci://nancy-test/checkpoints/hf-path-{datetime.utcnow().strftime("%d-%m-%y::%H:%M:%S")}'
 HUGGING_FACE_PATH: str = 'oci://nancy-test/checkpoints/hf-path-08-07-23::04:06:08'
+INFERENCE_CLUSTER_NAME = 'r7z14'
 NUM_REPLICAS: int = 1
-
-###### Data conversion ######
-# assume user already has mds formatted data
 
 # TODO: remove, this is for testing
 run_name = f'finetune-{MODEL_NAME.value}'
-CLUSTER_NAME = 'r1z1'
 CLUSTER_TO_GPU_MAP = {
     'r1z1': 'a100_80gb',
     'r7z2': 'a100_40gb',
 }
+
 
 ###### Finetuning ######
 def finetune(
@@ -139,12 +138,11 @@ def convert_composer_to_hf(
 
 
 def create_deployment(
-    run_name: str,
     cluster_name: str,
     num_replicas: int,
     hugging_face_path: str,
     model_name: str,
-):
+) -> InferenceDeployment:
     compute_config = {
         'cluster': cluster_name,
         'instance': 'oci.vm.gpu.a10.1',
@@ -187,7 +185,7 @@ def create_deployment(
     }
 
     deployment_config = InferenceDeploymentConfig(
-        name=f'{run_name}-deployment',
+        name=f'finetune-deployment-{model_name}',
         compute=compute_config,
         integrations=integrations,
         replicas=num_replicas,
@@ -197,15 +195,24 @@ def create_deployment(
     deployment = create_inference_deployment(deployment_config)
     print(f'Created inference deployment with name: {deployment.name}, DNS: {deployment.public_dns}')
     print(f'Check the status with: `mcli get deployments` and logs with `mcli get deployment logs --follow {deployment.name}`')
-# deployment_config = InferenceDeploymentConfig(
-#     name=f'{run.name}-deployment',
-#     image='mosaicml-inference:latest',
-# )
-# deployment = create_inference_deployment(deployment_config)# deploy the checkpoint after finetuning)
-# print('Created inference deployment with ID: {deployment.id}, name: {deployment.name}')
+    return deployment
 
 
 if __name__ == '__main__':
+    # Data conversion
+    convert_data(
+        tokenizer_name=f'mosaicml/{MODEL_NAME.value}',
+        output_folder='oci://nancy-test',
+        train_index_path='oci://nancy-test/10k_train.jsonl',
+        eval_index_path='oci://nancy-test/10k_validate.jsonl',
+        concat_tokens=0,
+        eos_text='</s>',
+        bos_text='<s>',
+        no_wrap=True,
+        max_workers=1,
+        compression='gzip'
+    )
+
     # Validation
     # if using oci
     # validate_oci_bucket(bucket_name='nancy-test', object_name=TRAIN_DATA_PATH)
@@ -241,13 +248,15 @@ if __name__ == '__main__':
 
     run = get_run('finetune-mpt-7b-bsrsnl-convert-to-hf-dDdgPM')
 
-    # Proceed with inference
+    # [Optional]: Create an inference deployment with your model
     print(f'Starting inference deployment...')
-    create_deployment(
-        run_name=run.name,
-        cluster_name='r7z14',
+    deployment: InferenceDeployment = create_deployment(
+        cluster_name=INFERENCE_CLUSTER_NAME,
         num_replicas=NUM_REPLICAS,
         hugging_face_path=HUGGING_FACE_PATH,
         model_name=MODEL_NAME.value,
     )
-    print(f'Finished inference deployment')
+    # TODO: wait until deployment is ready and return the endpoint
+    # TODO: deploy instruct model
+
+    # TODO: Evaluate the model
