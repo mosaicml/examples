@@ -78,10 +78,11 @@ def download_convert(s3_path: Optional[str] = None,
             print(f'Downloading model from path: {download_from_path}')
 
             parsed_path = urlparse(download_from_path)
+            prefix = parsed_path.path.lstrip('/')  # type: ignore
 
             objs = s3.list_objects_v2(
                 Bucket=parsed_path.netloc,
-                Prefix=parsed_path.path.lstrip('/'),
+                Prefix=prefix,
             )
             downloaded_file_set = set(os.listdir(LOCAL_MODEL_PATH))
             for obj in objs['Contents']:
