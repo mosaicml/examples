@@ -1,5 +1,9 @@
 name: mpt-support-bot-finetune-composer-codebase
 
+scheduling:
+  preemptible: true
+  priority: high
+
 compute:
   gpus: 8  # Number of GPUs to use
 
@@ -106,6 +110,7 @@ parameters:
     name: cosine_with_warmup
     t_warmup: 500ba
     alpha_f: 0.1
+
 
   # Optimizer
   # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options
