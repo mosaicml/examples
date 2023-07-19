@@ -1,0 +1,17 @@
+# --------- pytorch --------- #
+torch>=1.13.0
+torchvision>=0.12.0
+mosaicml[all]>=0.14.0,<0.15
+mosaicml-streaming==0.4.1
+
+# --------- others --------- #
+omegaconf==2.3.0
+
+# -------- diffusion -------- #
+diffusers[torch]==0.11.1
+transformers[torch]==4.25.1
+pydantic==1.10.10
+scipy==1.11.1
+
+# -------- xformers -------- #
+xformers==0.0.20

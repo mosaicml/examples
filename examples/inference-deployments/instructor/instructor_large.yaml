@@ -1,0 +1,22 @@
+name: instructor-large
+compute:
+  gpus: 1
+  gpu_type: a100_40gb
+image: mosaicml/inference:29eb4d0
+replicas: 1
+command:
+  export PYTHONPATH=/code/llm-foundry:/code/examples:/code
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  ssh_clone: false
+- integration_type: pip_packages
+  packages:
+  - InstructorEmbedding==1.0.0
+  - sentence-transformers==2.2.2
+model:
+  download_parameters:
+    hf_path: hkunlp/instructor-large
+  model_handler: examples.inference-deployments.instructor.instructor_handler.HFInstructorHandler
+  model_parameters:
+    model_name: hkunlp/instructor-large

@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 [tool.isort]
 multi_line_output = 0
 line_length = 80
-skip = [ "env", "wandb", "runs", "build", "node_modules" ]
+skip = [ "env", "wandb", "runs", "build", "node_modules", "examples/inference-deployments/mpt/mpt_7b_ft_handler.py" ]
 
 # Pyright
 [tool.pyright]

@@ -19,8 +19,21 @@ source "$ENV_NAME/bin/activate"
 
 echo "Installing requirements..."
 pip install --upgrade 'pip<23'
-target=$(echo $1 | tr '_' '-')
-pip install ".[$target-cpu]"  # we rely on docker image to handle flash-attn, etc
+pip install 'pre-commit>=2.18.1,<3'
+pip install 'pyright==1.1.296'
+pip install 'pytest>=7.2.1,<8'
+target=$(echo $1 | tr '_' '-' | tr '/' '-')
+
+original_dir=$(pwd)
+cd examples/$1
+if [ -f requirements-cpu.txt ]; then
+    pip install -r requirements-cpu.txt
+elif [ -f requirements.txt ]; then
+    pip install -r requirements.txt
+else
+    echo "No requirements-cpu.txt or requirements.txt found in directory examples/$1"
+fi
+cd $original_dir
 
 DIRECTORY="examples/$1"
 cp pyproject.toml "$DIRECTORY"

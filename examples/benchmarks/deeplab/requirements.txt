@@ -1,0 +1,4 @@
+mosaicml[wandb]>=0.14.0,<0.15
+mosaicml-streaming==0.4.1
+omegaconf
+mmsegmentation==0.22.0
