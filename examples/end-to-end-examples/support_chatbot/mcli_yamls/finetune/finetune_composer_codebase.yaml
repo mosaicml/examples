@@ -1,5 +1,9 @@
 name: mpt-support-bot-finetune-composer-codebase
 
+scheduling:
+  preemptible: true
+  priority: high
+
 compute:
   gpus: 8  # Number of GPUs to use
 
@@ -30,6 +34,10 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 # The mounted file is then passed directly to the train.py script
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
+  # Path to load the weights from the previous step
+  load_path: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi/latest-rank0.pt.symlink
+  load_weights_only: true # Only load the weights for finetuning, discarding any other state from previous training
+
   # Where to read the data from and save it to locally on the machine
   data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/
   data_local: ./local-dataset-composercodebase-cache
@@ -37,7 +45,7 @@ parameters:
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/composer_codebase/
+  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi_composer_codebase/
   save_weights_only: False # Since we only need the weights for the next step, we can reduce the size of the checkpoint
   dist_timeout: 60000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
@@ -106,6 +114,7 @@ parameters:
     name: cosine_with_warmup
     t_warmup: 500ba
     alpha_f: 0.1
+
 
   # Optimizer
   # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options

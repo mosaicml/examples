@@ -11,7 +11,7 @@ integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
   git_repo: KuuCi/examples
-  git_commit: main
+  git_commit: support-bot
 # Install the dependencies for the InstructorEmbedding model
 - integration_type: pip_packages
   packages:

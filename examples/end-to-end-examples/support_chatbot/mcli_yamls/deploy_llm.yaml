@@ -15,7 +15,7 @@ integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
   git_repo: KuuCi/examples
-  git_branch: main
+  git_branch: support-bot
   ssh_clone: false
 # Clone the llm-foundry repo so we can use the HF to FasterTransformer convert script from it
 - git_commit: 2c92faa5ce31888214bdb582ac7f5756d0d3dacd
@@ -37,12 +37,12 @@ model:
   # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-composer_codebase-hf/
+    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-dolly-hf/
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
     # FT checkpoint path is hardcoded in MPTFTModelHandler at /tmp/mpt
-    model_name_or_path: mosaicml/mpt-7b # This is used for the tokenzier
+    model_name_or_path: mosaicml/mpt-7b-instruct # This is used for the tokenzier
     gpus: 1 # number of gpus to use for inference
 
 image: mosaicml/inference:0.1.1 # Use the Docker image provided by MosaicML

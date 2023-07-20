@@ -1,7 +1,10 @@
 name: mpt-7b-supportbot-hf-convert-final
 
+scheduling:
+  priority: medium
+
 compute:
-  gpus: 8  # Number of GPUs to use
+  gpus: 0  # Number of GPUs to use
 
   ## These configurations are optional
   # cluster: r0z0 # Name of the cluster to use for this run
@@ -12,15 +15,15 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
   git_branch: main # TODO: pin
-  pip_install: -e .[gpu]
+  pip_install:  -e .
   ssh_clone: false # Should be true if using a private repo
 
 # cd into the scripts/inference folder and run the MPT conversion script from LLM-foundry
 command: |
   cd llm-foundry/scripts/inference
   python convert_composer_to_hf.py \
-    --composer_path oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/composer_codebase/latest-rank0.pt.symlink \
-    --hf_output_path oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-composer_codebase-hf/ \
+    --composer_path oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi/latest-rank0.pt.symlink \
+    --hf_output_path oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-PyPi-hf/ \
     --output_precision bf16 \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

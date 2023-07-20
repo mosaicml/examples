@@ -1,0 +1,16 @@
+gpu_type: a100_80gb
+gpu_num: 1
+platform: r1z2
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+
+name: pypi_postprocess
+integrations:  
+  - integration_type: git_repo
+    git_repo: KuuCi/examples
+    git_branch: support-bot
+   
+command: |
+  cd examples/end-to-end-examples/support_chatbot/
+  pip install -r requirements.txt
+  cd scripts/PyPi_processor
+  python3 -m postprocess_raw_scrape

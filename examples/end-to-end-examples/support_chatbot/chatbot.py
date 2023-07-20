@@ -16,7 +16,7 @@ from typing import Any
 import json
 import re
 import string
-import argparse
+import time
 
 MOSAICML_MAX_LENGTH = 150
 DOCUMENT_PROMPT = PromptTemplate(input_variables=['page_content'],
@@ -245,8 +245,11 @@ class ChatBot:
         
         def remove_parentheses(s):
             return re.sub(r'\(.*?\)', '', s)
+        
+        def replace_underscore(s):
+            return re.sub('_', '-', s)
 
-        return white_space_fix(remove_parentheses(remove_articles(handle_punc(lower(answer))))).strip()
+        return white_space_fix(remove_parentheses(remove_articles(handle_punc(lower(replace_underscore(answer)))))).strip()
     
     
         
@@ -277,10 +280,60 @@ class ChatBot:
                     exact_match += 1
                 elif self.normalize_str(continuation) in self.normalize_str(answer):
                     close_match += 1
+                elif self.normalize_str(answer) in self.normalize_str(continuation):
+                    close_match += 1
                 else:
-                    print('\n', answer, '||', continuation, '\n')
+                    print('\n', self.normalize_str(answer), '||', self.normalize_str(continuation), '\n')
+                    print(f'{exact_match} exact matches and {close_match} close matches out of {total} questions.')
                 total += 1
+                time.sleep(0.5)
         return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
+
+    def evaluate_30b(self, 
+                data_path: str) -> int:
+        if not data_path.endswith('.jsonl'):
+            raise ValueError('File is not a .jsonl file')
+
+        save_prev_endpoint = self.model.endpoint_url
+        self.model.endpoint_url = 'https://mpt-30b-chat-ft-e49k47.inf.hosted-on.mosaicml.hosting/predict'
+        # Prompt template for the query
+        answer_question_string_template = """<|im_start|>system
+            A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
+            Given some context, the assistant will provide only the function, class, or object name that answers the user's question, 
+            or says "I don't know" if the answer isn't available.<|im_end|>
+            <|im_start|>context
+            {context}<|im_end|>
+            <|im_start|>user
+            {question}<|im_end|>
+            <|im_start|>assistant
+            """
+        exact_match = 0
+        close_match = 0
+        total = 1
+        total_lines = sum(1 for _ in open(data_path))
+        
+        chain = self.create_chain(answer_question_string_template)
+
+        with open(data_path, 'r') as file:
+            for line in tqdm(file, total=total_lines, desc="Processing lines"):
+                data = json.loads(line)
+                question = data.get('context')
+                continuation = data.get('continuation')
+                response = chain(question)
+                answer = self.clean_response(response['result'].lstrip('\n'))
+                if self.normalize_str(answer) == self.normalize_str(continuation):
+                    exact_match += 1
+                elif self.normalize_str(continuation) in self.normalize_str(answer):
+                    close_match += 1
+                #else:
+                print('\n', self.normalize_str(answer), '||', self.normalize_str(continuation), '\n')
+                print(f'{exact_match} exact matches and {close_match} close matches out of {total} questions.')
+                total += 1
+                time.sleep(0.5)
+
+        self.model.endpoint_url = save_prev_endpoint
+        return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
+
 
     def chat(self):
         # Prompt template for the query
@@ -293,9 +346,15 @@ class ChatBot:
         question = input("Ask a question: ")
         while question != "!exit":
             if question == "!eval":
-                self.model.model_kwargs['max_new_tokens'] = 25
+                self.model.model_kwargs['output_len'] = 40
                 print(self.evaluate("train_data/pipeline_data/composer_docstrings.jsonl"))
-                self.model.model_kwargs['max_new_tokens'] = MOSAICML_MAX_LENGTH
+                self.model.model_kwargs['output_len'] = MOSAICML_MAX_LENGTH
+                question = input("Ask a question: ")
+                continue
+            elif question == "!eval_30b":
+                self.model.model_kwargs['output_len'] = 40
+                print(self.evaluate_30b("train_data/pipeline_data/composer_docstrings.jsonl"))
+                self.model.model_kwargs['output_len'] = MOSAICML_MAX_LENGTH
                 question = input("Ask a question: ")
                 continue
             response = chain(question)
@@ -314,20 +373,14 @@ def main():
             continue
         downloader.download_repo()
 
-    embeddings = MosaicMLInstructorEmbeddings(
-        endpoint_url='https://instructor-large-3c2sg4.inf.hosted-on.mosaicml.hosting/predict',
-        embed_instruction='Represent the documentation statement for retrieval: ',
-        query_instruction=
-        'Represent the documentation question for retrieving supporting documents: '
-    )
 
+    embeddings = MosaicMLInstructorEmbeddings()
     llm = MosaicML(
         inject_instruction_format=True,
-        endpoint_url='https://mpt-7b-support-bot-finetuned-b0lazw.inf.hosted-on.mosaicml.hosting/predict',
+        endpoint_url= 'https://mpt-7b-support-bot-finetuned-7yiz5g.inf.hosted-on.mosaicml.hosting/predict',
         model_kwargs={
-            'max_new_tokens': MOSAICML_MAX_LENGTH, 
-            'do_sample': True,  # perform greedy decoding
-            'use_cache': True
+            'output_len': MOSAICML_MAX_LENGTH, 
+            'top_k': 1,
             # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
         },
     )
@@ -335,9 +388,9 @@ def main():
     chatbot = ChatBot(data_path= "retrieval_data",
                       embedding=embeddings,
                       model=llm,
-                      k=5,
-                      chunk_size=1000,
-                      chunk_overlap=100)
+                      k=1,
+                      chunk_size=750,
+                      chunk_overlap=150)
     chatbot.chat()
 
 
