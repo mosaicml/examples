@@ -10,7 +10,7 @@ integrations:
     git_branch: support-bot
    
 command: |
-  cd examples/end-to-end-examples/support_chatbot/
+  cd examples/examples/end-to-end-examples/support_chatbot/
   pip install -r requirements.txt
   cd scripts/PyPi_processor
   python3 -m postprocess_raw_scrape

@@ -52,14 +52,14 @@ if __name__ == "__main__":
     print(len(blacklisted_files))
     print(stats)
 
-    if os.path.exists('local_dir'):
-        shutil.rmtree('local_dir')
+    if os.path.exists('local_dir_1'):
+        shutil.rmtree('local_dir_1')
 
     # Remote directory (S3 or local filesystem) where dataset is stored
     remote_dir = 'oci://mosaicml-internal-datasets/pypi/source_code'
 
     # Local directory where dataset is cached during operation
-    local_dir = 'local_dir'
+    local_dir = 'local_dir_1'
     dataset = StreamingDataset(local=local_dir, remote=remote_dir, split=None, shuffle=False)
 
     # Create PyTorch DataLoader
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         'source_funcs': [],
         'docstrings': [],
     }
-    MAX_SEQ_LEN = 8000
+    MAX_SEQ_LEN = 8192
     curr_text = ""
 
 

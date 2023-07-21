@@ -48,7 +48,7 @@ parameters:
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
   # Note that you would also need to reprocess your data to contain longer sequences
-  max_seq_len: 8000
+  max_seq_len: 8192
 
   # Random seed to ensure reproducibility
   global_seed: 17
