@@ -34,10 +34,6 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 # The mounted file is then passed directly to the train.py script
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
-  # Where to read the data from and save it to locally on the machine
-  data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi_mds/
-  data_local: ./local-dataset-PyPi-cache
-
   # Checkpoint to local filesystem or remote object store
   save_interval: 1000ba # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
@@ -74,15 +70,16 @@ parameters:
     name: mosaicml/mpt-7b # This can be changed along with the model
     kwargs:
       model_max_length: ${max_seq_len}
+      pad_token: <|endoftext|>
 
   # Dataloaders
   train_loader:
     name: text
     # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
-      local: ${data_local}
-      remote: ${data_remote}
-      split: train
+      local: ./local-dataset-PyPi-cache_train
+      remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/source_code_processed_train/
+      split: null
       shuffle: true
       max_seq_len: ${max_seq_len}
       shuffle_seed: ${global_seed}
@@ -94,9 +91,9 @@ parameters:
     name: text
     # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
-      local: ${data_local}
-      remote: ${data_remote}
-      split: validation
+      local: ./local-dataset-PyPi-cache_val
+      remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/source_code_processed_val/
+      split: null
       shuffle: false
       max_seq_len: ${max_seq_len}
       shuffle_seed: ${global_seed}

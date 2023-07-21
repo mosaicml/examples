@@ -10,6 +10,7 @@ from transformers import AutoTokenizer
 def check_raw():
     print('------------------------ Starting check ------------------------')
     remote_source_folders = ['source_code_processed_train', 'source_code_processed_val']
+    store = []
     for folder in remote_source_folders:
         remote_dir = os.path.join('oci://mosaicml-internal-datasets/mpt-swe-filtered/', folder)
         dataset = StreamingDataset(remote=remote_dir, split=None, shuffle=False)
@@ -17,8 +18,8 @@ def check_raw():
 
         url_hash = set()
         dup_count = 0
-        store = []
-        for doc_data in tqdm(dataloader, desc='Loading PyPi docstrings', total=len(dataloader)):
+        
+        for doc_data in tqdm(dataloader, desc='Loading PyPi docstrings', total=len(dataset)):
             text = doc_data['text']
             text = ', '.join(text)
             url = doc_data['url']

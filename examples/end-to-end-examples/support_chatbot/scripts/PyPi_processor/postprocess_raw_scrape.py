@@ -73,13 +73,13 @@ if __name__ == "__main__":
         'source_funcs': [],
         'docstrings': [],
     }
-    MAX_SEQ_LEN = 8192
+    MAX_SEQ_LEN = 2048
     curr_text = ""
 
 
-    doc_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/docstring_processed_train/"
-    doc_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/docstring_processed_val/"
-    doc_test_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/docstring_processed_test/"
+    doc_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/docstring_processed_train/"
+    doc_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/docstring_processed_val/"
+    doc_test_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/docstring_processed_test/"
 
     doc_columns = {
         "instruction": "str",
@@ -88,8 +88,8 @@ if __name__ == "__main__":
         "package_name": "str",
         "file_name": "str"
     }
-    src_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/source_code_processed_train/"
-    src_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe/source_code_processed_val/"
+    src_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/source_code_processed_train/"
+    src_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/source_code_processed_val/"
     src_columns = {
         "text": "str",
         "url": "str",
@@ -222,7 +222,7 @@ if __name__ == "__main__":
                                                 "instruction": instruction,
                                                 "completion": desired_output,
                                                 "url": concatenated_project_data['url'],
-                                                "file_name": fn,
+                                                "file_name": batch['file_name'][0].split('/')[-1],
                                                 "package_name":  concatenated_project_data['package_name']
                                             })
                                         elif sampl > 0.1 and sampl <= 0.2:
@@ -230,7 +230,7 @@ if __name__ == "__main__":
                                                 "instruction": instruction,
                                                 "completion": desired_output,
                                                 "url": concatenated_project_data['url'],
-                                                "file_name": fn,
+                                                "file_name": batch['file_name'][0].split('/')[-1],
                                                 "package_name":  concatenated_project_data['package_name']
                                             })
                                         elif sampl > 0.2:
@@ -238,6 +238,6 @@ if __name__ == "__main__":
                                                 "instruction": instruction,
                                                 "completion": desired_output,
                                                 "url": concatenated_project_data['url'],
-                                                "file_name": fn,
+                                                "file_name": batch['file_name'][0].split('/')[-1],
                                                 "package_name":  concatenated_project_data['package_name']
                                             })

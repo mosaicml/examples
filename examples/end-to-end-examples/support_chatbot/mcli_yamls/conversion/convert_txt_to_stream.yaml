@@ -10,8 +10,8 @@ compute:
 integrations:
 # Clone the examples repository so that we have access to the code in sec_10k_qa
 - integration_type: git_repo
-  git_repo: mosaicml/examples
-  git_branch: main
+  git_repo: KuuCi/examples
+  git_branch: support-bot
   ssh_clone: false # Should be true if using a private repo
   path: /workspace/examples # Tell MCLI what path to clone the repo to
 
@@ -19,8 +19,9 @@ integrations:
 # Install the necessary dependencies
 # Run the script to process the raw data files and upload them to the cloud in the correct format
 command: |
-  cd /workspace/examples/examples/end-to-end-examples/support_chatbot/scripts/
+  cd /workspace/examples/examples/end-to-end-examples/support_chatbot/
   pip install -r requirements.txt
+  cd scripts/conversion
   python convert_txt_to_stream.py \
     --folder_for_upload CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
     --in_root PATH_TO_TXT_FOLDER

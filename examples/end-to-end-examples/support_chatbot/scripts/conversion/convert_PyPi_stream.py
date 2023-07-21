@@ -87,8 +87,6 @@ def build_dataloader(dataset: Dataset,
         dataset=dataset,
         sampler=None,
         batch_size=batch_size,
-        num_workers=1,
-        prefetch_factor=2,
     )
 
 def generate_samples(
