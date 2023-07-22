@@ -23,6 +23,6 @@ command: |
   pip install -r requirements.txt
   cd scripts/conversion
   python convert_PyPi_to_stream.py \
-    --folder_for_upload oci://mosaicml-internal-checkpoints/support-bot-demo/data/all_PyPi_mds/ \
+    --out_root oci://mosaicml-internal-checkpoints/support-bot-demo/data/all_PyPi_mds/ \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

@@ -1,4 +1,4 @@
-gpu_type: a100_80gb
+gpu_type: a100_40gb
 gpu_num: 1
 platform: r1z2
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04

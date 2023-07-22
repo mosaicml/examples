@@ -30,7 +30,7 @@ if __name__ == "__main__":
     dataset = StreamingDataset(local=local_dir, remote=remote_dir, split=None, shuffle=False)
 
     # Create PyTorch DataLoader
-    tokenizer = AutoTokenizer.from_pretrained('mosaicml/mpt-7b')
+    tokenizer = AutoTokenizer.from_pretrained('mosaicml/mpt-7b-8k')
     dataloader = DataLoader(dataset)
     stats = {
         'pairs': 0,
@@ -73,13 +73,13 @@ if __name__ == "__main__":
         'source_funcs': [],
         'docstrings': [],
     }
-    MAX_SEQ_LEN = 2048
+    MAX_SEQ_LEN = 8192
     curr_text = ""
 
 
-    doc_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/docstring_processed_train/"
-    doc_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/docstring_processed_val/"
-    doc_test_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/docstring_processed_test/"
+    doc_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-8k/docstring_processed_train/"
+    doc_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-8k/docstring_processed_val/"
+    doc_test_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-8k/docstring_processed_test/"
 
     doc_columns = {
         "instruction": "str",
@@ -88,8 +88,8 @@ if __name__ == "__main__":
         "package_name": "str",
         "file_name": "str"
     }
-    src_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/source_code_processed_train/"
-    src_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-2k/source_code_processed_val/"
+    src_train_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-8k/source_code_processed_train/"
+    src_val_s3 = "oci://mosaicml-internal-checkpoints/support-bot-demo/data/mpt-swe-8k/source_code_processed_val/"
     src_columns = {
         "text": "str",
         "url": "str",
