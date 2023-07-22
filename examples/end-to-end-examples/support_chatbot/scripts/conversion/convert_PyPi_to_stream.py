@@ -81,36 +81,26 @@ def parse_args()-> Namespace:
         parsed.eos_text = ''
     return parsed
 
-def build_dataloader(dataset: Dataset, 
-                     batch_size: int) -> DataLoader:
-    return DataLoader(
-        dataset=dataset,
-        sampler=None,
-        batch_size=batch_size,
-    )
 
 def generate_samples(
-        loader: DataLoader,
+        dataset: Dataset, 
         truncate_num_samples: Optional[int] = None
 ) -> Iterable[Dict[str, bytes]]:
     """Generator over samples of a dataloader.
 
     Args:
-       loader (DataLoader): A dataloader emitting batches like {key: [sample0_bytes, sample1_bytes, sample2_bytes, ...]}
+       dataset (Dataset): A dataset to be converted
        truncate_num_samples (Optional[int]): An optional # of samples to stop at.
 
     Yields:
         Sample dicts.
     """
     n_samples = 0
-    for batch in loader:
-        keys = list(batch.keys())
-        current_bs = len(batch[keys[0]])
-        for idx in range(current_bs):
-            if truncate_num_samples is not None and n_samples == truncate_num_samples:
-                return
-            n_samples += 1
-            yield {k: v[idx] for k, v in batch.items()}
+    for data in dataset:
+        if truncate_num_samples is not None and n_samples == truncate_num_samples:
+            return
+        n_samples += 1
+        yield data
 
 class DatasetIterable:
     def __init__(self, 
@@ -164,8 +154,7 @@ def convert_to_MDS(
     )
 
     # Generate samples
-    loader = build_dataloader(dataset=dataset, batch_size=512)
-    samples = generate_samples(loader)
+    samples = generate_samples(dataset)
 
     # Write samples in MDS format
     print(f'Converting to MDS format...')
@@ -207,7 +196,6 @@ def main(
         local_dir = os.path.join(DATA_PATH, folder)
         os.makedirs(local_dir, exist_ok=True)
         dataset = StreamingDataset(remote=remote_dir, split=None, shuffle=False)
-        dataloader = DataLoader(dataset)
 
         file_count = 0
         current_file_entries = 0
@@ -216,7 +204,7 @@ def main(
         file_path = os.path.join(local_dir, f'data_{file_count}.jsonl')
         file = open(file_path, 'w')
 
-        for doc_data in tqdm(dataloader, desc='Loading PyPi docstrings', total=len(dataloader)):
+        for doc_data in tqdm(dataset, desc='Loading PyPi docstrings', total=len(dataset)):
             text = doc_data['text']
             text = ', '.join(text)
             url = doc_data['url']
@@ -270,8 +258,8 @@ def main(
                        compression=compression)
         
         os.remove(file_path)
-
-    os.remove(DATA_PATH)
+    if os.path.exists(DATA_PATH):
+        os.remove(DATA_PATH)
 
 if __name__ == '__main__':
     args = parse_args()
