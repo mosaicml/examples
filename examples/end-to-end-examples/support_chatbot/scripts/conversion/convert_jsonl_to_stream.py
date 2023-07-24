@@ -22,53 +22,57 @@ def parse_args() -> Namespace:
         '--max_workers',
         type=int,
         default=64,
+        required=False,
         help='The maximum number of workers to use for MDS writing')
-    parser.add_argument('--out_root',
-                        type=str,
-                        required=True,
-                        help='The folder to write output to')
-    parser.add_argument('--in_root',
-                        type=str,
-                        required=True,
-                        help='The folder to read input from')
+    parser.add_argument(
+        '--out_root',
+        type=str,
+        required=True,
+        help='The folder to write output to')
+    parser.add_argument(
+        '--in_root',
+        type=str,
+        required=True,
+        help='The folder to read input from')
 
-    parser.add_argument('--compression',
-                        type=str,
-                        default='zstd',
-                        help='The compression algorithm to use for MDS writing')
+    parser.add_argument(
+        '--compression',
+        type=str,
+        default='zstd',
+        required=False,
+        help='The compression algorithm to use for MDS writing')
 
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument(
+    parser.add_argument(
         '--concat_tokens',
         type=int,
         default=2048,
+        required=False,
         help='Convert text to tokens and concatenate up to this many tokens')
 
-    parser.add_argument('--tokenizer',
-                        type=str,
-                        required=False,
-                        default='mosaicml/mpt-7b',
-                        help='The name of the tokenizer to use')
+    parser.add_argument(
+        '--tokenizer',
+        type=str,
+        default='mosaicml/mpt-7b',
+        required=False,
+        help='The name of the tokenizer to use')
     parser.add_argument(
         '--bos_text',
         type=str,
-        required=False,
         default=None,
-        help=
-        'The text to prepend to each example to separate concatenated examples')
+        required=False,
+        help='The text to prepend to each example to separate concatenated examples')
     parser.add_argument(
         '--eos_text',
         type=str,
-        required=False,
         default='<|endoftext|>',
-        help=
-        'The text to append to each example to separate concatenated examples')
+        required=False,
+        help='The text to append to each example to separate concatenated examples')
     parser.add_argument(
         '--no_wrap',
         default=False,
+        required=False,
         action='store_true',
-        help=
-        'Whether to let text examples wrap across multiple training examples')
+        help='Whether to let text examples wrap across multiple training examples')
 
     parsed = parser.parse_args()
 
@@ -90,7 +94,6 @@ def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:
         dataset=dataset,
         sampler=None,
         batch_size=batch_size,
-        prefetch_factor=2,
     )
 
 def generate_samples(

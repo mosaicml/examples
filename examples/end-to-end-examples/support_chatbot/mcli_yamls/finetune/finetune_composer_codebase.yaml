@@ -1,7 +1,7 @@
 name: mpt-7b-PyPi-composer-codebase
 
 scheduling:
-  preemptible: true
+  #preemptible: true
   priority: high
 
 compute:
@@ -141,8 +141,8 @@ parameters:
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
   global_train_batch_size: 128 # Global batch size. This is the batch size across all GPUs
   seed: ${global_seed}
-  device_eval_batch_size: 8 # Evaluation batch size per GPU
-  device_train_microbatch_size: auto # Automatically determine the microbatch size per GPU
+  device_eval_batch_size: 1 # Evaluation batch size per GPU
+  device_train_microbatch_size: 1 # Automatically determine the microbatch size per GPU
   precision: amp_bf16
 
   # Configuration settings for FSDP
