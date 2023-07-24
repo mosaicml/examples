@@ -85,7 +85,7 @@ class ChatBot:
     
     def split_pages(self,
                     pages: list[Document]) -> list[Document]:
-        """Given a list of documents split them into smaller documents of size 1000
+        """Given a list of documents split them into smaller documents of size `self.chunk_size`
         
         Args:
             pages (list[Document]): list of pages (Documents) we want to split
@@ -289,7 +289,7 @@ class ChatBot:
                 time.sleep(0.5)
         return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
 
-    def evaluate_30b(self, 
+    def evaluate_mpt_30b_chat(self, 
                 data_path: str) -> int:
         if not data_path.endswith('.jsonl'):
             raise ValueError('File is not a .jsonl file')

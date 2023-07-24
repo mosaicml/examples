@@ -22,7 +22,7 @@ command: |
   cd /workspace/examples/examples/end-to-end-examples/support_chatbot/
   pip install -r requirements.txt
   python scripts/conversion/convert_jsonl_to_stream.py \
-    --folder_for_upload CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
+    --out_root CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
     --in_root PATH_TO_JSONL_FILE
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
