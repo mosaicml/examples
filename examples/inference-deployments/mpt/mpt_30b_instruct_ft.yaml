@@ -9,11 +9,11 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: 27230fa1c883c17a2a45a3762239ff7f5b0ef8ce
+  git_commit: d1cd9293b3eb943d38e912a3b9f4abd8bad52b5b
   ssh_clone: false
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
-  git_commit: 2c92faa5ce31888214bdb582ac7f5756d0d3dacd
+  git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
   ssh_clone: false
 model:
   backend: faster_transformers
