@@ -10,7 +10,7 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
-  git_commit: dcc4c4dff002d282a2f432ccfcab4b61dc6a53af
+  git_commit: d1cd9293b3eb943d38e912a3b9f4abd8bad52b5b
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b-storywriter
