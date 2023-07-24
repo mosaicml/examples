@@ -9,7 +9,7 @@ command: |
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: d1cd9293b3eb943d38e912a3b9f4abd8bad52b5b
+  git_commit: df65ce9448f2e4c7803f7082930f80c8dc4e8fe1
   ssh_clone: false
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
