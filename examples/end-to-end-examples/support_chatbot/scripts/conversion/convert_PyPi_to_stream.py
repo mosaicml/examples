@@ -82,36 +82,44 @@ def parse_args()-> Namespace:
     return parsed
 
 
+def build_dataloader(dataset: Dataset, 
+                     batch_size: int) -> DataLoader:
+    return DataLoader(
+        dataset=dataset,
+        sampler=None,
+        batch_size=batch_size,
+        num_workers=8,
+        num_workers=1,
+        prefetch_factor=2,
+    )
+
 def generate_samples(
-        dataset: Dataset, 
+        loader: DataLoader,
         truncate_num_samples: Optional[int] = None
 ) -> Iterable[Dict[str, bytes]]:
     """Generator over samples of a dataloader.
-
     Args:
-       dataset (Dataset): A dataset to be converted
+       loader (DataLoader): A dataloader emitting batches like {key: [sample0_bytes, sample1_bytes, sample2_bytes, ...]}
        truncate_num_samples (Optional[int]): An optional # of samples to stop at.
-
     Yields:
         Sample dicts.
     """
     n_samples = 0
-    for data in dataset:
-        if truncate_num_samples is not None and n_samples == truncate_num_samples:
-            return
-        n_samples += 1
-        yield data
-
+    for batch in loader:
+        keys = list(batch.keys())
+        current_bs = len(batch[keys[0]])
+        for idx in range(current_bs):
+            if truncate_num_samples is not None and n_samples == truncate_num_samples:
+                return
+            n_samples += 1
+            yield {k: v[idx] for k, v in batch.items()}
 class DatasetIterable:
     def __init__(self, 
                  dataset: datasets.Dataset):
         self.dataset = dataset
-
     def __iter__(self):
         for item in self.dataset:
             yield {'text': json.dumps(item)}
-
-
 def convert_to_MDS(
     output_folder: str,
     tokenizer_name: str,
@@ -124,7 +132,6 @@ def convert_to_MDS(
     max_workers: int,
     compression: str) -> None:
     """Convert the generic txt dataset into MDS format.
-
     Args:
         tokenizer_name (str): Name of tokenizer to use.
         output_folder (str): Folder to write output to.
@@ -140,9 +147,7 @@ def convert_to_MDS(
     # we will enforce length, so suppress warnings about sequences too long for the model
     tokenizer.model_max_length = int(1e30)
     columns = {'tokens': 'bytes'}
-
     data = datasets.load_dataset('json', data_files=file_path, split=None, cache_dir=None)['train']
-
     # Use the ConcatTokensDataset from LLM-foundry to concatenate sequences of tokens up to the maximum sequence length
     dataset = ConcatTokensDataset(
         hf_dataset=DatasetIterable(dataset=data),
@@ -152,9 +157,10 @@ def convert_to_MDS(
         bos_text=bos_text,
         no_wrap=no_wrap,
     )
-
     # Generate samples
-    samples = generate_samples(dataset)
+    loader = build_dataloader(dataset=dataset, batch_size=512)
+    samples = generate_samples(loader)
+
 
     # Write samples in MDS format
     print(f'Converting to MDS format...')

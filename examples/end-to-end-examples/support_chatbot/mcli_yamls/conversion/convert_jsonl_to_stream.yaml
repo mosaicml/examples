@@ -21,8 +21,7 @@ integrations:
 command: |
   cd /workspace/examples/examples/end-to-end-examples/support_chatbot/
   pip install -r requirements.txt
-  cd scripts/conversion
-  python convert_jsonl_to_stream.py \
+  python scripts/conversion/convert_jsonl_to_stream.py \
     --folder_for_upload CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
     --in_root PATH_TO_JSONL_FILE
 

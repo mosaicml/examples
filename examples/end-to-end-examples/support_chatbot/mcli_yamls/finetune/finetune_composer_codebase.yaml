@@ -1,4 +1,4 @@
-name: mpt-support-bot-finetune-composer-codebase
+name: mpt-7b-PyPi-composer-codebase
 
 scheduling:
   preemptible: true
@@ -40,7 +40,7 @@ parameters:
 
   # Where to read the data from and save it to locally on the machine
   data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/
-  data_local: ./local-dataset-composercodebase-cache
+  data_local: ./local-dataset-composer-codebase-cache
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
