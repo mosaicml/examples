@@ -129,11 +129,7 @@ llm_chain.run(question)
 | top_p | float | no | 0.95 | Defines the tokens that are within the sample operation of text generation. Add tokens in the sample for more probable to least probable until the sum of the probabilities is greater than top_p |
 | temperature | float | no | 0.8 | The temperature of the sampling operation. 1 means regular sampling, 0 means always take the highest score, 100.0 is getting closer to uniform probability |
 | max_length | int | no | 256 | Defines the maximum length in tokens of the output summary |
-<<<<<<< HEAD
-| use_cache | bool | no | true | Whether to use KV cacheing during autoregressive decoding. This will use more memory but improve speed |
-=======
 | use_cache | bool | no | true | Whether to use KV caching during autoregressive decoding. This will use more memory but improve speed |
->>>>>>> 679fd5b (small fix)
 | do_sample | bool | no | true | Whether or not to use sampling, use greedy decoding otherwise |
 
 
@@ -149,15 +145,6 @@ llm_chain.run(question)
 
 ## Before you go
 
-<<<<<<< HEAD
-Your deployments will be live and using resources until you manually shut them down. Remember to run:
-```
-mcli delete deployment --name <deployment_name>
-```
-
-## What's Next
- - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, finetune, evaluate and deploy LLMs.
-=======
 Your deployments will be live and using resources until you manually shut them down. In order to delete your deployment, remember to run:
 ```
 mcli delete deployment --name <deployment_name>
@@ -165,7 +152,6 @@ mcli delete deployment --name <deployment_name>
 
 ## What's Next
  - Check out our [LLM foundry](https://github.com/mosaicml/llm-foundry), which contains code to train, fine-tune, evaluate and deploy LLMs.
->>>>>>> 679fd5b (small fix)
  - Check out the [Prompt Engineering Guide](https://www.promptingguide.ai) to better understand LLMs and how to use them.
 
 
