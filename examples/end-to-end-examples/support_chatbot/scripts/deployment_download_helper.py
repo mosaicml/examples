@@ -33,7 +33,7 @@ def download_and_convert(remote_uri: str, gpus: int = 1):
     files = [
         'adapt_tokenizer.py', 'attention.py', 'blocks.py', 'config.json',
         'configuration_mpt.py', 'custom_embedding.py', 'flash_attn_triton.py', 'fc.py',
-        'generation_config.json', 'hf_prefixlm_converter.py',
+        'ffn.py', 'generation_config.json', 'hf_prefixlm_converter.py',
         'meta_init_context.py', 'modeling_mpt.py', 'norm.py',
         'param_init_fns.py', 'pytorch_model.bin', 'special_tokens_map.json',
         'tokenizer.json', 'tokenizer_config.json'
