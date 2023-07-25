@@ -121,12 +121,14 @@ parameters:
   # Optimizer
   # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options
   optimizer:
-    name: decoupled_lionw
-    lr: 0.000006
+    # Based on Dolly
+    name: decoupled_adamw
+    lr: 5.0e-6
     betas:
     - 0.9
-    - 0.99
-    weight_decay: 0.000006
+    - 0.999
+    eps: 1.0e-8
+    weight_decay: 0
 
   # Algorithms to apply
   # see https://docs.mosaicml.com/projects/composer/en/latest/trainer/algorithms.html

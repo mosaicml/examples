@@ -32,7 +32,7 @@ def download_and_convert(remote_uri: str, gpus: int = 1):
     # These files are hardcoded for MPT, and would need to be changed for a different model
     files = [
         'adapt_tokenizer.py', 'attention.py', 'blocks.py', 'config.json',
-        'configuration_mpt.py', 'custom_embedding.py', 'flash_attn_triton.py', 'downloaded_hf_checkpoint/fc.py',
+        'configuration_mpt.py', 'custom_embedding.py', 'flash_attn_triton.py', 'fc.py',
         'generation_config.json', 'hf_prefixlm_converter.py',
         'meta_init_context.py', 'modeling_mpt.py', 'norm.py',
         'param_init_fns.py', 'pytorch_model.bin', 'special_tokens_map.json',
