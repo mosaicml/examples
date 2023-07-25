@@ -9,10 +9,10 @@ from transformers import AutoTokenizer
 
 def check_raw():
     print('------------------------ Starting check ------------------------')
-    remote_source_folders = ['source_code_processed_train', 'source_code_processed_val']
+    remote_source_folders = ['train', 'validation']
     store = []
     for folder in remote_source_folders:
-        remote_dir = os.path.join('oci://mosaicml-internal-datasets/mpt-swe-filtered/', folder)
+        remote_dir = os.path.join('oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/', folder)
         dataset = StreamingDataset(remote=remote_dir, split=None, shuffle=False)
         dataloader = DataLoader(dataset)
 
@@ -38,10 +38,9 @@ def check_raw():
 
 
 def main() -> None:
-    '''
     for d_set in ['train', 'validation']:
         tokenizer = AutoTokenizer.from_pretrained('mosaicml/mpt-7b')
-        dataset = StreamingDataset(remote=f'oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi_mds/{d_set}', split=None, shuffle=False)
+        dataset = StreamingDataset(remote=f'oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/{d_set}', split=None, shuffle=False)
         dataloader = DataLoader(dataset)
 
         random_numbers = set()
@@ -61,8 +60,8 @@ def main() -> None:
                     f.write(f'{tmp}\n')
                 token_count += 1
         print(f'{token_count}')
-    '''
-    check_raw()
+
+    #check_raw()
 
 
 if __name__ == '__main__':

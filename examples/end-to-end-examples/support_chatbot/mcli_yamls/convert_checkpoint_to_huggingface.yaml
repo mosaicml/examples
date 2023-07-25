@@ -22,8 +22,8 @@ integrations:
 command: |
   cd llm-foundry/scripts/inference
   python convert_composer_to_hf.py \
-    --composer_path oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi/latest-rank0.pt.symlink \
-    --hf_output_path oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-PyPi-hf/ \
+    --composer_path oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi_dolly/latest-rank0.pt.symlink \
+    --hf_output_path oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-PyPi-dolly-hf/ \
     --output_precision bf16 \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

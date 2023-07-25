@@ -2,7 +2,7 @@ name: mpt-7b-storywriter
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
-image: mosaicml/inference:0.1.1
+image: mosaicml/inference:0.1.16
 replicas: 1
 command: |
   export PYTHONPATH=$PYTHONPATH:/code/examples
@@ -10,7 +10,7 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
-  git_commit: dcc4c4dff002d282a2f432ccfcab4b61dc6a53af
+  git_commit: df65ce9448f2e4c7803f7082930f80c8dc4e8fe1
 model:
   download_parameters:
     hf_path: mosaicml/mpt-7b-storywriter
