@@ -96,6 +96,7 @@ def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:
         dataset=dataset,
         sampler=None,
         batch_size=batch_size,
+        num_workers=1,
     )
 
 

@@ -40,7 +40,7 @@ parameters:
 
   # Where to read the data from and save it to locally on the machine
   data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/
-  data_local: ./local-dataset-composer-codebase-cache
+  data_local: ./local-dataset-composercodebase-cache
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
@@ -66,7 +66,7 @@ parameters:
     name: hf_causal_lm
     init_device: mixed # Initially only create the model on CPU once per node to reduce system memory requirements
     pretrained_model_name_or_path: mosaicml/mpt-7b # This can be changed to other models from the HuggingFace model hub
-    pretrained: true # If false, will just load the model architecture and randomly initialize the weights
+    pretrained: false # If false, will just load the model architecture and randomly initialize the weights
     config_overrides: # Override the default model config (comment this out if you change the model from MPT)
       attn_config:
         attn_impl: triton # Use the triton implementation of attention
@@ -82,7 +82,6 @@ parameters:
   # Dataloaders
   train_loader:
     name: text
-    # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
       local: ${data_local}
       remote: ${data_remote}
@@ -90,13 +89,12 @@ parameters:
       shuffle: true
       max_seq_len: ${max_seq_len}
       shuffle_seed: ${global_seed}
-      eos_token_id: 0 # The token id that separates concatenated sequences. Change this if you change the tokenizer
+      eos_token_id: 0
     drop_last: true
     num_workers: 8
 
   eval_loader:
     name: text
-    # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
       local: ${data_local}
       remote: ${data_remote}
@@ -104,7 +102,7 @@ parameters:
       shuffle: false
       max_seq_len: ${max_seq_len}
       shuffle_seed: ${global_seed}
-      eos_token_id: 0 # The token id that separates concatenated sequences. Change this if you change the tokenizer
+      eos_token_id: 0
     drop_last: false
     num_workers: 8
 
@@ -141,8 +139,8 @@ parameters:
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
   global_train_batch_size: 128 # Global batch size. This is the batch size across all GPUs
   seed: ${global_seed}
-  device_eval_batch_size: 1 # Evaluation batch size per GPU
-  device_train_microbatch_size: 1 # Automatically determine the microbatch size per GPU
+  device_eval_batch_size: 8 # Evaluation batch size per GPU
+  device_train_microbatch_size: auto # Automatically determine the microbatch size per GPU
   precision: amp_bf16
 
   # Configuration settings for FSDP

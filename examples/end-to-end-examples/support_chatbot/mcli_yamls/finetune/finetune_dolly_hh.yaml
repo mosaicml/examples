@@ -182,8 +182,8 @@ parameters:
 
   # Uncomment to log to WandB
   # see LLM-foundry llmfoundry/utils/builders.py::build_logger for other built-in options
-  # loggers:
-  #   wandb: {}
+  loggers:
+     wandb: {}
 
   # Callbacks
   # see LLM-foundry llmfoundry/utils/builders.py::build_callback for other built-in options
