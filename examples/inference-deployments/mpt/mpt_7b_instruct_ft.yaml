@@ -2,14 +2,14 @@ name: mpt-7b-instruct-ft
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
-image: mosaicml/inference:0.1.1
+image: mosaicml/inference:0.1.16
 replicas: 1
 command: |
   export PYTHONPATH=/code/llm-foundry:/code/examples:/code
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_commit: d1cd9293b3eb943d38e912a3b9f4abd8bad52b5b
+  git_commit: df65ce9448f2e4c7803f7082930f80c8dc4e8fe1
   ssh_clone: false
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
