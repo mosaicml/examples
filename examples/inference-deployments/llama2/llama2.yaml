@@ -1,7 +1,7 @@
 name: mpt-7b
 compute:
-  gpus: 1
-  instance: oci.vm.gpu.a10.1
+  gpus: 8
+  instance: inference.oci.bm.gpu.b4.8
 image: mosaicml/inference:0.1.16
 replicas: 1
 command: |
@@ -13,6 +13,6 @@ integrations:
 model:
   download_parameters:
     hf_path: meta-llama/Llama-2-70b-chat-hf
-  model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
+  model_handler: examples.inference-deployments.llama2.llama2_handler.Llama2ModelHandler
   model_parameters:
     model_name: meta-llama/Llama-2-70b-chat-hf
