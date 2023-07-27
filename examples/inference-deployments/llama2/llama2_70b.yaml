@@ -1,4 +1,4 @@
-name: mpt-7b
+name: llama2-70b
 compute:
   gpus: 8
   instance: inference.oci.bm.gpu.b4.8
