@@ -13,21 +13,6 @@ from transformers.models.gpt_neox.modeling_gpt_neox import GPTNeoXLayer
 from utils import BaseModelHandler, get_torch_dtype, get_world_size
 
 
-def get_base_ds_config(
-    dtype: torch.dtype,
-    hf_model_name: str,
-) -> Dict[str, Any]:
-    tp_size = get_world_size()
-    ds_config = {
-        "dtype": dtype,
-        "tensor_parallel": {
-            "tp_size": tp_size
-        }
-    }
-
-    return ds_config
-
-
 class Llama2ModelHandler(BaseModelHandler):
 
     DEFAULT_GENERATE_KWARGS = {
