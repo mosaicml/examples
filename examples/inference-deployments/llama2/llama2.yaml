@@ -1,0 +1,18 @@
+name: mpt-7b
+compute:
+  gpus: 1
+  instance: oci.vm.gpu.a10.1
+image: mosaicml/inference:0.1.16
+replicas: 1
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/examples
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  ssh_clone: false
+model:
+  download_parameters:
+    hf_path: meta-llama/Llama-2-70b-chat-hf
+  model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
+  model_parameters:
+    model_name: meta-llama/Llama-2-70b-chat-hf
