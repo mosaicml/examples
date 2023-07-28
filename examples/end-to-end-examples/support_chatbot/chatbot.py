@@ -22,6 +22,8 @@ from langchain.schema import Document
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+__all__ = ['ChatBot']
+
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(
@@ -328,9 +330,7 @@ class ChatBot:
                 answer = self.clean_response(response['result'].lstrip('\n'))
                 if self.normalize_str(answer) == self.normalize_str(continuation):
                     exact_match += 1
-                elif self.normalize_str(continuation) in self.normalize_str(answer):
-                    close_match += 1
-                elif self.normalize_str(answer) in self.normalize_str(continuation):
+                elif self.normalize_str(continuation).replace(" ", "") in self.normalize_str(answer).replace(" ", ""):
                     close_match += 1
                 else:
                     print('\n', self.normalize_str(answer), '||', self.normalize_str(continuation), '\n')
@@ -347,7 +347,7 @@ class ChatBot:
 
         # Change model endpoint (and save)
         save_prev_endpoint = self.model.endpoint_url
-        self.model.endpoint_url = 'https://mpt-7b-support-bot-finetuned-j66maq.inf.hosted-on.mosaicml.hosting/predict'
+        self.model.endpoint_url = 'https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict'
 
         # Prompt template for the query
         answer_question_string_template = (
@@ -365,7 +365,7 @@ class ChatBot:
             raise ValueError('File is not a .jsonl file')
 
         save_prev_endpoint = self.model.endpoint_url
-        self.model.endpoint_url = 'https://mpt-30b-chat-ft-e49k47.inf.hosted-on.mosaicml.hosting/predict'
+        self.model.endpoint_url = 'https://mpt-7b-support-bot-pypi-composer-dolly-9jvpsp.inf.hosted-on.mosaicml.hosting/predict'
         # Prompt template for the query
         answer_question_string_template = """<|im_start|>system
             A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
@@ -384,34 +384,33 @@ class ChatBot:
 
 
     def chat(self, 
-             max_length: int) -> None:
+             query: str,
+             max_length: int) -> str:
         eval_root_dir = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
 
-        # Prompt template for the query
-        answer_question_string_template = (
-            f'Provide a robust answer given the following context to the question. If you do not know, just say "I do not know".'
+        if query == "!eval_7b":
+            self.model.model_kwargs['output_len'] = 40
+            score = self.evaluate_mpt_7b(eval_root_dir)
+            self.model.model_kwargs['output_len'] = max_length
+            print(score)
+            return score
+        elif query == "!eval_30b":
+            self.model.model_kwargs['output_len'] = 40
+            score = self.evaluate_mpt_30b_chat(eval_root_dir)
+            self.model.model_kwargs['output_len'] = max_length
+            print(score)
+            return score
+        else:
+            answer_question_string_template = (
+            # Prompt template for the query
+            f'Provide a simple answer given the following context to the question. If you do not know, just say "I do not know".'
             '\n{context}'
             '\nQuestion: {question}')
-        chain = self.create_chain(answer_question_string_template)
-
-        question = input("Ask a question: ")
-        while question != "!exit":
-            if question == "!eval_7b":
-                self.model.model_kwargs['output_len'] = 40
-                print(self.evaluate_mpt_7b(eval_root_dir))
-                self.model.model_kwargs['output_len'] = max_length
-                question = input("Ask a question: ")
-                continue
-            elif question == "!eval_30b":
-                self.model.model_kwargs['output_len'] = 40
-                print(self.evaluate_mpt_30b_chat(eval_root_dir))
-                self.model.model_kwargs['output_len'] = max_length
-                question = input("Ask a question: ")
-                continue
-            response = chain(question)
+            chain = self.create_chain(answer_question_string_template)
+            response = chain(query)
             answer = self.clean_response(response['result'].lstrip('\n'))
-            print(answer)
-            question = input("Ask a question: ")
+            sources = ''.join([re.sub(r'[^\S ]+', '', d.page_content)+'\n' for d in response['source_documents']])
+            return f"Answer: {answer} \nSources: \n{sources}"
 
 def main(endpoint_url: str,
          max_length: int,
@@ -446,7 +445,7 @@ def main(endpoint_url: str,
                       k=retrieval_k,
                       chunk_size=chunk_size,
                       chunk_overlap=chunk_overlap)
-    chatbot.chat(max_length=max_length)
+    chatbot.chat(max_length=max_length, query="!eval_7b")
 
 
 if __name__ == "__main__":

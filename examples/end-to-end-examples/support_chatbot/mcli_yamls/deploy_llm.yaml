@@ -1,4 +1,4 @@
-name: mpt-7b-support-bot-finetuned
+name: mpt-7b-support-bot-PyPi-composer-dolly
 
 # Deployment configuration
 # For 30B model deployed with bf16 datatype, the model needs atleast ~60GB of memory.
@@ -37,7 +37,7 @@ model:
   # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-PyPi-dolly-hf/
+    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-PyPi-composer-dolly-hf/
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so

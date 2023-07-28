@@ -40,7 +40,7 @@ def check_raw():
 def main() -> None:
     for d_set in ['train', 'validation']:
         tokenizer = AutoTokenizer.from_pretrained('mosaicml/mpt-7b')
-        dataset = StreamingDataset(remote=f'oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds/{d_set}', split=None, shuffle=False)
+        dataset = StreamingDataset(remote=f'oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_codebase_mds_broken/{d_set}', split=None, shuffle=False)
         dataloader = DataLoader(dataset)
 
         random_numbers = set()

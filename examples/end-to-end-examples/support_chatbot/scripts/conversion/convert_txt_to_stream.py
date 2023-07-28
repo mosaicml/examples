@@ -9,7 +9,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Dict, Iterable, Optional
 from llmfoundry.data import ConcatTokensDataset  # type: ignore
 from streaming import MDSWriter
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, get_worker_info
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
@@ -26,11 +26,13 @@ def parse_args() -> Namespace:
         default=64,
         required=False,
         help='The maximum number of workers to use for MDS writing')
+    
     parser.add_argument(
         '--out_root',
         type=str,
         required=True,
         help='The folder to write output to')
+    
     parser.add_argument(
         '--in_root',
         type=str,
@@ -43,8 +45,7 @@ def parse_args() -> Namespace:
         default='zstd',
         help='The compression algorithm to use for MDS writing')
 
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument(
+    parser.add_argument(
         '--concat_tokens',
         type=int,
         default=2048,
@@ -91,14 +92,14 @@ def parse_args() -> Namespace:
     return parsed
 
 
-def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:
-    return DataLoader(
-        dataset=dataset,
-        sampler=None,
-        batch_size=batch_size,
-        num_workers=1,
+def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:	
+    return DataLoader(	
+        dataset=dataset,	
+        sampler=None,	
+        batch_size=batch_size,	
+        num_workers=8,	
+        prefetch_factor=2,	
     )
-
 
 def generate_samples(
         loader: DataLoader,
@@ -124,15 +125,26 @@ def generate_samples(
             yield {k: v[idx] for k, v in batch.items()}
 
 class DatasetIterable:
-    def __init__(self, 
-                 dataset: list[str]):
-        self.dataset = dataset
+    def __init__(self, dataset: list[str]):
+        self.dataset = list(set(dataset))  # Remove duplicates
+        print(f'Total files in the dataset: {len(self.dataset)}')
 
     def __iter__(self):
-        for file in self.dataset:
-            with open(file, 'r') as f:
-                for line in f:
-                    yield {'text': line.strip()}
+        worker_info = get_worker_info()
+        worker_id = worker_info.id if worker_info else 0
+        num_workers = worker_info.num_workers if worker_info else 1
+        string_shard = self.dataset[worker_id::num_workers]
+        print(f'Worker {worker_id} processing {len(string_shard)} files')
+
+        for file in string_shard:
+            print(f'Processing file: {file}')
+            try:
+                with open(file, 'r') as f:
+                    for line in f:
+                        yield {'text': line.strip()}
+            except Exception as e:
+                print(f'Error processing file: {file}. Error: {e}')
+
 
 def main(
     input_folder: str,

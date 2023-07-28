@@ -1,4 +1,4 @@
-name: mpt-7b-PyPi_dolly
+name: mpt-7b-pypi-composer_15ep_dolly
 
 scheduling:
   #preemptible: true
@@ -35,14 +35,14 @@ image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker ima
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Path to load the weights from the previous step
-  load_path: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi/latest-rank0.pt.symlink
+  load_path: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi_composer_codebase_15ep/latest-rank0.pt.symlink
   load_weights_only: true # Only load the weights for finetuning, discarding any other state from previous training
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 500ba # How frequently to save checkpoints
   # save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   # save_folder: ./{run_name}/checkpoints
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi_dolly/
+  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/PyPi_composer_15ep_dolly/
   dist_timeout: 600000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
   # Maximum sequence length of the model
