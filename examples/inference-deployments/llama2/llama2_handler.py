@@ -59,18 +59,17 @@ class Llama2ModelHandler:
         
             print("HF model:", model)
 
-            tokenizer = LlamaTokenizer.from_pretrained(hf_model_name, low_cpu_mem_usage=True)
+            self.tokenizer = LlamaTokenizer.from_pretrained(hf_model_name, low_cpu_mem_usage=True)
         
             # Deepspeed's init_inference takes in a huggingface model, which is the .model
             # object of our ComposerModel object.
             ds_engine = deepspeed.init_inference(model, config=inf_config)
-            model = ds_engine.module
+            ds_model = ds_engine.module
 
 
         self.generator = pipeline(task='text-generation',
                                   model=ds_model,
-                                  tokenizer=self.tokenizer,
-                                  device=self.device)
+                                  tokenizer=self.tokenizer)
 
     def _parse_model_request(self, model_request: Dict[str, Any]):
         if self.INPUT_KEY not in model_request:
