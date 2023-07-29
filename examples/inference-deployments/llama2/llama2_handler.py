@@ -31,7 +31,6 @@ class Llama2ModelHandler:
         model_name_or_path: str,
     ):
         super().__init__()
-        self.device = torch.cuda.current_device()
         self.model_name_or_path = model_name_or_path
         self.setup()
 
@@ -57,8 +56,6 @@ class Llama2ModelHandler:
 
             model.eval()
         
-            print("HF model:", model)
-
             self.tokenizer = LlamaTokenizer.from_pretrained(hf_model_name, low_cpu_mem_usage=True)
         
             # Deepspeed's init_inference takes in a huggingface model, which is the .model
@@ -66,10 +63,12 @@ class Llama2ModelHandler:
             ds_engine = deepspeed.init_inference(model, config=inf_config)
             ds_model = ds_engine.module
 
-
+        # For some reason, we have to set device after the the deepspeed.onDevice block
+        self.device = torch.cuda.current_device()
         self.generator = pipeline(task='text-generation',
                                   model=ds_model,
-                                  tokenizer=self.tokenizer)
+                                  tokenizer=self.tokenizer,
+                                  device=self.device)
 
     def _parse_model_request(self, model_request: Dict[str, Any]):
         if self.INPUT_KEY not in model_request:
@@ -128,7 +127,3 @@ class Llama2ModelHandler:
             yield new_text
 
         thread.join()
-
-if __name__ == "__main__":
-    print("LOADING MODEL")
-    model_handler = Llama2ModelHandler(model_name_or_path='/mosaicml/local_model')
