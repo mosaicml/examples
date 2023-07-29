@@ -4,16 +4,15 @@ from contextlib import nullcontext
 from enum import Enum
 from threading import Thread
 from typing import Any, Dict, List
+import os
 
 import deepspeed
 import torch
 from transformers import (AutoModelForCausalLM, AutoTokenizer,
+                          LlamaForCausalLM, LlamaConfig, LlamaTokenizer,
                           TextIteratorStreamer, pipeline)
-from transformers.models.gpt_neox.modeling_gpt_neox import GPTNeoXLayer
-from utils import BaseModelHandler, get_torch_dtype, get_world_size
 
-
-class Llama2ModelHandler(BaseModelHandler):
+class Llama2ModelHandler:
 
     DEFAULT_GENERATE_KWARGS = {
         'max_length': 256,
@@ -37,28 +36,36 @@ class Llama2ModelHandler(BaseModelHandler):
         self.setup()
 
     def setup(self):
-        pretrained_model_name_or_path = self.model_name_or_path
+        print(f"Loading Llama2 Model with name: {self.model_name_or_path}")
+        hf_model_name = self.model_name_or_path
 
-        print(f"Loading Llama2 Model with name: {pretrained_model_name_or_path}")
-        tokenizer = AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=pretrained_model_name_or_path, low_cpu_mem_usage=True)
-        self.tokenizer = tokenizer
+        dtype = torch.float16
+        world_size = int(os.getenv("WORLD_SIZE", "1"))
 
-        model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_name_or_path, low_cpu_mem_usage=True)
-        model = model.eval()
-
-        tp_size = get_world_size()
         inf_config = {
             "dtype": dtype,
             "tensor_parallel": {
-                "tp_size": tp_size
+                "tp_size": world_size
             }
         }
 
-        with deepspeed.OnDevice(dtype=self.model_dtype, device='meta'):
+        with deepspeed.OnDevice(dtype=dtype, device='meta'):
+            model = LlamaForCausalLM.from_pretrained(hf_model_name, low_cpu_mem_usage=True)
+            hf_config = LlamaConfig.from_pretrained(hf_model_name, low_cpu_mem_usage=True)
+        
+            print("Loaded model!")
+
+            model.eval()
+        
+            print("HF model:", model)
+
+            tokenizer = LlamaTokenizer.from_pretrained(hf_model_name, low_cpu_mem_usage=True)
+        
+            # Deepspeed's init_inference takes in a huggingface model, which is the .model
+            # object of our ComposerModel object.
             ds_engine = deepspeed.init_inference(model, config=inf_config)
-            ds_model = ds_engine.module
+            model = ds_engine.module
+
 
         self.generator = pipeline(task='text-generation',
                                   model=ds_model,
@@ -122,3 +129,7 @@ class Llama2ModelHandler(BaseModelHandler):
             yield new_text
 
         thread.join()
+
+if __name__ == "__main__":
+    print("LOADING MODEL")
+    model_handler = Llama2ModelHandler(model_name_or_path='/mosaicml/local_model')
