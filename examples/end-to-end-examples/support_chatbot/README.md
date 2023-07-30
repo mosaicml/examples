@@ -75,7 +75,7 @@ This example will contain scripts for 3 different conversions: [text to MDS](./s
 mcli run -f mcli_yamls/conversion/convert_txt_to_stream.yaml --cluster CLUSTER
 ```
 
-Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, either integrate the repository with the data into the `cli_yamls/conversion/convert_txt_to_stream.yaml` yaml, or we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
+Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, either integrate the repository with the data into the `mcli_yamls/conversion/convert_txt_to_stream.yaml` yaml, or we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
 
 ```bash
 python scripts/conversion/convert_txt_to_stream.py \
