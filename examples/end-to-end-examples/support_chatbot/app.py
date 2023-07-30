@@ -29,13 +29,13 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--chunk_size',
         type=int,
-        default=2500,
+        default=750,
         required=False,
         help='The chunk size when splitting documents')
     parser.add_argument(
         '--chunk_overlap',
         type=int,
-        default=500,
+        default=150,
         required=False,
         help='The overlap between chunks when splitting documents')
     parser.add_argument(

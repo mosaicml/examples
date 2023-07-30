@@ -347,7 +347,7 @@ class ChatBot:
 
         # Change model endpoint (and save)
         save_prev_endpoint = self.model.endpoint_url
-        self.model.endpoint_url = 'https://mpt-7b-support-bot-pypi-composer-dolly-rg1pfh.inf.hosted-on.mosaicml.hosting/predict'
+        self.model.endpoint_url = 'https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict'
 
         # Prompt template for the query
         answer_question_string_template = (
