@@ -4,9 +4,6 @@ import re
 import string
 import time
 from tqdm import tqdm
-from argparse import ArgumentParser, Namespace
-
-from scripts.repo_downloader import RepoDownloader
 
 import langchain
 from langchain.document_loaders import UnstructuredFileLoader
@@ -14,71 +11,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pickle
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores import FAISS
-from langchain.embeddings import MosaicMLInstructorEmbeddings
 from langchain.chains import RetrievalQAWithSourcesChain, LLMChain, RetrievalQA
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.llms import MosaicML
 from langchain.schema import Document
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 __all__ = ['ChatBot']
-
-def parse_args() -> Namespace:
-    """Parse commandline arguments."""
-    parser = ArgumentParser(
-        description=
-        'Run a chatbot!'
-    )
-    parser.add_argument(
-        '--endpoint_url',
-        type=str,
-        default='https://mpt-7b-support-bot-finetuned-7yiz5g.inf.hosted-on.mosaicml.hosting/predict',
-        required=False,
-        help='The endpoint of our MosaicML LLM Model')
-    parser.add_argument(
-        '--max_length',
-        type=int,
-        default=150,
-        required=False,
-        help='The maximum size of context from LangChain')
-    parser.add_argument(
-        '--chunk_size',
-        type=int,
-        default=750,
-        required=False,
-        help='The chunk size when splitting documents')
-    parser.add_argument(
-        '--chunk_overlap',
-        type=int,
-        default=150,
-        required=False,
-        help='The overlap between chunks when splitting documents')
-    parser.add_argument(
-        '--retrieval_k',
-        type=int,
-        default=1,
-        required=False,
-        help='The number of chunks to retrieve as context from vector store')
-    parser.add_argument(
-        '--model_k',
-        type=int,
-        default=1,
-        required=False,
-        help='The number of outputs model should output')
-    parser.add_argument(
-        '--repository_urls',
-        type=str,
-        required=True,
-        help='The GitHub repository URLs to download')
-    
-    parsed = parser.parse_args()
-    
-    if parsed.repository_urls is not None:
-        # Remove whitespace and turn URLs into a list
-        parsed.repository_urls = ''.join(str(parsed.repository_urls).split()).split(',')
-
-    return parsed
 
 class ChatBot:
     """Given a folder of .txt files from data_path, create a Chatbot object that can process the files into documents, split them
@@ -117,6 +56,7 @@ class ChatBot:
                     chunk_size: int,
                     chunk_overlap: int,
                     k: int = 4,
+                    max_length: int = 200
                     ) -> None:
         
         self.data_path = data_path
@@ -125,6 +65,9 @@ class ChatBot:
         self.k = k
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        model.model_kwargs['output_len'] = max_length
+        self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'], 
+                            'max_length': model.model_kwargs['output_len']}
 
     def load_data(self) -> list[Document]:
         """Given a directory find all .txt files and load them as documents into a list
@@ -312,9 +255,21 @@ class ChatBot:
 
         return white_space_fix(remove_parentheses(remove_articles(handle_punc(lower(replace_underscore(answer)))))).strip()
     
-    def evaluate(self, 
-                data_path: str,
-                chain: RetrievalQAWithSourcesChain) -> int:
+    def set_eval_state(self) -> None:
+        self.chunk_overlap = 150
+        self.chunk_size = 750
+        self.k = 1
+        self.model.model_kwargs['output_len'] = 40
+
+    def reload_chat_state(self) -> None:
+        self.chunk_overlap = self.saved_state['chunk_overlap']
+        self.chunk_size = self.saved_state['chunk_size']
+        self.k = self.saved_state['k']
+        self.model.model_kwargs['output_len'] = self.saved_state['max_length']
+    
+    def evaluate_simple(self, 
+                 data_path: str,
+                 chain: RetrievalQAWithSourcesChain) -> int:
         
         exact_match = 0
         close_match = 0
@@ -339,15 +294,28 @@ class ChatBot:
                 time.sleep(0.5)
         return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
 
+    def evaluate_complex(self, 
+                 data_path: str,
+                 chain: RetrievalQAWithSourcesChain) -> int:
         
+        total_lines = sum(1 for _ in open(data_path))
+
+        with open(data_path, 'r') as file:
+            save = ''
+            for line in tqdm(file, total=total_lines, desc="Processing lines"):
+                data = json.loads(line)
+                question = data.get('context')
+                continuation = data.get('continuation')
+                response = chain(question)
+                answer = self.clean_response(response['result'].lstrip('\n'))
+                time.sleep(0.5)
+                save += f'Question:\n{question}\nAnswer:\n{continuation}\nResponse:\n{answer}\n\n'
+        return save
+
     def evaluate_mpt_7b(self, 
                         data_path: str) -> int:
         if not data_path.endswith('.jsonl'):
             raise ValueError('File is not a .jsonl file')
-
-        # Change model endpoint (and save)
-        save_prev_endpoint = self.model.endpoint_url
-        self.model.endpoint_url = 'https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict'
 
         # Prompt template for the query
         answer_question_string_template = (
@@ -355,17 +323,28 @@ class ChatBot:
             '\n{context}'
             '\nQuestion: {question}')
         chain = self.create_chain(answer_question_string_template)
-        score = self.evaluate(data_path, chain)
-        self.model.endpoint_url = save_prev_endpoint
+        score = self.evaluate_simple(data_path, chain)
         return score
+    
+    def evaluate_mpt_7b_complex(self, 
+                                data_path: str) -> int:
+        if not data_path.endswith('.jsonl'):
+            raise ValueError('File is not a .jsonl file')
+
+        # Prompt template for the query
+        answer_question_string_template = (
+            f'Answer the following question as one function, class, or object. If you do not know, just say "I do not know".'
+            '\n{context}'
+            '\nQuestion: {question}')
+        chain = self.create_chain(answer_question_string_template)
+        out = self.evaluate_complex(data_path, chain)
+        return out
 
     def evaluate_mpt_30b_chat(self, 
                               data_path: str) -> int:
         if not data_path.endswith('.jsonl'):
             raise ValueError('File is not a .jsonl file')
 
-        save_prev_endpoint = self.model.endpoint_url
-        self.model.endpoint_url = 'https://mpt-7b-support-bot-pypi-composer-dolly-9jvpsp.inf.hosted-on.mosaicml.hosting/predict'
         # Prompt template for the query
         answer_question_string_template = """<|im_start|>system
             A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
@@ -378,26 +357,28 @@ class ChatBot:
             <|im_start|>assistant
             """
         chain = self.create_chain(answer_question_string_template)
-        score = self.evaluate(data_path, chain)
-        self.model.endpoint_url = save_prev_endpoint
+        score = self.evaluate_simple(data_path, chain)
         return score
 
 
     def chat(self, 
-             query: str,
-             max_length: int) -> str:
-        eval_root_dir = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
+             query: str) -> str:
+        eval_root_simple = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
+        eval_root_complex = os.path.join(ROOT_DIR, 'train_data/pipeline_data/complex_eval.jsonl')
 
         if query == "!eval_7b":
-            self.model.model_kwargs['output_len'] = 40
-            score = self.evaluate_mpt_7b(eval_root_dir)
-            self.model.model_kwargs['output_len'] = max_length
+            self.set_eval_state()
+            score = self.evaluate_mpt_7b(eval_root_simple)
+            self.reload_chat_state()
             print(score)
             return score
+        elif query == "!eval_7b_complex":
+            out = self.evaluate_mpt_7b_complex(eval_root_complex)
+            return out
         elif query == "!eval_30b":
-            self.model.model_kwargs['output_len'] = 40
-            score = self.evaluate_mpt_30b_chat(eval_root_dir)
-            self.model.model_kwargs['output_len'] = max_length
+            self.set_eval_state()
+            score = self.evaluate_mpt_30b_chat(eval_root_simple)
+            self.reload_chat_state()
             print(score)
             return score
         else:
@@ -411,51 +392,3 @@ class ChatBot:
             answer = self.clean_response(response['result'].lstrip('\n'))
             sources = ''.join([re.sub(r'[^\S ]+', '', d.page_content)+'\n' for d in response['source_documents']])
             return f"Answer: {answer} \nSources: \n{sources}"
-
-def main(endpoint_url: str,
-         max_length: int,
-         chunk_size: int,
-         chunk_overlap: int,
-         retrieval_k: int,
-         model_k: int,
-         repository_urls: list[str]) -> None:
-    
-    retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data')
-    for repo_url in repository_urls:
-        downloader = RepoDownloader(retrieval_dir, "", repo_url)
-        if os.path.exists(downloader.clone_dir):
-            continue
-        downloader.download_repo()
-
-
-    embeddings = MosaicMLInstructorEmbeddings()
-    llm = MosaicML(
-        inject_instruction_format=True,
-        endpoint_url= endpoint_url,
-        model_kwargs={
-            'output_len': max_length, 
-            'top_k': model_k,
-            # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
-        },
-    )
-
-    chatbot = ChatBot(data_path= retrieval_dir,
-                      embedding=embeddings,
-                      model=llm,
-                      k=retrieval_k,
-                      chunk_size=chunk_size,
-                      chunk_overlap=chunk_overlap)
-    chatbot.chat(max_length=max_length, query="!eval_7b")
-
-
-if __name__ == "__main__":
-    args = parse_args()
-    main(
-        endpoint_url=args.endpoint_url,
-        max_length = args.max_length,
-        chunk_size = args.chunk_size,
-        chunk_overlap = args.chunk_overlap,
-        retrieval_k = args.retrieval_k,
-        model_k = args.model_k,
-        repository_urls = args.repository_urls,
-    )

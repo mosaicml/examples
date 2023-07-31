@@ -8,7 +8,7 @@ import datasets
 # type ignore because we don't want to add foundry to the local dependencies
 from llmfoundry.data import ConcatTokensDataset  # type: ignore
 from streaming import MDSWriter
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, get_worker_info
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
@@ -125,7 +125,12 @@ class DatasetIterable:
         self.dataset = dataset
 
     def __iter__(self):
-        for item in self.dataset:
+        worker_info = get_worker_info()
+        worker_id = worker_info.id if worker_info else 0
+        num_workers = worker_info.num_workers if worker_info else 1
+        shard = self.dataset[worker_id::num_workers]
+        print(f'Worker {worker_id} processing {len(shard)} files')
+        for item in shard:
             print(f'item: {item}')
             yield {'text': json.dumps(item)}
 

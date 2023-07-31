@@ -41,7 +41,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--retrieval_k',
         type=int,
-        default=1,
+        default=5,
         required=False,
         help='The number of chunks to retrieve as context from vector store')
     parser.add_argument(
@@ -97,10 +97,11 @@ def main(endpoint_url: str,
                       model=llm,
                       k=retrieval_k,
                       chunk_size=chunk_size,
-                      chunk_overlap=chunk_overlap)
+                      chunk_overlap=chunk_overlap,
+                      max_length=max_length)
     
     def chat_wrapper(query: str) -> str:
-        return chatbot.chat(query, max_length=max_length)
+        return chatbot.chat(query)
 
     def gradio_chat():
         # Simple gradio application for querying the model
@@ -115,7 +116,6 @@ def main(endpoint_url: str,
         demo.queue()
         demo.launch()
 
-    print('The commands !eval_7b and !eval_30b are currently unsupported')
     gradio_chat()
 
 if __name__ == "__main__":

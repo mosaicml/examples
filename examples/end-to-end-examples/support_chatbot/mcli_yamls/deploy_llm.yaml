@@ -37,7 +37,7 @@ model:
   # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-PyPi-composer_15ep-dolly-hf/
+    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME/
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so

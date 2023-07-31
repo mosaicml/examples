@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Dict, Iterable, Optional
 from llmfoundry.data import ConcatTokensDataset  # type: ignore
 from streaming import MDSWriter, StreamingDataset
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, get_worker_info
 from tqdm import tqdm
 import datasets
 
@@ -121,8 +121,14 @@ class DatasetIterable:
                  dataset: datasets.Dataset):
         self.dataset = dataset
     def __iter__(self):
-        for item in self.dataset:
+        worker_info = get_worker_info()
+        worker_id = worker_info.id if worker_info else 0
+        num_workers = worker_info.num_workers if worker_info else 1
+        shard = self.dataset[worker_id::num_workers]
+        print(f'Worker {worker_id} processing {len(shard)} files')
+        for item in shard:
             yield {'text': json.dumps(item)}
+
 def convert_to_MDS(
     output_folder: str,
     tokenizer_name: str,
