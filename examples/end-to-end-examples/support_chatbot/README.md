@@ -75,7 +75,7 @@ This example will contain scripts for 3 different conversions: [text to MDS](./s
 mcli run -f mcli_yamls/conversion/convert_txt_to_stream.yaml --cluster CLUSTER
 ```
 
-Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, either integrate the repository with the data into the `cli_yamls/conversion/convert_txt_to_stream.yaml` yaml, or we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
+Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, either integrate the repository with the data into the `mcli_yamls/conversion/convert_txt_to_stream.yaml` yaml, or we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
 
 ```bash
 python scripts/conversion/convert_txt_to_stream.py \
@@ -105,14 +105,14 @@ python scripts/conversion/convert_jsonl_to_stream.py \
 
 ## Step 3: Finetuning on our Repository
 
-Next, we will finetune our pretrained base model on the train split of the our data, whether that be PyPi documentation, MosaicML code base, or CoQA in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
+Next, we will finetune our pretrained base model on the train split of the our data, whether that be PyPi documentation, MosaicML code base, or dolly in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
 
 Please check out the [training yaml](./mcli-yamls/03_finetune_on_10ks.yaml) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on our datasets that we processed in the previous step. The [training script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/train.py) itself, is from LLM-foundry.
 
-To run finetuning, run the following where `CoQA` can be replaced with `PyPi` or `composer_codebase`
+To run finetuning, run the following where `composer_codebase` can be replaced with `PyPi` or `dolly_hh`
 
 ```bash
-mcli run -f mcli_yamls/finetune/finetune_CoQA.yaml --cluster CLUSTER
+mcli run -f mcli_yamls/finetune/finetune_composer_codebase.yaml --cluster CLUSTER
 ```
 **Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml).
 
@@ -120,4 +120,68 @@ mcli run -f mcli_yamls/finetune/finetune_CoQA.yaml --cluster CLUSTER
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
+## Step 4: Converting Composer Checkpoint to HuggingFace
 
+Before we can deploy our model, we need to convert it into the standard HuggingFace checkpoint folder. We will use the [conversion script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/inference/convert_composer_to_hf.py) from LLM-foundry to do this. This script will take the Composer checkpoint, and write out all the files that HuggingFace expects in a checkpoint folder. You can additionally add the `--hf_repo_for_upload` argument if you would like to upload directly to a private repo on the HuggingFace Hub (you will also need to [set the `HUGGING_FACE_HUB_TOKEN` environment variable](https://docs.mosaicml.com/projects/mcli/en/latest/resources/secrets/env.html) to do this).
+
+Note: this conversion script is _specifically_ for MPT. If you have changed the model to a different HuggingFace model, you can use the `convert_composer_to_hf_transformers.py` script in _this_ repository instead.
+
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER` (in the command), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml), `CHECKPOINT_FOLDER_NAME` (in the yaml), `HF_FOLDER_NAME` (in the yaml)
+
+**Inputs:** the final checkpoint from step 4 inside `CHECKPOINT_FOLDER_NAME` and where you want the converted checkpoint to go in `HF_FOLDER_NAME`
+
+**Command:**
+```bash
+mcli run -f mcli-yamls/convert_checkpoint_to_huggingface.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
+```
+
+**Outputs:** the ``CLOUD://BUCKET_NAME/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME`` folder, containing the HuggingFace checkpoint files
+
+
+## Step 5) Deploy your model
+
+Now that we have our trained model, we will deploy it using MosaicML inference. This will allow us to use the model as an API. We will additionally deploy a pretrained text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions. For more examples of inference deployments, see [inference-deployments](../../inference-deployments/)
+
+
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER` (in the command), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml), `HF_FOLDER_NAME` (in the yaml)
+
+**Inputs:** the HuggingFace format checkpoint from step 4
+
+**Command**:
+```bash
+mcli deploy -f mcli-yamls/06a_deploy_llm.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
+```
+
+**Outputs:** A deployment for the language model
+
+
+## Step 6) Application with gradio
+
+Now that we've processed our data, trained our models, and deployed our models, we can run the application! We will use Gradio and LangChain to make a simple question answering interface.
+
+We will make use of the MosaicML integration in LangChain for [LLMs](https://github.com/hwchase17/langchain/blob/master/langchain/llms/mosaicml.py) and [embeddings](https://github.com/hwchase17/langchain/blob/master/langchain/embeddings/mosaicml.py), and use the [`RetrievalQA`](https://python.langchain.com/en/latest/modules/chains/index_examples/vector_db_qa.html?highlight=retrievalqa) abstraction with the [`FAISS`](https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/faiss.html?highlight=faiss) to run the application locally.
+
+Note that most of the time spent for each query is creating the embeddings, and we could significantly reduce the request time by precomputing and storing the embeddings.
+
+Play around with the application and imagine ways you could improve it or apply a similar approach to your data!
+
+You can find the names of your deployments by running `mcli get deployments`.
+
+After running the `gradio` command, you should see link to your application. It is the link after `Running on local URL:`, _not_ the url after `Launching in *reload mode* on:`.
+
+**Fields to replace with your values:** `REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME` (in the command), `REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME` (in the command), `CLOUD` (in the command), `BUCKET_NAME` (in the command)
+
+**Command**:
+```bash
+gradio app.py --endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --repository_urls https://github.com/mosaicml/composer
+```
+
+
+## What next?
+
+Now that you've seen how to use MosaicML to train and deploy a language model, you can try it out on your own data! Here are some ideas for where to go from here:
+- Play around with the hyperparameters and prompts for all of the components in [`app.py`](./app.py) and see how they change the output
+- Try out different models from the HuggingFace Hub, both for the text embedding and for the LLM
+- Try changing optimization parameters in the training yamls to see how they affect the training
+- Try swapping in a new dataset, or applying the models to a new task
+- Read more about the MosaicML components in this tutorial ([LLM-foundry](https://github.com/mosaicml/llm-foundry), [Composer](https://docs.mosaicml.com/projects/composer/en/latest/), [Streaming](https://docs.mosaicml.com/projects/streaming/en/latest/), [MCLI](https://docs.mosaicml.com/projects/mcli/en/latest/))
