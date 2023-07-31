@@ -31,8 +31,9 @@ integrations:
 # For real training runs, follow the instructions in `examples/bert/README.md`
 # to convert and host the full 'train' dataset.
 command: |
-  cd examples/examples/bert
-  python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
+  cd examples/examples/benchmarks/bert
+  pip install -r requirements.txt
+  python src/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
   composer main.py /mnt/config/parameters.yaml \
     train_loader.dataset.split=train_small
 
