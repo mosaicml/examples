@@ -105,7 +105,7 @@ class MPTModelHandler():
         generate_kwargs['streamer'] = streamer
 
         thread = Thread(target=self.generator,
-                        args=(generate_input),
+                        args=(generate_input,),
                         kwargs=generate_kwargs)
         thread.start()
 
