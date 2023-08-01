@@ -3,7 +3,6 @@ import gradio as gr
 from langchain.embeddings import MosaicMLInstructorEmbeddings
 from langchain.llms import MosaicML
 from chatbot import ChatBot
-from scripts.repo_downloader import RepoDownloader
 import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,37 +22,37 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--max_length',
         type=int,
-        default=200,
+        default=1000,
         required=False,
         help='The maximum size of context from LangChain')
     parser.add_argument(
         '--chunk_size',
         type=int,
-        default=750,
+        default=1000,
         required=False,
         help='The chunk size when splitting documents')
     parser.add_argument(
         '--chunk_overlap',
         type=int,
-        default=150,
+        default=300,
         required=False,
         help='The overlap between chunks when splitting documents')
     parser.add_argument(
         '--retrieval_k',
         type=int,
-        default=5,
+        default=3,
         required=False,
         help='The number of chunks to retrieve as context from vector store')
     parser.add_argument(
         '--model_k',
         type=int,
-        default=1,
+        default=10,
         required=False,
         help='The number of outputs model should output')
     parser.add_argument(
         '--repository_urls',
         type=str,
-        default='https://github.com/mosaicml/composer',
+        default='https://github.com/mosaicml/composer,https://github.com/mosaicml/streaming,https://github.com/mosaicml/examples,https://github.com/mosaicml/diffusion,https://github.com/mosaicml/llm-foundry',
         required=False,
         help='The GitHub repository URLs to download')
     
@@ -74,12 +73,6 @@ def main(endpoint_url: str,
          repository_urls: list[str]) -> None:
     
     retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data')
-    for repo_url in repository_urls:
-        downloader = RepoDownloader(retrieval_dir, "", repo_url)
-        if os.path.exists(downloader.clone_dir):
-            continue
-        downloader.download_repo()
-
 
     embeddings = MosaicMLInstructorEmbeddings()
     llm = MosaicML(
@@ -88,6 +81,8 @@ def main(endpoint_url: str,
         model_kwargs={
             'output_len': max_length, 
             'top_k': model_k,
+            'top_p': 0.95,
+            'temperature': 0.1,
             # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
         },
     )
@@ -100,11 +95,22 @@ def main(endpoint_url: str,
                       chunk_overlap=chunk_overlap,
                       max_length=max_length)
     
+    if not os.path.isfile(os.path.join(retrieval_dir, 'vectors.pickle')):
+        if repository_urls is None:
+            raise ValueError('No repository URLs provided. Please provide a comma separated list of URLs to download')  
+        chatbot.create_vector_store(repository_urls=repository_urls)
+    
     def chat_wrapper(query: str) -> str:
+        """Wrapper around chatbot.chat() for gradio
+        Args:
+            query (str): The query to chatbot
+
+        Returns:
+            str: The response from chatbot"""
         return chatbot.chat(query)
 
     def gradio_chat():
-        # Simple gradio application for querying the model
+        """Simple gradio application for querying the model"""
         with gr.Blocks() as demo:
             query = gr.Textbox(label='Query',
                                value='What is AliBi?')

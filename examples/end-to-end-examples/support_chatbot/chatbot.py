@@ -15,9 +15,28 @@ from langchain.chains import RetrievalQAWithSourcesChain, LLMChain, RetrievalQA
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.schema import Document
 
+from scripts.repo_downloader import RepoDownloader
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 __all__ = ['ChatBot']
+
+EVAL_7B_TEMPLATE = (f'Provide a helpful and simple answer given the following context to the question. If you do not know, just say "I do not know".'
+                    '\n{context}'
+                    '\nQuestion: {question}')
+
+EVAL_30B_TEMPLATE = ("""<|im_start|>system
+                     A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
+                     Given some context, the assistant will provide only the function, class, or object name that answers the user's question, 
+                     or says "I don't know" if the answer isn't available.<|im_end|>
+                     <|im_start|>context
+                     {context}<|im_end|>
+                     <|im_start|>user
+                     {question}<|im_end|>
+                     <|im_start|>assistant""")
+
+EVAL_SIMPLE_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
+EVAL_COMPLEX_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/complex_eval.jsonl')
 
 class ChatBot:
     """Given a folder of .txt files from data_path, create a Chatbot object that can process the files into documents, split them
@@ -55,19 +74,18 @@ class ChatBot:
                     model: langchain.llms.base.LLM,
                     chunk_size: int,
                     chunk_overlap: int,
-                    k: int = 4,
-                    max_length: int = 200
+                    k: int,
+                    max_length: int,
                     ) -> None:
         
         self.data_path = data_path
         self.embedding = embedding
         self.model = model
-        self.k = k
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        model.model_kwargs['output_len'] = max_length
+        self.k = k
         self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'], 
-                            'max_length': model.model_kwargs['output_len']}
+                            'max_length': max_length, 'endpoint_url': model.endpoint_url}
 
     def load_data(self) -> list[Document]:
         """Given a directory find all .txt files and load them as documents into a list
@@ -112,9 +130,7 @@ class ChatBot:
         return map(lambda doc: doc.page_content, documents)
     
     def clean_response(self, input_text: str) -> str:
-        """Clean the response from the model by stripping some bad answer prefixes,
-
-        new lines, etc.
+        """Clean the response from the model by stripping some bad answer prefixes, new lines, etc.
 
         Args:
             input_text (str): The response from the model.
@@ -144,9 +160,13 @@ class ChatBot:
     
     def store_vectors(self,
                       pages: list[Document]) -> None:
+        """Given a list of documents, split them into chunks, and store them in a vector store.
+
+        Args:
+            pages (list[Document]): list of pages (Documents) we have splitted
+        """
         content_batches = []
         content_current_batch = []
-
 
         current_char_count = 0   
         for page in pages:
@@ -179,17 +199,31 @@ class ChatBot:
         with open(os.path.join(ROOT_DIR, 'retrieval_data/vectors.pickle'), 'wb') as f:
             pickle.dump(vector_store, f)
 
-    def create_chain(self,
-                     prompt_template: str) -> RetrievalQAWithSourcesChain:
+    def create_vector_store(self, repository_urls) -> None:
+        """Download the repositories, load the data, split the data into chunks, and store the chunks in a vector store.
+
+        Args:
+            repository_urls (list[str]): list of repository urls to download
+        """
+        for repo_url in repository_urls:
+            downloader = RepoDownloader(self.data_path, "", repo_url)
+            if os.path.exists(downloader.clone_dir):
+                continue
+            downloader.download_repo()
         pages = self.load_data()
         documents = self.split_pages(pages)
+        print("can't find vectors.pickle, loading it")
+        self.store_vectors(documents)
 
-        if not os.path.isfile(os.path.join(self.data_path, 'vectors.pickle')):
-            print("can't find vectors.pickle, loading it")
-            self.store_vectors(documents)
+    def create_chain(self,
+                     prompt_template: str) -> RetrievalQAWithSourcesChain:
+        """Create a RetrievalQAWithSourcesChain given a prompt template.
+        
+        Args:
+            prompt_template (str): The prompt template to use for the chain
+        """
         with open(os.path.join(self.data_path, 'vectors.pickle'), 'rb') as f:
             vector_store = pickle.load(f)
-
 
         retriever = vector_store.as_retriever(
             search_type='similarity',
@@ -255,22 +289,36 @@ class ChatBot:
 
         return white_space_fix(remove_parentheses(remove_articles(handle_punc(lower(replace_underscore(answer)))))).strip()
     
-    def set_eval_state(self) -> None:
+    def set_eval_state(self, 
+                       endpoint_url: str) -> None:
+        """Set the state of the chatbot to the evaluation state. This is used to change the chunk size, chunk overlap, and k"""
         self.chunk_overlap = 150
         self.chunk_size = 750
         self.k = 1
         self.model.model_kwargs['output_len'] = 40
+        self.model.endpoint_url = endpoint_url
 
     def reload_chat_state(self) -> None:
+        """Reload the chatbot state to the saved state the user set when creating the chatbot"""
         self.chunk_overlap = self.saved_state['chunk_overlap']
         self.chunk_size = self.saved_state['chunk_size']
         self.k = self.saved_state['k']
         self.model.model_kwargs['output_len'] = self.saved_state['max_length']
+        self.model.endpoint_url = self.saved_state['endpoint_url']
     
     def evaluate_simple(self, 
                  data_path: str,
-                 chain: RetrievalQAWithSourcesChain) -> int:
-        
+                 answer_question_string_template: str) -> str:
+        """Evaluate the chatbot on simple retrieval dataset given a data_path and a chain
+
+        Args:
+            data_path (str): The path to the dataset
+            answer_question_string_template (str): The prompt to use for the chain
+
+        Returns:
+            str: The score of the chatbot on the dataset including number of exact matches, close matches, and total questions
+        """
+        chain = self.create_chain(answer_question_string_template)
         exact_match = 0
         close_match = 0
         total = 0
@@ -296,10 +344,18 @@ class ChatBot:
 
     def evaluate_complex(self, 
                  data_path: str,
-                 chain: RetrievalQAWithSourcesChain) -> int:
+                 answer_question_string_template: str) -> str:
+        """Evaluate the chatbot on complex eval dataset given a data_path and a chain
         
-        total_lines = sum(1 for _ in open(data_path))
+        Args:
+            data_path (str): The path to the dataset
+            answer_question_string_template (str): The prompt to use for the chain
 
+        Returns:
+            A long string of all questions, answers, and responses
+        """
+        chain = self.create_chain(answer_question_string_template)
+        total_lines = sum(1 for _ in open(data_path))
         with open(data_path, 'r') as file:
             save = ''
             for line in tqdm(file, total=total_lines, desc="Processing lines"):
@@ -311,76 +367,37 @@ class ChatBot:
                 time.sleep(0.5)
                 save += f'Question:\n{question}\nAnswer:\n{continuation}\nResponse:\n{answer}\n\n'
         return save
-
-    def evaluate_mpt_7b(self, 
-                        data_path: str) -> int:
-        if not data_path.endswith('.jsonl'):
-            raise ValueError('File is not a .jsonl file')
-
-        # Prompt template for the query
-        answer_question_string_template = (
-            f'Answer the following question as one function, class, or object. If you do not know, just say "I do not know".'
-            '\n{context}'
-            '\nQuestion: {question}')
-        chain = self.create_chain(answer_question_string_template)
-        score = self.evaluate_simple(data_path, chain)
-        return score
     
-    def evaluate_mpt_7b_complex(self, 
-                                data_path: str) -> int:
-        if not data_path.endswith('.jsonl'):
-            raise ValueError('File is not a .jsonl file')
-
-        # Prompt template for the query
-        answer_question_string_template = (
-            f'Answer the following question as one function, class, or object. If you do not know, just say "I do not know".'
-            '\n{context}'
-            '\nQuestion: {question}')
-        chain = self.create_chain(answer_question_string_template)
-        out = self.evaluate_complex(data_path, chain)
-        return out
-
-    def evaluate_mpt_30b_chat(self, 
-                              data_path: str) -> int:
-        if not data_path.endswith('.jsonl'):
-            raise ValueError('File is not a .jsonl file')
-
-        # Prompt template for the query
-        answer_question_string_template = """<|im_start|>system
-            A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
-            Given some context, the assistant will provide only the function, class, or object name that answers the user's question, 
-            or says "I don't know" if the answer isn't available.<|im_end|>
-            <|im_start|>context
-            {context}<|im_end|>
-            <|im_start|>user
-            {question}<|im_end|>
-            <|im_start|>assistant
-            """
-        chain = self.create_chain(answer_question_string_template)
-        score = self.evaluate_simple(data_path, chain)
-        return score
-
-
     def chat(self, 
              query: str) -> str:
-        eval_root_simple = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
-        eval_root_complex = os.path.join(ROOT_DIR, 'train_data/pipeline_data/complex_eval.jsonl')
-
+        """Chat with the chatbot given a query
+        
+        Args:
+            query (str): The query to ask the chatbot
+        """
+    
         if query == "!eval_7b":
-            self.set_eval_state()
-            score = self.evaluate_mpt_7b(eval_root_simple)
+            self.set_eval_state(endpoint_url='https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict')
+            score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_7B_TEMPLATE)
             self.reload_chat_state()
             print(score)
             return score
         elif query == "!eval_7b_complex":
-            out = self.evaluate_mpt_7b_complex(eval_root_complex)
+            self.model.endpoint_url = 'https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict'
+            out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_7B_TEMPLATE)
+            self.model.endpoint_url = self.saved_state['endpoint_url']
             return out
         elif query == "!eval_30b":
-            self.set_eval_state()
-            score = self.evaluate_mpt_30b_chat(eval_root_simple)
+            self.set_eval_state(endpoint_url='https://mpt-30b-chat-ft-rfc7bv.inf.hosted-on.mosaicml.hosting/predict')
+            score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_30B_TEMPLATE)
             self.reload_chat_state()
             print(score)
             return score
+        elif query == "!eval_30b_complex":
+            self.model.endpoint_url = 'https://mpt-30b-chat-ft-rfc7bv.inf.hosted-on.mosaicml.hosting/predict'
+            out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_30B_TEMPLATE)
+            self.model.endpoint_url = self.saved_state['endpoint_url']
+            return out
         else:
             answer_question_string_template = (
             # Prompt template for the query
