@@ -80,7 +80,7 @@ class Llama2ModelHandler:
         # For some reason, we have to set device after the the deepspeed.onDevice block
         self.device = torch.cuda.current_device()
         self.generator = pipeline(task='text-generation',
-                                  model=ds_model,
+                                  model=self.ds_model,
                                   tokenizer=self.tokenizer,
                                   device=self.device)
 
