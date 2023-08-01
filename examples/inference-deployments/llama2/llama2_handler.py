@@ -75,7 +75,7 @@ class Llama2ModelHandler:
 
             # Deepspeed's init_inference takes in a huggingface model.
             ds_engine = deepspeed.init_inference(model, config=inf_config)
-            ds_model = ds_engine.module
+            self.ds_model = ds_engine.module
 
         # For some reason, we have to set device after the the deepspeed.onDevice block
         self.device = torch.cuda.current_device()
