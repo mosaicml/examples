@@ -173,7 +173,7 @@ After running the `gradio` command, you should see link to your application. It 
 
 **Command**:
 ```bash
-gradio app.py --endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --repository_urls https://github.com/mosaicml/composer
+python app.py --repository_urls https://github.com/mosaicml/composer
 ```
 
 
