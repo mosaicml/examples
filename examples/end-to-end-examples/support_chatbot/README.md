@@ -149,7 +149,7 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 **Command**:
 ```bash
-mcli deploy -f mcli-yamls/06a_deploy_llm.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
+mcli deploy -f mcli-yamls/deploy_llm.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** A deployment for the language model
