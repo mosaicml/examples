@@ -1,0 +1,28 @@
+name: upload-10ks-to-cloud
+
+compute:
+  gpus: 8  # Number of GPUs to use
+
+  ## These configurations are optional
+  # cluster: r0z0 # Name of the cluster to use for this run
+  # gpu_type: a100_80gb # Type of GPU to use.
+
+integrations:
+# Clone the examples repository so that we have access to the code in sec_10k_qa
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  git_branch: main
+  ssh_clone: false # Should be true if using a private repo
+  path: /workspace/examples # Tell MCLI what path to clone the repo to
+
+# cd into the sec_10k_qa folder
+# Install the necessary dependencies
+# Run the script to process the raw data files and upload them to the cloud in the correct format
+command: |
+  cd /workspace/examples/examples/end-to-end-examples/sec_10k_qa
+  pip install -r requirements.txt
+  python process_and_upload_10ks.py \
+    --folder_for_upload CLOUD://BUCKET_NAME/sec_10k_demo/data/sec-10ks-large/ \
+    --dataset_subset large_full
+
+image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

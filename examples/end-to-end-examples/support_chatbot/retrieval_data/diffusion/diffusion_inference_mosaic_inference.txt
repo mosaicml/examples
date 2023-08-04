@@ -1,0 +1,18 @@
+name: sd-o1ema
+cluster:
+gpu_num:
+gpu_type:
+image: mosaicml/inference:latest
+replicas: 1
+integrations:
+  - integration_type: "git_repo"
+    git_repo: mosaicml/diffusion
+    git_branch: main
+    pip_install: .[all]
+model:
+  model_handler: diffusion.inference.inference_model.StableDiffusionInference
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/diffusion
+  rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
+  pip install --force-reinstall --no-deps packaging==23.1
+  pip install --upgrade xformers

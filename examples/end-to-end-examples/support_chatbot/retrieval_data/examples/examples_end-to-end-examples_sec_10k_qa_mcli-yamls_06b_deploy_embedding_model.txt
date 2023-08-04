@@ -1,0 +1,31 @@
+name: instructor-large
+
+# Deployment configuration
+gpu_num: 1 # Number of GPUs to use
+# cluster: r0z0 # Name of the cluster to use for this run
+gpu_type: a10 # Type of GPU to use.
+replicas: 1
+
+
+integrations:
+# Clone and install the examples repo so we can use the deployment helper from it
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  git_commit: main
+# Install the dependencies for the InstructorEmbedding model
+- integration_type: pip_packages
+  packages:
+  - InstructorEmbedding==1.0.0
+  - sentence-transformers==2.2.2
+
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/example
+
+model:
+  download_parameters:
+    hf_path: hkunlp/instructor-large
+  model_handler: examples.inference-deployments.instructor.instructor_handler.HFInstructorHandler
+  model_parameters:
+    model_name: hkunlp/instructor-large
+
+image: mosaicml/inference-testing:29eb4d0 # Use the Docker image provided by MosaicML
