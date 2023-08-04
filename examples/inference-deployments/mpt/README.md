@@ -7,6 +7,8 @@ Check out [this blog post](https://www.mosaicml.com/blog/mpt-7b) for more inform
 You’ll find in this folder:
 
 - Model YAMLS - read [docs](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) for an explanation of each field.
+    - `mpt_7b_simple.yaml` - an optimized no-code yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
+    - `mpt_30b_simple.yaml` - an optimized no-code yaml to deploy [MPT-30B Base](https://huggingface.co/mosaicml/mpt-30b).
     - `mpt_30b_ft.yaml` - a yaml to deploy [MPT-30B Base](https://huggingface.co/mosaicml/mpt-30b).
     - `mpt_30b_instruct_ft.yaml` - a yaml to deploy [MPT-30B Instruct](https://huggingface.co/mosaicml/mpt-30b-instruct).
     - `mpt_7b.yaml` - a yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
