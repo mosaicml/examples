@@ -149,7 +149,7 @@ Now that we have our trained model, we will deploy it using MosaicML inference. 
 
 **Command**:
 ```bash
-mcli deploy -f mcli-yamls/06a_deploy_llm.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
+mcli deploy -f mcli-yamls/deploy_llm.yaml --cluster REPLACE_WITH_YOUR_CLUSTER
 ```
 
 **Outputs:** A deployment for the language model
@@ -173,7 +173,7 @@ After running the `gradio` command, you should see link to your application. It 
 
 **Command**:
 ```bash
-gradio app.py --endpoint_url https://REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME.inf.hosted-on.mosaicml.hosting/predict --repository_urls https://github.com/mosaicml/composer
+python app.py --repository_urls https://github.com/mosaicml/composer
 ```
 
 
