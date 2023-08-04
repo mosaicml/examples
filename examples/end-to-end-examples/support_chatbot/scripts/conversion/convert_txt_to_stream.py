@@ -211,7 +211,7 @@ def main(
                         progress_bar=False,
                         columns=columns,
                         compression=compression) as out:
-            for sample in tqdm(samples):
+            for sample in tqdm(samples): 
                 out.write(sample)
 
 
