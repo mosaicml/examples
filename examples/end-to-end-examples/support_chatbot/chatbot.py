@@ -86,6 +86,7 @@ class ChatBot:
         self.k = k
         self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'], 
                             'max_length': max_length, 'endpoint_url': model.endpoint_url}
+        self.chat_chain = None
 
     def load_data(self) -> list[Document]:
         """Given a directory find all .txt files and load them as documents into a list
@@ -399,13 +400,10 @@ class ChatBot:
             self.model.endpoint_url = self.saved_state['endpoint_url']
             return out
         else:
-            answer_question_string_template = (
-            # Prompt template for the query
-            f'Provide a simple answer given the following context to the question. If you do not know, just say "I do not know".'
-            '\n{context}'
-            '\nQuestion: {question}')
-            chain = self.create_chain(answer_question_string_template)
-            response = chain(query)
+            # Don't create a new chain on every query
+            if not self.chat_chain:
+                self.chat_chain = self.create_chain(EVAL_30B_TEMPLATE)
+            response = self.chat_chain(query)
             answer = self.clean_response(response['result'].lstrip('\n'))
             sources = ''.join([re.sub(r'[^\S ]+', '', d.page_content)+'\n' for d in response['source_documents']])
             return f"Answer: {answer} \nSources: \n{sources}"

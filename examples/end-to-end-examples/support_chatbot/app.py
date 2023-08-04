@@ -16,7 +16,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--endpoint_url',
         type=str,
-        default='https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict',
+        default='https://mpt-30b-chat-ft-dzmvhf.inf.hosted-on.mosaicml.hosting/predict',
         required=False,
         help='The endpoint of our MosaicML LLM Model')
     parser.add_argument(

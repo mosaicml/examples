@@ -55,7 +55,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--tokenizer',
         type=str,
-        default='mosaicml/mpt-7b',
+        default='mosaicml/mpt-30b-chat',
         required=False,
         help='The name of the tokenizer to use')
     parser.add_argument(
