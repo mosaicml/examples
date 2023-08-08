@@ -22,6 +22,6 @@ command: |
   cd /workspace/examples/examples/end-to-end-examples/support_chatbot/
   pip install -r requirements.txt
   python scripts/conversion/convert_PyPi_to_stream.py \
-    --out_root oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi_mds/ \
+    --out_root oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi/ \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML
