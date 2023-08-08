@@ -8,6 +8,7 @@ from streaming import MDSWriter, StreamingDataset
 from torch.utils.data import DataLoader, Dataset, get_worker_info
 from tqdm import tqdm
 import datasets
+import shutil
 
 from transformers import AutoTokenizer
 
@@ -43,14 +44,14 @@ def parse_args()-> Namespace:
     group.add_argument(
         '--concat_tokens',
         type=int,
-        default=2048,
+        default=8192,
         required=False,
         help='Convert text to tokens and concatenate up to this many tokens')
 
     parser.add_argument(
         '--tokenizer',
         type=str,
-        default='mosaicml/mpt-7b',
+        default='mosaicml/mpt-30b',
         required=False,
         help='The name of the tokenizer to use')
     parser.add_argument(
@@ -88,12 +89,11 @@ def parse_args()-> Namespace:
     return parsed
 
 
-def build_dataloader(dataset: Dataset, 
-                     batch_size: int) -> DataLoader:
-    return DataLoader(
-        dataset=dataset,
-        sampler=None,
-        batch_size=batch_size,
+def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:	
+    return DataLoader(	
+        dataset=dataset,	
+        sampler=None,	
+        batch_size=batch_size,	
     )
 
 def generate_samples(
@@ -121,12 +121,7 @@ class DatasetIterable:
                  dataset: datasets.Dataset):
         self.dataset = dataset
     def __iter__(self):
-        worker_info = get_worker_info()
-        worker_id = worker_info.id if worker_info else 0
-        num_workers = worker_info.num_workers if worker_info else 1
-        shard = self.dataset[worker_id::num_workers]
-        print(f'Worker {worker_id} processing {len(shard)} files')
-        for item in shard:
+        for item in self.dataset:
             yield {'text': json.dumps(item)}
 
 def convert_to_MDS(
@@ -166,18 +161,18 @@ def convert_to_MDS(
         bos_text=bos_text,
         no_wrap=no_wrap,
     )
+
     # Generate samples
     loader = build_dataloader(dataset=dataset, batch_size=512)
     samples = generate_samples(loader)
 
-
     # Write samples in MDS format
     print(f'Converting to MDS format...')
     with MDSWriter(out=os.path.join(output_folder, 'train' if folder == 'source_code_processed_train' else 'validation'),
-                    max_workers=max_workers,
-                    progress_bar=False,
-                    columns=columns,
-                    compression=compression) as out:
+                   max_workers=max_workers,
+                   progress_bar=False,
+                   columns=columns,
+                   compression=compression) as out:
         for sample in tqdm(samples):
             out.write(sample)
 
@@ -274,8 +269,7 @@ def main(
         
         os.remove(file_path)
     if os.path.exists(DATA_PATH):
-        os.remove(DATA_PATH)
-
+        shutil.rmtree(DATA_PATH)
 if __name__ == '__main__':
     args = parse_args()
     main(

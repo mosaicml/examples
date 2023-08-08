@@ -27,8 +27,8 @@ EVAL_7B_TEMPLATE = (f'Provide a helpful and simple answer given the following co
 
 EVAL_30B_TEMPLATE = ("""<|im_start|>system
                      A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
-                     Given some context, the assistant will provide only the function, class, or object name that answers the user's question, 
-                     or says "I don't know" if the answer isn't available.<|im_end|>
+                     Provide a helpful and simple answer given the following context to the question. If you do not know, just say "I 
+                     do not know".<|im_end|>
                      <|im_start|>context
                      {context}<|im_end|>
                      <|im_start|>user
@@ -322,7 +322,7 @@ class ChatBot:
         chain = self.create_chain(answer_question_string_template)
         exact_match = 0
         close_match = 0
-        total = 0
+        total = 1
         total_lines = sum(1 for _ in open(data_path))
 
         with open(data_path, 'r') as file:
@@ -378,26 +378,22 @@ class ChatBot:
         """
     
         if query == "!eval_7b":
-            self.set_eval_state(endpoint_url='https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict')
+            self.set_eval_state(endpoint_url='https://chatbot-7b-finetuned-fhiz9j.inf.hosted-on.mosaicml.hosting/predict')
             score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_7B_TEMPLATE)
             self.reload_chat_state()
             print(score)
             return score
         elif query == "!eval_7b_complex":
-            self.model.endpoint_url = 'https://mpt-7b-support-bot-finetuned-pdx6a9.inf.hosted-on.mosaicml.hosting/predict'
+            self.model.endpoint_url = 'https://chatbot-7b-finetuned-fhiz9j.inf.hosted-on.mosaicml.hosting/predict'
             out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_7B_TEMPLATE)
             self.model.endpoint_url = self.saved_state['endpoint_url']
             return out
         elif query == "!eval_30b":
-            self.set_eval_state(endpoint_url='https://mpt-30b-chat-ft-rfc7bv.inf.hosted-on.mosaicml.hosting/predict')
             score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_30B_TEMPLATE)
-            self.reload_chat_state()
             print(score)
             return score
         elif query == "!eval_30b_complex":
-            self.model.endpoint_url = 'https://mpt-30b-chat-ft-rfc7bv.inf.hosted-on.mosaicml.hosting/predict'
-            out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_30B_TEMPLATE)
-            self.model.endpoint_url = self.saved_state['endpoint_url']
+            out = self.evaluate_complex(EVAL_30B_TEMPLATE, EVAL_30B_TEMPLATE)
             return out
         else:
             # Don't create a new chain on every query

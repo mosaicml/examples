@@ -1,4 +1,4 @@
-name: mpt-7b-supportbot-hf-convert-final
+name: convert_to_hf
 
 scheduling:
   priority: medium
@@ -7,7 +7,7 @@ compute:
   gpus: 0  # Number of GPUs to use
 
   ## These configurations are optional
-  # cluster: r0z0 # Name of the cluster to use for this run
+  cluster: r7z17 # Name of the cluster to use for this run
   # gpu_type: a100_80gb # Type of GPU to use.
 
 integrations:

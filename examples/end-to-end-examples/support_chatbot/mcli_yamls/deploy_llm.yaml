@@ -1,5 +1,4 @@
-name: mpt-7b-support-bot-PyPi-composer-dolly
-
+name: chatbot-7b-finetuned
 # Deployment configuration
 # For 30B model deployed with bf16 datatype, the model needs atleast ~60GB of memory.
 # So should be hosted on atleast 2x A100-40G or 4x A10s
@@ -31,13 +30,14 @@ command: |
   rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
   pip install composer[streaming,libcloud,oci]==0.14.1
   pip install packaging==23.1
+  pip install langchain==0.0.205
 
 model:
   backend: faster_transformers
   # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME/
+    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-7b-composer-dolly-hf/
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so

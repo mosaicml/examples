@@ -1,8 +1,8 @@
 name: mpt-30b-composer
 
 scheduling:
-  resumable: true
-  priority: medium
+  resumable: false
+  priority: high
 
 compute:
   gpus: 8  # Number of GPUs to use
@@ -19,6 +19,12 @@ integrations:
   git_branch: main # TODO: pin
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
+- git_branch: dev
+  git_repo: mosaicml/composer
+  integration_type: git_repo
+  path: /workspace/composer
+  ssh_clone: false # Should be true if using a private repo
+  pip_install: -e .[all]
 # Uncomment and fill in to log to WandB. Also uncomment the loggers section near the bottom of the yaml
 - integration_type: wandb
   entity: mosaic-ml
@@ -26,8 +32,9 @@ integrations:
 
 # cd into the llm-foundry/scripts directory and run the train.py script
 command: |
+  pip uninstall -y mosaicml && pip install git+https://github.com/mosaicml/composer.git@dev
   cd llm-foundry/scripts
-  composer train/train.py /mnt/config/parameters.yaml
+  composer train/train.py /mnt/config/parameters.yaml || (echo "Command failed - killing python" && pkill python && exit 1)
 
 #image: "mosaicml/llm-foundry:2.0.1_cu118-latest"
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
@@ -41,14 +48,14 @@ parameters:
   #load_weights_only: true # Only load the weights for finetuning, discarding any other state from previous training
 
   # Where to read the data from and save it to locally on the machine
-  data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/sharded_composer_codebase_mds/
+  data_remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/composer_30b/
   data_local: ./local-dataset-composercodebase-cache/
 
   # Checkpoint to local filesystem or remote object store
-  save_interval: 360ba # How frequently to save checkpoints
+  save_interval: 15ep # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-chat_composer/
-  save_weights_only: False # Since we only need the weights for the next step, we can reduce the size of the checkpoint
+  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-chat_composer-codebase/
+  save_weights_only: True # Since we only need the weights for the next step, we can reduce the size of the checkpoint
   dist_timeout: 60000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
   # Maximum sequence length of the model
@@ -135,7 +142,7 @@ parameters:
 
   # Run configuration
   max_duration: 15ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
-  eval_interval: 180ba # How frequently to evaluate the model
+  eval_interval: 3ep # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
   global_train_batch_size: 8 # Global batch size. This is the batch size across all GPUs

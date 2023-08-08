@@ -48,14 +48,14 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--concat_tokens',
         type=int,
-        default=2048,
+        default=8192,
         required=False,
         help='Convert text to tokens and concatenate up to this many tokens')
 
     parser.add_argument(
         '--tokenizer',
         type=str,
-        default='mosaicml/mpt-30b-chat',
+        default='mosaicml/mpt-30b',
         required=False,
         help='The name of the tokenizer to use')
     parser.add_argument(

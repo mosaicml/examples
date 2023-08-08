@@ -16,7 +16,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--endpoint_url',
         type=str,
-        default='https://mpt-30b-chat-ft-dzmvhf.inf.hosted-on.mosaicml.hosting/predict',
+        default='https://models.hosted-on.mosaicml.hosting/mpt-30b-chat/v1/predict',
         required=False,
         help='The endpoint of our MosaicML LLM Model')
     parser.add_argument(
@@ -40,7 +40,7 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--retrieval_k',
         type=int,
-        default=3,
+        default=5,
         required=False,
         help='The number of chunks to retrieve as context from vector store')
     parser.add_argument(
