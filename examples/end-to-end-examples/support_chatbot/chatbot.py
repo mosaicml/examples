@@ -17,8 +17,7 @@ from langchain.schema import Document
 import sys
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(ROOT_DIR))  
-
+sys.path.append(ROOT_DIR) 
 from repo_downloader import RepoDownloader 
 
 __all__ = ['ChatBot']
