@@ -14,10 +14,12 @@ from langchain.vectorstores import FAISS
 from langchain.chains import RetrievalQAWithSourcesChain, LLMChain, RetrievalQA
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.schema import Document
-
-from .scripts.repo_downloader import RepoDownloader
+import sys
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(ROOT_DIR))  
+
+from repo_downloader import RepoDownloader 
 
 __all__ = ['ChatBot']
 
@@ -378,13 +380,13 @@ class ChatBot:
         """
     
         if query == "!eval_7b":
-            self.set_eval_state(endpoint_url='https://chatbot-7b-finetuned-0grh76.inf.hosted-on.mosaicml.hosting/predict')
+            self.set_eval_state(endpoint_url='https://chatbot-7b-finetuned-lo1t1e.inf.hosted-on.mosaicml.hosting/predict')
             score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_7B_TEMPLATE)
             self.reload_chat_state()
             print(score)
             return score
         elif query == "!eval_7b_complex":
-            self.model.endpoint_url = 'https://chatbot-7b-finetuned-0grh76.inf.hosted-on.mosaicml.hosting/predict'
+            self.model.endpoint_url = 'https://chatbot-7b-finetuned-lo1t1e.inf.hosted-on.mosaicml.hosting/predict'
             out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_7B_TEMPLATE)
             self.model.endpoint_url = self.saved_state['endpoint_url']
             return out
