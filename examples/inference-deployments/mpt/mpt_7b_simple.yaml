@@ -3,7 +3,7 @@ compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
 image: mosaicml/inference:0.1.16
-ommand: |
+command: |
   export PYTHONPATH=/code
 replicas: 1
 default_model:
