@@ -7,11 +7,11 @@ Check out [this blog post](https://www.mosaicml.com/blog/mpt-7b) for more inform
 You’ll find in this folder:
 
 - Model YAMLS - read [docs](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) for an explanation of each field.
-    - `mpt_7b_simple.yaml` - an optimized no-code yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
-    - `mpt_30b_simple.yaml` - an optimized no-code yaml to deploy [MPT-30B Base](https://huggingface.co/mosaicml/mpt-30b).
+    - `mpt_7b.yaml` - an optimized no-code yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
+    - `mpt_30b.yaml` - an optimized no-code yaml to deploy [MPT-30B Base](https://huggingface.co/mosaicml/mpt-30b).
     - `mpt_30b_ft.yaml` - a yaml to deploy [MPT-30B Base](https://huggingface.co/mosaicml/mpt-30b).
     - `mpt_30b_instruct_ft.yaml` - a yaml to deploy [MPT-30B Instruct](https://huggingface.co/mosaicml/mpt-30b-instruct).
-    - `mpt_7b.yaml` - a yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
+    - `mpt_7b_custom.yaml` - a custom yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
     - `mpt_7b_instruct.yaml` - a yaml to deploy [MPT-7B Intstruct](https://huggingface.co/mosaicml/mpt-7b-instruct).
     - `mpt_7b_storywriter.yaml` - a yaml to deploy [MPT-7B StoryWriter](https://huggingface.co/mosaicml/mpt-7b-storywriter).
 - Model handlers - these define how your model should be loaded and how the model should be run when receiving a request. You can use the default handlers here or write your custom model handler as per instructions [here](https://docs.mosaicml.com/projects/mcli/en/latest/inference/deployment_features.html#custom-model-handlers).
