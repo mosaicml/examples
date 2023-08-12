@@ -92,8 +92,7 @@ def main(endpoint_url: str,
                       model=llm,
                       k=retrieval_k,
                       chunk_size=chunk_size,
-                      chunk_overlap=chunk_overlap,
-                      max_length=max_length)
+                      chunk_overlap=chunk_overlap)
     
     if not os.path.isfile(os.path.join(retrieval_dir, 'vectors.pickle')):
         if repository_urls is None:

@@ -71,7 +71,7 @@ class RepoDownloader:
             raise ValueError(f'Unsupported file type: {ext}')
 
         relative_path = os.path.relpath(file_path, self.clone_dir).replace('.yaml', '').replace('.py', '').replace('.md', '')
-        relative_path = relative_path.replace('/', '_')
+        relative_path = relative_path.replace('/', '{slash}')
         output_file = os.path.join(self.output_dir, self.repo_name, relative_path + '.txt')
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         return output_file

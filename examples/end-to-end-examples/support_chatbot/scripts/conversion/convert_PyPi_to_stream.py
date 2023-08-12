@@ -89,11 +89,12 @@ def parse_args()-> Namespace:
     return parsed
 
 
-def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:	
-    return DataLoader(	
-        dataset=dataset,	
-        sampler=None,	
-        batch_size=batch_size,	
+def build_dataloader(dataset: Dataset, batch_size: int, num_workers: int = 8) -> DataLoader:  
+    return DataLoader(  
+        dataset=dataset,  
+        sampler=None,  
+        batch_size=batch_size, 
+        num_workers=num_workers 
     )
 
 def generate_samples(
@@ -117,11 +118,21 @@ def generate_samples(
             n_samples += 1
             yield {k: v[idx] for k, v in batch.items()}
 class DatasetIterable:
-    def __init__(self, 
-                 dataset: datasets.Dataset):
+    def __init__(self, dataset: datasets.Dataset):
         self.dataset = dataset
+        worker_info = get_worker_info()
+        if worker_info is not None:
+            # If we are using multiple workers, split the dataset for each worker.
+            self.start_idx = int(worker_info.id * len(self.dataset) / worker_info.num_workers)
+            self.end_idx = int((worker_info.id + 1) * len(self.dataset) / worker_info.num_workers)
+        else:
+            # If using a single worker, use the entire dataset.
+            self.start_idx = 0
+            self.end_idx = len(self.dataset)
+
     def __iter__(self):
-        for item in self.dataset:
+        for idx in range(self.start_idx, self.end_idx):
+            item = self.dataset[idx]
             yield {'text': json.dumps(item)}
 
 def convert_to_MDS(

@@ -22,7 +22,7 @@ from repo_downloader import RepoDownloader
 
 __all__ = ['ChatBot']
 
-EVAL_7B_TEMPLATE = (f'Provide a helpful and simple answer given the following context to the question. If you do not know, just say "I do not know".'
+EVAL_7B_TEMPLATE = (f'Answer the following question as one function, class, or object. If you do not know, just say "I do not know".'
                     '\n{context}'
                     '\nQuestion: {question}')
 
@@ -54,6 +54,9 @@ class ChatBot:
     Warning:
         Be careful when setting k and chunk_size if using the MosaicML Model. There is an maximum input size and will throw an 
         error (ValueError: Error raised by inference API: Expecting value: line 1 column 1 (char 0).) if the input is too large.
+        Also, as of right now, there is a problem with inference where tokenizing will drop spaces before punctuation, as well 
+        as dropping special characters required for running 30B prompt. This will cause an incorrect splicing of the answer from
+        the question.
 
     Example:
     .. testcode::
@@ -76,7 +79,6 @@ class ChatBot:
                     chunk_size: int,
                     chunk_overlap: int,
                     k: int,
-                    max_length: int,
                     ) -> None:
         
         self.data_path = data_path
@@ -85,8 +87,8 @@ class ChatBot:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.k = k
-        self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'], 
-                            'max_length': max_length, 'endpoint_url': model.endpoint_url}
+        self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'],
+                            'endpoint_url': model.endpoint_url}
         self.chat_chain = None
 
     def load_data(self) -> list[Document]:
@@ -101,7 +103,9 @@ class ChatBot:
                 if filename.endswith(".txt"):
                     file_path = os.path.join(dirpath, filename)
                     loaders = UnstructuredFileLoader(file_path, encoding='utf8')
-                    data.append(loaders.load()[0])
+                    document = loaders.load()[0]
+                    document.metadata = {'file_name': filename}
+                    data.append(document)
         return data
     
     def split_pages(self,
@@ -110,7 +114,6 @@ class ChatBot:
         
         Args:
             pages (list[Document]): list of pages (Documents) we want to split
-
 
         Returns:
             list[Document]: list of chunks (Documents) split from pages (Documents)
@@ -305,7 +308,6 @@ class ChatBot:
         self.chunk_overlap = self.saved_state['chunk_overlap']
         self.chunk_size = self.saved_state['chunk_size']
         self.k = self.saved_state['k']
-        self.model.model_kwargs['output_len'] = self.saved_state['max_length']
         self.model.endpoint_url = self.saved_state['endpoint_url']
     
     def evaluate_simple(self, 
@@ -379,13 +381,13 @@ class ChatBot:
         """
     
         if query == "!eval_7b":
-            self.set_eval_state(endpoint_url='https://chatbot-7b-finetuned-lo1t1e.inf.hosted-on.mosaicml.hosting/predict')
+            self.set_eval_state(endpoint_url='https://chatbot-7b-finetuned-rxyfc5.inf.hosted-on.mosaicml.hosting/predict')
             score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_7B_TEMPLATE)
             self.reload_chat_state()
             print(score)
             return score
         elif query == "!eval_7b_complex":
-            self.model.endpoint_url = 'https://chatbot-7b-finetuned-lo1t1e.inf.hosted-on.mosaicml.hosting/predict'
+            self.model.endpoint_url = 'https://chatbot-7b-finetuned-rxyfc5.inf.hosted-on.mosaicml.hosting/predict'
             out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_7B_TEMPLATE)
             self.model.endpoint_url = self.saved_state['endpoint_url']
             return out
@@ -402,5 +404,5 @@ class ChatBot:
                 self.chat_chain = self.create_chain(EVAL_30B_TEMPLATE)
             response = self.chat_chain(query)
             answer = self.clean_response(response['result'].lstrip('\n'))
-            sources = ''.join([re.sub(r'[^\S ]+', '', d.page_content)+'\n' for d in response['source_documents']])
+            sources = ''.join([d.metadata['file_name'].replace('{slash}', '/')+'\n' for d in response['source_documents']])
             return f"Answer: {answer} \nSources: \n{sources}"
