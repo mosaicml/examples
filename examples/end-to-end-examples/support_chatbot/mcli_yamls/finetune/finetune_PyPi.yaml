@@ -136,7 +136,7 @@ parameters:
 
   # Run configuration
   max_duration: 3ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
-  eval_interval: 1ep # How frequently to evaluate the model
+  eval_interval: 500ba # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: 1000 # How many batches to evaluate on. -1 means evaluate on the entire dataset
   global_train_batch_size: 128 # Global batch size. This is the batch size across all GPUs

@@ -11,14 +11,44 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import pickle
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores import FAISS
-from langchain.chains import RetrievalQAWithSourcesChain, LLMChain, RetrievalQA
+from langchain.chains import LLMChain, RetrievalQA
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.schema import Document
+from langchain.schema import Document, BaseRetriever
 import sys
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(ROOT_DIR) 
 from repo_downloader import RepoDownloader 
+from web_downloader import WebScraper
+from oci_converser import OCIObjectStorageManager
+
+class RetrieverWithScore(BaseRetriever):
+    def __init__(self, 
+                 search_type: str,
+                 vector_store: FAISS,
+                 k: int,
+                 score_threshold: int):
+        self.k = k
+        self.vector_store=vector_store
+        self.score_threshold = score_threshold
+        self.search_type=search_type
+
+    def _get_relevant_documents(self, query: str) -> list[Document]:
+        # [NOTE] we removed the search type, only use search_type = "similarity"
+        if self.search_type != "similarity":
+            raise ValueError(f"Only search_type='similarity' is supported with scores")
+        docs_and_scores = self.vector_store.similarity_search_with_score(query=query, 
+                                                                         k=self.k, 
+                                                                         score_threshold=self.score_threshold)
+        for doc, score in docs_and_scores:
+            doc.metadata = {**doc.metadata, **{"score": score}}
+        return [doc for (doc, _) in docs_and_scores]
+
+    def aget_relevant_documents(self, query):
+        return self._get_relevant_documents(query)
+    
+    def get_relevant_documents(self, query: str) -> list[Document]:
+        return self._get_relevant_documents(query)
 
 __all__ = ['ChatBot']
 
@@ -73,13 +103,14 @@ class ChatBot:
 
     """
     def __init__(self,
-                    data_path: str,
-                    embedding: langchain.embeddings.base.Embeddings,
-                    model: langchain.llms.base.LLM,
-                    chunk_size: int,
-                    chunk_overlap: int,
-                    k: int,
-                    ) -> None:
+                 data_path: str,
+                 embedding: langchain.embeddings.base.Embeddings,
+                 model: langchain.llms.base.LLM,
+                 chunk_size: int,
+                 chunk_overlap: int,
+                 k: int,
+                 slack_path: str = False,
+                 ) -> None:
         
         self.data_path = data_path
         self.embedding = embedding
@@ -90,6 +121,12 @@ class ChatBot:
         self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'],
                             'endpoint_url': model.endpoint_url}
         self.chat_chain = None
+        self.slack_path = slack_path
+        self.vector_store = None
+
+        if os.path.isfile(os.path.join(data_path, 'vectors.pickle')):
+            with open(os.path.join(self.data_path, 'vectors.pickle'), 'rb') as f:
+                self.vector_store = pickle.load(f)
 
     def load_data(self) -> list[Document]:
         """Given a directory find all .txt files and load them as documents into a list
@@ -104,7 +141,7 @@ class ChatBot:
                     file_path = os.path.join(dirpath, filename)
                     loaders = UnstructuredFileLoader(file_path, encoding='utf8')
                     document = loaders.load()[0]
-                    document.metadata = {'file_name': filename}
+                    document.metadata = {**document.metadata, **{'file_name': filename.replace('{slash}', '/').replace('{dot}', '.').replace('{colon}', ':')[:-4]}}
                     data.append(document)
         return data
     
@@ -201,8 +238,14 @@ class ChatBot:
             embedding=self.embedding
         )
         
-        with open(os.path.join(ROOT_DIR, 'retrieval_data/vectors.pickle'), 'wb') as f:
-            pickle.dump(vector_store, f)
+        if self.slack_path:
+            with open(os.path.join(ROOT_DIR, 'retrieval_data_slack/vectors.pickle'), 'wb') as f:
+                pickle.dump(vector_store, f)
+                self.vector_store = vector_store
+        else:
+            with open(os.path.join(ROOT_DIR, 'retrieval_data_demo/vectors.pickle'), 'wb') as f:
+                pickle.dump(vector_store, f)
+                self.vector_store = vector_store
 
     def create_vector_store(self, repository_urls) -> None:
         """Download the repositories, load the data, split the data into chunks, and store the chunks in a vector store.
@@ -210,32 +253,36 @@ class ChatBot:
         Args:
             repository_urls (list[str]): list of repository urls to download
         """
+        scraper = WebScraper(path=self.data_path)
+        scraper.scrape()
         for repo_url in repository_urls:
-            downloader = RepoDownloader(self.data_path, "", repo_url)
+            downloader = RepoDownloader(output_dir=self.data_path, current_dir="", repo_url=repo_url)
             if os.path.exists(downloader.clone_dir):
                 continue
             downloader.download_repo()
+        if self.slack_path:
+            oci_manager = OCIObjectStorageManager(oci_uri=self.slack_path)
+            if not os.path.exists(os.path.join(self.data_path, 'slack_data')):
+                os.makedirs(os.path.join(self.data_path, 'slack_data'))
+            oci_manager.download_directory(os.path.join(self.data_path, 'slack_data'))
+
         pages = self.load_data()
         documents = self.split_pages(pages)
         print("can't find vectors.pickle, loading it")
         self.store_vectors(documents)
 
     def create_chain(self,
-                     prompt_template: str) -> RetrievalQAWithSourcesChain:
-        """Create a RetrievalQAWithSourcesChain given a prompt template.
+                     prompt_template: str) -> RetrievalQA:
+        """Create a RetrievalQAWithScores given a prompt template.
         
         Args:
             prompt_template (str): The prompt template to use for the chain
         """
-        with open(os.path.join(self.data_path, 'vectors.pickle'), 'rb') as f:
-            vector_store = pickle.load(f)
 
-        retriever = vector_store.as_retriever(
-            search_type='similarity',
-            search_kwargs={
-                'k': self.k
-            }
-        )
+        retriever = RetrieverWithScore(search_type='similarity',
+                                       vector_store=self.vector_store,
+                                       k=self.k,
+                                       score_threshold=.5)
 
         answer_question_prompt_template = PromptTemplate(
             template=prompt_template,
@@ -404,5 +451,16 @@ class ChatBot:
                 self.chat_chain = self.create_chain(EVAL_30B_TEMPLATE)
             response = self.chat_chain(query)
             answer = self.clean_response(response['result'].lstrip('\n'))
-            sources = ''.join([d.metadata['file_name'].replace('{slash}', '/')+'\n' for d in response['source_documents']])
-            return f"Answer: {answer} \nSources: \n{sources}"
+            sources = ''
+            slack_deduplicate = True
+            for d in response['source_documents']:
+                if d.metadata["score"] < 0.6:
+                    if 'message_from_slack' == sources[:18] and slack_deduplicate:
+                        sources = sources + 'slack_data\n'
+                        slack_deduplicate = False
+                    else:
+                        sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+            if not sources:
+                return f"Answer: {answer}"
+            else:
+                return f"Answer: {answer} \nSources: \n{sources}"

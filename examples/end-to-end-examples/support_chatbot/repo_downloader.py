@@ -3,13 +3,12 @@
 
 import os
 import shutil
-from tqdm import tqdm
 import sys
 
 from git.repo import Repo
 
 class RepoDownloader:
-    """Downloades .md, .py, and .YAML files in git repositories to text files that
+    """Downloads .md, .py, and .YAML files in git repositories to text files that
     land in /scripts/train/support_chatbot/retrieval_data/{REPOSITORY_NAME}
 
     Args:
@@ -51,8 +50,16 @@ class RepoDownloader:
 
         if os.path.exists(self.clone_dir):
             raise ValueError(f"{self.clone_dir} already exists. Please choose a path that doesn't contain the repository name.")
+        
+    def get_github_file_url(self, file_path: str) -> str:
+        """Generate GitHub URL for a specific file in the repository."""
+        relative_path = os.path.relpath(file_path, self.clone_dir)
+        # Ensure that the base GitHub URL is always included
+        github_file_url = f"https://github.com/{self.repo_url.split('/')[-2]}/{self.repo_name}/blob/main/{relative_path}"
+        return github_file_url
 
-    def prepare_output_file(self, file_path: (str)) -> str:
+
+    def prepare_output_file(self, file_path: str) -> str:
         """Given the .py, .md, or .YAML file_path of the cloned git repository
         file, returns the path of the new txt processed output file and creates
         the new path's intermediate directory if it doesn't exist.
@@ -70,9 +77,12 @@ class RepoDownloader:
         if ext not in ['.yaml', '.py', '.md']:
             raise ValueError(f'Unsupported file type: {ext}')
 
-        relative_path = os.path.relpath(file_path, self.clone_dir).replace('.yaml', '').replace('.py', '').replace('.md', '')
-        relative_path = relative_path.replace('/', '{slash}')
-        output_file = os.path.join(self.output_dir, self.repo_name, relative_path + '.txt')
+        github_url = self.get_github_file_url(file_path)
+        
+        # Convert the GitHub URL into the desired filename format
+        filename = github_url.replace("/", "{slash}").replace(".", "{dot}")
+
+        output_file = os.path.join(self.output_dir, self.repo_name, filename + '.txt')
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         return output_file
     
