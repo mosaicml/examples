@@ -30,9 +30,9 @@ def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(description='Run a chatbot!')
     parser.add_argument('--endpoint_url', type=str, default='https://models.hosted-on.mosaicml.hosting/mpt-30b-chat/v1/predict', required=False, help='The endpoint of our MosaicML LLM Model')
-    parser.add_argument('--max_length', type=int, default=1000, required=False, help='The maximum size of context from LangChain')
-    parser.add_argument('--chunk_size', type=int, default=1000, required=False, help='The chunk size when splitting documents')
-    parser.add_argument('--chunk_overlap', type=int, default=300, required=False, help='The overlap between chunks when splitting documents')
+    parser.add_argument('--max_length', type=int, default=1200, required=False, help='The maximum size of context from LangChain')
+    parser.add_argument('--chunk_size', type=int, default=1200, required=False, help='The chunk size when splitting documents')
+    parser.add_argument('--chunk_overlap', type=int, default=800, required=False, help='The overlap between chunks when splitting documents')
     parser.add_argument('--retrieval_k', type=int, default=5, required=False, help='The number of chunks to retrieve as context from vector store')
     parser.add_argument('--model_k', type=int, default=10, required=False, help='The number of outputs model should output')
     parser.add_argument('--repository_urls', type=str, default='https://github.com/mosaicml/composer,https://github.com/mosaicml/streaming,https://github.com/mosaicml/examples,https://github.com/mosaicml/diffusion,https://github.com/mosaicml/llm-foundry', required=False, help='The GitHub repository URLs to download')
@@ -40,6 +40,7 @@ def parse_args() -> Namespace:
     parser.add_argument('--slack_token', type=str, help='Slack Token')
     parser.add_argument('--slack_signing_secret', type=str, help='Slack Signing Secret')
     parser.add_argument('--oci_data_storage', type=str, default='oci://mosaicml-internal-checkpoints/support-bot-demo/slack-data', help='Where successful threads will be stored')
+    parser.add_argument('--complex_chat', type=bool, default=False, help='Where successful threads will be stored')
 
     parsed = parser.parse_args()
     if parsed.repository_urls is not None:
@@ -103,15 +104,18 @@ def slack_events():
         
         # Construct the message for the model
         conversation = " ".join(conversation_msgs)
-        if len(conversation) > 1000:
-            conversation = conversation[-1000:]
+        if len(conversation) > 2000:
+            conversation = conversation[-2000:]
         user_msg = f"Here is the conversation so far: {conversation} Here is the question: {question_msg}"
         
         print(user_msg)
 
         # Respond quickly to Slack
         response = jsonify({'status': 'acknowledged'})
-        chat_response = chatbot.chat(user_msg)
+        if chat_version:
+            chat_response = chatbot.sub_query_chat(user_msg)
+        else:
+            chat_response = chatbot.chat(user_msg)
         
         # Post response in the same thread
         post_args = {'channel': channel_id, 'text': chat_response, 'thread_ts': thread_ts}
@@ -245,14 +249,6 @@ def verify_slack_request(request):
 
     return hmac.compare_digest(my_signature, signature)
 
-# @app.before_request
-# def before_slack_event_request():
-#     """
-#     Before processing a request, verify it's from Slack.
-#     """
-#     if not verify_slack_request(request):
-#         return jsonify({'message': 'Unauthorized'}), 401
-
 def main(endpoint_url: str, 
          max_length: int, 
          chunk_size: int, 
@@ -263,7 +259,8 @@ def main(endpoint_url: str,
          data_collecting: bool,
          slack_token: str, 
          slack_signing_secret: str,
-         oci_data_storage: str):
+         oci_data_storage: str,
+         complex_chat: bool):
     
     if slack_token is None:
         try:
@@ -277,10 +274,11 @@ def main(endpoint_url: str,
         except KeyError:
             ValueError('No slack signing secret provided. Please provide a slack signing secret or set the SLACK_BOT_TOKEN environment variable')
     
-    global chatbot, client, oci_manager, read_slack, signing_secret
+    global chatbot, client, oci_manager, read_slack, signing_secret, chat_version
     oci_manager = OCIObjectStorageManager(oci_uri=oci_data_storage)
     read_slack = data_collecting
     signing_secret = slack_signing_secret
+    chat_version = complex_chat
 
     retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data_slack')
 
@@ -331,4 +329,5 @@ if __name__ == "__main__":
          data_collecting=args.data_collecting,
          slack_token=args.slack_token, 
          slack_signing_secret=args.slack_signing_secret, 
-         oci_data_storage=args.oci_data_storage)
+         oci_data_storage=args.oci_data_storage,
+         complex_chat=args.complex_chat)

@@ -22,19 +22,19 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--max_length',
         type=int,
-        default=1000,
+        default=6000,
         required=False,
-        help='The maximum size of context from LangChain')
+        help='The maximum size tokens in model')
     parser.add_argument(
         '--chunk_size',
         type=int,
-        default=1000,
+        default=800,
         required=False,
         help='The chunk size when splitting documents')
     parser.add_argument(
         '--chunk_overlap',
         type=int,
-        default=300,
+        default=400,
         required=False,
         help='The overlap between chunks when splitting documents')
     parser.add_argument(
@@ -55,6 +55,12 @@ def parse_args() -> Namespace:
         default='https://github.com/mosaicml/composer,https://github.com/mosaicml/streaming,https://github.com/mosaicml/examples,https://github.com/mosaicml/diffusion,https://github.com/mosaicml/llm-foundry',
         required=False,
         help='The GitHub repository URLs to download')
+    parser.add_argument(
+        '--complex_chat',
+        type=bool,
+        default=False,
+        required=False,
+        help='Whether to use subquery chatting')
     
     parsed = parser.parse_args()
     
@@ -70,7 +76,8 @@ def main(endpoint_url: str,
          chunk_overlap: int,
          retrieval_k: int,
          model_k: int,
-         repository_urls: list[str]) -> None:
+         repository_urls: list[str],
+         chat_version: bool) -> None:
     
     retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data_demo')
 
@@ -106,7 +113,10 @@ def main(endpoint_url: str,
 
         Returns:
             str: The response from chatbot"""
-        return chatbot.chat(query)
+        if chat_version:
+            return chatbot.sub_query_chat(query)
+        else:
+            return chatbot.chat(query)
 
     def gradio_chat():
         """Simple gradio application for querying the model"""
@@ -133,4 +143,5 @@ if __name__ == "__main__":
         retrieval_k = args.retrieval_k,
         model_k = args.model_k,
         repository_urls = args.repository_urls,
+        chat_version = args.complex_chat
     )

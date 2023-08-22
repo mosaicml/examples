@@ -65,6 +65,41 @@ EVAL_30B_TEMPLATE = ("""<|im_start|>system
                      <|im_start|>user
                      {question}<|im_end|>
                      <|im_start|>assistant""")
+SUBQUERY_INTENT_TEMPLATE = ("""<|im_start|>system
+                               A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
+                               Provide a helpful, short and simple answer given the following context to the question. If you do not know, just say "I 
+                               do not know".<|im_end|>
+                               <|im_start|>context
+                               {context}<|im_end|>
+                               <|im_start|>user
+                               Why would the user ask the following question: {question}<|im_end|>
+                               <|im_start|>assistant""")
+PARTIAL_SUBQA_TEMPLATE = ("""<|im_start|>system
+                             A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
+                             Given the context, the job of the assistant is to determine if the context is useful for answering the user's question.
+                             If so, the assistant will break the question into smaller questions that can likely be answered by a single section of 
+                             the relevant context. If the context is not directly related to the user's question, the assistant will just break the 
+                             question into simpler questions not related to the context that may be helpful for answering the question.<|im_end|>
+                             <|im_start|>context
+                             {{context}}<|im_end|>
+                             <|im_start|>user
+                             {{question}} {} Can this question be answered with the context given alone? If so, break the question down into at most five
+                             smaller questions that can likely be answered by a single section of the relevant documentation. If not, break the 
+                             question down into at most five helpful questions.
+                             Please only respond with a list of smaller questions without any extra information.<|im_end|>
+                             <|im_start|>assistant""")
+PARTIAL_COMBINE_TEMPLATE = ("""<|im_start|>system
+                               A conversation between a user and an LLM-based AI assistant. 
+                               Here are smaller questions regarding the user's question. If you don't know answer pretend like
+                               the question doesn't exist:
+                               {}
+                               Provide a helpful and in depth answer given the following context to the question. 
+                               If you do not know, just say "I do not know".<|im_end|>
+                               <|im_start|>context
+                               {{context}}<|im_end|>
+                               <|im_start|>user
+                               {{question}}<|im_end|>
+                               <|im_start|>assistant""")
 
 EVAL_SIMPLE_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
 EVAL_COMPLEX_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/complex_eval.jsonl')
@@ -121,6 +156,7 @@ class ChatBot:
         self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'],
                             'endpoint_url': model.endpoint_url}
         self.chat_chain = None
+        self.intent_chain = None
         self.slack_path = slack_path
         self.vector_store = None
 
@@ -358,8 +394,8 @@ class ChatBot:
         self.model.endpoint_url = self.saved_state['endpoint_url']
     
     def evaluate_simple(self, 
-                 data_path: str,
-                 answer_question_string_template: str) -> str:
+                        data_path: str,
+                        answer_question_string_template: str) -> str:
         """Evaluate the chatbot on simple retrieval dataset given a data_path and a chain
 
         Args:
@@ -394,8 +430,8 @@ class ChatBot:
         return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
 
     def evaluate_complex(self, 
-                 data_path: str,
-                 answer_question_string_template: str) -> str:
+                         data_path: str,
+                         answer_question_string_template: str) -> str:
         """Evaluate the chatbot on complex eval dataset given a data_path and a chain
         
         Args:
@@ -419,6 +455,36 @@ class ChatBot:
                 save += f'Question:\n{question}\nAnswer:\n{continuation}\nResponse:\n{answer}\n\n'
         return save
     
+    def sub_query_chat(self,
+                       query: str)-> str:
+        if not self.intent_chain:
+            self.intent_chain = self.create_chain(SUBQUERY_INTENT_TEMPLATE)
+        intent_response = self.intent_chain(query)
+        intent_answer = self.clean_response(intent_response['result'].lstrip('\n'))
+        
+        SUBQUERY_SUBQA_TEMPLATE = PARTIAL_SUBQA_TEMPLATE.format(intent_answer)
+        subQA_chain = self.create_chain(SUBQUERY_SUBQA_TEMPLATE)
+        subQA_response = subQA_chain(query)
+        subQA_answer = self.clean_response(subQA_response['result'].lstrip('\n'))
+        
+        SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(subQA_answer)
+        combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
+        combine_response = combine_chain(query)
+        combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
+        sources = ''
+        slack_deduplicate = True
+        for d in combine_response['source_documents']:
+            if d.metadata["score"] < 0.6:
+                if 'message_from_slack' == sources[:18] and slack_deduplicate:
+                    sources = sources + 'slack_data\n'
+                    slack_deduplicate = False
+                else:
+                    sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+        if not sources:
+            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nSub-questions: \n{subQA_answer}'
+        else:
+            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nSub-questions: \n{subQA_answer}\nSources: \n{sources}'
+
     def chat(self, 
              query: str) -> str:
         """Chat with the chatbot given a query

@@ -1,7 +1,7 @@
-name: mpt-30b-chat_composer_chatv2
+name: mpt-30b-PyPi_composer_chatv2
 
 scheduling:
-  resumable: false
+  resumable: true
   priority: low
 
 compute:
@@ -43,13 +43,13 @@ image: mosaicml/llm-foundry:2.0.1_cu118-latest # Use the Docker image provided b
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Path to load the weights from the previous step
-  load_path: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-chat_composer-codebase/latest-rank0.pt.symlink
+  load_path: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b_PyPi_composer/latest-rank0.pt.symlink
   load_weights_only: false # Only load the weights for finetuning, discarding any other state from previous training
 
   # Checkpoint to local filesystem or remote object store
   save_interval: 2ep # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-chat_composer_chatv2/
+  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-PyPi_composer_chatv2/
   save_weights_only: false
   dist_timeout: 600000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
@@ -69,9 +69,8 @@ parameters:
   model:
     name: hf_causal_lm
     pretrained: false
-    pretrained_model_name_or_path: mosaicml/mpt-30b-chat
+    pretrained_model_name_or_path: mosaicml/mpt-30b
     init_device: mixed
-    use_auth_token: true
     config_overrides:
       max_seq_len: ${max_seq_len}
       attn_config:
@@ -80,7 +79,7 @@ parameters:
 
   # Tokenizer
   tokenizer:
-    name: mosaicml/mpt-30b-chat
+    name: mosaicml/mpt-30b
     kwargs:
       model_max_length: ${max_seq_len}
 
@@ -143,7 +142,7 @@ parameters:
       clipping_threshold: 1.0
 
   # Run configuration
-  max_duration: 4ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
+  max_duration: 8ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
   eval_interval: 1ep # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
