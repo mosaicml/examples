@@ -90,8 +90,7 @@ PARTIAL_SUBQA_TEMPLATE = ("""<|im_start|>system
                              <|im_start|>assistant""")
 PARTIAL_COMBINE_TEMPLATE = ("""<|im_start|>system
                                A conversation between a user and an LLM-based AI assistant. 
-                               Here are smaller questions regarding the user's question. If you don't know answer pretend like
-                               the question doesn't exist:
+                               Here are smaller questions regarding the user's question and their answers:
                                {}
                                Provide a helpful and in depth answer given the following context to the question. 
                                If you do not know, just say "I do not know".<|im_end|>
@@ -157,6 +156,7 @@ class ChatBot:
                             'endpoint_url': model.endpoint_url}
         self.chat_chain = None
         self.intent_chain = None
+        self.subchain = None
         self.slack_path = slack_path
         self.vector_store = None
 
@@ -318,7 +318,7 @@ class ChatBot:
         retriever = RetrieverWithScore(search_type='similarity',
                                        vector_store=self.vector_store,
                                        k=self.k,
-                                       score_threshold=.5)
+                                       score_threshold=.4)
 
         answer_question_prompt_template = PromptTemplate(
             template=prompt_template,
@@ -458,7 +458,10 @@ class ChatBot:
     def sub_query_chat(self,
                        query: str)-> str:
         if not self.intent_chain:
+            save_k = self.k
+            self.k = 5
             self.intent_chain = self.create_chain(SUBQUERY_INTENT_TEMPLATE)
+            self.k = save_k
         intent_response = self.intent_chain(query)
         intent_answer = self.clean_response(intent_response['result'].lstrip('\n'))
         
@@ -466,25 +469,36 @@ class ChatBot:
         subQA_chain = self.create_chain(SUBQUERY_SUBQA_TEMPLATE)
         subQA_response = subQA_chain(query)
         subQA_answer = self.clean_response(subQA_response['result'].lstrip('\n'))
-        
-        SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(subQA_answer)
+
+        all_sub_QA = subQA_answer.split('\n')
+        sub_QA_injection = ''
+        # Don't create a new chain on every query
+        if not self.subchain:
+            self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
+        for sub_QA in all_sub_QA:
+            response = self.subchain(sub_QA[1:])
+            if response['source_documents']:
+                answer = self.clean_response(response['result'].lstrip('\n'))
+                sub_QA_injection += f'Question: {sub_QA[1:]} \nAnswer: {answer}\n'
+
+        SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(sub_QA_injection)
         combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
         combine_response = combine_chain(query)
         combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
         sources = ''
         slack_deduplicate = True
         for d in combine_response['source_documents']:
-            if d.metadata["score"] < 0.6:
+            if d.metadata["score"] < 0.7:
                 if 'message_from_slack' == sources[:18] and slack_deduplicate:
                     sources = sources + 'slack_data\n'
                     slack_deduplicate = False
                 else:
                     sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
         if not sources:
-            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nSub-questions: \n{subQA_answer}'
+            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}'
         else:
-            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nSub-questions: \n{subQA_answer}\nSources: \n{sources}'
-
+            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}\nSources: \n{sources}'
+          
     def chat(self, 
              query: str) -> str:
         """Chat with the chatbot given a query

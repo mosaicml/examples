@@ -30,7 +30,7 @@ def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(description='Run a chatbot!')
     parser.add_argument('--endpoint_url', type=str, default='https://models.hosted-on.mosaicml.hosting/mpt-30b-chat/v1/predict', required=False, help='The endpoint of our MosaicML LLM Model')
-    parser.add_argument('--max_length', type=int, default=1200, required=False, help='The maximum size of context from LangChain')
+    parser.add_argument('--max_length', type=int, default=6000, required=False, help='The maximum size of context from LangChain')
     parser.add_argument('--chunk_size', type=int, default=1200, required=False, help='The chunk size when splitting documents')
     parser.add_argument('--chunk_overlap', type=int, default=800, required=False, help='The overlap between chunks when splitting documents')
     parser.add_argument('--retrieval_k', type=int, default=5, required=False, help='The number of chunks to retrieve as context from vector store')
