@@ -5,8 +5,10 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Union, Tuple
 
+import torch
+from torch.nn import CrossEntropyLoss, MSELoss, BCEWithLogitsLoss
 from composer.metrics.nlp import (BinaryF1Score, LanguageCrossEntropy,
                                   MaskedAccuracy)
 from composer.models.huggingface import HuggingFaceModel
@@ -15,6 +17,8 @@ from torchmetrics import MeanSquaredError
 from torchmetrics.classification.accuracy import MulticlassAccuracy
 from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 from torchmetrics.regression.spearman import SpearmanCorrCoef
+from transformers.models.bert import BertForSequenceClassification
+from transformers.modeling_outputs import SequenceClassifierOutput
 
 __all__ = ['create_hf_bert_mlm', 'create_hf_bert_classification']
 
@@ -110,6 +114,133 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                             use_logits=True,
                             metrics=metrics)
 
+class BertForRTS(BertForSequenceClassification):
+
+    def forward(
+        self,
+        input_ids: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        token_type_ids: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.Tensor] = None,
+        head_mask: Optional[torch.Tensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+    ) -> Union[Tuple[torch.Tensor], SequenceClassifierOutput]:
+        r"""
+        labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
+            Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
+            config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss), If
+            `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
+        """
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+
+        outputs = self.bert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+
+        pooled_output = outputs[0]
+        logits = self.classifier(pooled_output)
+
+        loss = None
+        if labels is not None:
+            if self.config.problem_type is None:
+                if self.num_labels == 1:
+                    self.config.problem_type = "regression"
+                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                    self.config.problem_type = "single_label_classification"
+                else:
+                    self.config.problem_type = "multi_label_classification"
+
+            if self.config.problem_type == "regression":
+                loss_fct = MSELoss()
+                if self.num_labels == 1:
+                    loss = loss_fct(logits.squeeze(), labels.squeeze())
+                else:
+                    loss = loss_fct(logits, labels)
+            elif self.config.problem_type == "single_label_classification":
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            elif self.config.problem_type == "multi_label_classification":
+                loss_fct = BCEWithLogitsLoss()
+                loss = loss_fct(logits, labels)
+        if not return_dict:
+            output = (logits,) + outputs[2:]
+            return ((loss,) + output) if loss is not None else output
+
+        return SequenceClassifierOutput(
+            loss=loss,
+            logits=logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
+        )
+
+    #def forward(
+        #self,
+        #input_ids: Optional[torch.Tensor] = None,
+        #attention_mask: Optional[torch.Tensor] = None,
+        #token_type_ids: Optional[torch.Tensor] = None,
+        #position_ids: Optional[torch.Tensor] = None,
+        #head_mask: Optional[torch.Tensor] = None,
+        #inputs_embeds: Optional[torch.Tensor] = None,
+        #encoder_hidden_states: Optional[torch.Tensor] = None,
+        #encoder_attention_mask: Optional[torch.Tensor] = None,
+        #labels: Optional[torch.Tensor] = None,
+        #output_attentions: Optional[bool] = None,
+        #output_hidden_states: Optional[bool] = None,
+        #return_dict: Optional[bool] = None,
+    #):
+        #r"""
+        #labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
+            #Labels for computing the masked language modeling loss. Indices should be in `[-100, 0, ...,
+            #config.vocab_size]` (see `input_ids` docstring) Tokens with indices set to `-100` are ignored (masked), the
+            #loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`
+        #"""
+
+        #return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+
+        #outputs = self.bert(
+            #input_ids,
+            #attention_mask=attention_mask,
+            #token_type_ids=token_type_ids,
+            #position_ids=position_ids,
+            #head_mask=head_mask,
+            #inputs_embeds=inputs_embeds,
+            #encoder_hidden_states=encoder_hidden_states,
+            #encoder_attention_mask=encoder_attention_mask,
+            #output_attentions=output_attentions,
+            #output_hidden_states=output_hidden_states,
+            #return_dict=return_dict,
+        #)
+
+        #sequence_output = outputs[0]
+        #prediction_scores = self.cls(sequence_output)
+
+        #masked_lm_loss = None
+        #if labels is not None:
+            #loss_fct = CrossEntropyLoss()  # -100 index = padding token
+            #masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), labels.view(-1))
+
+        #if not return_dict:
+            #output = (prediction_scores,) + outputs[2:]
+            #return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
+
+        #return MaskedLMOutput(
+            #loss=masked_lm_loss,
+            #logits=prediction_scores,
+            #hidden_states=outputs.hidden_states,
+            #attentions=outputs.attentions,
+        #)
 
 def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
                        use_pretrained: Optional[bool] = False,
@@ -176,15 +307,14 @@ def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
         pretrained_model_name = 'bert-base-uncased'
 
     if use_pretrained:
-        assert transformers.AutoModelForSequenceClassification.from_pretrained is not None, 'AutoModelForSequenceClassification has from_pretrained method'
-        model = transformers.AutoModelForSequenceClassification.from_pretrained(
+        assert BertForRTS.from_pretrained is not None, 'AutoModelForSequenceClassification has from_pretrained method'
+        model = BertForRTS.from_pretrained(
             pretrained_model_name_or_path=pretrained_model_name, **model_config)
     else:
         config = transformers.AutoConfig.from_pretrained(
             pretrained_model_name, **model_config)
-        assert transformers.AutoModelForSequenceClassification.from_config is not None, 'AutoModelForSequenceClassification has from_config method'
-        model = transformers.AutoModelForSequenceClassification.from_config(
-            config)
+        #assert BertForRTS.from_config is not None, 'AutoModelForSequenceClassification has from_config method'
+        model = BertForRTS(config)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore
