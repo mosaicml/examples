@@ -10,7 +10,7 @@ from composer.utils import reproducibility
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
 
-from examples.bert.src.hf_bert import create_hf_bert_mlm
+from examples.bert.src.hf_bert import create_hf_bert_mlm, create_hf_bert_rts
 from examples.bert.src.mosaic_bert import create_mosaic_bert_mlm
 from examples.bert.src.mlm_scheduling import build_mlm_scheduler_callback
 from examples.common.builders import (build_algorithm, build_callback,
@@ -22,6 +22,13 @@ from examples.common.config_utils import log_config, update_batch_size_info
 def build_model(cfg: DictConfig):
     if cfg.name == 'hf_bert':
         return create_hf_bert_mlm(
+            pretrained_model_name=cfg.pretrained_model_name,
+            use_pretrained=cfg.get('use_pretrained', None),
+            model_config=cfg.get('model_config', None),
+            tokenizer_name=cfg.get('tokenizer_name', None),
+            gradient_checkpointing=cfg.get('gradient_checkpointing', None))
+    elif cfg.name == 'rts_hf_bert':
+        return create_hf_bert_rts(
             pretrained_model_name=cfg.pretrained_model_name,
             use_pretrained=cfg.get('use_pretrained', None),
             model_config=cfg.get('model_config', None),

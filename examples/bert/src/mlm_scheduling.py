@@ -148,3 +148,67 @@ class ScheduledDataCollatorForLanguageModeling(
         # The rest of the time (10% of the time) we keep the masked input tokens unchanged
         return inputs, labels
 
+
+"""
+Definition of scheduled random token substition collator
+"""
+
+
+class ScheduledDataCollatorForRTS(
+        transformers.DataCollatorForLanguageModeling):
+
+    def __init__(self, dist_mlm_probability, subset_masking_rate=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dist_mlm_probability = dist_mlm_probability
+        self.subset_masking_rate = subset_masking_rate
+
+    @property
+    def mlm_probability(self):
+        return self.dist_mlm_probability.value
+
+    @mlm_probability.setter
+    def mlm_probability(self, _):
+        return
+
+    def torch_mask_tokens(self,
+                          inputs,
+                          special_tokens_mask = None):
+        """
+        Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
+        """
+
+        labels = torch.zeros_like(labels)
+        # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
+        probability_matrix = torch.full(labels.shape, self.mlm_probability)
+        if special_tokens_mask is None:
+            special_tokens_mask = [
+                self.tokenizer.get_special_tokens_mask(val,
+                                                       already_has_special_tokens=True)
+                for val in labels.tolist()
+            ]
+            special_tokens_mask = torch.tensor(special_tokens_mask, dtype=torch.bool)
+        else:
+            special_tokens_mask = special_tokens_mask.bool()
+
+        probability_matrix.masked_fill_(special_tokens_mask, value=0.0)
+        masked_indices = torch.bernoulli(probability_matrix).bool()
+        labels[masked_indices] = 1  # Set label to be positive for swapped words
+
+        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
+        inputs[masked_indices] = random_words[masked_indices]
+
+        ## 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
+        #indices_replaced = torch.bernoulli(torch.full(labels.shape,
+                                                      #0.8)).bool() & masked_indices
+        #inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(
+            #self.tokenizer.mask_token)
+
+        ## 10% of the time, we replace masked input tokens with random word
+        #indices_random = torch.bernoulli(torch.full(
+            #labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
+        #random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
+        #inputs[indices_random] = random_words[indices_random]
+
+        # The rest of the time (10% of the time) we keep the masked input tokens unchanged
+        return inputs, labels
+

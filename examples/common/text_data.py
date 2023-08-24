@@ -15,7 +15,7 @@ from omegaconf import OmegaConf as om
 from streaming import StreamingDataset
 from torch.utils.data import DataLoader
 
-from examples.bert.src.mlm_scheduling import ScheduledDataCollatorForLanguageModeling
+from examples.bert.src.mlm_scheduling import ScheduledDataCollatorForLanguageModeling, ScheduledDataCollatorForRTS
 
 
 class StreamingTextDataset(StreamingDataset):
@@ -208,6 +208,49 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         timeout=cfg.get('timeout', 0),
     ), dist_mlm_probability
 
+def build_rts_dataloader(cfg: DictConfig, device_batch_size: int):
+    assert cfg.name == 'text', f'Tried to build text dataloader with cfg.name={cfg.name}'
+    dataset = StreamingTextDataset(
+        local=cfg.dataset.local,
+        tokenizer_name=cfg.dataset.tokenizer_name,
+        max_seq_len=cfg.dataset.max_seq_len,
+        group_method=cfg.dataset.group_method,
+        remote=cfg.dataset.get('remote', None),
+        split=cfg.dataset.get('split', None),
+        shuffle=cfg.dataset.get('shuffle', False),
+        predownload=cfg.dataset.get('predownload', 100_000),
+        keep_zip=cfg.dataset.get('keep_zip', False),
+        download_retry=cfg.dataset.get('download_retry', 2),
+        download_timeout=cfg.dataset.get('download_timeout', 60),
+        validate_hash=cfg.dataset.get('validate_hash', None),
+        shuffle_seed=cfg.dataset.get('shuffle_seed', None),
+        num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
+        batch_size=device_batch_size)
+
+    mlm_schedule = cfg.dataset.get('mlm_schedule', None)
+    dist_mlm_probability = None
+    subset_masking_rate = None
+    if mlm_schedule:
+        dist_mlm_probability = multiprocessing.Value(
+            "d", mlm_schedule.initial_mlm_rate)
+        subset_masking_rate = mlm_schedule.subset_masking_rate
+    collate_fn = ScheduledDataCollatorForRTS(
+        tokenizer=dataset.tokenizer,
+        mlm=mlm_schedule is not None,
+        dist_mlm_probability=dist_mlm_probability,
+        subset_masking_rate=subset_masking_rate,
+        )
+    return DataLoader(
+        dataset,
+        collate_fn=collate_fn,
+        batch_size=device_batch_size,
+        drop_last=cfg.drop_last,
+        num_workers=cfg.num_workers,
+        pin_memory=cfg.get('pin_memory', True),
+        prefetch_factor=cfg.get('prefetch_factor', 2),
+        persistent_workers=cfg.get('persistent_workers', True),
+        timeout=cfg.get('timeout', 0),
+    ), dist_mlm_probability
 
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out

@@ -27,7 +27,7 @@ if torch.cuda.is_available():
         flash_attn_qkvpacked_func as flash_attn_qkvpacked_func_bert # type: ignore
 
 from examples.bert.src.hf_bert import (create_hf_bert_classification,
-                                       create_hf_bert_mlm)
+                                       create_hf_bert_mlm, create_hf_bert_rts)
 from examples.bert.src.mosaic_bert import (create_mosaic_bert_classification,
                                            create_mosaic_bert_mlm)
 
