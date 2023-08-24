@@ -22,6 +22,9 @@ integrations:
 command: |
   cd examples/examples/bert
   composer main.py /mnt/config/parameters.yaml
+scheduling:
+  resumable: true
+  priority: high
 
 # Starting `parameters` copied from `yamls/main/mosaic-bert-base-uncased.yaml`.
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
@@ -46,7 +49,7 @@ parameters:
 
   # Dataloaders
   train_loader:
-    name: text
+    name: rts_text
     dataset:
       local: *data_local
       remote: *data_remote
@@ -63,7 +66,7 @@ parameters:
     num_workers: 8
 
   eval_loader:
-    name: text
+    name: rts_text
     dataset:
       local: *data_local
       remote: *data_remote
@@ -122,14 +125,14 @@ parameters:
 
   loggers:
     wandb:
-      project: paper-mlm-schedule
+      project: rebuttal-mlm-schedule
       entity: mosaic-ml
       tags:
         - pretraining
 
   save_interval: 1000ba
   save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
-  save_folder: s3://mosaicml-internal-checkpoints-shared/zack/paper-mlm-schedule/${run_name}-seed-${seed}
+  save_folder: s3://mosaicml-internal-checkpoints-shared/zack/rebuttal/${run_name}-seed-${seed}
 #   (Optional) Load from local filesystem or remote object store to
 #  start from an existing model checkpoint;
 #   e.g. './ckpt/latest-rank{rank}.pt' (local), or

@@ -10,7 +10,7 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 
 from examples.common.speed_monitor_w_mfu import SpeedMonitorMFU
-from examples.common.text_data import build_text_dataloader
+from examples.common.text_data import build_text_dataloader, build_rts_dataloader
 
 
 def build_callback(name, kwargs):
@@ -78,5 +78,7 @@ def build_scheduler(cfg):
 def build_dataloader(cfg, device_batch_size):
     if cfg.name == 'text':
         return build_text_dataloader(cfg, device_batch_size)
+    elif cfg.name == 'rts_text':
+        return build_rts_dataloader(cfg, device_batch_size)
     else:
         raise ValueError(f'Not sure how to build dataloader with config: {cfg}')

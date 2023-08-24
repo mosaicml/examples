@@ -195,7 +195,7 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         mlm=mlm_schedule is not None,
         dist_mlm_probability=dist_mlm_probability,
         subset_masking_rate=subset_masking_rate,
-        )
+    )
     return DataLoader(
         dataset,
         collate_fn=collate_fn,
@@ -208,8 +208,9 @@ def build_text_dataloader(cfg: DictConfig, device_batch_size: int):
         timeout=cfg.get('timeout', 0),
     ), dist_mlm_probability
 
+
 def build_rts_dataloader(cfg: DictConfig, device_batch_size: int):
-    assert cfg.name == 'text', f'Tried to build text dataloader with cfg.name={cfg.name}'
+    assert cfg.name == 'rts_text', f'Tried to build text dataloader with cfg.name={cfg.name}'
     dataset = StreamingTextDataset(
         local=cfg.dataset.local,
         tokenizer_name=cfg.dataset.tokenizer_name,
@@ -239,7 +240,7 @@ def build_rts_dataloader(cfg: DictConfig, device_batch_size: int):
         mlm=mlm_schedule is not None,
         dist_mlm_probability=dist_mlm_probability,
         subset_masking_rate=subset_masking_rate,
-        )
+    )
     return DataLoader(
         dataset,
         collate_fn=collate_fn,
@@ -251,6 +252,7 @@ def build_rts_dataloader(cfg: DictConfig, device_batch_size: int):
         persistent_workers=cfg.get('persistent_workers', True),
         timeout=cfg.get('timeout', 0),
     ), dist_mlm_probability
+
 
 # Helpful to test if your dataloader is working locally
 # Run `python data.py [remote] [local, optional]` and verify that batches are printed out

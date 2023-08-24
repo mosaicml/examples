@@ -110,6 +110,7 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                             use_logits=True,
                             metrics=metrics)
 
+
 def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
                        use_pretrained: Optional[bool] = False,
                        model_config: Optional[dict] = None,
@@ -169,18 +170,21 @@ def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
     if not model_config:
         model_config = {}
 
+    model_config['num_labels'] = 2
+
     if not pretrained_model_name:
         pretrained_model_name = 'bert-base-uncased'
 
     if use_pretrained:
-        assert transformers.AutoModelForMaskedLM.from_pretrained is not None, 'AutoModelForMaskedLM has from_pretrained method'
-        model = transformers.AutoModelForMaskedLM.from_pretrained(
+        assert transformers.AutoModelForSequenceClassification.from_pretrained is not None, 'AutoModelForSequenceClassification has from_pretrained method'
+        model = transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name_or_path=pretrained_model_name, **model_config)
     else:
         config = transformers.AutoConfig.from_pretrained(
             pretrained_model_name, **model_config)
-        assert transformers.AutoModelForMaskedLM.from_config is not None, 'AutoModelForMaskedLM has from_config method'
-        model = transformers.AutoModelForMaskedLM.from_config(config)
+        assert transformers.AutoModelForSequenceClassification.from_config is not None, 'AutoModelForSequenceClassification has from_config method'
+        model = transformers.AutoModelForSequenceClassification.from_config(
+            config)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore
@@ -192,14 +196,14 @@ def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
         tokenizer = None
 
     metrics = [
-        LanguageCrossEntropy(ignore_index=-100,
-                             vocab_size=2),
+        LanguageCrossEntropy(ignore_index=-100, vocab_size=2),
         MaskedAccuracy(ignore_index=-100)
     ]
     return HuggingFaceModel(model=model,
                             tokenizer=tokenizer,
                             use_logits=True,
                             metrics=metrics)
+
 
 def create_hf_bert_classification(
         num_labels: int,
@@ -308,7 +312,8 @@ def create_hf_bert_classification(
         # Metrics for a classification model
         metrics = [
             MulticlassAccuracy(num_classes=num_labels, average='micro'),
-            MatthewsCorrCoef(task="multiclass", num_classes=model.config.num_labels)
+            MatthewsCorrCoef(task="multiclass",
+                             num_classes=model.config.num_labels)
         ]
         if num_labels == 2:
             metrics.append(BinaryF1Score())

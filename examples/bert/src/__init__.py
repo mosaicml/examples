@@ -58,6 +58,7 @@ __all__ = [
     'create_hf_bert_mlm',
     'create_mosaic_bert_classification',
     'create_mosaic_bert_mlm',
+    'create_hf_bert_rts',
 
     # These are commented out because they only exist if CUDA is available
     # 'flash_attn_func_bert',
