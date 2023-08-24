@@ -18,6 +18,7 @@ from torchmetrics.classification.accuracy import MulticlassAccuracy
 from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 from torchmetrics.regression.spearman import SpearmanCorrCoef
 from transformers.models.bert import BertForSequenceClassification
+from transformers.models.bert import BertOnlyMLMHead
 from transformers.modeling_outputs import SequenceClassifierOutput
 
 __all__ = ['create_hf_bert_mlm', 'create_hf_bert_classification']
@@ -115,6 +116,16 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                             metrics=metrics)
 
 class BertForRTS(BertForSequenceClassification):
+
+    def __init__(self, config):
+        super().__init__(config)
+
+        config.vocab_size = 2
+        self.cls = BertOnlyMLMHead(config)
+
+        # Initialize weights and apply final processing
+        self.post_init()
+
 
     def forward(
         self,
