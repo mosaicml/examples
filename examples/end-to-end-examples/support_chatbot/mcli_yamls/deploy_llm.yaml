@@ -16,6 +16,7 @@ integrations:
 # Clone the llm-foundry repo so we can use the HF to FasterTransformer convert script from it
 - git_repo: mosaicml/llm-foundry
   integration_type: git_repo
+  git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
   ssh_clone: false
 
 # Add the examples folder to the PYTHONPATH so we can import the deployment helper
@@ -34,3 +35,5 @@ model:
     # FT checkpoint path is hardcoded in MPTFTModelHandler at /tmp/mpt
     model_name_or_path: mosaicml/mpt-30b-chat # This is used for the tokenzier
     gpus: 4 
+
+image: mosaicml/inference:0.1.16
