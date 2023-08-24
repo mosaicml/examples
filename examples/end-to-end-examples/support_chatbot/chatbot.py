@@ -23,6 +23,14 @@ from web_downloader import WebScraper
 from oci_converser import OCIObjectStorageManager
 
 class RetrieverWithScore(BaseRetriever):
+    """Just a custom retriever to track distance between query and retrieval docs
+
+    Args:
+       search_type (str): How to measure similarity
+       vector_store (FAISS): Retrieval Doc Embeddings
+       k: How many chunks 
+
+    """
     def __init__(self, 
                  search_type: str,
                  vector_store: FAISS,
@@ -67,12 +75,22 @@ EVAL_30B_TEMPLATE = ("""<|im_start|>system
                      <|im_start|>assistant""")
 SUBQUERY_INTENT_TEMPLATE = ("""<|im_start|>system
                                A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
-                               Provide a helpful, short and simple answer given the following context to the question. If you do not know, just say "I 
-                               do not know".<|im_end|>
+                               Provide a helpful, short and simple answer given the following context to the question. Do not
+                               attempt to explain any terms and do not go in depth.
+                               If you do not know, just say "I do not know".<|im_end|>
                                <|im_start|>context
                                {context}<|im_end|>
                                <|im_start|>user
-                               Why would the user ask the following question: {question}<|im_end|>
+                               What is the user trying to learn from this question: {question}<|im_end|>
+                               <|im_start|>assistant""")
+SUBQUERY_RELATED_TEMPLATE = ("""<|im_start|>system
+                               A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
+                               Only output a "Yes" or "No" with no extra information given the following context to the question. 
+                               If you are not sure, say "No"".<|im_end|>
+                               <|im_start|>context
+                               {context}<|im_end|>
+                               <|im_start|>user
+                               Can this question be answered by the given context: {question}<|im_end|>
                                <|im_start|>assistant""")
 PARTIAL_SUBQA_TEMPLATE = ("""<|im_start|>system
                              A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
@@ -99,6 +117,18 @@ PARTIAL_COMBINE_TEMPLATE = ("""<|im_start|>system
                                <|im_start|>user
                                {{question}}<|im_end|>
                                <|im_start|>assistant""")
+PARTIAL_COMBINE_UR_TEMPLATE = ("""<|im_start|>system
+                               A conversation between a user and an LLM-based AI assistant. 
+                               Here are smaller questions regarding the user's question. If you don't know how to answer the question pretend like it doesn't exist:
+                               {}
+                               Provide a helpful and in depth answer given the following context to the question. 
+                               If you do not know, just say "I do not know".<|im_end|>
+                               <|im_start|>context
+                               {{context}}<|im_end|>
+                               <|im_start|>user
+                               {{question}}<|im_end|>
+                               <|im_start|>assistant""")
+
 
 EVAL_SIMPLE_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
 EVAL_COMPLEX_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/complex_eval.jsonl')
@@ -157,6 +187,7 @@ class ChatBot:
         self.chat_chain = None
         self.intent_chain = None
         self.subchain = None
+        self.subsubchain = None
         self.slack_path = slack_path
         self.vector_store = None
 
@@ -233,7 +264,6 @@ class ChatBot:
                 break
 
         input_text = input_text.lstrip('\n :')
-
         return input_text
     
     def store_vectors(self,
@@ -308,7 +338,8 @@ class ChatBot:
         self.store_vectors(documents)
 
     def create_chain(self,
-                     prompt_template: str) -> RetrievalQA:
+                     prompt_template: str,
+                     score_threshold: int= 0.4) -> RetrievalQA:
         """Create a RetrievalQAWithScores given a prompt template.
         
         Args:
@@ -318,7 +349,7 @@ class ChatBot:
         retriever = RetrieverWithScore(search_type='similarity',
                                        vector_store=self.vector_store,
                                        k=self.k,
-                                       score_threshold=.4)
+                                       score_threshold=score_threshold)
 
         answer_question_prompt_template = PromptTemplate(
             template=prompt_template,
@@ -476,29 +507,87 @@ class ChatBot:
         if not self.subchain:
             self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
         for sub_QA in all_sub_QA:
-            response = self.subchain(sub_QA[1:])
+            response = self.subchain(sub_QA)
             if response['source_documents']:
                 answer = self.clean_response(response['result'].lstrip('\n'))
-                sub_QA_injection += f'Question: {sub_QA[1:]} \nAnswer: {answer}\n'
+                sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
 
         SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(sub_QA_injection)
         combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
         combine_response = combine_chain(query)
         combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
-        sources = ''
+        combine_answer_sources = ''
         slack_deduplicate = True
         for d in combine_response['source_documents']:
             if d.metadata["score"] < 0.7:
-                if 'message_from_slack' == sources[:18] and slack_deduplicate:
-                    sources = sources + 'slack_data\n'
+                if 'message_from_slack' == combine_answer_sources[:18] and slack_deduplicate:
+                    combine_answer_sources = combine_answer_sources + 'slack_data\n'
                     slack_deduplicate = False
                 else:
-                    sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
-        if not sources:
+                    combine_answer_sources = combine_answer_sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+        if not combine_answer_sources:
             return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}'
         else:
-            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}\nSources: \n{sources}'
+            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}\nSources: \n{combine_answer_sources}'
           
+    def relation_sub_query_chat(self,
+                       query: str)-> str:
+        if not self.intent_chain:
+            save_k = self.k
+            self.k = 3
+            self.intent_chain = self.create_chain(SUBQUERY_INTENT_TEMPLATE)
+            self.k = save_k
+        intent_response = self.intent_chain(query)
+        intent_answer = self.clean_response(intent_response['result'].lstrip('\n'))
+        
+        SUBQUERY_SUBQA_TEMPLATE = PARTIAL_SUBQA_TEMPLATE.format(intent_answer)
+        subQA_chain = self.create_chain(SUBQUERY_SUBQA_TEMPLATE)
+        subQA_response = subQA_chain(query)
+        subQA_answer = self.clean_response(subQA_response['result'].lstrip('\n'))
+
+        all_sub_QA = subQA_answer.split('\n')
+        sub_QA_injection = ''
+        sub_QA_UR_injection = ''
+        # Don't create a new chain on every query
+        if not self.subsubchain:
+            self.subsubchain = self.create_chain(prompt_template=SUBQUERY_RELATED_TEMPLATE, score_threshold=0)
+        for sub_QA in all_sub_QA:
+            answerable = self.clean_response(self.subsubchain(sub_QA)['result'].lstrip('\n'))
+            if "Yes" in answerable:
+                if not self.subchain:
+                    self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
+                response = self.subchain(sub_QA)
+                answer = self.clean_response(response['result'].lstrip('\n'))
+                sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
+            sub_QA_UR_injection += f'Question: {sub_QA}\n'
+
+        if sub_QA_injection:
+            SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(sub_QA_UR_injection)
+            combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
+            combine_response = combine_chain(query)
+            combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
+            sources = ''
+            slack_deduplicate = True
+            for d in combine_response['source_documents']:
+                if d.metadata["score"] < 0.7:
+                    if 'message_from_slack' == sources[:18] and slack_deduplicate:
+                        sources = sources + 'slack_data\n'
+                        slack_deduplicate = False
+                    else:
+                        sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+            if not sources:
+                return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\n Sub-questions: \n{sub_QA_injection}'
+            else:
+                return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\n Sub-questions: \n{sub_QA_injection}\nSources: \n{sources}'
+        #Still make the chatbot robust at answering non-related questions
+        else:
+            SUBQUERY_COMBINE_UR_TEMPLATE = PARTIAL_COMBINE_UR_TEMPLATE.format(sub_QA_injection)
+            combine_chain = self.create_chain(SUBQUERY_COMBINE_UR_TEMPLATE)
+            combine_response = combine_chain(query)
+            combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
+            
+            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\n Sub-questions: \n{sub_QA_UR_injection}'
+
     def chat(self, 
              query: str) -> str:
         """Chat with the chatbot given a query

@@ -39,9 +39,9 @@ Once you have done all of this, you should be ready to get started with this tut
 All that is needed for local setup is to clone this repository and install a few dependencies, as the only thing you will be running locally is the final application. Everything else will be run through the MosaicML platform.
 ```bash
 git clone https://github.com/mosaicml/examples
-cd cd examples/examples/end-to-end-examples/sec_10k_qa
-python -m venv examples-10k-venv
-source examples-10k-venv/bin/activate
+cd cd examples/examples/end-to-end-examples/support_chatbot
+python -m venv examples-chatbot-venv
+source examples-chatbot-venv/bin/activate
 pip install -r requirements-cpu.txt
 # Your api token can be found by running `mcli config`. This token is set an environment variable for the langchain integration
 export MOSAICML_API_TOKEN=<your api token>
@@ -54,7 +54,7 @@ Each section of this tutorial will have a command to run, which fields you need 
 
 ## Step 1: Getting Our Data
 
-Let's first start with downloading the github repository that we want to finetune our model on so that it can get a basic understanding of the codebase. The [repo_downloader](./scripts/repo_downloader.py) will clone the git repository into a designated cloning directory where it will essentially sift through the directory and flatten the repository to be an assortment of text files into a local directory: `retrieval_data/{REPOSITORY_NAME}`. It will then erase the cloning directory.
+Let's first start with downloading the github repository that we want to finetune our model on so that it can get a basic understanding of the codebase. The [repo_downloader](./scripts/repo_downloader.py) will clone the git repository into a designated cloning directory where it will flatten the repository to be an assortment of text files into a local directory: `retrieval_data/{REPOSITORY_NAME}`. It will then erase the cloning directory.
 
 ```bash
 python scripts/repo_downloader.py REPO_LINKS
@@ -116,7 +116,7 @@ mcli run -f mcli_yamls/finetune/finetune_composer_codebase.yaml --cluster CLUSTE
 ```
 **Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml).
 
-**Inputs:** the `coqa_mds`, `PyPi_mds`, or `composer_codebase_mds` folder from step 2
+**Inputs:** `PyPi_mds` or `composer_codebase_mds` folder from step 2
 
 **Outputs:** the checkpoints from your training, saved to the `save_folder` specified in the yaml
 
@@ -140,7 +140,7 @@ mcli run -f mcli-yamls/convert_checkpoint_to_huggingface.yaml --cluster REPLACE_
 
 ## Step 5) Deploy your model
 
-Now that we have our trained model, we will deploy it using MosaicML inference. This will allow us to use the model as an API. We will additionally deploy a pretrained text embedding model to perform retrieval of relevant text sections from the 10-K form as context for the language model to answer questions. For more examples of inference deployments, see [inference-deployments](../../inference-deployments/)
+Now that we have our trained model, we will deploy it using MosaicML inference. This will allow us to use the model as an API. For more examples of inference deployments, see [inference-deployments](../../inference-deployments/)
 
 
 **Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER` (in the command), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml), `HF_FOLDER_NAME` (in the yaml)

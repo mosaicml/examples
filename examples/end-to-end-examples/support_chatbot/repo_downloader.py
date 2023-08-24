@@ -39,9 +39,9 @@ class RepoDownloader:
     """
 
     def __init__(self, 
-                 output_dir: (str), 
-                 current_dir: (str),
-                 repo_url: (str)) -> None:
+                 output_dir: str, 
+                 current_dir: str,
+                 repo_url: str) -> None:
         
         self.output_dir = output_dir
         self.repo_url = repo_url
@@ -85,23 +85,9 @@ class RepoDownloader:
         output_file = os.path.join(self.output_dir, self.repo_name, filename + '.txt')
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         return output_file
-    
-    def yaml_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a .YAML file in cloned repository, downloads it
-        to a .txt file and saves it in the same directory structure in
-        /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
-        Args:
-            file_path (str): the file_path of a .YAML file in cloned repository
-        """
-        with open(file_path, 'r') as file:
-                yaml_content = file.read()  # read file as regular text file
-        output_file = self.prepare_output_file(file_path)
-        with open(output_file, 'w') as out_file:
-            out_file.write(yaml_content)  # write the content to the output file
-
-    def py_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a .py file in cloned repository, downloads it
+    def file_to_txt(self, file_path: (str)) -> None:
+        """Given the file_path of a file in cloned repository, downloads it
         to a .txt file and saves it in the same directory structure in
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
@@ -113,37 +99,6 @@ class RepoDownloader:
         output_file = self.prepare_output_file(file_path)
         with open(output_file, 'w') as out_file:
             out_file.write(code_content)
-
-    def md_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a .py file in cloned repository, downloads it
-        to a .md file and saves it in the same directory structure in
-        /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
-
-        Args:
-            file_path (str): the file_path of a .md file in cloned repository
-        """
-        with open(file_path, 'r') as file:
-            md_content = file.read()
-        output_file = self.prepare_output_file(file_path)
-        with open(output_file, 'w') as out_file:
-            out_file.write(md_content)
-
-    def download_to_txt(self, file_path: (str)) -> None:
-        """Given a file path in cloned repository, runs the appropriate
-        download function based on the file extension.
-
-        Args:
-            file_path (str): the file_path in cloned repository
-        """
-        _, ext = os.path.splitext(file_path)
-        if ext == '.yaml':
-            self.yaml_to_txt(file_path)
-        elif ext == '.py':
-            self.py_to_txt(file_path)
-        elif ext == '.md':
-            self.md_to_txt(file_path)
-        else:
-            print(f'Unsupported file type: {ext}')
 
     def download_repo(self) -> str:
         """Given a git repository url clone the repository, then download all

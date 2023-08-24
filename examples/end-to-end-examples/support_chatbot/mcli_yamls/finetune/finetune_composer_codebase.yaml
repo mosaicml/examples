@@ -57,12 +57,11 @@ parameters:
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b_PyPi_composer/
   save_weights_only: True # Since we only need the weights for the next step, we can reduce the size of the checkpoint
-  dist_timeout: 60000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
   # Note that you would also need to reprocess your data to contain longer sequences
-  max_seq_len: 2048
+  max_seq_len: 8192
 
   # Random seed to ensure reproducibility
   global_seed: 15

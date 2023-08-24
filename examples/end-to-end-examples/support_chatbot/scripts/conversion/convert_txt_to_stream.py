@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import random
 from argparse import ArgumentParser, Namespace
 from typing import Dict, Iterable, Optional
 from llmfoundry.data import ConcatTokensDataset  # type: ignore
@@ -177,6 +178,7 @@ def main(
 
     files = os.listdir(input_folder)
     txt_files = [os.path.join(input_folder, f) for f in files if f.endswith('.txt')]
+    random.shuffle(txt_files)
     num_files = len(txt_files)
 
     split_dataset = {

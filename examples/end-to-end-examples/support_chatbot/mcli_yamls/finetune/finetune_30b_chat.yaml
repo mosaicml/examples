@@ -47,11 +47,10 @@ parameters:
   load_weights_only: false # Only load the weights for finetuning, discarding any other state from previous training
 
   # Checkpoint to local filesystem or remote object store
-  save_interval: 2ep # How frequently to save checkpoints
+  save_interval: 1000ba # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
   save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-PyPi_composer_chatv2/
   save_weights_only: false
-  dist_timeout: 600000 # Set large dist_timeout to allow for checkpoint uploading on a slow connection
 
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
@@ -142,7 +141,7 @@ parameters:
       clipping_threshold: 1.0
 
   # Run configuration
-  max_duration: 8ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
+  max_duration: 4ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
   eval_interval: 1ep # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset

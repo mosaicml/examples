@@ -58,8 +58,8 @@ def parse_args() -> Namespace:
         help='The GitHub repository URLs to download')
     parser.add_argument(
         '--complex_chat',
-        type=bool,
-        default=False,
+        type=int,
+        default=0,
         required=False,
         help='Whether to use subquery chatting')
     
@@ -78,7 +78,7 @@ def main(endpoint_url: str,
          retrieval_k: int,
          model_k: int,
          repository_urls: list[str],
-         chat_version: bool) -> None:
+         chat_version: int) -> None:
     
     retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data_demo')
 
@@ -114,8 +114,10 @@ def main(endpoint_url: str,
 
         Returns:
             str: The response from chatbot"""
-        if chat_version:
+        if chat_version == 1:
             return chatbot.sub_query_chat(query)
+        elif chat_version == 2:
+            return chatbot.relation_sub_query_chat(query)
         else:
             return chatbot.chat(query)
 

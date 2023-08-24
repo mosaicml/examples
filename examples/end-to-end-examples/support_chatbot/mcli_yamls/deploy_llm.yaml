@@ -4,12 +4,9 @@ name: mpt-30b-composer-finetuned
 # For 30B model deployed with bf16 datatype, the model needs atleast ~60GB of memory.
 # So should be hosted on atleast 2x A100-40G or 4x A10s
 compute:
-  cluster: r7z19
   gpus: 4
   instance: oci.bm.gpu.a10.4
-replicas: 1 # Number of replicas to use for this run
-
-
+replicas: 1
 integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
@@ -17,33 +14,23 @@ integrations:
   git_branch: support-bot
   ssh_clone: false
 # Clone the llm-foundry repo so we can use the HF to FasterTransformer convert script from it
-- git_commit: 2c92faa5ce31888214bdb582ac7f5756d0d3dacd
-  git_repo: mosaicml/llm-foundry
+- git_repo: mosaicml/llm-foundry
   integration_type: git_repo
   ssh_clone: false
 
 # Add the examples folder to the PYTHONPATH so we can import the deployment helper
 # Install composer to use the cloud download helper
 command: |
-  export PYTHONPATH=$PYTHONPATH:/code/llm-foundry:/code/examples:
-  pip uninstall packaging -y
-  rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
-  pip install composer[streaming,libcloud,oci]==0.14.1
-  pip install packaging==23.1
-  pip install langchain==0.0.205
-  pip install gitpython
-  pip install bs4
-  pip install oci
+  export PYTHONPATH=$PYTHONPATH:/code/llm-foundry:/code/examples:/code
 
 model:
-  backend: faster_transformers
-  # Specify how to download the model from object store
   downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
     remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-30b-chat_composer_chatv2-hf/
+    gpus: 4
   model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
   model_parameters:
     ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
     # FT checkpoint path is hardcoded in MPTFTModelHandler at /tmp/mpt
-    model_name_or_path: mosaicml/mpt-30b # This is used for the tokenzier
-    gpus: 4 # number of gpus to use for inference
+    model_name_or_path: mosaicml/mpt-30b-chat # This is used for the tokenzier
+    gpus: 4 
