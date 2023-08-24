@@ -186,12 +186,12 @@ class ScheduledDataCollatorForRTS(transformers.DataCollatorForLanguageModeling):
 
         labels = torch.zeros_like(inputs)
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
-        probability_matrix = torch.full(labels.shape, self.mlm_probability)
+        probability_matrix = torch.full(inputs.shape, self.mlm_probability)
         if special_tokens_mask is None:
             special_tokens_mask = [
                 self.tokenizer.get_special_tokens_mask(
                     val, already_has_special_tokens=True)
-                for val in labels.tolist()
+                for val in inputs.tolist()
             ]
             special_tokens_mask = torch.tensor(special_tokens_mask,
                                                dtype=torch.bool)

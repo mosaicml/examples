@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Optional, Union, Tuple
 
 import torch
-from torch.nn import CrossEntropyLoss, MSELoss, BCEWithLogitsLoss
+import torch.nn as nn
 from composer.metrics.nlp import (BinaryF1Score, LanguageCrossEntropy,
                                   MaskedAccuracy)
 from composer.models.huggingface import HuggingFaceModel
@@ -17,9 +17,9 @@ from torchmetrics import MeanSquaredError
 from torchmetrics.classification.accuracy import MulticlassAccuracy
 from torchmetrics.classification.matthews_corrcoef import MatthewsCorrCoef
 from torchmetrics.regression.spearman import SpearmanCorrCoef
-from transformers.models.bert import BertForSequenceClassification
-from transformers.models.bert import BertOnlyMLMHead
-from transformers.modeling_outputs import SequenceClassifierOutput
+from transformers.models.bert import BertForMaskedLM
+from transformers.activations import ACT2FN
+from transformers.modeling_outputs import MaskedLMOutput
 
 __all__ = ['create_hf_bert_mlm', 'create_hf_bert_classification']
 
@@ -115,18 +115,59 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                             use_logits=True,
                             metrics=metrics)
 
-class BertForRTS(BertForSequenceClassification):
+class RTSBertPredictionHeadTransform(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        if isinstance(config.hidden_act, str):
+            self.transform_act_fn = ACT2FN[config.hidden_act]
+        else:
+            self.transform_act_fn = config.hidden_act
+        self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        hidden_states = self.dense(hidden_states)
+        hidden_states = self.transform_act_fn(hidden_states)
+        hidden_states = self.LayerNorm(hidden_states)
+        return hidden_states
+
+class RTSBertLMPredictionHead(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.transform = RTSBertPredictionHeadTransform(config)
+
+        # The output weights are the same as the input embeddings, but there is
+        # an output-only bias for each token.
+        self.decoder = nn.Linear(config.hidden_size, 2, bias=False)
+
+        self.bias = nn.Parameter(torch.zeros(2))
+
+        # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
+        self.decoder.bias = self.bias
+
+    def forward(self, hidden_states):
+        hidden_states = self.transform(hidden_states)
+        hidden_states = self.decoder(hidden_states)
+        return hidden_states
+
+class RTSBertOnlyMLMHead(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.predictions = RTSBertLMPredictionHead(config)
+
+    def forward(self, sequence_output: torch.Tensor) -> torch.Tensor:
+        prediction_scores = self.predictions(sequence_output)
+        return prediction_scores
+
+class BertForRTS(BertForMaskedLM):
 
     def __init__(self, config):
         super().__init__(config)
 
-        config.vocab_size = 2
-        self.cls = BertOnlyMLMHead(config)
+        self.cls = RTSBertOnlyMLMHead(config)
 
-        # Initialize weights and apply final processing
-        self.post_init()
-
-
+        self.apply(self._init_weights)
+    
     def forward(
         self,
         input_ids: Optional[torch.Tensor] = None,
@@ -135,17 +176,20 @@ class BertForRTS(BertForSequenceClassification):
         position_ids: Optional[torch.Tensor] = None,
         head_mask: Optional[torch.Tensor] = None,
         inputs_embeds: Optional[torch.Tensor] = None,
+        encoder_hidden_states: Optional[torch.Tensor] = None,
+        encoder_attention_mask: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-    ) -> Union[Tuple[torch.Tensor], SequenceClassifierOutput]:
+    ) -> Union[Tuple[torch.Tensor], MaskedLMOutput]:
         r"""
-        labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
-            Labels for computing the sequence classification/regression loss. Indices should be in `[0, ...,
-            config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss), If
-            `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
+        labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
+            Labels for computing the masked language modeling loss. Indices should be in `[-100, 0, ...,
+            config.vocab_size]` (see `input_ids` docstring) Tokens with indices set to `-100` are ignored (masked), the
+            loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`
         """
+
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         outputs = self.bert(
@@ -155,103 +199,32 @@ class BertForRTS(BertForSequenceClassification):
             position_ids=position_ids,
             head_mask=head_mask,
             inputs_embeds=inputs_embeds,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=encoder_attention_mask,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
 
-        pooled_output = outputs[0]
-        logits = self.classifier(pooled_output)
+        sequence_output = outputs[0]
+        prediction_scores = self.cls(sequence_output)
 
-        loss = None
+        masked_lm_loss = None
         if labels is not None:
-            if self.config.problem_type is None:
-                if self.num_labels == 1:
-                    self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
-                    self.config.problem_type = "single_label_classification"
-                else:
-                    self.config.problem_type = "multi_label_classification"
+            loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
+            masked_lm_loss = loss_fct(prediction_scores.view(-1, 2), labels.view(-1))
 
-            if self.config.problem_type == "regression":
-                loss_fct = MSELoss()
-                if self.num_labels == 1:
-                    loss = loss_fct(logits.squeeze(), labels.squeeze())
-                else:
-                    loss = loss_fct(logits, labels)
-            elif self.config.problem_type == "single_label_classification":
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            elif self.config.problem_type == "multi_label_classification":
-                loss_fct = BCEWithLogitsLoss()
-                loss = loss_fct(logits, labels)
         if not return_dict:
-            output = (logits,) + outputs[2:]
-            return ((loss,) + output) if loss is not None else output
+            output = (prediction_scores,) + outputs[2:]
+            return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
 
-        return SequenceClassifierOutput(
-            loss=loss,
-            logits=logits,
+        return MaskedLMOutput(
+            loss=masked_lm_loss,
+            logits=prediction_scores,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
 
-    #def forward(
-        #self,
-        #input_ids: Optional[torch.Tensor] = None,
-        #attention_mask: Optional[torch.Tensor] = None,
-        #token_type_ids: Optional[torch.Tensor] = None,
-        #position_ids: Optional[torch.Tensor] = None,
-        #head_mask: Optional[torch.Tensor] = None,
-        #inputs_embeds: Optional[torch.Tensor] = None,
-        #encoder_hidden_states: Optional[torch.Tensor] = None,
-        #encoder_attention_mask: Optional[torch.Tensor] = None,
-        #labels: Optional[torch.Tensor] = None,
-        #output_attentions: Optional[bool] = None,
-        #output_hidden_states: Optional[bool] = None,
-        #return_dict: Optional[bool] = None,
-    #):
-        #r"""
-        #labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
-            #Labels for computing the masked language modeling loss. Indices should be in `[-100, 0, ...,
-            #config.vocab_size]` (see `input_ids` docstring) Tokens with indices set to `-100` are ignored (masked), the
-            #loss is only computed for the tokens with labels in `[0, ..., config.vocab_size]`
-        #"""
-
-        #return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-
-        #outputs = self.bert(
-            #input_ids,
-            #attention_mask=attention_mask,
-            #token_type_ids=token_type_ids,
-            #position_ids=position_ids,
-            #head_mask=head_mask,
-            #inputs_embeds=inputs_embeds,
-            #encoder_hidden_states=encoder_hidden_states,
-            #encoder_attention_mask=encoder_attention_mask,
-            #output_attentions=output_attentions,
-            #output_hidden_states=output_hidden_states,
-            #return_dict=return_dict,
-        #)
-
-        #sequence_output = outputs[0]
-        #prediction_scores = self.cls(sequence_output)
-
-        #masked_lm_loss = None
-        #if labels is not None:
-            #loss_fct = CrossEntropyLoss()  # -100 index = padding token
-            #masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), labels.view(-1))
-
-        #if not return_dict:
-            #output = (prediction_scores,) + outputs[2:]
-            #return ((masked_lm_loss,) + output) if masked_lm_loss is not None else output
-
-        #return MaskedLMOutput(
-            #loss=masked_lm_loss,
-            #logits=prediction_scores,
-            #hidden_states=outputs.hidden_states,
-            #attentions=outputs.attentions,
-        #)
 
 def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
                        use_pretrained: Optional[bool] = False,
@@ -312,7 +285,6 @@ def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
     if not model_config:
         model_config = {}
 
-    model_config['num_labels'] = 2
 
     if not pretrained_model_name:
         pretrained_model_name = 'bert-base-uncased'
@@ -326,6 +298,8 @@ def create_hf_bert_rts(pretrained_model_name: str = 'bert-base-uncased',
             pretrained_model_name, **model_config)
         #assert BertForRTS.from_config is not None, 'AutoModelForSequenceClassification has from_config method'
         model = BertForRTS(config)
+    
+    # print(model)
 
     if gradient_checkpointing:
         model.gradient_checkpointing_enable()  # type: ignore
