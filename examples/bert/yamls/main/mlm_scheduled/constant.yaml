@@ -12,7 +12,7 @@ run_name: schedule-constant
 cluster: r1z1
 gpu_type: a100_80gb # Type of GPU to use
 gpu_num: 8 # Number of GPUs to use
-image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+image: mosaicml/ci-staging:c5da7438-a5a3-4abc-8f2d-3af503ccf4b1
 integrations:
   - integration_type: git_repo
     git_repo: mosaicml/examples
