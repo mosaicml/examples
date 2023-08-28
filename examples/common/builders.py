@@ -36,7 +36,13 @@ def build_callback(name, kwargs):
 
 def build_logger(name, kwargs):
     if name == 'wandb':
-        return WandBLogger(**kwargs)
+        wandb_logger = WandBLogger(**kwargs)
+
+        def null_download(*wargs, **wkwargs):
+            pass
+
+        wandb_logger.download_file = null_download
+        return wandb_logger
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 

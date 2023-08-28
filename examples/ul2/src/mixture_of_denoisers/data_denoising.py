@@ -4,6 +4,7 @@
 """Streaming dataloader for (mixture of) denoising task(s)."""
 
 import logging
+import multiprocessing
 import random
 import sys
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
@@ -43,7 +44,7 @@ def ul2_prefix_function(
     if mean_length is None:
         # This is the case for "sequence to sequence"
         prefix = '[S2S]'
-    elif mean_length >= 12 or mask_ratio >= 0.3:
+    elif mean_length >= 12 or mask_ratio > 0.3:
         # UL2 tags this corruption rate "extreme"
         prefix = '[NLG]'
     else:
@@ -95,35 +96,36 @@ class MixtureOfDenoisersCollator:
             ]
         # Each mean_length / mask_ratio combo becomes one of the span
         # corruption denoising tasks
-        for span_mean_length, span_mask_ratio in self.span_mean_lengths_and_ratios:
+        for span_mean_length, init_span_mask_ratio, _ in self.span_mean_lengths_and_ratios:
             self._uses_span_corruption = True
             if span_mean_length < 0:
                 raise ValueError('All span mean lengths must be positive.')
-            if not 0 < span_mask_ratio < 1.0:
+            if not 0 < init_span_mask_ratio < 1.0:
                 raise ValueError(
                     'All span masking ratios must be between 0.0 and 1.0.')
 
             if prefix_function is not None:
-                prefix_tokens = prefix_function(span_mask_ratio,
+                prefix_tokens = prefix_function(init_span_mask_ratio.value,
                                                 span_mean_length,
                                                 self.tokenizer)
             else:
                 prefix_tokens = None
 
-            max_raw_length = _get_max_starting_length(
-                max_length=self.max_seq_length,
-                mask_ratio=span_mask_ratio,
-                mean_span_length=span_mean_length,
-                n_prefix_tokens=len(prefix_tokens or []),
-                decoder_only_format=self.decoder_only_format)
-            if max_raw_length < self._smallest_max_raw_length:
-                self._smallest_max_raw_length = max_raw_length
-            if max_raw_length > self._largest_max_raw_length:
-                self._largest_max_raw_length = max_raw_length
+            #max_raw_length = _get_max_starting_length(
+            #max_length=self.max_seq_length,
+            #mask_ratio=span_mask_ratio,
+            #mean_span_length=span_mean_length,
+            #n_prefix_tokens=len(prefix_tokens or []),
+            #decoder_only_format=self.decoder_only_format)
+            #if max_raw_length < self._smallest_max_raw_length:
+            #self._smallest_max_raw_length = max_raw_length
+            #if max_raw_length > self._largest_max_raw_length:
+            #self._largest_max_raw_length = max_raw_length
+            max_raw_length = self.max_seq_length - len(prefix_tokens or []) - 1
 
             kwargs = {
                 'mean_span_length': span_mean_length,
-                'mask_ratio': span_mask_ratio,
+                'mask_ratio': init_span_mask_ratio,
                 'prefix_tokens': prefix_tokens,
                 'max_raw_length': max_raw_length,
             }
@@ -188,7 +190,7 @@ class MixtureOfDenoisersCollator:
             processed_examples.append(
                 noise_token_sequence(
                     example,
-                    mask_ratio=noiser['mask_ratio'],
+                    mask_ratio=noiser['mask_ratio'].value,
                     mean_span_length=noiser['mean_span_length'],
                     prefix_tokens=noiser['prefix_tokens'],
                     max_raw_length=noiser['max_raw_length'],
@@ -247,13 +249,17 @@ def build_text_denoising_dataloader(cfg: DictConfig,
                                     device_batch_size: int) -> DataLoader:
     assert cfg.name == 'text_denoising', f'Tried to build_denoising text dataloader with cfg.name={cfg.name}'
 
+    span_mean_lengths_and_ratios = cfg.mixture_of_denoisers.get(
+        'span_mean_lengths_and_ratios')
+    span_mean_lengths_and_ratios = [[
+        s[0], multiprocessing.Value("d", s[1]), s[2]
+    ] for s in span_mean_lengths_and_ratios]
     collate_fn = MixtureOfDenoisersCollator(
         tokenizer=utils.AutoTokenizerForMOD.from_pretrained(
             cfg.dataset.tokenizer_name),
         max_seq_length=cfg.dataset.max_seq_len,
         decoder_only_format=cfg.mixture_of_denoisers.decoder_only_format,
-        span_mean_lengths_and_ratios=cfg.mixture_of_denoisers.get(
-            'span_mean_lengths_and_ratios'),
+        span_mean_lengths_and_ratios=span_mean_lengths_and_ratios,
         sequence_mask_ratios=cfg.mixture_of_denoisers.get(
             'sequence_mask_ratios'),
         prefix_function=cfg.mixture_of_denoisers.get('prefix_function',
@@ -310,7 +316,7 @@ def build_text_denoising_dataloader(cfg: DictConfig,
         prefetch_factor=cfg.get('prefetch_factor', 2),
         persistent_workers=cfg.get('persistent_workers', False),
         timeout=cfg.get('timeout', 0),
-    )
+    ), span_mean_lengths_and_ratios
 
 
 def noise_token_sequence(
@@ -433,8 +439,8 @@ def _get_max_starting_length(max_length: int, mask_ratio: float,
         total_inp_tokens, total_targ_tokens = sequence_stats(length)
         if decoder_only_format:
             return (total_inp_tokens + total_targ_tokens) <= max_length
-        return (total_inp_tokens <= max_length) and (total_targ_tokens <=
-                                                     max_length)
+        return (total_inp_tokens <= max_length) and (total_targ_tokens
+                                                     <= max_length)
 
     # Start with a definitely too-long sequence and reduce until it fits
     num_raw_tokens = max_length * 2

@@ -17,7 +17,7 @@ from examples.ul2.src import (InverseSquareRootScheduler,
                               build_super_glue_task_dataloader,
                               build_text_denoising_dataloader,
                               build_totto_dataloader, build_xsum_dataloader,
-                              create_hf_prefix_lm, create_hf_t5)
+                              create_hf_prefix_lm, create_hf_t5, mlm_scheduling)
 
 
 def build_callback(name, cfg):
@@ -120,13 +120,12 @@ def main(cfg):
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_dataloader(cfg.train_loader,
-                                    cfg.device_train_batch_size,
-                                    mode='train')
+    train_loader, span_mean_lengths_and_ratios = build_dataloader(
+        cfg.train_loader, cfg.device_train_batch_size, mode='train')
     print('Building eval loader...')
-    eval_loader = build_dataloader(cfg.eval_loader,
-                                   cfg.device_eval_batch_size,
-                                   mode='eval')
+    eval_loader, _ = build_dataloader(cfg.eval_loader,
+                                      cfg.device_eval_batch_size,
+                                      mode='eval')
 
     # Optimizer and scheduler
     optimizer = build_optimizer(cfg.optimizer, model)
@@ -143,6 +142,8 @@ def main(cfg):
         build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
+    callbacks += mlm_scheduling.build_mlm_scheduler_callback(
+        cfg.train_loader, span_mean_lengths_and_ratios)
 
     # Algorithms
     algorithms = [
