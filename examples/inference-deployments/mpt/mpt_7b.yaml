@@ -2,6 +2,7 @@ name: mpt-7b-simple
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
+image: mosaicml/inference:0.1.36
 command: |
   export PYTHONPATH=/code
 replicas: 1
