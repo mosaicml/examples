@@ -100,7 +100,7 @@ class MixtureOfDenoisersCollator:
             self._uses_span_corruption = True
             if span_mean_length < 0:
                 raise ValueError('All span mean lengths must be positive.')
-            if not 0 < init_span_mask_ratio < 1.0:
+            if not 0 < init_span_mask_ratio.value < 1.0:
                 raise ValueError(
                     'All span masking ratios must be between 0.0 and 1.0.')
 

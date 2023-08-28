@@ -70,7 +70,7 @@ def build_mlm_scheduler_callback(cfg, span_mean_lengths_and_ratios):
         final_mlm_rate = cfg_span_mean_length_and_ratio[2]
         alpha_f = final_mlm_rate / initial_mlm_rate
 
-        name = cfg.schedule_name
+        name = cfg.scheduler_name
         if name == 'constant':
             mlm_schedule = ConstantScheduler()
         elif name == 'cosine':
