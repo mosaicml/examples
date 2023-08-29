@@ -1,7 +1,8 @@
 langchain==0.0.205
-composer[streaming,libcloud,oci,nlp]==0.15.0
-mosaicml-cli==0.4.4
+composer[streaming,libcloud,oci,nlp]==0.16.0
+mosaicml-cli==0.4.17
 gradio==3.33.1
 faiss-cpu==1.7.4
 sentencepiece==0.1.97
-git+https://github.com/mosaicml/llm-foundry.git@main#egg=llm-foundry
+oauthlib>=2.1.0,<3.0.0
+git+https://github.com/mosaicml/llm-foundry.git@aabdb3c7b64679e8406a6905700dabdaa2c5e739#egg=llm-foundry

@@ -2,7 +2,6 @@ import os
 import json
 import re
 import string
-import time
 from tqdm import tqdm
 
 import langchain
@@ -48,8 +47,8 @@ class RetrieverWithScore(BaseRetriever):
         docs_and_scores = self.vector_store.similarity_search_with_score(query=query, 
                                                                          k=self.k, 
                                                                          score_threshold=self.score_threshold)
-        for doc, score in docs_and_scores:
-            doc.metadata = {**doc.metadata, **{"score": score}}
+        for doc, distance in docs_and_scores:
+            doc.metadata = {**doc.metadata, **{"score": 1-distance}}
         return [doc for (doc, _) in docs_and_scores]
 
     def aget_relevant_documents(self, query):
@@ -86,42 +85,31 @@ SUBQUERY_INTENT_TEMPLATE = ("""<|im_start|>system
 SUBQUERY_RELATED_TEMPLATE = ("""<|im_start|>system
                                A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
                                Only output a "Yes" or "No" with no extra information given the following context to the question. 
-                               If you are not sure, say "No"".<|im_end|>
+                               The context must be related to the question, otherwise output "No". If you aren't sure, output "No".<|im_end|>
                                <|im_start|>context
                                {context}<|im_end|>
                                <|im_start|>user
-                               Can this question be answered by the given context: {question}<|im_end|>
+                               Can this question be answered with information provided only from context: {question}<|im_end|>
                                <|im_start|>assistant""")
 PARTIAL_SUBQA_TEMPLATE = ("""<|im_start|>system
-                             A conversation between a user and an LLM-based AI assistant about the codebase for MosaicML. 
-                             Given the context, the job of the assistant is to determine if the context is useful for answering the user's question.
-                             If so, the assistant will break the question into smaller questions that can likely be answered by a single section of 
-                             the relevant context. If the context is not directly related to the user's question, the assistant will just break the 
-                             question into simpler questions not related to the context that may be helpful for answering the question.<|im_end|>
+                             A conversation between a user and an LLM-based AI assistant. 
+                             Given the context, the job of the assistant is to determine if the user's question is relevant given the context. If the given
+                             context is unrelated to the question, then the assistant will break the question into smaller questions that can likely be answered 
+                             by a single section of the relevant context. Else if the question can't be answered using the context alone, the LLM-based AI assistant
+                             should not reply with anything.<|im_end|>
                              <|im_start|>context
                              {{context}}<|im_end|>
                              <|im_start|>user
-                             {{question}} {} Can this question be answered with the context given alone? If so, break the question down into at most five
-                             smaller questions that can likely be answered by a single section of the relevant documentation. If not, break the 
-                             question down into at most five helpful questions.
+                             {{question}} {} Can this question be answered with the context given alone? If so, break the question down into less than five
+                             smaller questions that can likely be answered by a single section of the relevant documentation. Make sure that the smaller question
+                             is related to the main question. If you aren't sure, just don't include the smaller question
                              Please only respond with a list of smaller questions without any extra information.<|im_end|>
                              <|im_start|>assistant""")
-PARTIAL_COMBINE_TEMPLATE = ("""<|im_start|>system
-                               A conversation between a user and an LLM-based AI assistant. 
+PARTIAL_COMBINE_TEMPLATE = ("""<|im_start|>system A conversation between a user and an LLM-based AI assistant. 
                                Here are smaller questions regarding the user's question and their answers:
                                {}
-                               Provide a helpful and in depth answer given the following context to the question. 
-                               If you do not know, just say "I do not know".<|im_end|>
-                               <|im_start|>context
-                               {{context}}<|im_end|>
-                               <|im_start|>user
-                               {{question}}<|im_end|>
-                               <|im_start|>assistant""")
-PARTIAL_COMBINE_UR_TEMPLATE = ("""<|im_start|>system
-                               A conversation between a user and an LLM-based AI assistant. 
-                               Here are smaller questions regarding the user's question. If you don't know how to answer the question pretend like it doesn't exist:
-                               {}
-                               Provide a helpful and in depth answer given the following context to the question. 
+                               Provide a helpful and in depth answer given the following context to the question and heavily reference
+                               the smaller questions provided.
                                If you do not know, just say "I do not know".<|im_end|>
                                <|im_start|>context
                                {{context}}<|im_end|>
@@ -247,7 +235,7 @@ class ChatBot:
         Returns:
             str: The cleaned response.
         """
-        input_text = input_text.strip('\n')
+        input_text = str(input_text.strip('\n'))
 
         context_prefix = 'Context:'
         answer_prefix = 'Answer:'
@@ -264,7 +252,7 @@ class ChatBot:
                 break
 
         input_text = input_text.lstrip('\n :')
-        return input_text
+        return str(input_text)
     
     def store_vectors(self,
                       pages: list[Document]) -> None:
@@ -457,7 +445,6 @@ class ChatBot:
                     print('\n', self.normalize_str(answer), '||', self.normalize_str(continuation), '\n')
                     print(f'{exact_match} exact matches and {close_match} close matches out of {total} questions.')
                 total += 1
-                time.sleep(0.5)
         return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
 
     def evaluate_complex(self, 
@@ -482,12 +469,12 @@ class ChatBot:
                 continuation = data.get('continuation')
                 response = chain(question)
                 answer = self.clean_response(response['result'].lstrip('\n'))
-                time.sleep(0.5)
                 save += f'Question:\n{question}\nAnswer:\n{continuation}\nResponse:\n{answer}\n\n'
         return save
     
     def sub_query_chat(self,
-                       query: str)-> str:
+                       query: str,
+                       threshold = 0.4)-> str:
         if not self.intent_chain:
             save_k = self.k
             self.k = 5
@@ -505,33 +492,41 @@ class ChatBot:
         sub_QA_injection = ''
         # Don't create a new chain on every query
         if not self.subchain:
-            self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
+            self.subchain = self.create_chain(prompt_template=EVAL_30B_TEMPLATE, score_threshold=threshold)
         for sub_QA in all_sub_QA:
-            response = self.subchain(sub_QA)
-            if response['source_documents']:
+            if sub_QA:
+                response = self.subchain(sub_QA)
                 answer = self.clean_response(response['result'].lstrip('\n'))
-                sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
+                if response['source_documents'] and response["source_documents"][0].metadata["score"]>threshold:
+                    answer = self.clean_response(response['result'].lstrip('\n'))
+                    sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
 
-        SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(sub_QA_injection)
-        combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
-        combine_response = combine_chain(query)
-        combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
-        combine_answer_sources = ''
-        slack_deduplicate = True
-        for d in combine_response['source_documents']:
-            if d.metadata["score"] < 0.7:
-                if 'message_from_slack' == combine_answer_sources[:18] and slack_deduplicate:
-                    combine_answer_sources = combine_answer_sources + 'slack_data\n'
-                    slack_deduplicate = False
-                else:
-                    combine_answer_sources = combine_answer_sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
-        if not combine_answer_sources:
-            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}'
+        if sub_QA_injection:
+            SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(str(sub_QA_injection).replace("{", "{{").replace("}", "}}"))
+            combine_chain = self.create_chain(f'{SUBQUERY_COMBINE_TEMPLATE}')
+            combine_response = combine_chain(query)
+            combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
+            combine_answer_sources = ''
+            slack_deduplicate = True
+            for d in combine_response['source_documents']:
+                if d.metadata["score"] > 0.6:
+                    if 'message_from_slack' == combine_answer_sources[:18] and slack_deduplicate:
+                        combine_answer_sources = combine_answer_sources + 'slack_data\n'
+                        slack_deduplicate = False
+                    else:
+                        combine_answer_sources = combine_answer_sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+            
+            if not combine_answer_sources:
+                return f'Answer: \n{str(combine_answer)}\n\nIntent: \n{str(intent_answer)}\n\n Sub-questions: \n{str(sub_QA_injection)}'
+            else:
+                return f'Answer: \n{str(combine_answer)}\n\nIntent: \n{str(intent_answer)}\n\n Sub-questions: \n{str(sub_QA_injection)}\nSources: \n{str(combine_answer_sources)}'
         else:
-            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\nRelated Sub-questions: \n{sub_QA_injection}\nSources: \n{combine_answer_sources}'
-          
+            return f"I'm not sure but here is my best answer: \n{self.chat(query)[7:]}"
+
+
     def relation_sub_query_chat(self,
-                       query: str)-> str:
+                       query: str,
+                       threshold: int=0.4)-> str:
         if not self.intent_chain:
             save_k = self.k
             self.k = 3
@@ -547,46 +542,42 @@ class ChatBot:
 
         all_sub_QA = subQA_answer.split('\n')
         sub_QA_injection = ''
-        sub_QA_UR_injection = ''
         # Don't create a new chain on every query
         if not self.subsubchain:
+            save_k = self.k
+            self.k = 2
             self.subsubchain = self.create_chain(prompt_template=SUBQUERY_RELATED_TEMPLATE, score_threshold=0)
+            self.k = save_k
         for sub_QA in all_sub_QA:
-            answerable = self.clean_response(self.subsubchain(sub_QA)['result'].lstrip('\n'))
-            if "Yes" in answerable:
-                if not self.subchain:
-                    self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
-                response = self.subchain(sub_QA)
-                answer = self.clean_response(response['result'].lstrip('\n'))
-                sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
-            sub_QA_UR_injection += f'Question: {sub_QA}\n'
+            if sub_QA:
+                answerable = self.clean_response(self.subsubchain(sub_QA)['result'].lstrip('\n'))
+                if "Yes" in answerable:
+                    if not self.subchain:
+                        self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
+                    response = self.subchain(sub_QA)
+                    answer = self.clean_response(response['result'].lstrip('\n'))
+                    sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
 
         if sub_QA_injection:
-            SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(sub_QA_UR_injection)
+            SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(str(sub_QA_injection).replace("{", "{{").replace("}", "}}"))
             combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
             combine_response = combine_chain(query)
             combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
             sources = ''
             slack_deduplicate = True
             for d in combine_response['source_documents']:
-                if d.metadata["score"] < 0.7:
+                if d.metadata["score"] > threshold:
                     if 'message_from_slack' == sources[:18] and slack_deduplicate:
                         sources = sources + 'slack_data\n'
                         slack_deduplicate = False
                     else:
                         sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
             if not sources:
-                return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\n Sub-questions: \n{sub_QA_injection}'
+                return f'Answer: \n{str(combine_answer)}\n\nIntent: \n{str(intent_answer)}\n\n Sub-questions: \n{str(sub_QA_injection)}'
             else:
-                return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\n Sub-questions: \n{sub_QA_injection}\nSources: \n{sources}'
-        #Still make the chatbot robust at answering non-related questions
+                return f'Answer: \n{str(combine_answer)}\n\nIntent: \n{str(intent_answer)}\n\n Sub-questions: \n{str(sub_QA_injection)}\nSources: \n{str(sources)}'
         else:
-            SUBQUERY_COMBINE_UR_TEMPLATE = PARTIAL_COMBINE_UR_TEMPLATE.format(sub_QA_injection)
-            combine_chain = self.create_chain(SUBQUERY_COMBINE_UR_TEMPLATE)
-            combine_response = combine_chain(query)
-            combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
-            
-            return f'Answer: \n{combine_answer}\n\nIntent: \n{intent_answer}\n\n Sub-questions: \n{sub_QA_UR_injection}'
+            return f"I'm not sure but here is my best answer: \n{self.chat(query)[7:]}"
 
     def chat(self, 
              query: str) -> str:
@@ -617,19 +608,19 @@ class ChatBot:
         else:
             # Don't create a new chain on every query
             if not self.chat_chain:
-                self.chat_chain = self.create_chain(EVAL_30B_TEMPLATE)
+                self.chat_chain = self.create_chain(prompt_template=EVAL_30B_TEMPLATE, score_threshold=0)
             response = self.chat_chain(query)
             answer = self.clean_response(response['result'].lstrip('\n'))
             sources = ''
             slack_deduplicate = True
             for d in response['source_documents']:
-                if d.metadata["score"] < 0.6:
+                if d.metadata["score"] > 0.6:
                     if 'message_from_slack' == sources[:18] and slack_deduplicate:
                         sources = sources + 'slack_data\n'
                         slack_deduplicate = False
                     else:
                         sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
             if not sources:
-                return f"Answer: {answer}"
+                return f"Answer: \n{answer}"
             else:
-                return f"Answer: {answer} \nSources: \n{sources}"
+                return f"Answer: \n{answer} \nSources: \n{sources}"

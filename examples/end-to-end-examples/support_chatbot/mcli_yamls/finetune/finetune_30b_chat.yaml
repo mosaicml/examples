@@ -1,21 +1,16 @@
-name: mpt-30b-PyPi_composer_chatv2
-
-scheduling:
-  resumable: true
-  priority: low
+name: mpt-30b-chat_composer_chatv2
 
 compute:
-  gpus: 64  # Number of GPUs to use
+  gpus: 8  # Number of GPUs to use
 
   ## These configurations are optional
   # cluster: r0z0 # Name of the cluster to use for this run
-  gpu_type: h100_80gb # Type of GPU to use.
+  # gpu_type: h100_80gb # Type of GPU to use.
 
 integrations:
 # Clone and install the llm-foundry repo so we can run scripts from it
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
-  git_branch: davis/lion8b-v2
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
 - git_branch: dev
@@ -43,14 +38,16 @@ image: mosaicml/llm-foundry:2.0.1_cu118-latest # Use the Docker image provided b
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Path to load the weights from the previous step
-  load_path: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b_PyPi_composer/latest-rank0.pt.symlink
-  load_weights_only: false # Only load the weights for finetuning, discarding any other state from previous training
+  load_path: CLOUD://BUCKET_NAME/support-bot-demo/checkpoints/mpt-30b-chat_composer-codebase/latest-rank0.pt.symlink
+  load_weights_only: true # Only load the weights for finetuning, discarding any other state from previous training
 
   # Checkpoint to local filesystem or remote object store
-  save_interval: 1000ba # How frequently to save checkpoints
+  save_interval: 1ep # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b-PyPi_composer_chatv2/
+  save_folder: CLOUD://BUCKET_NAME/support-bot-demo/checkpoints/mpt-30b-chat_composer_chatv2/
   save_weights_only: false
+
+  dist_timeout: 60000000
 
   # Maximum sequence length of the model
   # For MPT, you can change this to a different number if you would like to train on longer sequences
@@ -126,11 +123,11 @@ parameters:
   # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options
   optimizer:
     name: decoupled_lionw_8b
-    lr: 0.000006
+    lr: 0.0000005
     betas:
     - 0.9
     - 0.99
-    weight_decay: 0.000006
+    weight_decay: 0
 
 
   # Algorithms to apply
@@ -141,13 +138,13 @@ parameters:
       clipping_threshold: 1.0
 
   # Run configuration
-  max_duration: 4ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
-  eval_interval: 1ep # How frequently to evaluate the model
+  max_duration: 1ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
+  eval_interval: 2000ba # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: -1 # How many batches to evaluate on. -1 means evaluate on the entire dataset
-  global_train_batch_size: 64  # Global batch size. This is the batch size across all GPUs
+  global_train_batch_size: 8  # Global batch size. This is the batch size across all GPUs
   seed: ${global_seed}
-  device_eval_batch_size: 1 # Evaluation batch size per GPU
+  device_eval_batch_size: 2 # Evaluation batch size per GPU
   device_train_microbatch_size: 1 
   precision: amp_bf16
 

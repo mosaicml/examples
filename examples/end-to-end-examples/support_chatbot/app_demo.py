@@ -17,13 +17,13 @@ def parse_args() -> Namespace:
         '--endpoint_url',
         type=str,
         default='https://models.hosted-on.mosaicml.hosting/mpt-30b-chat/v1/predict',
-        #default='https://mpt-30b-composer-finetuned-2ed9el.inf.hosted-on.mosaicml.hosting/predict',
+        #default='https://mpt-30b-composer-finetuned-q8mjj9.inf.hosted-on.mosaicml.hosting/predict',
         required=False,
         help='The endpoint of our MosaicML LLM Model')
     parser.add_argument(
         '--max_length',
         type=int,
-        default=4000,
+        default=5000,
         required=False,
         help='The maximum size tokens in model')
     parser.add_argument(
@@ -87,7 +87,8 @@ def main(endpoint_url: str,
         inject_instruction_format=True,
         endpoint_url= endpoint_url,
         model_kwargs={
-            'max_new_tokens': max_length, 
+            #'max_new_tokens': max_length,
+            'max_length': max_length,
             'top_k': model_k,
             'top_p': 0.95,
             'temperature': 0.1,

@@ -50,7 +50,6 @@ def parse_args() -> Namespace:
 @app.route('/slack/events', methods=['POST'])
 def slack_events():
     data = request.json
-    
     # Immediately respond to Slack's challenge
     if "challenge" in data:
         return jsonify({'challenge': data['challenge']})

@@ -3,19 +3,14 @@ name: mpt-support-bot-finetune-PyPi
 compute:
   gpus: 64  # Number of GPUs to use
 
-scheduling:
-  resumable: false
-  priority: low
-
   ## These configurations are optional
   # cluster: r0z0 # Name of the cluster to use for this run
-  gpu_type: h100_80gb # Type of GPU to use.
+  # gpu_type: h100_80gb # Type of GPU to use.
 
 integrations:
 # Clone and install the llm-foundry repo so we can run scripts from it
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
-  git_branch: davis/lion8b-v2
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
 - git_branch: dev
@@ -43,9 +38,9 @@ image: mosaicml/llm-foundry:2.0.1_cu118-latest # Use the Docker image provided b
 # See LLM-foundry llmfoundry/scripts/train.py to see how the parameters are used in code
 parameters:
   # Checkpoint to local filesystem or remote object store
-  save_interval: 3ep # How frequently to save checkpoints
+  save_interval: 2ep # How frequently to save checkpoints
   save_num_checkpoints_to_keep: 1  # Important, this cleans up checkpoints saved to DISK
-  save_folder: oci://mosaicml-internal-checkpoints/support-bot-demo/checkpoints/mpt-30b_PyPi/
+  save_folder: CLOUD://BUCKET_NAME/support-bot-demo/checkpoints/mpt-30b_PyPi/
   save_weights_only: True # Since we only need the weights for the next step, we can reduce the size of the checkpoint
 
   # Maximum sequence length of the model
@@ -85,7 +80,7 @@ parameters:
     # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
       local: ./local-dataset-PyPi-cache
-      remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi
+      remote: CLOUD://BUCKET_NAME/support-bot-demo/data/PyPi
       split: train
       shuffle: true
       max_seq_len: ${max_seq_len}
@@ -99,7 +94,7 @@ parameters:
     # The dataset section is used by LLM-foundry to construct a StreamingDataset
     dataset:
       local: ./local-dataset-PyPi-cache
-      remote: oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi
+      remote: CLOUD://BUCKET_NAME/support-bot-demo/data/PyPi
       split: validation
       shuffle: false
       max_seq_len: ${max_seq_len}
@@ -119,11 +114,11 @@ parameters:
   # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options
   optimizer:
     name: decoupled_lionw_8b
-    lr: 0.000006
+    lr: 0.0000005
     betas:
     - 0.9
     - 0.99
-    weight_decay: 0.000006
+    weight_decay: 0.000000
 
   # Algorithms to apply
   # see https://docs.mosaicml.com/projects/composer/en/latest/trainer/algorithms.html
@@ -134,7 +129,7 @@ parameters:
       clipping_threshold: 1.0
 
   # Run configuration
-  max_duration: 3ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
+  max_duration: 2ep # Maximum duration of the run. Change to something shorter (e.g. 10ba) for a quick test run
   eval_interval: 500ba # How frequently to evaluate the model
   eval_first: true # Whether to evaluate the model before training
   eval_subset_num_batches: 1000 # How many batches to evaluate on. -1 means evaluate on the entire dataset
