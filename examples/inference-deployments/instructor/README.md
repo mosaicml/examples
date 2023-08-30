@@ -57,7 +57,7 @@ If your model exists on a different cloud storage, then you can follow instructi
 
 Once the deployment is ready, it's time to run inference!
 
-<details>
+<details open>
 <summary> Using Python SDK </summary>
 
 

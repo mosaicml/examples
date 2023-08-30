@@ -53,7 +53,7 @@ If your model exists on a different cloud storage, then you can follow instructi
 
 Once the deployment is ready, it's time to run inference! Detailed information about the Llama2 prompt format can be found [here](https://www.mosaicml.com/blog/llama2-inference).
 
-<details>
+<details open>
 <summary> Using Python SDK </summary>
 
 
