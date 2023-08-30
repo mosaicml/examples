@@ -1,4 +1,4 @@
-name: mpt-7b
+name: mpt-7b-custom
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
