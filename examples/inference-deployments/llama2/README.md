@@ -1,23 +1,14 @@
-> :exclamation: **If you are looking for the Faster Transformer model handler**: We have deprecated the `mpt_ft_handler.py` and the corresponding `mpt_7b_instruct_ft.yaml`. Instead, `mpt_7b_instruct.yaml` is the simplified replacement and it will spin up a deployment with the Faster Transformer backend.
+## Inference with Llama2
 
-## Inference with MPT
+[MosaicML’s inference service](https://www.mosaicml.com/inference) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to deploy any Llama2 model, A state-of-the-art 70B parameter language model with a context length of 4096 tokens, trained by Meta. Llama 2 is licensed under the [LLAMA 2 Community License](https://github.com/facebookresearch/llama/blob/main/LICENSE), Copyright © Meta Platforms, Inc. All Rights Reserved. Customers are responsible for ensuring compliance with applicable model licenses.
 
-[MosaicML’s inference service](https://www.mosaicml.com/inference) allows users to deploy their ML models and run inference on them. In this folder, we provide an example of how to deploy any MPT model, a family of large language models from 7B parameters to 30B parameters, including the base model, an instruction fine-tuned variant, and a variant fine-tuned on long context books.
-
-Check out [the MPT-7B blog post](https://www.mosaicml.com/blog/mpt-7b) or [the MPT-30B blog post](https://www.mosaicml.com/blog/mpt-30b) for more information!
+Check out MosaicML's [Llama2 blog post](https://www.mosaicml.com/blog/llama2-inferenceb) for more information!
 
 You’ll find in this folder:
 
 - Model YAMLS - read [docs](https://docs.mosaicml.com/projects/mcli/en/latest/inference/inference_schema.html) for an explanation of each field.
-    - `mpt_7b.yaml` - an optimized yaml to deploy [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b).
-    - `mpt_7b_instruct.yaml` - an optimized yaml to deploy [MPT-7B Instruct](https://huggingface.co/mosaicml/mpt-7b-instruct).
-    - `mpt_7b_storywriter.yaml` - an optimized yaml to deploy [MPT-7B Storywriter](https://huggingface.co/mosaicml/mpt-7b-storywriter).
-    - `mpt_30b.yaml` - an optimized yaml to deploy [MPT-30B Base](https://huggingface.co/mosaicml/mpt-30b).
-    - `mpt_30b_instruct.yaml` - an optimized yaml to deploy [MPT-30B Instruct](https://huggingface.co/mosaicml/mpt-30b-instruct).
-    - `mpt_30b_chat.yaml` - an optimized yaml to deploy [MPT-30B Chat](https://huggingface.co/mosaicml/mpt-30b-chat).
-    - `mpt_7b_custom.yaml` - a custom yaml to deploy a vanilla [MPT-7B Base](https://huggingface.co/mosaicml/mpt-7b) without using an optimized backend.
-- Model handlers - for custom models, these define how your model should be loaded and how the model should be run when receiving a request. You can use the default handlers here or write your custom model handler as per instructions [here](https://docs.mosaicml.com/projects/mcli/en/latest/inference/deployment_features.html#custom-model-handlers).
-    - `mpt_handler.py` - an example model handler to load a huggingface MPT model. It is not recommended to use this handler in actual production deployments since it does not have the optimizations that we enable with the optimized yamls.
+    - `llama2_7b_chat.yaml` - an optimized yaml to deploy [Llama2 7B Chat](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf).
+    - `llama2_13b.yaml` - an optimized yaml to deploy [Llama2 13B Base](https://huggingface.co/meta-llama/Llama-2-13b-hf).
 
 ## Setup
 
@@ -28,7 +19,7 @@ Please follow instructions in the Inference Deployments [README](https://github.
 
 ## Deploying your model
 
-To deploy, simply run `mcli deploy -f mpt_7b_instruct.yaml --cluster <your_cluster>`.
+To deploy, simply run `mcli deploy -f llama2_7b_chat.yaml --cluster <your_cluster>`.
 
 Run `mcli get deployments` on the command line or, using the Python SDK, `mcli.get_inference_deployments()` to get the name of your deployment.
 
@@ -50,7 +41,7 @@ If your model exists on Amazon S3, GCP, or Hugging Face, you can edit the YAML's
 ```yaml
 default_model:
   checkpoint_path:
-    hf_path: mosaicml/mpt-7b
+    hf_path: meta-llama/Llama-2-13b-hf
     s3_path: s3://<your-s3-path>
     gcp_path: gs://<your-gcp-path>
 
@@ -60,7 +51,7 @@ If your model exists on a different cloud storage, then you can follow instructi
 
 ## Sending requests to your deployment
 
-Once the deployment is ready, it's time to run inference!
+Once the deployment is ready, it's time to run inference! Detailed information about the Llama2 prompt format can be found [here](https://www.mosaicml.com/blog/llama2-inference).
 
 <details>
 <summary> Using Python SDK </summary>
@@ -69,9 +60,12 @@ Once the deployment is ready, it's time to run inference!
 ```python
 from mcli import predict
 
-prompt = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction: write 3 reasons why you should train an AI model on domain specific data set.
-### Response: """
+prompt = """[INST] <<SYS>>
+You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
+Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.
+<</SYS>>
+How do I make a customer support bot using my product docs? [/INST]"""
 
 deployment = get_inference_deployment(<deployment-name>)
 input = {

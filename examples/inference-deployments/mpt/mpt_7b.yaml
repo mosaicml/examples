@@ -1,12 +1,8 @@
-name: mpt-7b-simple
+name: mpt-7b
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
-image: mosaicml/inference:0.1.36
-command: |
-  export PYTHONPATH=/code
+image: mosaicml/inference:0.1.37
 replicas: 1
 default_model:
   model_type: mpt-7b
-  checkpoint_path:
-    hf_path: mosaicml/mpt-7b
