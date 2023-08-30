@@ -165,6 +165,8 @@ After running the `gradio` command, you should see link to your application. It 
 python app.py
 ```
 
+What this will do is combine everything together to create your chatbot! With default args, it downloads all of the public MosaicML repositories as well as uses a [web_downloader.py](./web_downloader.py) to download all of the MosaicML Docs. After, it will embed the data to create a vector store that LangChain can run similarity searches on to provide the model with context when answering questions.
+
 Please note that you can customize this app by updating the parser args. Please see what you can customize in [`app_demo.py`](./app_demo.py)
 
 
