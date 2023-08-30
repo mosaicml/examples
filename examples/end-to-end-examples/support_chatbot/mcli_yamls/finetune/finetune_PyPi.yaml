@@ -69,7 +69,7 @@ parameters:
   # Tokenizer
   # This section is used by LLM-foundry to construct the tokenizer
   tokenizer:
-    name: mosaicml/mpt-30b # This can be changed along with the model
+    name: mosaicml/mpt-30b-chat # This can be changed along with the model
     kwargs:
       model_max_length: ${max_seq_len}
       pad_token: <|endoftext|>

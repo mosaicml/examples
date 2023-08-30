@@ -27,6 +27,7 @@ jobs:
         - benchmarks/deeplab
         - benchmarks/resnet_imagenet
         - end-to-end-examples/sec_10k_qa
+        - end-to-end-examples/support-chatbot
         - end-to-end-examples/stable_diffusion
         - end-to-end-examples/stable_diffusion_dreambooth
         - third-party/nemo

@@ -117,12 +117,8 @@ class RepoDownloader:
                 if file.endswith(('.yaml', '.py', '.md')):
                     full_file_path = os.path.join(root, file)
                     _, ext = os.path.splitext(full_file_path)
-                    if ext == '.yaml':
-                        self.yaml_to_txt(full_file_path)
-                    elif ext == '.py':
-                        self.py_to_txt(full_file_path)
-                    elif ext == '.md':
-                        self.md_to_txt(full_file_path)
+                    if ext == '.yaml' or ext == '.py' or ext == '.md':
+                        self.file_to_txt(full_file_path)
                     else:
                         print(f'Unsupported file type: {ext}')
 

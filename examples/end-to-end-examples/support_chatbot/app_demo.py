@@ -7,6 +7,20 @@ import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+EVAL_7B_TEMPLATE = (f'Answer the following question as one function, class, or object. If you do not know, just say "I do not know".'
+                    '\n{context}'
+                    '\nQuestion: {question}')
+
+EVAL_30B_TEMPLATE = ("""<|im_start|>system
+                     A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
+                     Provide a helpful and simple answer given the following context to the question. If you do not know, just say "I 
+                     do not know".<|im_end|>
+                     <|im_start|>context
+                     {context}<|im_end|>
+                     <|im_start|>user
+                     {question}<|im_end|>
+                     <|im_start|>assistant""")
+
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(
@@ -17,9 +31,15 @@ def parse_args() -> Namespace:
         '--endpoint_url',
         type=str,
         default='https://models.hosted-on.mosaicml.hosting/mpt-30b-chat/v1/predict',
-        #default='https://mpt-30b-composer-finetuned-q8mjj9.inf.hosted-on.mosaicml.hosting/predict',
+        #default='https://mpt-30b-composer-finetuned-dmhpmi.inf.hosted-on.mosaicml.hosting/predict',
         required=False,
         help='The endpoint of our MosaicML LLM Model')
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        default='mpt-30b-chat',
+        required=False,
+        help='only evals offered as of now are mpt-30b-chat and mpt-7b')
     parser.add_argument(
         '--max_length',
         type=int,
@@ -53,9 +73,25 @@ def parse_args() -> Namespace:
     parser.add_argument(
         '--repository_urls',
         type=str,
-        default='https://github.com/mosaicml/composer,https://github.com/mosaicml/streaming,https://github.com/mosaicml/examples,https://github.com/mosaicml/diffusion,https://github.com/mosaicml/llm-foundry',
+        nargs='*',  
+        default=['https://github.com/mosaicml/composer',
+                 'https://github.com/mosaicml/streaming',
+                 'https://github.com/mosaicml/examples',
+                 'https://github.com/mosaicml/diffusion',
+                 'https://github.com/mosaicml/llm-foundry'], 
         required=False,
-        help='The GitHub repository URLs to download')
+        help='The GitHub repository URLs to download'
+    )
+    parser.add_argument(
+        '--complex_data_dir',
+        type=str,
+        required=False,
+        help='complex eval data for human eval')
+    parser.add_argument(
+        '--simple_data_dir',
+        type=str,
+        required=False,
+        help='simple eval data for string comparison')
     parser.add_argument(
         '--complex_chat',
         type=int,
@@ -72,15 +108,18 @@ def parse_args() -> Namespace:
     return parsed
 
 def main(endpoint_url: str,
+         model_name: str,
          max_length: int,
          chunk_size: int,
          chunk_overlap: int,
          retrieval_k: int,
          model_k: int,
          repository_urls: list[str],
+         complex_data_dir: str,
+         simple_data_dir: str,
          chat_version: int) -> None:
     
-    retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data_demo')
+    retrieval_dir = os.path.join(ROOT_DIR, 'retrieval_data')
 
     embeddings = MosaicMLInstructorEmbeddings()
     llm = MosaicML(
@@ -115,6 +154,22 @@ def main(endpoint_url: str,
 
         Returns:
             str: The response from chatbot"""
+        if query == '!eval_simple':
+            if simple_data_dir is None:
+                ValueError('No simple data directory provided. Please provide a directory with simple eval data')
+            if model_name == 'mpt-30b-chat':
+                return chatbot.evaluate_simple(simple_data_dir, EVAL_30B_TEMPLATE)
+            elif model_name == 'mpt-7b':
+                return chatbot.evaluate_simple(simple_data_dir, EVAL_7B_TEMPLATE)
+            
+        elif query == '!eval_complex':
+            if complex_data_dir is None:
+                ValueError('No complex data directory provided. Please provide a directory with complex eval data')
+            if model_name == 'mpt-30b-chat':
+                return chatbot.evaluate_complex(complex_data_dir, EVAL_30B_TEMPLATE)
+            elif model_name == 'mpt-7b':
+                return chatbot.evaluate_complex(complex_data_dir, EVAL_7B_TEMPLATE)
+        
         if chat_version == 1:
             return chatbot.sub_query_chat(query)
         elif chat_version == 2:
@@ -141,11 +196,14 @@ if __name__ == "__main__":
     args = parse_args()
     main(
         endpoint_url=args.endpoint_url,
+        model_name=args.model_name,
         max_length = args.max_length,
         chunk_size = args.chunk_size,
         chunk_overlap = args.chunk_overlap,
         retrieval_k = args.retrieval_k,
         model_k = args.model_k,
         repository_urls = args.repository_urls,
+        complex_data_dir = args.complex_data_dir,
+        simple_data_dir = args.simple_data_dir,
         chat_version = args.complex_chat
     )

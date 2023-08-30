@@ -73,12 +73,6 @@ parameters:
         attn_impl: triton
         attn_uses_sequence_id: false
 
-  # Tokenizer
-  tokenizer:
-    name: mosaicml/mpt-30b
-    kwargs:
-      model_max_length: ${max_seq_len}
-
   train_loader:
     name: finetuning
     dataset:

@@ -2,6 +2,7 @@ import os
 import json
 import re
 import string
+import time
 from tqdm import tqdm
 
 import langchain
@@ -19,7 +20,6 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(ROOT_DIR) 
 from repo_downloader import RepoDownloader 
 from web_downloader import WebScraper
-from oci_converser import OCIObjectStorageManager
 
 class RetrieverWithScore(BaseRetriever):
     """Just a custom retriever to track distance between query and retrieval docs
@@ -63,7 +63,7 @@ EVAL_7B_TEMPLATE = (f'Answer the following question as one function, class, or o
                     '\n{context}'
                     '\nQuestion: {question}')
 
-EVAL_30B_TEMPLATE = ("""<|im_start|>system
+STANDARD_30B_TEMPLATE = ("""<|im_start|>system
                      A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
                      Provide a helpful and simple answer given the following context to the question. If you do not know, just say "I 
                      do not know".<|im_end|>
@@ -117,10 +117,6 @@ PARTIAL_COMBINE_TEMPLATE = ("""<|im_start|>system A conversation between a user 
                                {{question}}<|im_end|>
                                <|im_start|>assistant""")
 
-
-EVAL_SIMPLE_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/composer_docstrings.jsonl')
-EVAL_COMPLEX_DIR = os.path.join(ROOT_DIR, 'train_data/pipeline_data/complex_eval.jsonl')
-
 class ChatBot:
     """Given a folder of .txt files from data_path, create a Chatbot object that can process the files into documents, split them
     into managable sizes, and store them in a vector store. The Chatbot can then be used to answer questions about the documents.
@@ -161,7 +157,6 @@ class ChatBot:
                  chunk_size: int,
                  chunk_overlap: int,
                  k: int,
-                 slack_path: str = False,
                  ) -> None:
         
         self.data_path = data_path
@@ -170,13 +165,11 @@ class ChatBot:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.k = k
-        self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k'],
-                            'endpoint_url': model.endpoint_url}
+        self.saved_state = {'k': k, 'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap, 'model_k': model.model_kwargs['top_k']}
         self.chat_chain = None
         self.intent_chain = None
         self.subchain = None
         self.subsubchain = None
-        self.slack_path = slack_path
         self.vector_store = None
 
         if os.path.isfile(os.path.join(data_path, 'vectors.pickle')):
@@ -292,14 +285,9 @@ class ChatBot:
             embedding=self.embedding
         )
         
-        if self.slack_path:
-            with open(os.path.join(ROOT_DIR, 'retrieval_data_slack/vectors.pickle'), 'wb') as f:
-                pickle.dump(vector_store, f)
-                self.vector_store = vector_store
-        else:
-            with open(os.path.join(ROOT_DIR, 'retrieval_data_demo/vectors.pickle'), 'wb') as f:
-                pickle.dump(vector_store, f)
-                self.vector_store = vector_store
+        with open(os.path.join(ROOT_DIR, 'retrieval_data/vectors.pickle'), 'wb') as f:
+            pickle.dump(vector_store, f)
+            self.vector_store = vector_store
 
     def create_vector_store(self, repository_urls) -> None:
         """Download the repositories, load the data, split the data into chunks, and store the chunks in a vector store.
@@ -314,11 +302,6 @@ class ChatBot:
             if os.path.exists(downloader.clone_dir):
                 continue
             downloader.download_repo()
-        if self.slack_path:
-            oci_manager = OCIObjectStorageManager(oci_uri=self.slack_path)
-            if not os.path.exists(os.path.join(self.data_path, 'slack_data')):
-                os.makedirs(os.path.join(self.data_path, 'slack_data'))
-            oci_manager.download_directory(os.path.join(self.data_path, 'slack_data'))
 
         pages = self.load_data()
         documents = self.split_pages(pages)
@@ -327,7 +310,7 @@ class ChatBot:
 
     def create_chain(self,
                      prompt_template: str,
-                     score_threshold: int= 0.4) -> RetrievalQA:
+                     score_threshold: int=0.4) -> RetrievalQA:
         """Create a RetrievalQAWithScores given a prompt template.
         
         Args:
@@ -396,21 +379,18 @@ class ChatBot:
 
         return white_space_fix(remove_parentheses(remove_articles(handle_punc(lower(replace_underscore(answer)))))).strip()
     
-    def set_eval_state(self, 
-                       endpoint_url: str) -> None:
+    def set_eval_state(self) -> None:
         """Set the state of the chatbot to the evaluation state. This is used to change the chunk size, chunk overlap, and k"""
         self.chunk_overlap = 150
         self.chunk_size = 750
         self.k = 1
         self.model.model_kwargs['output_len'] = 40
-        self.model.endpoint_url = endpoint_url
 
     def reload_chat_state(self) -> None:
         """Reload the chatbot state to the saved state the user set when creating the chatbot"""
         self.chunk_overlap = self.saved_state['chunk_overlap']
         self.chunk_size = self.saved_state['chunk_size']
         self.k = self.saved_state['k']
-        self.model.endpoint_url = self.saved_state['endpoint_url']
     
     def evaluate_simple(self, 
                         data_path: str,
@@ -424,7 +404,7 @@ class ChatBot:
         Returns:
             str: The score of the chatbot on the dataset including number of exact matches, close matches, and total questions
         """
-        chain = self.create_chain(answer_question_string_template)
+        chain = self.create_chain(prompt_template=answer_question_string_template)
         exact_match = 0
         close_match = 0
         total = 1
@@ -445,6 +425,7 @@ class ChatBot:
                     print('\n', self.normalize_str(answer), '||', self.normalize_str(continuation), '\n')
                     print(f'{exact_match} exact matches and {close_match} close matches out of {total} questions.')
                 total += 1
+                time.sleep(0.5)
         return f'Given Score: {(exact_match + 0.5*close_match)/ total} with {exact_match} exact matches and {close_match} close matches out of {total} questions.'
 
     def evaluate_complex(self, 
@@ -459,7 +440,7 @@ class ChatBot:
         Returns:
             A long string of all questions, answers, and responses
         """
-        chain = self.create_chain(answer_question_string_template)
+        chain = self.create_chain(prompt_template=answer_question_string_template)
         total_lines = sum(1 for _ in open(data_path))
         with open(data_path, 'r') as file:
             save = ''
@@ -478,13 +459,13 @@ class ChatBot:
         if not self.intent_chain:
             save_k = self.k
             self.k = 5
-            self.intent_chain = self.create_chain(SUBQUERY_INTENT_TEMPLATE)
+            self.intent_chain = self.create_chain(prompt_template=SUBQUERY_INTENT_TEMPLATE)
             self.k = save_k
         intent_response = self.intent_chain(query)
         intent_answer = self.clean_response(intent_response['result'].lstrip('\n'))
         
         SUBQUERY_SUBQA_TEMPLATE = PARTIAL_SUBQA_TEMPLATE.format(intent_answer)
-        subQA_chain = self.create_chain(SUBQUERY_SUBQA_TEMPLATE)
+        subQA_chain = self.create_chain(prompt_template=SUBQUERY_SUBQA_TEMPLATE)
         subQA_response = subQA_chain(query)
         subQA_answer = self.clean_response(subQA_response['result'].lstrip('\n'))
 
@@ -492,7 +473,7 @@ class ChatBot:
         sub_QA_injection = ''
         # Don't create a new chain on every query
         if not self.subchain:
-            self.subchain = self.create_chain(prompt_template=EVAL_30B_TEMPLATE, score_threshold=threshold)
+            self.subchain = self.create_chain(prompt_template=STANDARD_30B_TEMPLATE, score_threshold=threshold)
         for sub_QA in all_sub_QA:
             if sub_QA:
                 response = self.subchain(sub_QA)
@@ -503,18 +484,13 @@ class ChatBot:
 
         if sub_QA_injection:
             SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(str(sub_QA_injection).replace("{", "{{").replace("}", "}}"))
-            combine_chain = self.create_chain(f'{SUBQUERY_COMBINE_TEMPLATE}')
+            combine_chain = self.create_chain(prompt_template=SUBQUERY_COMBINE_TEMPLATE)
             combine_response = combine_chain(query)
             combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
             combine_answer_sources = ''
-            slack_deduplicate = True
             for d in combine_response['source_documents']:
                 if d.metadata["score"] > 0.6:
-                    if 'message_from_slack' == combine_answer_sources[:18] and slack_deduplicate:
-                        combine_answer_sources = combine_answer_sources + 'slack_data\n'
-                        slack_deduplicate = False
-                    else:
-                        combine_answer_sources = combine_answer_sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+                    combine_answer_sources = combine_answer_sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
             
             if not combine_answer_sources:
                 return f'Answer: \n{str(combine_answer)}\n\nIntent: \n{str(intent_answer)}\n\n Sub-questions: \n{str(sub_QA_injection)}'
@@ -530,13 +506,13 @@ class ChatBot:
         if not self.intent_chain:
             save_k = self.k
             self.k = 3
-            self.intent_chain = self.create_chain(SUBQUERY_INTENT_TEMPLATE)
+            self.intent_chain = self.create_chain(prompt_template=SUBQUERY_INTENT_TEMPLATE)
             self.k = save_k
         intent_response = self.intent_chain(query)
         intent_answer = self.clean_response(intent_response['result'].lstrip('\n'))
         
         SUBQUERY_SUBQA_TEMPLATE = PARTIAL_SUBQA_TEMPLATE.format(intent_answer)
-        subQA_chain = self.create_chain(SUBQUERY_SUBQA_TEMPLATE)
+        subQA_chain = self.create_chain(prompt_template=SUBQUERY_SUBQA_TEMPLATE)
         subQA_response = subQA_chain(query)
         subQA_answer = self.clean_response(subQA_response['result'].lstrip('\n'))
 
@@ -553,25 +529,20 @@ class ChatBot:
                 answerable = self.clean_response(self.subsubchain(sub_QA)['result'].lstrip('\n'))
                 if "Yes" in answerable:
                     if not self.subchain:
-                        self.subchain = self.create_chain(EVAL_30B_TEMPLATE)
+                        self.subchain = self.create_chain(prompt_template=STANDARD_30B_TEMPLATE)
                     response = self.subchain(sub_QA)
                     answer = self.clean_response(response['result'].lstrip('\n'))
                     sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
 
         if sub_QA_injection:
             SUBQUERY_COMBINE_TEMPLATE = PARTIAL_COMBINE_TEMPLATE.format(str(sub_QA_injection).replace("{", "{{").replace("}", "}}"))
-            combine_chain = self.create_chain(SUBQUERY_COMBINE_TEMPLATE)
+            combine_chain = self.create_chain(prompt_template=SUBQUERY_COMBINE_TEMPLATE)
             combine_response = combine_chain(query)
             combine_answer = self.clean_response(combine_response['result'].lstrip('\n'))
             sources = ''
-            slack_deduplicate = True
             for d in combine_response['source_documents']:
                 if d.metadata["score"] > threshold:
-                    if 'message_from_slack' == sources[:18] and slack_deduplicate:
-                        sources = sources + 'slack_data\n'
-                        slack_deduplicate = False
-                    else:
-                        sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+                    sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
             if not sources:
                 return f'Answer: \n{str(combine_answer)}\n\nIntent: \n{str(intent_answer)}\n\n Sub-questions: \n{str(sub_QA_injection)}'
             else:
@@ -587,40 +558,16 @@ class ChatBot:
             query (str): The query to ask the chatbot
         """
     
-        if query == "!eval_7b":
-            self.set_eval_state(endpoint_url='https://chatbot-7b-finetuned-rxyfc5.inf.hosted-on.mosaicml.hosting/predict')
-            score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_7B_TEMPLATE)
-            self.reload_chat_state()
-            print(score)
-            return score
-        elif query == "!eval_7b_complex":
-            self.model.endpoint_url = 'https://chatbot-7b-finetuned-rxyfc5.inf.hosted-on.mosaicml.hosting/predict'
-            out = self.evaluate_complex(EVAL_COMPLEX_DIR, EVAL_7B_TEMPLATE)
-            self.model.endpoint_url = self.saved_state['endpoint_url']
-            return out
-        elif query == "!eval_30b":
-            score = self.evaluate_simple(EVAL_SIMPLE_DIR, EVAL_30B_TEMPLATE)
-            print(score)
-            return score
-        elif query == "!eval_30b_complex":
-            out = self.evaluate_complex(EVAL_30B_TEMPLATE, EVAL_30B_TEMPLATE)
-            return out
+        # Don't create a new chain on every query
+        if not self.chat_chain:
+            self.chat_chain = self.create_chain(prompt_template=STANDARD_30B_TEMPLATE, score_threshold=0)
+        response = self.chat_chain(query)
+        answer = self.clean_response(response['result'].lstrip('\n'))
+        sources = ''
+        for d in response['source_documents']:
+            if d.metadata["score"] > 0.6:
+                sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
+        if not sources:
+            return f"Answer: \n{answer}"
         else:
-            # Don't create a new chain on every query
-            if not self.chat_chain:
-                self.chat_chain = self.create_chain(prompt_template=EVAL_30B_TEMPLATE, score_threshold=0)
-            response = self.chat_chain(query)
-            answer = self.clean_response(response['result'].lstrip('\n'))
-            sources = ''
-            slack_deduplicate = True
-            for d in response['source_documents']:
-                if d.metadata["score"] > 0.6:
-                    if 'message_from_slack' == sources[:18] and slack_deduplicate:
-                        sources = sources + 'slack_data\n'
-                        slack_deduplicate = False
-                    else:
-                        sources = sources + f'{d.metadata["file_name"].replace("{slash}", "/")}\n'
-            if not sources:
-                return f"Answer: \n{answer}"
-            else:
-                return f"Answer: \n{answer} \nSources: \n{sources}"
+            return f"Answer: \n{answer} \nSources: \n{sources}"

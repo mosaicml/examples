@@ -105,9 +105,9 @@ python scripts/conversion/convert_jsonl_to_stream.py \
 
 ## Step 3: Finetuning on our Repository
 
-Next, we will finetune our pretrained base model on the train split of the our data, whether that be PyPi documentation, MosaicML code base, or dolly in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
+Next, we will finetune our pretrained model on the train split of the our data, whether that be PyPi documentation, MosaicML code base, or dolly in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
 
-Please check out the [training yaml](./mcli-yamls/03_finetune_on_10ks.yaml) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on our datasets that we processed in the previous step. The [training script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/train.py) itself, is from LLM-foundry.
+Please check out the [training directory](./mcli-yamls/finetune) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on our datasets that we processed in the previous step. The [training script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/train.py) itself, is from LLM-foundry.
 
 To run finetuning, run the following where `composer_codebase` can be replaced with `PyPi` or `dolly_hh`
 
@@ -123,8 +123,6 @@ mcli run -f mcli_yamls/finetune/finetune_composer_codebase.yaml --cluster CLUSTE
 ## Step 4: Converting Composer Checkpoint to HuggingFace
 
 Before we can deploy our model, we need to convert it into the standard HuggingFace checkpoint folder. We will use the [conversion script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/inference/convert_composer_to_hf.py) from LLM-foundry to do this. This script will take the Composer checkpoint, and write out all the files that HuggingFace expects in a checkpoint folder. You can additionally add the `--hf_repo_for_upload` argument if you would like to upload directly to a private repo on the HuggingFace Hub (you will also need to [set the `HUGGING_FACE_HUB_TOKEN` environment variable](https://docs.mosaicml.com/projects/mcli/en/latest/resources/secrets/env.html) to do this).
-
-Note: this conversion script is _specifically_ for MPT. If you have changed the model to a different HuggingFace model, you can use the `convert_composer_to_hf_transformers.py` script in _this_ repository instead.
 
 **Fields to replace with your values:** `REPLACE_WITH_YOUR_CLUSTER` (in the command), `CLOUD` (in the yaml), `BUCKET_NAME` (in the yaml), `CHECKPOINT_FOLDER_NAME` (in the yaml), `HF_FOLDER_NAME` (in the yaml)
 
