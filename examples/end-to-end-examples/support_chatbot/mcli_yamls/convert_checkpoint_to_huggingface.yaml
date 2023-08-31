@@ -14,7 +14,6 @@ integrations:
 # Clone and install the llm-foundry repo so we can run scripts from it
 - integration_type: git_repo
   git_repo: mosaicml/llm-foundry
-  git_branch: main # TODO: pin
   pip_install:  -e .
   ssh_clone: false # Should be true if using a private repo
   git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
@@ -23,8 +22,8 @@ integrations:
 command: |
   cd llm-foundry/scripts/inference
   python convert_composer_to_hf.py \
-    --composer_path CLOUD://BUCKET_NAME/support-bot-demo/checkpoints/mpt-30b-chat_composer_chatv2/latest-rank0.pt.symlink \
-    --hf_output_path CLOUD://BUCKET_NAME/support-bot-demo/converted_checkpoints/mpt-30b-chat_composer-codebase-hf/ \
+    --composer_path CLOUD://BUCKET_NAME/support-bot-demo/checkpoints/CHECKPOINT_FOLDER_NAME/latest-rank0.pt.symlink \
+    --hf_output_path s3://BUCKET_NAME/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME/ \
     --output_precision bf16 \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

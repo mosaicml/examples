@@ -38,13 +38,13 @@ def parse_args() -> Namespace:
         type=str,
         default='mpt-30b-chat',
         required=False,
-        help='only evals offered as of now are mpt-30b-chat and mpt-7b')
+        help='The model name (mpt-30b-chat or mpt-7b) that determines which prompt template to use when evaluating')
     parser.add_argument(
         '--max_length',
         type=int,
         default=5000,
         required=False,
-        help='The maximum size tokens in model')
+        help='The maximum number tokens of both input and output of the model (it will cut off output if token exceeds this length)')
     parser.add_argument(
         '--chunk_size',
         type=int,
@@ -64,11 +64,11 @@ def parse_args() -> Namespace:
         required=False,
         help='The number of chunks to retrieve as context from vector store')
     parser.add_argument(
-        '--model_k',
+        '--top_k',
         type=int,
         default=10,
         required=False,
-        help='The number of outputs model should output')
+        help='The number of highest probability vocabulary tokens to keep for top-k-filtering')
     parser.add_argument(
         '--repository_urls',
         type=str,
@@ -85,18 +85,20 @@ def parse_args() -> Namespace:
         '--complex_data_dir',
         type=str,
         required=False,
+        default=os.path.join(ROOT_DIR, 'eval_data/complex_eval.jsonl'),
         help='complex eval data for human eval')
     parser.add_argument(
         '--simple_data_dir',
         type=str,
         required=False,
+        default=os.path.join(ROOT_DIR, 'eval_data/composer_docstrings.jsonl'),
         help='simple eval data for string comparison')
     parser.add_argument(
         '--complex_chat',
         type=int,
         default=0,
         required=False,
-        help='Whether to use subquery chatting')
+        help='Which version of chatting to use (0 for normal, 1 for sub-query, 2 for relation sub-query) Each version is an improvement on the previous though increases response time.')
     
     parsed = parser.parse_args()
     
@@ -112,7 +114,7 @@ def main(endpoint_url: str,
          chunk_size: int,
          chunk_overlap: int,
          retrieval_k: int,
-         model_k: int,
+         top_k: int,
          repository_urls: list[str],
          complex_data_dir: str,
          simple_data_dir: str,
@@ -127,7 +129,7 @@ def main(endpoint_url: str,
         model_kwargs={
             #'max_new_tokens': max_length,
             'max_length': max_length,
-            'top_k': model_k,
+            'top_k': top_k,
             'top_p': 0.95,
             'temperature': 0.1,
             # other HuggingFace generation parameters can be set as kwargs here to experiment with different decoding parameters
@@ -142,6 +144,7 @@ def main(endpoint_url: str,
                       chunk_overlap=chunk_overlap)
     
     if not chatbot.vector_store:
+        print("can't find vectors.pickle, loading it")
         if repository_urls is None:
             raise ValueError('No repository URLs provided. Please provide a comma separated list of URLs to download')  
         chatbot.create_vector_store(repository_urls=repository_urls)
@@ -200,7 +203,7 @@ if __name__ == "__main__":
         chunk_size = args.chunk_size,
         chunk_overlap = args.chunk_overlap,
         retrieval_k = args.retrieval_k,
-        model_k = args.model_k,
+        top_k = args.top_k,
         repository_urls = args.repository_urls,
         complex_data_dir = args.complex_data_dir,
         simple_data_dir = args.simple_data_dir,

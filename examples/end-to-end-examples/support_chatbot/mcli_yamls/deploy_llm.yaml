@@ -5,25 +5,15 @@ compute:
 image: mosaicml/inference:0.1.29
 replicas: 1
 command: |
-  export PYTHONPATH=$PYTHONPATH:/code/llm-foundry:/code/examples:/code
-  pip uninstall packaging -y
-  rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
-  pip install composer[streaming,libcloud,oci]==0.14.1
-  pip install packaging==23.1
+  export PYTHONPATH=$PYTHONPATH:/code/examples:/code
 integrations:
-# Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
-  git_repo: YOUR_GITHUB_USERNAME/examples
-  git_branch: support-bot
+  git_repo: mosaicml/examples
   ssh_clone: false
-# Clone the llm-foundry repo so we can use the HF to FasterTransformer convert script from it
-- git_repo: mosaicml/llm-foundry
-  integration_type: git_repo
-  git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
-  ssh_clone: false
+  git_commit: df65ce9448f2e4c7803f7082930f80c8dc4e8fe1
 model:
   download_parameters:
-    s3_path: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-30b-chat_composer-codebase-hf/
+    s3_path:  s3://BUCKET_NAME/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME/
   model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
   model_parameters:
     model_name: mosaicml/mpt-30b-chat

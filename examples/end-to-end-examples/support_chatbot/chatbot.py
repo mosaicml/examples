@@ -63,7 +63,7 @@ EVAL_7B_TEMPLATE = (f'Answer the following question as one function, class, or o
                     '\n{context}'
                     '\nQuestion: {question}')
 
-STANDARD_30B_TEMPLATE = ("""<|im_start|>system
+CHAT_30B_TEMPLATE = ("""<|im_start|>system
                      A conversation between a user and an LLM-based AI assistant about the codebase for the MosaicML library Composer. 
                      Provide a helpful and simple answer given the following context to the question. If you do not know, just say "I 
                      do not know".<|im_end|>
@@ -123,18 +123,11 @@ class ChatBot:
 
     Args:
         data_path (str): The path of the directory where the txt files of interest is located
-        embedding (Any): The embedding to use for the vector store
-        model (Any): The model to use for the LLMChain
+        embedding (langchain.embeddings.base.Embeddings): The embedding to use for the vector store
+        model (langchain.llms.base.LLM): The model to use for the LLMChain
         k (int): The number of similar documents to return from the vector store
-        chunk_size (int): The size of the chunks to split the documents into
-        chunk_overlap (int): The amount of overlap between chunks
-
-    Warning:
-        Be careful when setting k and chunk_size if using the MosaicML Model. There is an maximum input size and will throw an 
-        error (ValueError: Error raised by inference API: Expecting value: line 1 column 1 (char 0).) if the input is too large.
-        Also, as of right now, there is a problem with inference where tokenizing will drop spaces before punctuation, as well 
-        as dropping special characters required for running 30B prompt. This will cause an incorrect splicing of the answer from
-        the question.
+        chunk_size (int): The size of the chunks to split the documents into when splitting the documents
+        chunk_overlap (int): The amount of overlap between chunks when splitting the documents
 
     Example:
     .. testcode::
@@ -305,7 +298,6 @@ class ChatBot:
 
         pages = self.load_data()
         documents = self.split_pages(pages)
-        print("can't find vectors.pickle, loading it")
         self.store_vectors(documents)
 
     def create_chain(self,
@@ -473,7 +465,7 @@ class ChatBot:
         sub_QA_injection = ''
         # Don't create a new chain on every query
         if not self.subchain:
-            self.subchain = self.create_chain(prompt_template=STANDARD_30B_TEMPLATE, score_threshold=threshold)
+            self.subchain = self.create_chain(prompt_template=CHAT_30B_TEMPLATE, score_threshold=threshold)
         for sub_QA in all_sub_QA:
             if sub_QA:
                 response = self.subchain(sub_QA)
@@ -529,7 +521,7 @@ class ChatBot:
                 answerable = self.clean_response(self.subsubchain(sub_QA)['result'].lstrip('\n'))
                 if "Yes" in answerable:
                     if not self.subchain:
-                        self.subchain = self.create_chain(prompt_template=STANDARD_30B_TEMPLATE)
+                        self.subchain = self.create_chain(prompt_template=CHAT_30B_TEMPLATE)
                     response = self.subchain(sub_QA)
                     answer = self.clean_response(response['result'].lstrip('\n'))
                     sub_QA_injection += f'Question: {sub_QA} \nAnswer: {answer}\n'
@@ -560,7 +552,7 @@ class ChatBot:
     
         # Don't create a new chain on every query
         if not self.chat_chain:
-            self.chat_chain = self.create_chain(prompt_template=STANDARD_30B_TEMPLATE, score_threshold=0)
+            self.chat_chain = self.create_chain(prompt_template=CHAT_30B_TEMPLATE, score_threshold=0)
         response = self.chat_chain(query)
         answer = self.clean_response(response['result'].lstrip('\n'))
         sources = ''
