@@ -57,7 +57,7 @@ If your model exists on a different cloud storage, then you can follow instructi
 
 Once the deployment is ready, it's time to run inference!
 
-<details>
+<details open>
 <summary> Using Python SDK </summary>
 
 
@@ -66,7 +66,7 @@ from mcli import predict
 
 deployment = get_inference_deployment(<deployment-name>)
 input = {
-    "input_strings": [
+    "inputs": [
         ["Represent the Science title:", "3D ActionSLAM: wearable person tracking in multi-floor environments"]
     ]
 }
@@ -80,7 +80,7 @@ predict(deployment, input)
 <summary> Using MCLI </summary>
 
 ```bash
-mcli predict <deployment-name> --input '{"input_strings":  [["Represent the Science title:", "3D ActionSLAM: wearable person tracking"]]}'
+mcli predict <deployment-name> --input '{"inputs":  [["Represent the Science title:", "3D ActionSLAM: wearable person tracking"]]}'
 
 ```
 </details>
@@ -91,7 +91,7 @@ mcli predict <deployment-name> --input '{"input_strings":  [["Represent the Scie
 ```bash
 curl https://<deployment-name>.inf.hosted-on.mosaicml.hosting/predict \
 -H "Authorization: <your_api_key>" \
--d '{"input_strings":  [["Represent the Science title:", "3D ActionSLAM: wearable person tracking in multi-floor environments"]]}'
+-d '{"inputs":  [["Represent the Science title:", "3D ActionSLAM: wearable person tracking in multi-floor environments"]]}'
 ```
 </details>
 
@@ -127,13 +127,13 @@ print(f"Cosine similarity between document and query: {similarity}")
 ### Input parameters
 | Parameters | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| input_strings | List[Tuple[str, str]] | yes | N/A | A list of documents and instructions to embed. Each document is represented as tuple where the first item is the embedding instruction (e.g. "Represent the Science title:") and the second item is the document (e.g. "3D ActionSLAM: wearable person tracking in multi-floor environments"). |
+| inputs | List[Tuple[str, str]] | yes | N/A | A list of documents and instructions to embed. Each document is represented as tuple where the first item is the embedding instruction (e.g. "Represent the Science title:") and the second item is the document (e.g. "3D ActionSLAM: wearable person tracking in multi-floor environments"). |
 
 
 ## Output
 ```
 {
-    "data":[
+    "outputs":[
         [
             -0.06155527010560036,0.010419987142086029,0.005884397309273481...-0.03766140714287758,0.010227023623883724,0.04394740238785744
         ]

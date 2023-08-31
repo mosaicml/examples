@@ -2,18 +2,7 @@ name: mpt-7b-instruct
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
-image: mosaicml/inference:0.1.1
+image: mosaicml/inference:0.1.37
 replicas: 1
-command: |
-  export PYTHONPATH=$PYTHONPATH:/code/examples
-integrations:
-- integration_type: git_repo
-  git_repo: mosaicml/examples
-  ssh_clone: false
-  git_commit: dcc4c4dff002d282a2f432ccfcab4b61dc6a53af
-model:
-  download_parameters:
-    hf_path: mosaicml/mpt-7b-instruct
-  model_handler: examples.inference-deployments.mpt.mpt_7b_handler.MPTModelHandler
-  model_parameters:
-    model_name: mosaicml/mpt-7b-instruct
+default_model:
+  model_type: mpt-7b-instruct

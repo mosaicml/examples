@@ -22,7 +22,7 @@ compute:
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: v0.0.4 # use your branch
+  git_branch: main # use your branch
   # git_commit: # OR use your commit hash
   pip_install: -e .[bert]
   ssh_clone: false # Should be true if using a private repo
@@ -32,8 +32,9 @@ integrations:
 # For real training runs, follow the instructions in `examples/bert/README.md`
 # to convert and host the full 'train' dataset.
 command: |
-  cd examples/examples/bert
-  python ../common/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
+  cd examples/examples/benchmarks/bert
+  pip install -r requirements.txt
+  python src/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train_small val
   composer main.py /mnt/config/parameters.yaml \
     train_loader.dataset.split=train_small
 
@@ -117,7 +118,7 @@ parameters:
   seed: 17
   device_eval_batch_size: 512
   device_train_microbatch_size: 512
-  precision: bf16
+  precision: amp_bf16 # update for Composer release/v0.12.1
 
   # Logging
   progress_bar: false
