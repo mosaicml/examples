@@ -111,7 +111,7 @@ parameters:
   # Optimizer
   # see LLM-foundry llmfoundry/utils/builders.py::build_optimizer for other built-in options
   optimizer:
-    name: decoupled_lionw_8b
+    name: decoupled_lionw
     lr: 0.0000001
     betas:
     - 0.9
