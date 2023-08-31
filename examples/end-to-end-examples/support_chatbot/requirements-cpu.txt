@@ -5,4 +5,4 @@ gradio==3.33.1
 faiss-cpu==1.7.4
 sentencepiece==0.1.97
 oauthlib>=2.1.0,<3.0.0
-git+https://github.com/mosaicml/llm-foundry.git@c836cb9c6d42b77a3997b45d7e5f8eae4c698c11#egg=llm-foundry
+git+https://github.com/mosaicml/llm-foundry.git@68448b2764cf6988c830e4d55796e6e28cdac20e#egg=llm-foundry

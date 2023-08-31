@@ -1,2 +1,2 @@
 composer[nlp,streaming,wandb]==0.15.1
-git+https://github.com/mosaicml/llm-foundry.git@c836cb9c6d42b77a3997b45d7e5f8eae4c698c11#egg=llm-foundry
+git+https://github.com/mosaicml/llm-foundry.git@68448b2764cf6988c830e4d55796e6e28cdac20e#egg=llm-foundry

@@ -2,7 +2,7 @@
 
 In this tutorial, we will be creating an application that answers questions about the MosaicML composer codebase. The basic structure of this application will be a retrieval question answering system where the user will provide the chatbot with a question, and then a language model will answer the question based on the retrieved text. See some [great](https://python.langchain.com/en/latest/modules/chains/index_examples/vector_db_qa.html#retrieval-question-answering) [materials](https://blog.langchain.dev/langchain-chat/) from [LangChain](https://python.langchain.com/en/latest/index.html) for more exploration on this type of application.
 
-By default the model that is used throughout is [MPT-30b](https://huggingface.co/mosaicml/mpt-30b), a 30-billion parameter large language model trained by MosaicML. See [our blog](https://www.mosaicml.com/blog/mpt-30b) for more details. Depending on your hardware, and particularly if you get a CUDA `c10` error, you may need to change `device_train_microbatch_size` from `auto` to `1` in the [finetune](./mcli-yamls/finetune/) yamls.
+By default the model that is used throughout is [MPT-30b](https://huggingface.co/mosaicml/mpt-30b), a 30-billion parameter large language model trained by MosaicML. See [our blog](https://www.mosaicml.com/blog/mpt-30b) for more details.
 
 ![demo](web_app_screenshot.png)
 
@@ -75,7 +75,7 @@ This example will contain a script for a [text to MDS](./scripts/conversion/conv
 mcli run -f mcli_yamls/conversion/convert_txt_to_stream.yaml --cluster CLUSTER
 ```
 
-**The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** This means that it will not be able to recognize and oci path to data, but only a local path in the github repository (you can feed it the relative path from *step 1*). Thus, if you choose to use the YAML method, make sure that you push the data downloaded from *step* one to your repository. That being said, github repositories are typically very small and you can probably just run this locally:
+**The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** This means that it will not be able to recognize a remote path to data, but only a local path in the github repository (you can feed it the relative path from *step 1*). Thus, if you choose to use the YAML method, make sure that you push the data downloaded from *step* one to your repository. That being said, github repositories are typically very small and you can probably just run this locally:
 
 ```bash
 python scripts/conversion/convert_txt_to_stream.py \
@@ -104,7 +104,7 @@ mcli run -f mcli_yamls/finetune/finetune_composer_codebase.yaml --cluster CLUSTE
 
 ## Step 4: Finetuning on Chatv2
 
-Next, we will finetune our model on the train split of the chatv2 dataset to ensure that the bot still has its QA abilities. Chatv2 is the dataset that was used to finetune the MPT-30B model to be MPT-30B-Chat. To run finetuning on Chatv2, run the following:
+Next, we will finetune our model on the train split of the chatv2 dataset to ensure that the bot still has its QA abilities. Chatv2 is the dataset that was used to finetune the MPT-30B model to be [MPT-30B-Chat](https://huggingface.co/mosaicml/mpt-30b-chat) and includes GPT generated output. To run finetuning on Chatv2, run the following:
 
 ```bash
 mcli run -f mcli_yamls/finetune/finetune_30b_chat.yaml --cluster CLUSTER
@@ -151,13 +151,13 @@ Now that we've processed our data, trained our models, and deployed our models, 
 
 We will make use of the MosaicML integration in LangChain for [LLMs](https://github.com/hwchase17/langchain/blob/master/langchain/llms/mosaicml.py) and [embeddings](https://github.com/hwchase17/langchain/blob/master/langchain/embeddings/mosaicml.py), and use the [`RetrievalQA`](https://python.langchain.com/en/latest/modules/chains/index_examples/vector_db_qa.html?highlight=retrievalqa) abstraction with the [`FAISS`](https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/faiss.html?highlight=faiss) to run the application locally.
 
-Upon the first run of this app, expect that it might take ~20 minutes to embed all of the data and store the vector store in `retrieval_data/vectors.pickle`. After the first run, unless you delete the pickle file, it will just reference the the pickle file and not re-embed.
+Upon the first run of this app, expect that it might take ~20 minutes to embed all of the data and store the vector store in `retrieval_data/vectors.pickle`. After the first run, unless you delete the pickle file, it will just reference the pickle file and not re-embed.
 
 Play around with the application and imagine ways you could improve it or apply a similar approach to your data!
 
 You can find the names of your deployments by running `mcli get deployments`.
 
-After running the `python` command, you should see link to your application. It is the link after `Running on local URL:`, _not_ the url after `Launching in *reload mode* on:`.
+After running the `python` command, you should see a link to your application. It is the link after `Running on local URL:`, _not_ the url after `Launching in *reload mode* on:`.
 
 **Command**:
 ```bash

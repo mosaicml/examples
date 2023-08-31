@@ -127,7 +127,6 @@ def main(endpoint_url: str,
         inject_instruction_format=True,
         endpoint_url= endpoint_url,
         model_kwargs={
-            #'max_new_tokens': max_length,
             'max_length': max_length,
             'top_k': top_k,
             'top_p': 0.95,

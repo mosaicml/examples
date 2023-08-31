@@ -16,7 +16,7 @@ integrations:
   git_repo: mosaicml/llm-foundry
   pip_install:  -e .
   ssh_clone: false # Should be true if using a private repo
-  git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
+  git_commit: 68448b2764cf6988c830e4d55796e6e28cdac20e
 
 # cd into the scripts/inference folder and run the MPT conversion script from LLM-foundry
 command: |
