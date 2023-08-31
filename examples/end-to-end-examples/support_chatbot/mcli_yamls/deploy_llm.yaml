@@ -1,12 +1,15 @@
 name: mpt-30b-composer-finetuned
-
-# Deployment configuration
-# For 30B model deployed with bf16 datatype, the model needs atleast ~60GB of memory.
-# So should be hosted on atleast 2x A100-40G or 4x A10s
 compute:
   gpus: 4
   instance: oci.bm.gpu.a10.4
+image: mosaicml/inference:0.1.29
 replicas: 1
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/llm-foundry:/code/examples:/code
+  pip uninstall packaging -y
+  rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
+  pip install composer[streaming,libcloud,oci]==0.14.1
+  pip install packaging==23.1
 integrations:
 # Clone and install the examples repo so we can use the deployment helper from it
 - integration_type: git_repo
@@ -18,27 +21,9 @@ integrations:
   integration_type: git_repo
   git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
   ssh_clone: false
-
-# Add the examples folder to the PYTHONPATH so we can import the deployment helper
-# Install composer to use the cloud download helper
-command: |
-  export PYTHONPATH=$PYTHONPATH:/code/llm-foundry:/code/examples:/code
-  pip uninstall packaging -y
-  rm /usr/lib/python3/dist-packages/packaging-23.1.dist-info/REQUESTED
-  pip install composer[streaming,libcloud,oci]==0.14.1
-  pip install packaging==23.1
-
 model:
-  backend: faster_transformers
-  downloader: examples.end-to-end-examples.support_chatbot.scripts.deployment_download_helper.download_and_convert
   download_parameters:
-    remote_uri: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-30b-chat_composer-codebase-hf/
-    gpus: 4
-  model_handler: examples.inference-deployments.mpt.mpt_ft_handler.MPTFTModelHandler # Use the provided MPT handler
+    s3_path: oci://mosaicml-internal-checkpoints/support-bot-demo/converted_checkpoints/mpt-30b-chat_composer-codebase-hf/
+  model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
   model_parameters:
-    ft_lib_path: /code/FasterTransformer/build/lib/libth_transformer.so
-    # FT checkpoint path is hardcoded in MPTFTModelHandler at /tmp/mpt
-    model_name_or_path: mosaicml/mpt-30b-chat # This is used for the tokenzier
-    gpus: 4
-
-image: mosaicml/inference:0.1.29
+    model_name: mosaicml/mpt-30b-chat
