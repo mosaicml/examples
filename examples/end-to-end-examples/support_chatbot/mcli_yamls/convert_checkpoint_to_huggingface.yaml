@@ -17,6 +17,7 @@ integrations:
   git_branch: main # TODO: pin
   pip_install:  -e .
   ssh_clone: false # Should be true if using a private repo
+  git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
 
 # cd into the scripts/inference folder and run the MPT conversion script from LLM-foundry
 command: |

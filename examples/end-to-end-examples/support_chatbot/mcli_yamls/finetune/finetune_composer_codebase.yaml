@@ -13,16 +13,18 @@ integrations:
   git_repo: mosaicml/llm-foundry
   pip_install: -e .[gpu]
   ssh_clone: false # Should be true if using a private repo
+  git_commit: 496b50bd588b1a7231fe54b05d70babb3620fc72
 - git_branch: dev
   git_repo: mosaicml/composer
   integration_type: git_repo
   path: /workspace/composer
   ssh_clone: false # Should be true if using a private repo
   pip_install: -e .[all]
+  git_commit: b8cc2ac0a12e7fac3be775d0b7ba0a10fcc43cd1
 # Uncomment and fill in to log to WandB. Also uncomment the loggers section near the bottom of the yaml
-- integration_type: wandb
-  entity: mosaic-ml
-  project: support-bot-demo-composer-codebase
+# - integration_type: wandb
+#   entity: mosaic-ml
+#   project: support-bot-demo-composer-codebase
 
 # cd into the llm-foundry/scripts directory and run the train.py script
 command: |
@@ -165,8 +167,8 @@ parameters:
 
   # Uncomment to log to WandB
   # see LLM-foundry llmfoundry/utils/builders.py::build_logger for other built-in options
-  loggers:
-    wandb: {}
+  # loggers:
+  #   wandb: {}
 
   # Callbacks
   # see LLM-foundry llmfoundry/utils/builders.py::build_callbacks for other built-in options

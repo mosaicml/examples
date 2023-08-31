@@ -2,7 +2,7 @@
 
 In this tutorial, we will be creating an application that answers questions about the MosaicML composer codebase. The basic structure of this application will be a retrieval question answering system where the user will provide the chatbot with a question, and then a language model will answer the question based on the retrieved text. See some [great](https://python.langchain.com/en/latest/modules/chains/index_examples/vector_db_qa.html#retrieval-question-answering) [materials](https://blog.langchain.dev/langchain-chat/) from [LangChain](https://python.langchain.com/en/latest/index.html) for more exploration on this type of application.
 
-By default the model that is used throughout is [MPT-30b-chat](https://huggingface.co/mosaicml/mpt-30b-chat), a 7-billion parameter large language model trained by MosaicML. See [our blog](https://www.mosaicml.com/blog/mpt-30b) for more details. Depending on your hardware, and particularly if you get a CUDA `c10` error, you may also need to change `device_train_microbatch_size` from `auto` to `1` in the [finetune](./mcli-yamls/finetune/) yamls.
+By default the model that is used throughout is [MPT-30b](https://huggingface.co/mosaicml/mpt-30b), a 30-billion parameter large language model trained by MosaicML. See [our blog](https://www.mosaicml.com/blog/mpt-30b) for more details. Depending on your hardware, and particularly if you get a CUDA `c10` error, you may also need to change `device_train_microbatch_size` from `auto` to `1` in the [finetune](./mcli-yamls/finetune/) yamls.
 
 ![demo](web_app_screenshot.png)
 
@@ -62,20 +62,20 @@ python scripts/repo_downloader.py REPO_LINKS
 
 **Fields to replace with your values:** `REPO_LINKS` (in the command line). For instance, to download all MosaicML repositories, we run:
 ```bash
-python scripts/repo_downloader.py https://github.com/mosaicml/composer https://github.com/mosaicml/streaming https://github.com/mosaicml/examples https://github.com/mosaicml/diffusion https://github.com/mosaicml/llm-foundry
+python scripts/repo_downloader.py https://github.com/mosaicml/composer
 ```
 
 ## Step 2: Converting to MDS
 
 As mentioned in the [MosaicML platform setup](#mosaicml-platform-setup) section, the MosaicML platform does not have permanent storage on the compute nodes. This means that all data will be streamed in and out from a cloud provider. In order to make this process as efficient as possible during a training run, we will convert the data into a format that is optimized for streaming, using our [Streaming](https://github.com/mosaicml/streaming) library. This format is called [MDS](https://docs.mosaicml.com/projects/streaming/en/stable/fundamentals/dataset_format.html#mds), and is a simple format that is optimized for streaming.
 
-This example will contain scripts for 3 different conversions: [text to MDS](./scripts/conversion/convert_txt_to_stream.py), [jsonl to MDS](./scripts/conversion/convert_jsonl_to_stream.py), and [MDS to MDS reconcatonization for PyPi](./scripts/conversion/convert_PyPi_stream_to_mds.py). For the sake of this example, we will only focus on the first two conversions as the last conversion is tedious, long, and complicated (we can provide the PyPi data for you). For text to MDS conversion, we will run:
+This example will contain scripts for 2 different conversions: [text to MDS](./scripts/conversion/convert_txt_to_stream.py) and [MDS to MDS reconcatonization for PyPi](./scripts/conversion/convert_PyPi_to_stream.py). For text to MDS conversion, we will run:
 
 ```bash
 mcli run -f mcli_yamls/conversion/convert_txt_to_stream.yaml --cluster CLUSTER
 ```
 
-Please note that the output of step one (the MosaicML Codebase as text files) is already in the git repository, so when we run our YAMLs in MCLI it will be able to find the text data before running conversion. **The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** To bypass this, either integrate the repository with the data into the `mcli_yamls/conversion/convert_txt_to_stream.yaml` yaml, or we can also just run `convert_txt_to_stream.py` in local by running the following, since our git repository will be there anyways:
+**The conversion YAMLs will not work on local directories if the data is not git pushed onto the repository linked by the YAML.** This means that it will not be able to recognize and oci path to data, but only a local path in the github repository (you can feed it the relative path from *step 1*). Thus, if you choose to use the YAML method, make sure that you push the data downloaded from *step* one to your repository. That being said, github repositories are typically very small and you can probably just run this locally:
 
 ```bash
 python scripts/conversion/convert_txt_to_stream.py \
@@ -86,26 +86,19 @@ python scripts/conversion/convert_txt_to_stream.py \
 **Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), 'DATA_NAME_MDS' (in the yaml), `PATH_TO_TXT_FOLDER` (in the yaml). Please note that PATH_TO_TXT_FOLDER **MUST** be a local directory (not an OCI link) due to some limitations from OCI. To follow with our previous example in Step 1, if we want to convert the folder containing all of composer as text, we will run with `DATA_NAME_MDS = composer_codebase_mds` and `PATH_TO_TXT_FOLDER = retrieval_data/composer`
 
 
-To convert jsonl files to MDS, we will run:
+To obtain the PyPi data, we will run (note that this is only accessable if you have access to MosaicML OCI. If you don't just skip this step):
 
 **Command:**
 ```bash
-mcli run -f mcli_yamls/conversion/convert_jsonl_to_stream.yaml --cluster CLUSTER
+mcli run -f mcli_yamls/conversion/convert_PyPi_stream_to_mds.yaml --cluster CLUSTER
 ```
 
-As mentioned above, please note that if you choose to use a local directory, it must be pushed to the repository included in the YAML To bypass this, we can also just run `convert_jsonl_to_stream.py` in local by running the following:
-
-```bash
-python scripts/conversion/convert_jsonl_to_stream.py \
-    --out_root CLOUD://BUCKET/support-bot-demo/data/DATA_NAME_MDS/ \
-    --in_root PATH_TO_JSONL
-```
-
-**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), 'DATA_NAME_MDS' (in the yaml), `PATH_TO_JSONL_FILE` (in the yaml). As an example, if we want to convert the CoQA dataset into MDS, we will run with `DATA_NAME_MDS = CoQA_mds` and `PATH_TO_JSONL = train_data/pipeline_data/coqa.jsonl`.
+The only thing to change here is --out_root, which should be `CLOUD://BUCKET/support-bot-demo/data/PyPi/`, which is the OCI path that you want the PyPi data to be in
+**Fields to replace with your values:** `CLUSTER` (in the command line), `CLOUD` (in the yaml), `BUCKET` (in the yaml), `YOUR_GITHUB_USERNAME` (in yaml).
 
 ## Step 3: Finetuning on our Repository
 
-Next, we will finetune our pretrained model on the train split of the our data, whether that be PyPi documentation, MosaicML code base, or dolly in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
+Next, we will finetune our pretrained model on the train split of the our data, whether that be PyPi documentation or MosaicML code base in order to tune it on data that is in-domain for the end task of answering questions about the mosaic codebase. This process is called "domain tuning," and can be useful for adapting a model that has already been trained on a huge amount of data (e.g. MPT-7b) to a new domain. For this example, we will use the train/validation(/test) splits provided with the dataset, which can be in a variety of different formats. We will use the validation split as validation data, and reserve the test split if avalible for our final testing of our application.
 
 Please check out the [training directory](./mcli-yamls/finetune) for all of the details. This yaml will load the pretrained weights for `mpt-7b` available on the [HuggingFace Hub](https://huggingface.co/mosaicml/mpt-7b), and then train using the normal causal language modeling objective on our datasets that we processed in the previous step. The [training script](https://github.com/mosaicml/llm-foundry/blob/main/scripts/train/train.py) itself, is from LLM-foundry.
 
@@ -167,12 +160,14 @@ You can find the names of your deployments by running `mcli get deployments`.
 
 After running the `gradio` command, you should see link to your application. It is the link after `Running on local URL:`, _not_ the url after `Launching in *reload mode* on:`.
 
-**Fields to replace with your values:** `REPLACE_WITH_YOUR_LLM_DEPLOYMENT_NAME` (in the command), `REPLACE_WITH_YOUR_EMBEDDING_DEPLOYMENT_NAME` (in the command), `CLOUD` (in the command), `BUCKET_NAME` (in the command)
-
 **Command**:
 ```bash
-python app.py --repository_urls https://github.com/mosaicml/composer
+python app.py
 ```
+
+What this will do is combine everything together to create your chatbot! With default args, it downloads all of the public MosaicML repositories as well as uses a [web_downloader.py](./web_downloader.py) to download all of the MosaicML Docs. After, it will embed the data to create a vector store that LangChain can run similarity searches on to provide the model with context when answering questions.
+
+Please note that you can customize this app by updating the parser args. Please see what you can customize in [`app_demo.py`](./app_demo.py)
 
 
 ## What next?
