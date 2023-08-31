@@ -10,7 +10,7 @@ compute:
 integrations:
 # Clone the examples repository so that we have access to the code in sec_10k_qa
 - integration_type: git_repo
-  git_repo: KuuCi/examples
+  git_repo: YOUR_GITHUB_USERNAME/examples
   git_branch: support-bot
   ssh_clone: false # Should be true if using a private repo
   path: /workspace/examples # Tell MCLI what path to clone the repo to
@@ -22,6 +22,6 @@ command: |
   cd /workspace/examples/examples/end-to-end-examples/support_chatbot/
   pip install -r requirements.txt
   python scripts/conversion/convert_PyPi_to_stream.py \
-    --out_root oci://mosaicml-internal-checkpoints/support-bot-demo/data/PyPi_mds/ \
+    --out_root CLOUD://BUCKET/support-bot-demo/data/PyPi_mds/ \
 
 image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04 # Use the Docker image provided by MosaicML

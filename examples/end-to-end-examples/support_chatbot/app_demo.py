@@ -31,7 +31,6 @@ def parse_args() -> Namespace:
         '--endpoint_url',
         type=str,
         default='https://models.hosted-on.mosaicml.hosting/mpt-30b-chat/v1/predict',
-        #default='https://mpt-30b-composer-finetuned-dmhpmi.inf.hosted-on.mosaicml.hosting/predict',
         required=False,
         help='The endpoint of our MosaicML LLM Model')
     parser.add_argument(
