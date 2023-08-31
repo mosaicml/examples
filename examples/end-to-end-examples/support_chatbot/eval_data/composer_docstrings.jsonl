@@ -1,0 +1,653 @@
+{"context": "What algorithm dispenses with position embeddings for tokens in transformer-based NLP models, instead encoding position information by biasing the query-key attention scores proportionally to each token pair's distance?", "continuation": "ALiBi"}
+{"context": "What algorithm yields excellent extrapolation to unseen sequence lengths compared to other position embedding schemes?", "continuation": "AliBi"}
+{"context": "What function removes position embeddings and replaces the attention function and attention mask in AliBi?", "continuation": "apply_alibi()"}
+{"context": "What algorithm creates multiple independent realizations of sequences of image augmentations, applies each sequence with random intensity, and returns a convex combination of the augmented images and the original image?", "continuation": "AugMix"}
+{"context": "What function applies the AugMix data augmentation?", "continuation": "augmix_image()"}
+{"context": "What creates width sequences of depth image augmentations, applies each sequence with random intensity, and returns a convex combination of the width augmented images and the original image such that coefficients for mixing the augmented images are drawn from a uniform Dirichlet(alpha, alpha, ...) distribution and the coefficient for mixing the combined augmented image and the original image is drawn from a Beta(alpha, alpha) distribution, using the same alpha?", "continuation": "AugMix"}
+{"context": "What adds anti-aliasing filters to convolutional layers to increase accuracy and invariance to small shifts in the input?", "continuation": "blurpool"}
+{"context": "What blurpool function applies a spatial low-pass filter?", "continuation": "blur_2d()"}
+{"context": "What blurpool function applies max-pooling with anti-aliasing?", "continuation": "blurmax_pool2d()"}
+{"context": "What blurpool function can be understood as decoupling the max from the pooling, and inserting a low-pass filtering step between the two, then computes the max within spatial neighborhoods of shape kernel_size, then applies an anti-aliasing filter to smooth the maxes, and only then pools according to stride?", "continuation": "blurmax_pool2d()"}
+{"context": "What module is a drop-in replacement for torch.nn.MaxPool2d, but with an anti-aliasing filter?", "continuation": "BlurMaxPool2d"}
+{"context": "What module is a drop-in replacement for torch.nn.Conv2d, but with an anti-aliasing filter?", "continuation": "BlurConv2d"}
+{"context": "What module just calls the function blur_2d in forward using the provided arguments?", "continuation": "BlurConv2d"}
+{"context": "What algorithm adds anti-aliasing filters to convolutional layers and increases accuracy and invariance to small shifts in the input?\nAnswer: ", "continuation": "BlurPool"}
+{"context": "What function changes the memory format of the model to torch.channels_last and usually yields improved GPU utilization?", "continuation": "apply_channels_last()"}
+{"context": "What algorithm changes the memory format of the model to torch.channels_last and usually yields improved GPU utilization?", "continuation": "ChannelsLast"}
+{"context": "What algorithm drops a fraction of the rows and columns of an input image?", "continuation": "ColOut"}
+{"context": "What function applies ColOut augmentation to a batch of images and (optionally) targets, dropping the same random rows and columns from all images and targets in a batch?", "continuation": "colout_batch()"}
+{"context": "What object applies Torchvision-like transformations for performing the ColOut augmentation,where random rows and columns are dropped from up to two Torch tensors or two PIL images?", "continuation": "ColOutTransform"}
+{"context": "What algorithm trains the network on non-overlapping combinations of pairs of examples and iterpolated targets rather than individual examples and targets?", "continuation": "CutMix"}
+{"context": "What function creates new samples using combinations of pairs of samples by masking a region of each image in input and filling the masked region with the corresponding content from a random different image in input? The position of the masked region is determined by drawing a center point uniformly at random from all spatial positions.", "continuation": "cutmix_batch()"}
+{"context": "What function generates indices of a random permutation of elements of a batch?", "continuation": "_gen_indices()"}
+{"context": "What function generates lambda from Beta(alpha, alpha)?", "continuation": "_gen_cutmix_coef()"}
+{"context": "What function randomly samples a bounding box with area determined by input cutmix_lambda?", "continuation": "_rand_bbox()"}
+{"context": "What function rescales the cutmix lambda according to the size of the clipped bounding box?", "continuation": "_adjust_lambda()"}
+{"context": "What algorithm is a data augmentation technique that works by masking out one or more square regions of an input image?", "continuation": "CutOut"}
+{"context": "What function applies the CutOut augmentation to a batch of images?", "continuation": "cutout_batch()"}
+{"context": "What algorithm maintains a moving average of model parameters and uses these at test time", "continuation": "EMA"}
+{"context": "What function updates the weights of a ema_model to be closer to the weights of input model according to an exponential weighted average?", "continuation": "compute_ema()"}
+{"context": "What function summons full params for FSDP, which is required to update sharded params?", "continuation": "get_model_context_manager()"}
+{"context": "What EMA method ensures state dicts created prior to Composer 0.13.0 are compatible with later versions?", "continuation": "ensure_compatible_state_dict()"}
+{"context": "What EMA method replaces the parameters of the supplied model with the ema parameters if they are not already active?", "continuation": "get_ema_model()"}
+{"context": "What EMA method replaces the parameters of the supplied model with the training parameters if they are not already active?", "continuation": "get_training_model()"}
+{"context": "What class stores the parameters and buffers of a model needed for averaging?", "continuation": "EMAParameters"}
+{"context": "What EMAParameters swaps the parameters and buffers of a model with the ema parameters?", "continuation": "swap_params()"}
+{"context": "What EMAParameters transfers the parameters and buffers from the ema model to the supplied model?", "continuation": "transfer_ema_params()"}
+{"context": "What EMAParameters moves the ema parameters and buffers to the device of a destination model?", "continuation": "move_params_to_device()"}
+{"context": "What algorithm decomposes linear operators into pairs of smaller linear operators?", "continuation": "Factorize"}
+{"context": "What class bundles tensors used by a factorized linear operator?", "continuation": "LowRankSolution"}
+{"context": "What function approximates a matrix by factorizing it into a product of two smaller matrices?", "continuation": "factorize_matrix()"}
+{"context": "What function returns whether factorizing a module a given amount could possibly yield a benefit?", "continuation": "factorizing_could_speedup()"}
+{"context": "What module is a factorized replacement for torch.nn.Conv2d?", "continuation": "FactorizedConv2d"}
+{"context": "What module is a factorized replacement for torch.nn.Linear?", "continuation": "FactorizedLinear"}
+{"context": "What function replaces torch.nn.Linear and torch.nn.Conv2d modules with FactorizedLinear and FactorizedConv2d modules?", "continuation": "apply_factorization()"}
+{"context": "What algorithm replaces all instances of torch.nn.LayerNorm with a apex.normalization.fused_layer_norm.FusedLayerNorm? By fusing multiple kernel launches into one, this usually improves GPU utilization.", "continuation": "FusedLayerNorm"}
+{"context": "What function defines a replacement policy from a torch.nn.LayerNorm to a apex.normalization.fused_layer_norm?", "continuation": "from_LayerNorm()"}
+{"context": "What function replaces all instances of torch.nn.LayerNorm with a apex.normalization.fused_layer_norm.FusedLayerNorm?", "continuation": "apply_fused_layernorm()"}
+{"context": "What function replaces the Linear layers in the feed-forward network with Gated Linear Units? This leads to improved convergence with a slight drop in throughput.", "continuation": "GatedLinearUnits"}
+{"context": "What module defines a single feed-forward block that uses Gated Linear Units", "continuation": "BERTGatedFFOutput"}
+{"context": "What function defines a replacement policy from a transformers.models.bert.modeling_bert.BertOutput to a composer.algorithms.gated_linear_units.gated_linear_unit_layers.BERTGatedFFOutput?", "continuation": "from_BertOutput()"}
+{"context": "What function defines a replacement policy from a transformers.models.bert.modeling_bert.BertIntermediate to a torch.nn.Identity? The identity effectively acts as no-op.", "continuation": "from_BertIntermediate"}
+{"context": "What function replaces the Linear layers in the feed-forward network with Gated Linear Units?", "continuation": "apply_gated_linear_units()"}
+{"context": "What function replace batch normalization modules with ghost batch normalization modules?", "continuation": "apply_ghost_batchnorm()"}
+{"context": "What algorithm replaces batch normalization modules with Ghost Batch Normalization that simulate the effect of using a smaller batch size.", "continuation": "GhostBatchNorm"}
+{"context": "What funtion clips all gradients in model based on specified clipping_type?", "continuation": "apply_gradient_clipping()"}
+{"context": "What algorithm clips all gradients in model based on specified clipping_type?", "continuation": "GradientClipping"}
+{"context": "What GradientClipping method slips all gradients in model based on ratio of gradient norms to parameter norms?", "continuation": "_get_clipped_gradient_coeff()"}
+{"context": "What GradientClipping method implements unitwise norm?", "continuation": "_unitwise_norm()"}
+{"context": "What function replaces all instances of torch.nn.Dropout with a GyroDropout? By masking Dropout layer, this usually improves accuracy.", "continuation": "apply_gyro_dropout()"}
+{"context": "What algorithm replaces all instances of torch.nn.Dropout with a GyroDropout? By masking Dropout layer, this usually improves accuracy.", "continuation": "GyroDropout"}
+{"context": "What function shrink targets towards a uniform distribution?", "continuation": "smooth_labels()"}
+{"context": "What algorithm shrink targets towards a uniform distribution", "continuation": "LabelSmoothing"}
+{"context": "What function progressively freeze the layers of the network in-place during training, starting with the earlier layers?", "continuation": "freeze_layers()"}
+{"context": "What algorithm progressively freeze the layers of the network in-place during training, starting with the earlier layers?", "continuation": "LayerFreezing"}
+{"context": "What LayerFreezing method implements a linear schedule for freezing?", "continuation": "_freeze_schedule()"}
+{"context": "What LayerFreezing method is a helper function to get all submodules?", "continuation": "_get_layers()"}
+{"context": "What LayerFreezing method is a helper function to freeze the training of a parameter", "continuation": "_remove_param_from_optimizers()"}
+{"context": "What algorithm replaces all instances of torch.nn.GroupNorm with LPGroupNorm where LPGroupNorm is a thin wrapper around torch.nn.GroupNorm which forces the layer to run in lower precision if autocast is enabled?", "continuation": "LowPrecisionGroupNorm"}
+{"context": "What algorithm replaces all instances of torch.nn.LayerNorm with LPLayerNorm where LPLayerNorm is a thin wrapper around torch.nn.LayerNorm which forces the layer to run in lower precision if autocast is enabled?", "continuation": "LowPrecisionLayerNorm"}
+{"context": "What LPLayerNorm method defines a replacement policy from a torch.nn.LayerNorm to a LPLayerNorm?", "continuation": "_to_LPLayerNorm()"}
+{"context": "What LPlayerNorm method defines a replacement policy from a torch.nn.LayerNorm to a apex.normalization.fused_layer_norm?", "continuation": "_to_FusedLayerNorm()"}
+{"context": "What function creates new samples using convex combinations of pairs of samples?", "continuation": "mixup_batch()"}
+{"context": "What algorithm uses individual examples and targets to make a convex combination of a given batch X with a randomly permuted copy of X? The mixing coefficient is drawn from a Beta(alpha, alpha) distribution.", "continuation": "MixUp"}
+{"context": "What function samples max(z, 1-z), z ~ Beta(alpha, alpha) for MixUp?", "continuation": "_gen_mixing_coef()"}
+{"context": "What function generates a random permutation of the batch indices?", "continuation": "_gen_indices()"}
+{"context": "What object is a dummy model used for performance measurements?", "continuation": "NoOpModelClass"}
+{"context": "What algorithm replaces torch.nn.Module with a dummy model of type NoOpModelClass?", "continuation": "NoOpModelClass"}
+{"context": "What function resizes inputs and optionally outputs by cropping or interpolating?", "continuation": "resize_batch()"}
+{"context": "What algorithm resizes inputs and optionally outputs by cropping or interpolating?", "continuation": "ProgressiveResizing"}
+{"context": "What ProgressiveResizing method makes a random crop transform for an input image?", "continuation": "_make_crop()"}
+{"context": "What ProgressiveResizing method makes a pair of random crops for an input image X and target tensor y?", "continuation": "_make_crop_pair()"}
+{"context": "What ProgressiveResizing method makes a nearest-neighbor interpolation transform at the specified scale factor?", "continuation": "_make_resize()"}
+{"context": "What function randomly applies a sequence of image data augmentations  to an image or batch of image?", "continuation": "randaugment_image()"}
+{"context": "What algorithm randomly applies a sequence of image data augmentations to an image?", "continuation": "RandAugment"}
+{"context": "What object wraps an optimizer with sharpness-aware minimization?", "continuation": "SAMOptimizer"}
+{"context": "What algorithm adds sharpness-aware minimization by wrapping an existing optimizer with a SAMOptimizer? SAM can improve model generalization and provide robustness to label noise.", "continuation": "SAM"}
+{"context": "What function decides if selective backprop should be run based on time in training?", "continuation": "should_selective_backprop()"}
+{"context": "What function prunes minibatches as a subroutine of SelectiveBackprop and computes the loss function on the provided training examples and runs minibatches according to the difficulty? The fraction of the minibatch that is kept for gradient computation is specified by the argument 0 <= keep <= 1.", "continuation": "select_using_loss()"}
+{"context": "What algorithm selectively backpropagate gradients from a subset of each batch", "continuation": "SelectiveBackprop"}
+{"context": "What function sets the sequence length of a batch by changing the sequence length of all tensors in the provided dictionary to curr_seq_len by either truncating the tensors or reshaping the tensors to create new examples from the extra tokens?", "continuation": "set_batch_sequence_length()"}
+{"context": "What algorithm progressively increases the sequence length during training?", "continuation": "SeqLengthWarmup"}
+{"context": "What function adds Squeeze-and-Excitation blocks after after torch.nn.Conv2d layer?", "continuation": "apply_squeeze_excite()"}
+{"context": "What object adds Squeeze-and-Excitation blocks, which applies global average pooling to the input, feeds the resulting vector to a single-hidden-layer fully-connected network (MLP), and uses the outputs of this MLP as attention coefficients to rescale the input. This allows the network to take into account global information about each input, as opposed to only local receptive fields like in a convolutional layer.", "continuation": "SqueezeExcite2d"}
+{"context": "What object is a helper class used to add a SqueezeExcite2d module after a torch.nn.Conv2d?", "continuation": "SqueezeExciteConv2d"}
+{"context": "What algorithm adds Squeeze-and-Excitation blocks after the torch.nn.Conv2d modules in a neural network?", "continuation": "SqueezeExcite"}
+{"context": "What function applies Stochastic Depth to the specified model?", "continuation": "apply_stochastic_depth()"}
+{"context": "What algorithm replaces the specified target layer with a stochastic version of the layer? The stochastic layer will randomly drop either samples or the layer itself depending on the stochastic method specified. The block-wise?", "continuation": "StochasticDepth"}
+{"context": "What function is the ResNet Bottleneck forward function where the layers are randomly skipped with probability drop_rate during training?", "continuation": "block_stochastic_forward()"}
+{"context": "What function randomly drops samples from the input batch according to the sample_drop_rate by setting the samples to be dropped to zeros?", "continuation": "_sample_drop()"}
+{"context": "What function is the model surgery policy that dictates how to convert a ResNet Bottleneck layer into a stochastic version?", "continuation": "make_resnet_bottleneck_stochastic()"}
+{"context": "What module is a convenience class that stochastically executes the provided main path of a residual block", "continuation": "BlockStochasticModule"}
+{"context": "What algorithm applies Stochastic Weight Averaging, which averages model weights sampled at different times near the end of training? This leads to better generalization than just using the final trained weights.", "continuation": "SWA"}
+{"context": "What algorithm needs to maintain both the current value of the weights and the average of all of the sampled weights, which doubles the model's memory consumption?", "continuation": "SWA"}
+{"context": "What function converts between torch.Tensor and PIL.Image.Image image representations?", "continuation": "image_as_type()"}
+{"context": "What function lifts a function that requires pillow images to also work on tensors?", "continuation": "map_pillow_function()"}
+{"context": "Name a function that is a helper function to scale a value between 0 and maxval and return as an int?", "continuation": "_int_parameter()"}
+{"context": "What is a function to scale a value between 0 and maxval and return as a float?", "continuation": "_float_parameter()"}
+{"context": "What is a function to sample from a uniform distribution between 0.1 and some value n", "continuation": "_sample_level()"}
+{"context": "What is a function to sample from a symmetric distribution?", "continuation": "_symmetric_sample()"}
+{"context": "What function autocontrasts an image?", "continuation": "autocontrast()"}
+{"context": "What function equalizes an image?", "continuation": "equalize()"}
+{"context": "What function posterizes an image?", "continuation": "posterize()"}
+{"context": "What function rotates an image?", "continuation": "rotate()"}
+{"context": "What function solarizes an image?", "continuation": "solarize()"}
+{"context": "What function shears an image horizontally?", "continuation": "shear_x()"}
+{"context": "What function shears an image vertically?", "continuation": "shear_y()"}
+{"context": "What function translates an image horizontally?", "continuation": "translate_x()"}
+{"context": "What function translates an image vertically?", "continuation": "translate_y()"}
+{"context": "What function enhances color on an image?", "continuation": "color()"}
+{"context": "What function enhances color on an image, following the corruptions in the ImageNet-C/CIFAR10-C test sets?", "continuation": "color_original()"}
+{"context": "What function enhances contrast on an image?", "continuation": "contrast()?"}
+{"context": "What function enhances contrast on an image, following the corruptions in the ImageNet-C/CIFAR10-C test sets?", "continuation": "contrast_original()"}
+{"context": "What function enhances brightness on an image?", "continuation": "brightness()?"}
+{"context": "What function enhances brightness on an image, following the corruptions in the ImageNet-C/CIFAR10-C test sets?", "continuation": "brightness_original()"}
+{"context": "What function enhances sharpness on an image?", "continuation": "sharpness()?"}
+{"context": "What function enhances sharpness on an image, following the corruptions in the ImageNet-C/CIFAR10-C test sets?", "continuation": "sharpness_original()"}
+{"context": "What function standardizs the input weight W?", "continuation": "_standardize_weights()"}
+{"context": "What module should you use to apply weight standardization with torch's parametrization package?", "continuation": "WeightStandardizer"}
+{"context": "What function applies weight Standardization, which standardizes convolutional weights in a model?", "continuation": "apply_weight_standardization()"}
+{"context": "What module standardizes convolutional weights in a model?", "continuation": "WeightStandardization"}
+{"context": "What callback logs stats of activation inputs and outputs?", "continuation": "ActivationMonitor"}
+{"context": "What function helps create a checkpoint scheduler according to a specified interval?", "continuation": "checkpoint_periodically()"}
+{"context": "What callback saves checkpoints?", "continuation": "CheckpointSaver"}
+{"context": "What callback tracks a metric and halts training if it does not improve within a given interval?", "continuation": "EarlyStopper"}
+{"context": "What callback exports models for inference?", "continuation": "ExportForInferenceCallback"}
+{"context": "What callback checks for GPU health?", "continuation": "HealthChecker"}
+{"context": "What callback logs image inputs and optionally outputs?", "continuation": "ImageVisualizer"}
+{"context": "What callback logs the learning rate?", "continuation": "LRMonitor"}
+{"context": "What callback logs the memory usage of the model?", "continuation": "MemoryMonitor"}
+{"context": "What callback creates compliant results file for MLPerf Training benchmark?", "continuation": "MLPerfCallback"}
+{"context": "What callback computes and logs the L2 norm of gradients as well as any optimizer-specific metrics implemented in the optimizer's report_per_parameter_metrics method?", "continuation": "OptimizerMonitor"}
+{"context": "What callback estimates total training time?", "continuation": "RuntimeEstimator"}
+{"context": "What callback logs the training throughput and utilization?", "continuation": "SpeedMonitor"}
+{"context": "What callback halts training when a metric value reaches a certain threshold?", "continuation": "ThresholdStopper"}
+{"context": "What file runs the Composer CLI launcher for distributed training?", "continuation": "launcher.py"}
+{"context": "What are pieces of code which run at specific events (Event) in the training loop and modify the trainer's State, generally with the effect of improving the model's quality or increasing the efficiency and throughput of the training loop?", "continuation": "Algorithms"}
+{"context": "What function indicates whether this algorithm may cause some model parameters to be unused?", "continuation": "find_unused_parameters()"}
+{"context": "What function outputs whether this algorithm requires the backwards pass to be differentiable?", "continuation": "backwards_create_graph()"}
+{"context": "What function returns True to indicate this algorithm is required when loading from a checkpoint which used it?", "continuation": "required_on_load()"}
+{"context": "What function determines whether this algorithm should run given the current Event and State?", "continuation": "match()"}
+{"context": "What function applies the algorithm to make an in-place change to the State?", "continuation": "apply()"}
+{"context": "What objects provide hooks that can run at each training loop Event and is similar to an Algorithm in that they are run on specific events, but it differs from an Algorithm in that it should not modify the training of the model?", "continuation": "Callback"}
+{"context": "What Callback method is called by engine on each event?", "continuation": "run_event()"}
+{"context": "What Callback method is called by the Event.INIT event?", "continuation": "init()"}
+{"context": "What Callback method is called by the Event.AFTER_LOAD event?", "continuation": "after_load()"}
+{"context": "What Callback method is called by the Event.FIT_START event?", "continuation": "fit_start()"}
+{"context": "What Callback method is called by the Event.EPOCH_START event?", "continuation": "epoch_start()"}
+{"context": "What Callback method is called by the Event.BEFORE_DATALOADER event?", "continuation": "before_dataloader()"}
+{"context": "What Callback method is called by the Event.AFTER_DATALOADER event?", "continuation": "after_dataloader()"}
+{"context": "What Callback method is called by the Event.BATCH_START event?", "continuation": "batch_start()"}
+{"context": "What Callback method is called by the Event.BEFORE_TRAIN_BATCH event?", "continuation": "before_train_batch()"}
+{"context": "What Callback method is called by the Event.BEFORE_FORWARD event?", "continuation": "before_forward()"}
+{"context": "What Callback method is called by the Event.BEFORE_LOSS event?", "continuation": "before_loss()"}
+{"context": "What Callback method is called by the Event.AFTER_LOSS event?", "continuation": "after_loss()"}
+{"context": "What Callback method is called by the Event.BEFORE_BACKWARD event?", "continuation": "before_backward()"}
+{"context": "What Callback method is called by the Event.AFTER_BACKWARD event?", "continuation": "after_backward()"}
+{"context": "What Callback method is called by the Event.AFTER_TRAIN_BATCH event?", "continuation": "after_train_batch()"}
+{"context": "What Callback method is called by the Event.BATCH_END event?", "continuation": "batch_end()"}
+{"context": "What Callback method is called by the Event.BATCH_CHECKPOINT event?", "continuation": "batch_checkpoint()"}
+{"context": "What Callback method is called by the Event.EPOCH_END event?", "continuation": "epoch_end()"}
+{"context": "What Callback method is called by the Event.EPOCH_CHECKPOINT event?", "continuation": "epoch_checkpoint()"}
+{"context": "What Callback method is called by the Event.PREDICT_START event?", "continuation": "predict_start()"}
+{"context": "What Callback method is called by the Event.PREDICT_BATCH_START event?", "continuation": "predict_batch_start"}
+{"context": "What Callback method is called by the Event.PREDICT_BATCH_FORWARD event?", "continuation": "predict_before_forward()"}
+{"context": "What Callback method is called by the Event.PREDICT_AFTER_FORWARD event?", "continuation": "predict_after_forward()"}
+{"context": "What Callback method is called by the Event.PREDICT_BATCH_END event?", "continuation": "predict_batch_end()"}
+{"context": "What Callback method is called by the Event.PREDICT_END event?", "continuation": "predict_end()"}
+{"context": "What Callback method is called by the Event.EVAL_BEFORE_ALL event?", "continuation": "eval_before_all()"}
+{"context": "What Callback method is called by the Event.EVAL_START event?", "continuation": "eval_start()"}
+{"context": "What Callback method is called by the Event.EVAL_BATCH_START event?", "continuation": "eval_batch_start()"}
+{"context": "What Callback method is called by the Event.EVAL_BATCH_FORWARD event?", "continuation": "eval_before_forward()"}
+{"context": "What Callback method is called by the Event.EVAL_AFTER_FORWARD event?", "continuation": "eval_after_forward()"}
+{"context": "What Callback method is called by the Event.EVAL_BATCH_END event?", "continuation": "eval_batch_end()"}
+{"context": "What Callback method is called by the Event.EVAL_END event?", "continuation": "eval_end()"}
+{"context": "What Callback method is called by the Event.EVAL_AFTER_ALL event?", "continuation": "eval_after_all()"}
+{"context": "What Callback method is called by the Event.FIT_END event?", "continuation": "fit_end()"}
+{"context": "What Callback method is called whenever the trainer finishes training, even when there is an exception?", "continuation": "close()"}
+{"context": "What Callback method is called after Callback method close() has been invoked for each callback?", "continuation": "post_close()"}
+{"context": "What function splits batches into chunks of size microbatch_size for gradient accumulation?", "continuation": "_default_split_batch()"}
+{"context": "What object contains specifications for operating and training on data?", "continuation": "DataSpec"}
+{"context": "What function ensures that the dataloader is a DataSpec?", "continuation": "ensure_data_spec()"}
+{"context": "What is a coordinator for running algorithms and resolving ordering conflicts among them for composition?", "continuation": "Engine"}
+{"context": "Does the order in which algorithms are run matter?", "continuation": "Yes"}
+{"context": "What object records the algorithm's execution", "continuation": "Trace"}
+{"context": "What Engine method runs the sequence of algorithms and callbacks?", "continuation": "run_event()"}
+{"context": "What Engine method runs the marker for an event if the profiler is enabled?", "continuation": "run_marker_only_event()"}
+{"context": "What Engine method registers an algorithm pass with the Engine?", "continuation": "register_pass()"}
+{"context": "What Engine method runs compilation passes that modify the order and content of the list of algorithms?", "continuation": "_compile()"}
+{"context": "What Engine method checks for open callbacks from previous runs and raises an error if so?", "continuation": "_check_for_still_open_callbacks()"}
+{"context": "What Engine method runs a sequence of callbacks by calling the function for an event?", "continuation": "_run_callbacks()"}
+{"context": "What Engine method includes timestampp and even info in log messages?", "continuation": "_debug_log()"}
+{"context": "What Engine method shuts down the engine?", "continuation": "close()"}
+{"context": "What function generates an evaluation interval callable?", "continuation": "evaluate_periodically()"}
+{"context": "What object is a wrapper for a dataloader to include metrics that apply to a specific dataset?", "continuation": "Evaluator"}
+{"context": "What function ensures that evaluator is an Evaluator type?", "continuation": "ensure_evaluator()"}
+{"context": "What function ensures that automicrobatching is only on GPU?", "continuation": "validate_eval_automicrobatching()"}
+{"context": "What function sets initial value of device_eval_microbatch_size?", "continuation": "_get_initial_device_eval_microbatch_size()"}
+{"context": "What object is an Enum to represent training loop events that mark specific point in the training loop where an Algorithm and Callback can run?", "continuation": "Event"}
+{"context": "What reorders or modifies the execution of algorithms by the Engine?", "continuation": "Algorithm Passes"}
+{"context": "What function sorts instances of a provided class to the front?", "continuation": "sort_to_front()"}
+{"context": "What function sorts instances of a provided class to the back?", "continuation": "sort_to_back()"}
+{"context": "What should run before any algorithms modify the loss?", "continuation": "Selective Backprop"}
+{"context": "What should run after other algorithms that add LayerNorms?", "continuation": "FusedLayerNorm"}
+{"context": "What should run after other algorithms that add LayerNorms?", "continuation": "LowPrecisionLayerNorm"}
+{"context": "What function establishes a FILO order of algorithms before and after events?", "continuation": "set_filo_order()"}
+{"context": "What function throws a warning when multiple algorithms that interpolate the loss?", "continuation": "warn_if_multiple_loss_interpolation()"}
+{"context": "What object is an enum class for the numerical precision to be used by the model?", "continuation": "Precision"}
+{"context": "What function a returns a context manager to automatically cast to a specific precision?", "continuation": "get_precision_context()"}
+{"context": "What object is the interface for seriealization; used in checkpointing?", "continuation": "Serializable"}
+{"context": "What Serializable method returns a dictionary representing the internal state?", "continuation": "state_dict()"}
+{"context": "What Serializable method retores the state of the object?", "continuation": "load_state_dict()"}
+{"context": "What function is the context manager for materializing or loading an fsdp module's state dict?", "continuation": "fsdp_state_dict_type_context()"}
+{"context": "What function materializes a given model's optimizer's state_dict", "continuation": "fsdp_get_optim_state_dict()"}
+{"context": "What object reflects the state of the trainer?", "continuation": "State"}
+{"context": "What State method gets the dataset contained by the given dataloader-like object?", "continuation": "_dataset_of()"}
+{"context": "What State method gets the train dataloader?", "continuation": "train_dataloader()"}
+{"context": "What State method gets the elapsed training duration?", "continuation": "get_elapsed_duration()"}
+{"context": "What State method stops training?", "continuation": "stop training()"}
+{"context": "What State method gets lement from batch either specified by key or user-specified function?", "continuation": "batch_get_item()"}
+{"context": "What State method sets the element specified by the key of the set_fn to the specified value?", "continuation": "batch_set_item()"}
+{"context": "What State method returns the State callbacks?", "continuation": "callbacks()"}
+{"context": "What State method returns the State algorithms?", "continuation": "algorithms()"}
+{"context": "What State method returns the State evaluators?", "continuation": "evaluators()"}
+{"context": "What State method returns if deepspeed is enabled?", "continuation": "deepspeed_enabled()"}
+{"context": "What State method returns if fsdp is enabled?", "continuation": "fsdp_enabled()"}
+{"context": "What State method gets a dictionary of information about integrations to store in the state dict? This metadata is used for loading things from state dict that need to be done outside of the normal Composer load path?", "continuation": "_get_integrations_state_dict()"}
+{"context": "What State method gets a dictionary of metadata to store in the state dict? This metadata is used for checking compatibility between the current environment/setup and the environment/setup that was used for the checkpoint that is being loaded in?", "continuation": "_get_state_metadata()"}
+{"context": "What State method collect the state dict(s) of our train and eval dataset(s)?", "continuation": "_dataset_state_dict()"}
+{"context": "What State method collect the state dicts of our serializable attributes?", "continuation": "state_dict()"}
+{"context": "What State method applies required algorithms which haven't been specified and aren't in the exclude list?", "continuation": "_apply_required_algorithms()"}
+{"context": "What State method loads the model's state from state_dict", "continuation": "load_model_state()"}
+{"context": "What State method loads the optimizer state?", "continuation": "load_optim_state()"}
+{"context": "What State method loads the dataset state", "continuation": "_load_dataset_state()"}
+{"context": "What State method loads the state?", "continuation": "load_state_dict()"}
+{"context": "What State method loads the active dataloader?", "continuation": "dataloader()"}
+{"context": "What State method returns tje dataloader label for the active dataloader?", "continuation": "dataloader_label()"}
+{"context": "What State method updates the active dataloader and dataloader label?", "continuation": "set_dataloader()"}
+{"context": "What State method returns the number of batches per dataloader iteration as used by the trainer?", "continuation": "dataloader_len()"}
+{"context": "What State method returns the numerical precision to use for training?", "continuation": "precision()"}
+{"context": "What State method returns whether the model is an instance of DistributedDataParallel?", "continuation": "is_model_ddp()"}
+{"context": "What State method casts the model to deepspeed.DeepSpeedEngine?", "continuation": "deepspeed_model()"}
+{"context": "What object is a enum class to represent units of time for the training process", "continuation": "TimeUnit"}
+{"context": "What is EPOCH typically denoted as?", "continuation": "ep"}
+{"context": "What is BATCH typically denoted as?", "continuation": "ba"}
+{"context": "What is SAMPLE typically denoted as?", "continuation": "sp"}
+{"context": "What is TOKEN typically denoted as?", "continuation": "tok"}
+{"context": "What is DURATION typically denoted as?", "continuation": "dur"}
+{"context": "What object represents static durations of training time in terms of a TimeUnit enum?", "continuation": "Time"}
+{"context": "What Time method creates a Time object with units of TimeUnit.EPOCH?", "continuation": "from_epoch()"}
+{"context": "What Time method creates a Time object with units of TimeUnit.BATCH?", "continuation": "from_batch()"}
+{"context": "What Time method creates a Time object with units of TimeUnit.SAMPLE?", "continuation": "from_sample()"}
+{"context": "What Time method creates a Time object with units of TimeUnit.TOKEN?", "continuation": "from_token()"}
+{"context": "What Time method creates a Time object with units of TimeUnit.DURATION?", "continuation": "from_duration()"}
+{"context": "What Time method returns the value of the time as a number?", "continuation": "value()"}
+{"context": "What Time method returns the unit of the time?", "continuation": "unit()"}
+{"context": "What Time method returns time-string representation?", "continuation": "to_timestring()"}
+{"context": "What Time method parses other objects into a Time object?", "continuation": "_parse()"}
+{"context": "What Time method parses a time string into a Time instance?", "continuation": "from_timestring()"}
+{"context": "What object represents a snapshot of the current training progress measures training progress in terms of epochs, batches, samples, tokens, and wall clock time?", "continuation": "Timestamp"}
+{"context": "What Timestamp method returns all values of the timestamp object in a dictionary?", "continuation": "get_state()"}
+{"context": "What Timestamp method returns the total epoch count?", "continuation": "epoch()"}
+{"context": "What Timestamp method returns the total batch count?", "continuation": "batch()"}
+{"context": "What Timestamp method returns the total sample count?", "continuation": "sample()"}
+{"context": "What Timestamp method returns the total token count?", "continuation": "token()"}
+{"context": "What Timestamp method returns the batch count in the current epoch?", "continuation": "batch_in_epoch()"}
+{"context": "What Timestamp method returns the sample count in the current epoch?", "continuation": "sample_in_epoch()"}
+{"context": "What Timestamp method returns the token count in the current epoch?", "continuation": "token_in_epoch()"}
+{"context": "What Timestamp method returns the wall-clock duration (in seconds) from the beginning of training?", "continuation": "total_wct()"}
+{"context": "What Timestamp method returns the wall-clock duration (in seconds) for the current epoch?", "continuation": "epoch_wct()"}
+{"context": "What Timestamp method returns the wall-clock duration (in seconds) for the last batch?", "continuation": "batch_wct()"}
+{"context": "What Timestamp method returns the current time in the specified unit?", "continuation": "get()"}
+{"context": "What Timestamp method creates a new Timestamp, advanced to the next batch?", "continuation": "to_next_batch()"}
+{"context": "What Timestamp method creates a new Timestamp, advanced to the next epoch?", "continuation": "to_next_epoc()"}
+{"context": "What Timestamp method creates copy of the timestamp?", "continuation": "copy()"}
+{"context": "What function ensures maybe_time is an instance of Time?", "continuation": "ensure_time()"}
+{"context": "What object is an enum to represent which mode the Trainer is in?", "continuation": "TrainerMode"}
+{"context": "What object is an enum to represent different memory formats?", "continuation": "MemoryFormat"}
+{"context": "What function builds the transformation for the ADE20k dataset?", "continuation": "build_ade20k_transformations()"}
+{"context": "What function builds the ADE20k dataloader?", "continuation": "build_ade20k_dataloader()"}
+{"context": "What function builds an ADE20k streaming dataset?", "continuation": "build_streaming_ade20k_dataloader()"}
+{"context": "What function builds a synthetic ADE20k dataloader?", "continuation": "build_synthetic_ade20k_dataloader()"}
+{"context": "What object resizes the image and target to base_size scaled by a randomly sampled variable?", "continuation": "RandomResizePair"}
+{"context": "What object crops the image and target at a randomly sampled position?", "continuation": "RandomCropPair"}
+{"context": "What object flips the image and target horizontally with a specified probability?", "continuation": "RandomHFlipPair"}
+{"context": "What object pads an image to a specified size?", "continuation": "PadToSize"}
+{"context": "What object applies a combination of brightness, contrast, saturation, and hue jitters with random intensities?", "continuation": "PhotometricDistortion"}
+{"context": "What object is a PyTorch Dataset for ADE20k", "continuation": "ADE20k"}
+{"context": "What function builds a BRaTS dataloader?", "continuation": "build_brats_dataloader()"}
+{"context": "What function creates a custom collate function to handle images with different depths?", "continuation": "_my_collate()"}
+{"context": "What function builds a DataSpec for the StreamingC4 dataset?", "continuation": "build_streaming_c4_dataloader()"}
+{"context": "What function builds a CIFAR-10 dataloader with default transforms?", "continuation": "build_cifar10_dataloader()"}
+{"context": "What function builds an FFCV CIFAR10 dataloader?", "continuation": "build_ffcv_cifar10_dataloader()"}
+{"context": "What function builds a synthetic CIFAR-10 dataset for debugging or profiling?", "continuation": "build_synthetic_cifar10_dataloader()"}
+{"context": "What function builds a streaming CIFAR10 dataset?", "continuation": "build_streaming_cifar10_dataloader()"}
+{"context": "What function converts PyTorch compatible dataset into FFCV format at filepath write_path", "continuation": "write_ffcv_dataset()"}
+{"context": "What function builds a ImageNet dataloader?", "continuation": "build_imagenet_dataloader()"}
+{"context": "What function builds a synthetic ImageNet dataloader?", "continuation": "build_synthetic_imagenet_dataloader()"}
+{"context": "What function converts an ImageNet dataset to FFCV format?", "continuation": "write_ffcv_imagenet()"}
+{"context": "What function builds a FFCV ImageNet dataloader?", "continuation": "build_ffcv_imagenet_dataloader()"}
+{"context": "What function builds an imagenet1k streaming dataset?", "continuation": "build_streaming_imagenet1k_dataloader()"}
+{"context": "What Dataset constructs batches for in-context learning question answering evaluation?", "continuation": "InContextLearningQATaskDataset"}
+{"context": "What InContextLearningQATaskDataset method prepares a set of language modeling tasks into tokenized format with prompt and fewshot examples? Each task consists of a context and a continuation as well as an optional prompt and optional list of example context/continuation pairs which precede the test context/continuation pair.", "continuation": "prep_examples()"}
+{"context": "What Dataset constructs batches for in-context learning language modeling evaluation?", "continuation": "InContextLearningLMTaskDataset"}
+{"context": "What InContextLearningLMTaskDataset method prepares a set of language modeling tasks into tokenized format with prompt and fewshot examples? Each task consists of a context and a continuation as well as an optional prompt and optional list of example context/continuation pairs which precede the test context/continuation pair.", "continuation": "prep_examples()"}
+{"context": "What Dataset constructs batches for in-context learning multiple choice evaluation?", "continuation": "InContextLearningMultipleChoiceTaskDataset"}
+{"context": "What InContextLearningMultipleChoiceTaskDataset method prepares a set of language modeling tasks into tokenized format with prompt and fewshot examples? Each task consists of a context and a continuation as well as an optional prompt and optional list of example context/continuation pairs which precede the test context/continuation pair.", "continuation": "prep_examples()"}
+{"context": "What Dataset constructs batches for in-context learning multiple choice evaluation?", "continuation": "InContextLearningMultipleChoiceTaskDataset"}
+{"context": "What InContextLearningMultipleChoiceTaskDataset method prepares a set of multiple choice tasks into tokenized format with prompt and fewshot examples? Each question consists of a query and set of answer choices, only one of which is correct. At inference time we construct individual inference examples consisting of the query + a single choice, as well as an optional (prompt) and optional list of example query + correct answers, which precede the test query + choice.", "continuation": "prep_examples()"}
+{"context": "What InContextLearningMultipleChoiceTaskDataset constructs batches for in-context learning schema evaluation?", "continuation": "InContextLearningSchemaTaskDataset"}
+{"context": "What InContextLearningSchemaTaskDataset method prepares a set of schema questions into tokenized format with prompt and few shot examples. Each question consists of a set of possible contexts followed by a continuation, only one of the contexts would logically permit the continuation? At inference time we construct individual inference examples consisting of a single context option + the continuation, as well as an optional (prompt) and optional list of example correct context option + continuations, which precede the test context option + continuation. For schema, this method provides information relaying which of the answer choices is the correct one. This information is used for computing accuracy metrics.", "continuation": "prep_examples()"}
+{"context": "What function partitions the dataset into a separate dataset for each category value in the data and write each partition to a local file in has_categories is enabled?", "continuation": "partition_dataset_by_category()"}
+{"context": "What function constructs a dataloader (or dataloaders if has_categories is True) capable of evaluating LLMs on in-context learning language modeling tasks?", "continuation": "get_icl_task_dataloader()"}
+{"context": "What function builds a dataloader for a generic language modeling dataset?", "continuation": "build_lm_dataloader()"}
+{"context": "What function builds a MNIST dataloader?", "continuation": "build_mnist_dataloader()"}
+{"context": "What function builds a syntheic MNIST dataset?", "continuation": "build_synthetic_mnist_dataloder()"}
+{"context": "What object defines a class label type of the synthetic data?", "continuation": "SyntheticDataLabelType"}
+{"context": "What Dataset emulates a dataset of provided size and shape?", "continuation": "SyntheticBatchPairDataset"}
+{"context": "What Dataset yields samples of PIL.Image.Image and supports dataset transformations?", "continuation": "SyntheticPILDataset"}
+{"context": "What object normalizes input data and removes the background class from target data if desired?", "continuation": "NormalizationFn"}
+{"context": "What function constructs a length 2 tuple of torch.Tensors from datasets that yield samples of type PIL.Image.Image?", "continuation": "pil_image_collate()"}
+{"context": "What function adds a transform to a dataset's collection of transforms?", "continuation": "add_vision_dataset_transform()"}
+{"context": "What Device is an extension of ~composer.devices.device.Device for CPUs?", "continuation": "DeviceCPU"}
+{"context": "What Device is an extension of ~composer.devices.device.Device for GPUs?", "continuation": "DeviceGPU"}
+{"context": "What Device supports MPS for training on Apple's M-series chips?", "continuation": "DeviceMPS"}
+{"context": "What Device is an extension of ~composer.devices.device.Device for TPUs?", "continuation": "DeviceTPU"}
+{"context": "What object is an abstract class for a device on which a model runs?", "continuation": "Device"}
+{"context": "What Device method moves a module onto a device?", "continuation": "module_to_device()"}
+{"context": "What Device method moves a tensor onto a device?", "continuation": "tensor_to_device()"}
+{"context": "What Device method moves all tensor items in a batch to a device?", "continuation": "batch_to_device()"}
+{"context": "What Device method moves the optimizer's state onto a device?", "continuation": "optimizer_to_device()"}
+{"context": "What function recursively maps a function to all items in a batch?", "continuation": "_map_batch()"}
+{"context": "What LoggerDestination logs metrics to the console?", "continuation": "ConsoleLogger"}
+{"context": "What LoggerDestination logs metrics to a file?", "continuation": "FileLogger"}
+{"context": "What FileLogger method writes to the logfile?", "continuation": "write()"}
+{"context": "What LoggerDestination logs metrics to dictionary objects that persist in memory throughout training?", "continuation": "InMemoryLogger"}
+{"context": "What InMemoryLogger method returns logged data as a dict containing values of a desired metric over time?", "continuation": "get_timeseries()"}
+{"context": "What object is the base class for logger destination?", "continuation": "LoggerDestination"}
+{"context": "What LoggerDestination method logs hyperparameters, configurations, and settings that don't vary during the run?", "continuation": "log_hyperparameters()"}
+{"context": "What LoggerDestination method logs metrics or parameters that vary during the run?", "continuation": "log_metrics()"}
+{"context": "What LoggerDestination method logs traces or any debug-related data like algorithm traces?", "continuation": "log_traces()"}
+{"context": "What LoggerDestination method logs images or any tensor/arrays as images?", "continuation": "log_images()"}
+{"context": "What LoggerDestination method handles uploading a file stored at file_path to a file named remote_file_name?", "continuation": "upload_file()"}
+{"context": "What LoggerDestination method handles downloading a file stored at remote_file_name to destination?", "continuation": ""}
+{"context": "What LoggerDestination method indicates whether LoggerDestination can upload files?", "continuation": "can_upload_files()"}
+{"context": "What object is an interface to record training data?", "continuation": "Logger"}
+{"context": "What Logger method logs images or any tensors/arrays as images?", "continuation": "log_images()"}
+{"context": "What Logger method uploads file_path as a file named remote_file_name?", "continuation": "upload_file()"}
+{"context": "What Logger method determines if the logger has a destination which supports uploading files?", "continuation": "has_file_upload_destination()"}
+{"context": "What function recursively formats a given log data value into a string", "continuation": "format_log_data_value()"}
+{"context": "What LoggerDestination uses MLFlow?", "continuation": "MLFlowLogger"}
+{"context": "What LoggerDestination uses Comet?", "continuation": "CometMLLogger"}
+{"context": "What LoggerDestination uses MosaicML?", "continuation": "MosaicMLLogger"}
+{"context": "What LoggerDestination logs metrics to the console and optionally show a progress bar?", "continuation": "ProgressBarLogger"}
+{"context": "What LoggerDestination uploads (downloads) files to (from) a remote backend?", "continuation": "RemoteUploaderDownloader"}
+{"context": "What RemoteUploaderDownloader method returns the ObjectStore instance for the main thread?", "continuation": "remote_backend()"}
+{"context": "What RemoteUploaderDownloader method checks in all workers are alive?", "continuation": "_all_workers_alive()"}
+{"context": "What RemoteUploaderDownloader method checks whether the logger supports uploading files?", "continuation": "can_upload_files()"}
+{"context": "What RemoteUploaderDownloader method enqueues objects from self._logged_objects onto self._file_upload_queue and keeps self._enqueued_objects in sync with self._file_upload_queue by listening to self._completed_uploads?", "continuation": "_enqueue_uploads()"}
+{"context": "What RemoteUploaderDownloader method waits for all tasks to be completed?", "continuation": "wait_for_workers()"}
+{"context": "What RemoteUploaderDownloader method gets the object store provider uri for a remote file?", "continuation": "get_uri_for_file()"}
+{"context": "What RemoteUploaderDownloader method formats the remote_file_name according to the file_path_format_string?", "continuation": "_remote_file_name()"}
+{"context": "What function handles uploading files to the object store?", "continuation": "_upload_worker()"}
+{"context": "What LoggerDestination logs metrics to Slack?", "continuation": "SlackLogger"}
+{"context": "What SlackLogger method flushes the buffer to Slack if the buffer size exceeds max_logs_per_message?", "continuation": "_log_to_budder()"}
+{"context": "What SlackLogger method returns the default formatter function if no formatter func is specified?", "continuation": "_default_log_bold_key_normal_value_pair_with_header()"}
+{"context": "What SlackLogger method flushes buffered metadata to MosaicML", "continuation": "_flush_logs_to_slack()"}
+{"context": "What LoggerDestination logs metrics to Tensorboard?", "continuation": "TensorboardLogger"}
+{"context": "What LoggerDestination logs metrics to WandB?", "continuation": "WandBLogger"}
+{"context": "What function returns a replacement for F.binary_cross_entropy_with_logits that handles class indices or one-hot label?", "continuation": "binary_cross_entropy_with_logits()"}
+{"context": "What function returns a drop-in replacement for F.cross_entropy that handles class indices or one-hot labels?", "continuation": "soft_cross_entropy()"}
+{"context": "What Loss criterion computes the dice loss between input and target", "continuation": "DiceLoss"}
+{"context": "What function infers whether the target is in indices formate or one_hot format?", "continuation": "infer_target_type()"}
+{"context": "What function ensures that the targets are in a one-hot format rather than an index format?", "continuation": "ensure_targets_one_hot()"}
+{"context": "What function converts a tensor of index class labels to a tensor of one-hot class labels?", "continuation": "_one_hot()"}
+{"context": "What object is a Dataclass to wrap the final mAP results?", "continuation": "MAPMetricResults"}
+{"context": "What object moves logs to log.debug()", "continuation": "WriteToLog"}
+{"context": "What object suppresses the default output of the pycocotools package?", "continuation": "_hide_prints"}
+{"context": "What function ensures the correct input format of preds and targets?", "continuation": "_input_validator()"}
+{"context": "What Metric computes the Mean_Average-Precission (mAP) and Mean-Average-Recall (mAR) for object detection predictions?", "continuation": "MAP"}
+{"context": "What MAP method adds detections and groundtruth to the metric?", "continuation": "update()"}
+{"context": "What MAP method computes the Mean-Average-Precision (mAP) and Mean-Average-Recall (mAR) scores?", "continuation": "compute()"}
+{"context": "What MAP method transforms and returns all cached targets or predictions in COCO format", "continuation": "_get_coco_format()"}
+{"context": "What Metric calculates the intersection area between the predicted class mask and the label class mask? The intersection is then divided by the area of the union of the predicted and label masks. This measures the quality of predicted class mask with respect to the label. The IoU for each class is then averaged and the final result is the mIoU score. Implementation is primarily?", "continuation": "MIoU"}
+{"context": "What MIoU method updates the state with new predictions and targets?", "continuation": "update()"}
+{"context": "What MIoU method aggregates state across all processes and computes final metrix?", "continuation": "compute()"}
+{"context": "What Metric measures how similar predictions and targets are using Dice Coefficient?", "continuation": "Dice"}
+{"context": "What Dice method updates the state based on new predictions and targets?", "continuation": "update()"}
+{"context": "What Dice method aggregates state across all processes and computes final metrix?", "continuation": "compute()"}
+{"context": "What Metric implements cross entropy loss as a torchmetrics.Metric so that it can be returned by the ComposerModel.metrics?", "continuation": "CrossEntropy"}
+{"context": "What CrossEntropy method updates the state with new predictions and targets?", "continuation": "update()"}
+{"context": "What CrossEntropy method aggregates state across all processes and computes final metrix?", "continuation": "compute()"}
+{"context": "What Metric turns a torch.nn Loss Module into distributed torchmetrics Metric?", "continuation": "LossMetric"}
+{"context": "What LossMetric method updates the state with new predictions and targets?", "continuation": "update()"}
+{"context": "What LossMetric method aggregates state across all processes and computes final metrix?", "continuation": "compute()"}
+{"context": "What Metric computes accuracy with support for masked indices?", "continuation": "MaskedAccuracy"}
+{"context": "What Metric computes cross entropy on language modeling outputs?", "continuation": "LanguageCrossEntropy"}
+{"context": "What LossMetric method updates the internal state with results from a new batch?", "continuation": "update()"}
+{"context": "What LossMetric method aggregates the state over all processes to compute the metric?", "continuation": "compute()"}
+{"context": "What Metric implements F1 Scores for binary classification tasks via sklearn?", "continuation": "BinaryF1Score"}
+{"context": "What BinaryF1Score method updates the internal state with results from a new batch?", "continuation": "update()"}
+{"context": "What BinaryF1Score method aggregates the state over all processes to compute the metric?", "continuation": "compute()"}
+{"context": "What LanguageCrossEntropy is a subclasses composer.metrics.nlp.LanguageCrossEntropy to implement perplexity?", "continuation": "LanguagePerplexity"}
+{"context": "What InContextLearningMetric computes accuracy for In-context learning (ICL) question answering (QA) tasks?", "continuation": "InContextLearningQAAccuracy"}
+{"context": "What InContextLearningMetric computes accuracy for In-context learning (ICL) language modeling (LM) tasks?", "continuation": "LanguaInContextLearningLMAccuracygePerplexity"}
+{"context": "What InContextLearningMetric computes accuracy for In-context learning (ICL) multiple choice (MC) tasks?", "continuation": "InContextLearningMultipleChoiceAccuracy"}
+{"context": "What InContextLearningMetric is a generic class for Expected Calibration Error (ECE)?", "continuation": "InContextLearningExpectedCalibrationError"}
+{"context": "What InContextLearningExpectedCalibrationError computes Expected Calibration Error (ECE) for In-context learning (ICL) multiple choice (MC) tasks?", "continuation": "InContextLearningMCExpectedCalibrationError"}
+{"context": "What InContextLearningExpectedCalibrationError computes Expected Calibration Error (ECE) for In-context learning (ICL) language modeling (LM) tasks?", "continuation": "InContextLearningLMExpectedCalibrationError"}
+{"context": "What function creates BERT model based on hugging_face Transformers?", "continuation": "create_bert_mlm()"}
+{"context": "What function creates BERT classification model based on hugging_face Transformers?", "continuation": "create_bert_classification()"}
+{"context": "What is the name of the toy convolutional neural network archetecture in pytorch for MNIST?", "continuation": "Model"}
+{"context": "What function creates a ComposerClassifier with a simple convolutional neural network", "continuation": "mnist_model()"}
+{"context": "What function builds a mmsegmentation DeepLabV3 model", "continuation": "deeplabv3()"}
+{"context": "What function creates a ComposerClassifier with a DeepLabv3(+) model and logs Mean Intersection over Union (MIoU) and Cross Entropy during training and validation?", "continuation": "composer_deeplabv3()"}
+{"context": "What function rounds number of channels after scaling with width multiplier?", "continuation": "def round_channels()"}
+{"context": "What function calculates the amount of padding to use to get the SAME functionality in Tensorflow?", "continuation": "round_channels()"}
+{"context": "What function randomly masks a set of samples and provides similar regularization as stochastic depth?", "continuation": "drop_connect()"}
+{"context": "What module is a squeeze excite layer?", "continuation": "SqueezeExcite"}
+{"context": "What module is Depthwise Separable Convolution layer?", "continuation": "DepthwiseSeparableConv"}
+{"context": "What module is Mobile Inverted Residual Bottleneck Block?", "continuation": "MBConvBlock"}
+{"context": "What module is EfficientNet model?", "continuation": "EfficientNet"}
+{"context": "What EfficientNet method instantiate an EfficientNet model family member based on the model_name string?", "continuation": "get_model_from_name()"}
+{"context": "What EfficientNet method decodes an EfficientNet block specification string into a dictionary of keyword arguments for a block in the architecture?", "continuation": "_decode_block_string()"}
+{"context": "What function creates a ComposerClassifier object with an EfficientNet-b0 architecture?", "continuation": "composer_efficientnetb0()"}
+{"context": "What function implements composer.models.huggingface.HuggingFaceModel to wrap Hugging Face GPT-2 transformers and logs training and validation perplexity?", "continuation": "create_gpt2()"}
+{"context": "What function creates a ComposerClassifier object with a torchvision ResNet model?", "continuation": "composer_resnet()"}
+{"context": "What function creates a ComposerClassifier object with a CIFAR ResNet models?", "continuation": "composer_resnet_cifar()"}
+{"context": "What module is a residual neural network as originally designed for CIFAR-10?", "continuation": "ResNetCIFAR"}
+{"context": "What module is a 9-layer residual network, excluding BatchNorms and activation functions?", "continuation": "ResNet9"}
+{"context": "What ComposerModel is a convenience class that creates a ComposerModel for classification tasks from a vanilla PyTorch model? ComposerClassifier requires batches in the form: (``input``, ``target``) and includes a basic classification training loop with a loss function loss_fn which takes in the model's outputs and the labels.", "continuation": "ComposerClassifier"}
+{"context": "What function creates a wrapper around timm.create_model()?", "continuation": "composer_timm()"}
+{"context": "What function creates ComposerClassifier object using a ViT-S/16 model", "continuation": ""}
+{"context": "What module is the interface needed to make a PyTorch model compatible with composer.Trainer", "continuation": "ComposerModel"}
+{"context": "What ComposerModel method computes model output given a batch from the dataloader?", "continuation": "forward()"}
+{"context": "What ComposerModel method compute the loss of the model given outputs from method forward() and a composer.core.types.Batch of data from the dataloader? The Trainer will call .backward() on the returned loss.", "continuation": "loss()"}
+{"context": "What ComposerModel method run the evaluation forward pass?", "continuation": "eval_forward()"}
+{"context": "What ComposerModel method gets the metrics?", "continuation": "get_metrics()"}
+{"context": "What ComposerModel object acts as a wrapper class that converts HuggingFace transformers models to composer models?", "continuation": "HuggingFaceModel"}
+{"context": "What HuggingFaceModel method loads a HuggingFace tokenizer from a loaded in hf state?", "continuation": "load_huggingface_tokenizer_from_saved_state()"}
+{"context": "What HuggingFaceModel method loads a HuggingFace model class from a loaded in hf state?", "continuation": "load_huggingface_model_from_saved_state()"}
+{"context": "What HuggingFaceModel method loads a HuggingFace model (and tokenizer if present) from a composer checkpoint?", "continuation": "hf_from_composer_checkpoint()"}
+{"context": "What HuggingFaceModel method generates from the underlying HuggingFace model?", "continuation": "generate()"}
+{"context": "What function returns True if model class is either a registered HuggingFace Causal LM or a subclass of one?", "continuation": "_is_registered_causal_lm()"}
+{"context": "What function gets a HuggingFace config from a composer state dict with overrides applied?", "continuation": "get_hf_config_from_composer_state_dict()"}
+{"context": "What function writes a config.json and pytorch_model.bin, like method transformers.PreTrainedModel.from_pretrained expects, from a composer checkpoint?", "continuation": "write_huggingface_pretrained_from_composer_checkpoint()"}
+{"context": "What object sets the initialization scheme for different layers of a PyTorch model?", "continuation": "Initializer"}
+{"context": "What ComposerModel object acts as a wrapper class that adapts mmdetection detectors to composer models?", "continuation": "MMDetModel"}
+{"context": "What SGD object implements a SGD optimizer with the weight decay term decoupled from the learning rate?", "continuation": "DecoupledSGDW"}
+{"context": "What DecoupledSGDW method performs SGDW algorithm computation?", "continuation": "sgdw()"}
+{"context": "What DecoupledSGDW method performs a single optimization step?", "continuation": "step()"}
+{"context": "What AdamW object implements a Adam optimizer with the weight decay term decoupled from the learning rate?", "continuation": "DecoupledAdamW"}
+{"context": "What DecoupledAdamW method performs adamw algorithm computation?", "continuation": "adamw()"}
+{"context": "What DecoupledAdamW method performs a single optimization step?", "continuation": "step()"}
+{"context": "What Protocol object is a specification for a stateless scheduler function?", "continuation": "ComposerScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate discretely at fixed intervals?", "continuation": "StepScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate discretely at fixed milestones?", "continuation": "MultiStepScheduler"}
+{"context": "What ComposerScheduler object maintains a fixed learning rate?", "continuation": "ConstantScheduler"}
+{"context": "What ComposerScheduler object adjusts the learning rate linearly?", "continuation": "LinearScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate exponentially?", "continuation": "ExponentialScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate according to the decreasing part of a cosine curve?", "continuation": "CosineAnnealingScheduler"}
+{"context": "What ComposerScheduler object cyclically decays the learning rate according to the decreasing part of a cosine curve?", "continuation": "CosineAnnealingWarmRestartsScheduler"}
+{"context": "What ComposerScheduler object sets the learning rate to be proportional to a power of the fraction of training time left?", "continuation": "PolynomialScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate discretely at fixed milestones, with an initial warmup?", "continuation": "MultiStepWithWarmupScheduler"}
+{"context": "What ComposerScheduler object maintains a fixed learning rate, with an initial warmup?", "continuation": "ConstantWithWarmupScheduler"}
+{"context": "What ComposerScheduler object adjusts the learning rate linearly, with an initial warmup?", "continuation": "LinearWithWarmupScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate according to the decreasing part of a cosine curve, with an initial warmup?", "continuation": "CosineAnnealingWithWarmupScheduler"}
+{"context": "What ComposerScheduler object decays the learning rate according to a power of the fraction of training time left, with an initial warmup?", "continuation": "PolynomialWithWarmupScheduler"}
+{"context": "What TraceHandler object records trace events in Chrome JSON trace format?", "continuation": "JSONTraceHandler"}
+{"context": "What TraceHandler method helps record an event in the trace?", "continuation": "_record_event()"}
+{"context": "What function merges profiler output JSON trace files together", "continuation": "merge_traces()"}
+{"context": "What object acts as a profiler marker?", "continuation": "Marker"}
+{"context": "What Marker method records the start of a duration event?", "continuation": "start()"}
+{"context": "What Marker method records the end of a duration event?", "continuation": "finish()"}
+{"context": "What Marker method records an instant event?", "continuation": "instant()"}
+{"context": "What Marker method records an counter event?", "continuation": "counter()"}
+{"context": "What object defines whether or not events are being recorded to the trace file?", "continuation": "ProfilerAction"}
+{"context": "What function returns a profiler schedule function for a cyclic profiling window?", "continuation": "cyclic_schedule"}
+{"context": "What object acts as a composer profiler?", "continuation": "Profiler"}
+{"context": "What Profiler method binds the profiler to the state?", "continuation": "bind_to_state()"}
+{"context": "What Profiler records trace events in Chrome JSON format in the trace handlers?", "continuation": "record_chrome_json_trace_file"}
+{"context": "What Profiler method creates and gets an instance of a Marker object?", "continuation": "marker()"}
+{"context": "What Callback object records system level metrics?", "continuation": "SystemProfiler"}
+{"context": "What Callback object profiles the execution using the PyTorch Profiler?", "continuation": "TorchProfiler"}
+{"context": "What Callback object is the base class for Composer Profiler trace handlers?", "continuation": "TraceHandler"}
+{"context": "What TraceHandler method invokes whenever there is a duration event to record?", "continuation": "process_duration_event()"}
+{"context": "What TraceHandler method invokes whenever there is an instant event to record?", "continuation": "process_instant_event()"}
+{"context": "What TraceHandler method invokes whenever there is an counter event to record?", "continuation": "process_counter_event()"}
+{"context": "What TraceHandler method invokes when there are events in Chrome JSON format to record?", "continuation": "process_chrome_json_trace_file()"}
+{"context": "What function parses the provided DeepSpeed config for compatibility with the Mosaic trainer?", "continuation": "_parse_deepspeed_config()"}
+{"context": "What function ensures that a batch is properly formatted for DeepSpeed precisions, if active?", "continuation": "_fix_batch_precision_for_deepspeed()"}
+{"context": "What function makes a learning rate schedule take a different number of epochs?", "continuation": "scale_pytorch_scheduler()"}
+{"context": "What Gradscaler object allows for gradient scaling during with closures?", "continuation": "ClosureGradScaler"}
+{"context": "What ClosureGradScaler method performs a step on the optimizer with amp?", "continuation": "step()"}
+{"context": "What ClosureGradScaler method updates the scale factor?", "continuation": "update()"}
+{"context": "What object do we use to perform gradient synchronization?", "continuation": "DDPSyncStrategy"}
+{"context": "What DDPSyncStrategy method acts as a context manager for handling the DDPSyncStrategy?", "continuation": "ddp_sync_context()"}
+{"context": "What DDPSyncStrategy method wraps the module in a torch.nn.parallel.DistributedDataParallel object if running distributed training?", "continuation": "prepare_ddp_module()"}
+{"context": "What DDPSyncStrategy method helps recreate optimizer groups for FSDP wrapped modules?", "continuation": "_recreate_fsdp_param_groups_from_unwrapped_opt_info()"}
+{"context": "What DDPSyncStrategy method prepares a module and optimizer for use with torch.distributed.fsdp.FullyShardedDataParallel?", "continuation": "prepare_fsdp_module()"}
+{"context": "What function applies the function recursively to a module's children and the module itself?", "continuation": "meta_safe_apply()"}
+{"context": "What function concatenates a list of strings together with a delimiter in between the strings in the list", "continuation": "concatenate_strings()"}
+{"context": "What function configures cpu_offload?", "continuation": "get_cpu_offload()"}
+{"context": "What function configures and/or retrieving process groups?", "continuation": "get_process_group()"}
+{"context": "What function updates FSDPs _recursive_wrap to enable module_kwargs and custom process_group cache?", "continuation": "_custom_recursive_wrap()"}
+{"context": "What FullyShardedDataParallel object updates _auto_wrap to enable module_kwargs?", "continuation": "MosaicFullyShardedDataParallel"}
+{"context": "What function sets initial value of device_train_microbatch_size?", "continuation": "_get_initial_device_train_microbatch_size()"}
+{"context": "What function determines if error is CUDA Out of Memory and if auto_microbatching is enabled?", "continuation": "_is_cuda_oom()"}
+{"context": "What function adjusts device_train_microbatch_size if we encounter OOM?", "continuation": "_adjust_device_train_microbatch_size()"}
+{"context": "What object trains models with Composer algorithms?", "continuation": "Trainer"}
+{"context": "What Trainer method returns list of saved checkpoints?", "continuation": "saved_checkpoints()"}
+{"context": "What Trainer method atempts to download the checkpoint from the logger destinations?", "continuation": "_try_checkpoint_download()"}
+{"context": "What Trainer method determines the load path when using autoresume?", "continuation": "_get_autoresume_checkpoint()"}
+{"context": "What Trainer method trains the model?", "continuation": "fit()"}
+{"context": "What Trainer method shuts down trainer?", "continuation": "close()"}
+{"context": "What Trainer method computes metrics, logs the results, and updates the state with the deep-copied metrics?", "continuation": "_compute_and_log_metrics()"}
+{"context": "What Trainer method spins the dataloaders to restore sampler state for current epoch?", "continuation": "_spin_dataloaders_to_cur_epoch()"}
+{"context": "What Trainer method accumulates the number of samples and tokens across ranks?", "continuation": "_accumulate_time_across_ranks()"}
+{"context": "What Trainer method runs training for the specified number of epochs and log results?", "continuation": "_train_loop()"}
+{"context": "What Trainer method runs evaluators periodically during training?", "continuation": "_run_evaluators()"}
+{"context": "What Trainer method computes loss by training on a full batch of data?", "continuation": "_train_batch()"}
+{"context": "What Trainer method iterates over microbatches and compute the loss that will be used to step the optimizer?", "continuation": "_train_microbatches()"}
+{"context": "What Trainer method trains and computes the loss of state.batch, which is assumed to be a single microbatch?", "continuation": "_train_microbatch()"}
+{"context": "What Trainer method outputs model prediction on the provided data?", "continuation": "predict()"}
+{"context": "What Trainer method runs evaluation loop?", "continuation": "eval()"}
+{"context": "What Trainer method evaluates the model and log appropriate metrics?", "continuation": "_eval_loop()"}
+{"context": "What Trainer method determines based on precision when to use grad scaling?", "continuation": "_use_grad_scaling()"}
+{"context": "What Trainer method iterates over the dataloader?", "continuation": "_iter_dataloader()"}
+{"context": "What Trainer method determines based on precision and optimizers whether to use closures?", "continuation": "_use_closures()"}
+{"context": "What Trainer method checkpoints the training State?", "continuation": "save_checkpoint()"}
+{"context": "What Trainer method checkpoints the training State using a CheckpointSaver if it exists?", "continuation": "save_checkpoint_to_save_folder()"}
+{"context": "What Trainer method exports a model for inference?", "continuation": "export_for_inference()"}
+{"context": "What ObjectStore object acts as utility for uploading to and downloading from object (blob) stores, such as Amazon S3?", "continuation": "LibcloudObjectStore"}
+{"context": "What RuntimeError object is a custom exception class to signify transient errors?", "continuation": "ObjectStoreTransientError"}
+{"context": "What object is an abstract class for implementing object stores, such as LibcloudObjectStore and S3ObjectStore?", "continuation": "ObjectStore"}
+{"context": "What ObjectStore method returns the URI for object_name?", "continuation": "get_uri()"}
+{"context": "What ObjectStore method uploads an object currently located on a disk", "continuation": "upload_object()"}
+{"context": "What ObjectStore method gets the size of an object, in bytes?", "continuation": "get_object_size()"}
+{"context": "What ObjectStore method downloads an object to the specified destination path?", "continuation": "download_object()"}
+{"context": "What ObjectStore method closes the object store?", "continuation": "close()"}
+{"context": "What ObjectStore object acts as utility for uploading to and downloading from an OCI bucket?", "continuation": "OCIObjectStore()"}
+{"context": "What ObjectStore object acts as utility for uploading to and downloading from an S3-compatible bucket using boto3?", "continuation": "S3ObjectStore()"}
+{"context": "What ObjectStore object acts as utility for uploading to and downloading to a server via SFTP?", "continuation": "SFTPObjectStore()"}
+{"context": "What function takes in local symbol table and recursively grabs any hyperparameter?", "continuation": "extract_hparams()"}
+{"context": "What function parses objects for their hyperparameters going only one level deep?", "continuation": "_grab_hparams()"}
+{"context": "What function returns best representation of object", "continuation": "_get_obj_repr()"}
+{"context": "What function takes in a nested dict converts it to a flat dict with keys separated by slashes?", "continuation": "convert_nested_dict_to_flat_dict()"}
+{"context": "What function converts flat dictionary separated by slashes to nested dictionary?", "continuation": "convert_flat_dict_to_nested_dict()"}
+{"context": "What function indexes into the batch given the key?", "continuation": "batch_get()"}
+{"context": "What function indexes into the batch given the key and sets the element at that index to value?", "continuation": "batch_set()"}
+{"context": "What function sets a key value pair in a non-tuple batch?", "continuation": "_batch_set()"}
+{"context": "What function sets multiple key value pairs in a non-tuple batch?", "continuation": "_batch_set_multiple()"}
+{"context": "What function sets key value pairs in tuples and NamedTuples?", "continuation": "_batch_set_tuple()"}
+{"context": "What function formats path with the rank zero values?", "continuation": "_format_path_with_rank_zero()"}
+{"context": "What function formats path formatted with the current rank values?", "continuation": "_format_path_with_current_rank()"}
+{"context": "What function gets the write mode to use with tarfile.open function?", "continuation": "_get_write_mode()"}
+{"context": "What function loads a checkpoint from a local file, URI, or cloud object store into ``state``?", "continuation": "load_checkpoint()"}
+{"context": "What function broadcasts the path from the LOCAL rank zero to all LOCAL ranks?", "continuation": "_get_local_rank_zero_path()"}
+{"context": "What function downloads the checkpoint stored at path, potentially in object_store, to`node_checkpoint_folder?", "continuation": "download_checkpoint()"}
+{"context": "What function provides a function which deletes all subparts of a dictionary based on a list of paths?", "continuation": "glob_filter()"}
+{"context": "What function loads a torch checkpoint, catching errors due to backwards compatibility issues?", "continuation": "safe_torch_load()"}
+{"context": "What function restores a checkpoint into state and returns the rng state dicts (if load_weights_only is False)?", "continuation": "_restore_checkpoint()"}
+{"context": "What function replaces a file with its compressed version?", "continuation": "_compress_file()"}
+{"context": "What function saves Deepspeed model and tarball the files?", "continuation": "_save_deepspeed_model()"}
+{"context": "What function produces exception report (exception message + environment report)?", "continuation": "_exc_report()"}
+{"context": "What function enables environment report generation on exception?", "continuation": "enable_env_report()"}
+{"context": "What function disables environment report generation on exception?", "continuation": "disable_env_report()"}
+{"context": "What function acts as a custom exception wrapper for sys.excepthook?", "continuation": "_custom_exception_handler()"}
+{"context": "What function acts as a custom exception handler for IPython?", "continuation": "_nb_custom_exception_handler()"}
+{"context": "What function collects and prints system information when the sys.excepthook function is called?", "continuation": "configure_excepthook()"}
+{"context": "What function queries Torch system environment via torch.utils.collect_env?", "continuation": "get_torch_env()"}
+{"context": "What function queries Composer pertinent system information as a dict?", "continuation": "get_composer_env_dict()"}
+{"context": "What function queries Composer pertinent system information?", "continuation": "get_composer_env()"}
+{"context": "What function generates system information report?", "continuation": "print_env()"}
+{"context": "What function takes string or Device and returns the corresponding composer.devices.Device?", "continuation": "get_device()"}
+{"context": "What function determines whether the module needed for training on TPUs—torch_xla—is installed?", "continuation": "is_tpu_installed()"}
+{"context": "What function returns the world size, which is the number of processes participating in this training run?", "continuation": "get_world_size()"}
+{"context": "What function returns the global rank of the current process?", "continuation": "get_global_rank()"}
+{"context": "What function returns the local world size, which is the number of processes for the current node?", "continuation": "get_local_world_size()"}
+{"context": "What function returns the local rank for the current process?", "continuation": "get_local_rank()"}
+{"context": "What function returns the node rank?", "continuation": "get_node_rank()"}
+{"context": "What function synchronizes all processes?", "continuation": "barrier()"}
+{"context": "What function reduces a tensor by applying the reduce_operation?", "continuation": "all_reduce()"}
+{"context": "What function broadcasts the tensor to the whole group?", "continuation": "broadcast()"}
+{"context": "What function broadcasts picklable objects in object_list to the whole group?", "continuation": "broadcast_object_list()"}
+{"context": "What function collects a torch.Tensor from each rank?", "continuation": "all_gather()"}
+{"context": "What function collects a pickleable object from each rank and return a list of these objects indexed by rank?", "continuation": "all_gather_object()"}
+{"context": "What function returns whether PyTorch was built with distributed support?", "continuation": "is_available()"}
+{"context": "What function returns whether PyTorch distributed is initialized?", "continuation": "is_initialized()"}
+{"context": "What function initializes the default PyTorch distributed process group?", "continuation": "initialize_dist()"}
+{"context": "What function constructs a torch.utils.data.distributed.DistributedSampler for a dataset?", "continuation": "get_sampler()"}
+{"context": "What function acts as a context manager to wait for a file to exist on all ranks except local rank zero?", "continuation": "local_rank_zero_download_and_wait()"}
+{"context": "What function acts as a context manager to hold all non-zero ranks until rank zero completes?", "continuation": "run_local_rank_zero_first()"}
+{"context": "What function returns a dict of distributed settings?", "continuation": "_get_dist_config()"}
+{"context": "What function returns whether name has a tar-like extension?", "continuation": "is_tar()"}
+{"context": "What function ensure that the given folder is empty?", "continuation": "ensure_folder_is_empty()"}
+{"context": "What function ensure that the given folder does not have any files conflicting with the filename format string?", "continuation": "ensure_folder_has_no_conflicting_files()"}
+{"context": "What function automatically creates an composer.utils.ObjectStore from supported URI formats?", "continuation": "maybe_create_object_store_from_uri()"}
+{"context": "What function automatically creates a composer.loggers.RemoteUploaderDownloader from supported URI formats?", "continuation": "maybe_create_remote_uploader_downloader_from_uri()"}
+{"context": "What function gets a file from a local folder, URL, or object store?", "continuation": "get_file()"}
+{"context": "What function create a symlink file, which can be followed by get_file?", "continuation": "create_symlink_file()"}
+{"context": "What function counts the number of instances of op in gm?", "continuation": "count_op_instances()"}
+{"context": "What function replaces a single operator, torch method or function with another?", "continuation": "replace_op()"}
+{"context": "What function walks backwards from nodeLHS and nodeRSH to the root and construct lists of their parents?", "continuation": "_get_residual_block_nodes()"}
+{"context": "What function attaches tag to the given nodes for the splitter?", "continuation": "_attach_tag()"}
+{"context": "What function tags nodes for splitting?", "continuation": "_tag_residual_nodes()"}
+{"context": "What function returns GraphModules for the main and residual branches?", "continuation": "_get_residual_modules()"}
+{"context": "What function replaces main, residual and add_node with the replacement_module?", "continuation": "_replace_residual_pattern()"}
+{"context": "What function detects and replaces residual pattern with their stochastic equivalent?", "continuation": "apply_stochastic_residual()"}
+{"context": "What function checks if all the linears have bias?", "continuation": "_can_linears_be_fused()"}
+{"context": "What function checks if the linears can be fused?", "continuation": "_create_fused_linear()"}
+{"context": "What function checks if there are parallel linears in the model and if so fuses them together?", "continuation": "fuse_parallel_linears()"}
+{"context": "What ImportError handles errors for external packages that might not be installed?", "continuation": "MissingConditionalImportError"}
+{"context": "What function dynamically imports a Python object?", "continuation": "import_object()"}
+{"context": "What object contains supported export formats?", "continuation": "ExportFormat"}
+{"context": "What function handles moving sample_input of various types to a device. If possible, avoids creating copies of the input?", "continuation": "_move_sample_input_to_device()"}
+{"context": "What function exports a model for inference?", "continuation": "export_for_inference()"}
+{"context": "What function helps export a model for inference?", "continuation": "export_with_logger()"}
+{"context": "What function applies map_fn on each element in collection?", "continuation": "map_collection()"}
+{"context": "What function converts input x into a tuple?", "continuation": "ensure_tuple()"}
+{"context": "What class converts iterator of bytes into a file-like binary stream object?", "continuation": "IteratorFileStream"}
+{"context": "What function invokes callback after each chunk is yielded from iterator?", "continuation": "iterate_with_callback()"}
+{"context": "What function returns whether input model is an instance of a deepspeed.DeepSpeedEngine?", "continuation": "is_model_deepspeed()"}
+{"context": "What function returns whether input model is an instance of a DistributedDataParallel?", "continuation": "is_model_ddp()"}
+{"context": "What function returns whether input model is an instance of a FullyShardedDataParallel?", "continuation": "is_model_fsdp()"}
+{"context": "What function returns whether Composer is running in a IPython/Jupyter Notebook?", "continuation": "is_notebook()"}
+{"context": "What function forces Python warnings to consolidate into one line?", "continuation": "warning_on_one_line()"}
+{"context": "What function gets free socket port to use as MASTER_PORT?", "continuation": "get_free_tcp_port()"}
+{"context": "What funtion sets model.eval() for context duration, restoring model status at end?", "continuation": "model_eval_mode()"}
+{"context": "What function checks the PyTorch version and compared it with version 2.0.0", "continuation": "using_torch_2()"}
+{"context": "What function modifies model in-place by recursively applying replacement policies?", "continuation": "replace_module_classes()"}
+{"context": "What function attempts to infer a module's device by inspecting its parameters and buffers?", "continuation": "_infer_device()"}
+{"context": "What function counts the number of instances of module_class in module, recursively?", "continuation": "count_module_instances()"}
+{"context": "What function counts instances of module_class in module, recursively, using a set to deduplicate?", "continuation": "_recur_count_module_instances()"}
+{"context": "What function returns whether tensor is element for any element in iterable?", "continuation": "_tensor_in()"}
+{"context": "What function returns the index of the optimizer param_group containing param?", "continuation": "_find_param_in_optimizer()"}
+{"context": "What function returns first - second while maintaining the order in first?", "continuation": "_ordered_diff()"}
+{"context": "What function removes old_params from the optimizers and insert new_params?", "continuation": "update_params_in_optimizer()"}
+{"context": "What function configures PyTorch deterministic mode?", "continuation": "configure_deterministic_mode()"}
+{"context": "What function gets a randomly created seed to use for seeding rng objects?", "continuation": "get_random_seed()"}
+{"context": "What function seeds all rng objects?", "continuation": "seed_all()"}
+{"context": "What function returns the state of the RNG objects?", "continuation": "get_rng_state()"}
+{"context": "What function restores the RNG state?", "continuation": "load_rng_state()"}
+{"context": "What function is the decorator to retry a function with backoff and jitter?", "continuation": "retry()"}

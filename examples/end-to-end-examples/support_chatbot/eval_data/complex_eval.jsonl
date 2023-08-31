@@ -1,0 +1,11 @@
+{"context": "How do the schedulers work with resume?", "continuation": "Resume should load all of the state, including the scheduler state"}
+{"context": "What are some pros and cons of using EMA?", "continuation": "EMA trades off the quality of the model for faster training times"}
+{"context": "What are some pros and cons of using ALiBi?", "continuation": "ALiBi increases training speed and is memory effeicient, but has some extra computational overhead"}
+{"context": "What is the intuition behind LayerFreezing?", "continuation": "The intuition is that earlier layers learn their features sooner than later layers, so by freezing them we can reduce the workload in backpropagation"}
+{"context": "What Callbacks should I use if I want to implement early stopping using Composer? Does such a callback even exist?", "continuation": "EarlyStopper and ThresholdStopper"}
+{"context": "Why do I need to import all this stuff from composer instead of just using the PyTorch version?", "continuation": "Composer includes many optimizations that increase accuracy while reducing training time!"}
+{"context": "What's the difference between a Callback and an Algorithm?", "continuation": "A callback is called during training to manually intervene with the training run while an algorithm is used to modify the training run calculations."}
+{"context": "How do you set the save interval for checkpointing a training run?", "continuation": "there is a save_interval argument in Trainer"}
+{"context": "Was it by design that composer doesn't automatically log the validation loss?", "continuation": "We currently don't log eval loss and instead recommend attaching a metric to compute eval loss if you would like to do so. This is because certain datasets for eval might not have a way to compute loss, so calling the loss function would not work and potentially break evaluation."}
+{"context": "How do you implement the various speed up algorithms in a training run?", "continuation": "Initialize them in a list and set it to be the algorithms argument in Trainer"}
+{"context": "What are the steps to finetune a model?", "continuation": "Install Composer, create dataloaders, set optimizers and learning rates, load the pretrained model, run the Trainer"}

@@ -1,0 +1,19 @@
+name: mpt-30b-composer-finetuned
+compute:
+  gpus: 4
+  instance: oci.bm.gpu.a10.4
+image: mosaicml/inference:0.1.29
+replicas: 1
+command: |
+  export PYTHONPATH=$PYTHONPATH:/code/examples:/code
+integrations:
+- integration_type: git_repo
+  git_repo: mosaicml/examples
+  ssh_clone: false
+  git_commit: df65ce9448f2e4c7803f7082930f80c8dc4e8fe1
+model:
+  download_parameters:
+    s3_path:  s3://BUCKET_NAME/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME/
+  model_handler: examples.inference-deployments.mpt.mpt_handler.MPTModelHandler
+  model_parameters:
+    model_name: mosaicml/mpt-30b-chat
