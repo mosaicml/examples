@@ -10,7 +10,7 @@ integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
   ssh_clone: false
-  git_commit: df65ce9448f2e4c7803f7082930f80c8dc4e8fe1
+  git_commit: 686e73ccc146a9f7afba3e0ed6d5a72bab0d1eb3
 model:
   download_parameters:
     s3_path:  s3://BUCKET_NAME/support-bot-demo/converted_checkpoints/HF_FOLDER_NAME/
