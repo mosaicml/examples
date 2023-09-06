@@ -2,7 +2,7 @@ name: mpt-7b-instruct
 compute:
   gpus: 1
   instance: oci.vm.gpu.a10.1
-image: mosaicml/inference:0.1.37
+image: mosaicml/inference:0.1.40
 replicas: 1
 default_model:
   model_type: mpt-7b-instruct
