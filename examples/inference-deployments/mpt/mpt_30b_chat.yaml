@@ -2,7 +2,7 @@ name: mpt-30b-chat
 compute:
   gpus: 2
   gpu_type: a100_40gb
-image: mosaicml/inference:0.1.37
+image: mosaicml/inference:0.1.40
 replicas: 1
 default_model:
   model_type: mpt-30b-chat
