@@ -5,9 +5,8 @@ command: |- # Note this command is a workaround until we build vllm into the inf
   pip uninstall torch -y
   pip install torch==2.0.1
 compute:
-  gpus: 1
-  instance: oci.vm.gpu.a10.1
-image: mosaicml/inference:0.1.37
-cluster: r7z15
+  gpus: 2
+  instance: oci.vm.gpu.a10.2
+image: mosaicml/inference:0.1.40
 default_model:
   model_type: llama2-13b
