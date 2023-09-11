@@ -24,7 +24,7 @@ command: |
   composer main.py /mnt/config/parameters.yaml
 scheduling:
   resumable: true
-  priority: high
+  priority: highest
 
 # Starting `parameters` copied from `yamls/main/mosaic-bert-base-uncased.yaml`.
 # Changes to `parameters` will be reflected in `/mnt/config/parameters.yaml`, which
@@ -130,6 +130,7 @@ parameters:
       tags:
         - pretraining
 
+  autoresume: True
   save_interval: 1000ba
   save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
   save_folder: s3://mosaicml-internal-checkpoints-shared/zack/rebuttal/${run_name}-seed-${seed}
