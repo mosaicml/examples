@@ -54,11 +54,26 @@ from transformers.modeling_outputs import (MaskedLMOutput,
                                            SequenceClassifierOutput)
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
+IMPL_USE_FLASH2 = False
 try:
-    import flash_attn_triton as flash_attn_triton
-    flash_attn_qkvpacked_func = flash_attn_triton.flash_attn_qkvpacked_func
+    import importlib
+
+    from flash_attn import flash_attn_qkvpacked_func
+    installed_version = importlib.metadata.version('flash_attn')
+    if installed_version < '2.4.2':
+        raise ImportError('newer version of flash_attn required (>= 2.4.2)')
+    IMPL_USE_FLASH2 = True
 except ImportError as e:
-    flash_attn_qkvpacked_func = None
+    warnings.warn(
+        f'Failed to import flash_attn. Will try to import triton implementation: {e}',
+        stacklevel=2)
+    try:
+        import flash_attn_triton as flash_attn_triton
+        flash_attn_qkvpacked_func = flash_attn_triton.flash_attn_qkvpacked_func
+    except ImportError as e:
+        flash_attn_qkvpacked_func = None
+        warnings.warn(f'Failed to import flash_attn_triton as a fallback: {e}',
+                      stacklevel=2)
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +198,8 @@ class BertUnpadSelfAttention(nn.Module):
 
     def forward(self, hidden_states: torch.Tensor, cu_seqlens: torch.Tensor,
                 max_seqlen_in_batch: int, indices: torch.Tensor,
-                attn_mask: torch.Tensor, bias: torch.Tensor) -> torch.Tensor:
+                attn_mask: torch.Tensor, bias: torch.Tensor,
+                slopes: torch.Tensor) -> torch.Tensor:
         """Perform self-attention.
 
         If dropout is zero, then we can use the Triton kernel, so we do that. However, if not, we send through a standard PyTorch
@@ -201,6 +217,7 @@ class BertUnpadSelfAttention(nn.Module):
             indices: (total_nnz,)
             attn_mask: (batch, max_seqlen_in_batch)
             bias: (batch, heads, max_seqlen_in_batch, max_seqlen_in_batch)
+            slopes: (heads) or (batch, heads)
 
         Returns:
             attention: (total_nnz, dim)
@@ -213,7 +230,8 @@ class BertUnpadSelfAttention(nn.Module):
                         'b s (t h d) -> b s t h d',
                         t=3,
                         h=self.num_attention_heads)
-        if self.p_dropout or flash_attn_qkvpacked_func is None:
+        if (not IMPL_USE_FLASH2 and
+                self.p_dropout) or flash_attn_qkvpacked_func is None:
             # if we have nonzero attention dropout (e.g. during fine-tuning) or no Triton, compute attention in PyTorch
             q = qkv[:, :, 0, :, :].permute(0, 2, 1, 3)  # b h s d
             k = qkv[:, :, 1, :, :].permute(0, 2, 3, 1)  # b h d s
@@ -226,19 +244,41 @@ class BertUnpadSelfAttention(nn.Module):
             attention = torch.matmul(attention_probs, v).permute(0, 2, 1,
                                                                  3)  # b s h d
         else:
-            # Triton implementation only supports 0 attention dropout
-            convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
-            if convert_dtype:
-                # Triton implementation only supports fp16 and bf16
-                orig_dtype = qkv.dtype
-                qkv = qkv.to(torch.float16)
-                bias_dtype = bias.dtype
-                bias = bias.to(torch.float16)
-                attention = flash_attn_qkvpacked_func(qkv, bias)
-                attention = attention.to(orig_dtype)
-                bias = bias.to(bias_dtype)
+            if IMPL_USE_FLASH2:
+                assert 1 <= len(slopes.shape) <= 2, f'{slopes=}'
+                assert slopes.shape[
+                    -1] == self.num_attention_heads, f'{slopes=}'
+
+                # Triton implementation only supports 0 attention dropout
+                convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
+                if convert_dtype:
+                    # Triton implementation only supports fp16 and bf16
+                    orig_dtype = qkv.dtype
+                    qkv = qkv.to(torch.float16)
+                    bias_dtype = bias.dtype
+                    bias = bias.to(torch.float16)
+
+                    attention = flash_attn_qkvpacked_func(
+                        qkv, dropout_p=self.p_dropout, alibi_slopes=slopes)
+                    attention = attention.to(orig_dtype)
+                    bias = bias.to(bias_dtype)
+                else:
+                    attention = flash_attn_qkvpacked_func(
+                        qkv, dropout_p=self.p_dropout, alibi_slopes=slopes)
             else:
-                attention = flash_attn_qkvpacked_func(qkv, bias)
+                # Triton implementation only supports 0 attention dropout
+                convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
+                if convert_dtype:
+                    # Triton implementation only supports fp16 and bf16
+                    orig_dtype = qkv.dtype
+                    qkv = qkv.to(torch.float16)
+                    bias_dtype = bias.dtype
+                    bias = bias.to(torch.float16)
+                    attention = flash_attn_qkvpacked_func(qkv, bias)
+                    attention = attention.to(orig_dtype)
+                    bias = bias.to(bias_dtype)
+                else:
+                    attention = flash_attn_qkvpacked_func(qkv, bias)
 
         # attn_mask is 1 for attend and 0 for don't
         attention = bert_padding_module.unpad_input_only(
@@ -291,6 +331,7 @@ class BertUnpadAttention(nn.Module):
         indices: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
         bias: Optional[torch.Tensor] = None,
+        slopes: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass for scaled self-attention without padding.
 
@@ -303,9 +344,11 @@ class BertUnpadAttention(nn.Module):
             indices: None or (total_nnz,)
             attn_mask: None or (batch, max_seqlen_in_batch)
             bias: None or (batch, heads, max_seqlen_in_batch, max_seqlen_in_batch)
+            slopes: None or (batch, heads) or (heads,)
         """
+        assert (bias is None) == (slopes is None), f'{bias=}, {slopes=}'
         self_output = self.self(input_tensor, cu_seqlens, max_s, indices,
-                                attn_mask, bias)
+                                attn_mask, bias, slopes)
         if subset_idx is not None:
             return self.output(
                 bert_padding_module.index_first_axis(self_output, subset_idx),
@@ -379,6 +422,7 @@ class BertLayer(nn.Module):
         indices: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
         bias: Optional[torch.Tensor] = None,
+        slopes: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass for a BERT layer, including both attention and MLP.
 
@@ -391,9 +435,12 @@ class BertLayer(nn.Module):
             indices: None or (total_nnz,)
             attn_mask: None or (batch, max_seqlen_in_batch)
             bias: None or (batch, heads, max_seqlen_in_batch, max_seqlen_in_batch)
+            slopes: None or (batch, heads) or (heads,)
         """
+        assert (bias is None) == (slopes is None), f'{bias=}, {slopes=}'
         attention_output = self.attention(hidden_states, cu_seqlens, seqlen,
-                                          subset_idx, indices, attn_mask, bias)
+                                          subset_idx, indices, attn_mask, bias,
+                                          slopes)
         layer_output = self.mlp(attention_output)
         return layer_output
 
@@ -463,6 +510,7 @@ class BertEncoder(nn.Module):
         relative_position = relative_position.unsqueeze(0).expand(
             n_heads, -1, -1)
         slopes = torch.Tensor(_get_alibi_head_slopes(n_heads)).to(device)
+        self.slopes = slopes
         alibi = slopes.unsqueeze(1).unsqueeze(1) * -relative_position
         # [1, n_heads, max_token_length, max_token_length]
         alibi = alibi.unsqueeze(0)
@@ -504,6 +552,7 @@ class BertEncoder(nn.Module):
         elif self.alibi.device != hidden_states.device:
             # Device catch-up
             self.alibi = self.alibi.to(hidden_states.device)
+            self.slopes = self.slopes.to(hidden_states.device)
         alibi_bias = self.alibi[:, :, :seqlen, :seqlen]
         attn_bias = extended_attention_mask[:, :, :seqlen, :seqlen]
         alibi_attn_mask = attn_bias + alibi_bias
@@ -517,7 +566,8 @@ class BertEncoder(nn.Module):
                                              None,
                                              indices,
                                              attn_mask=attention_mask,
-                                             bias=alibi_attn_mask)
+                                             bias=alibi_attn_mask,
+                                             slopes=self.slopes)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             # Pad inputs and mask. It will insert back zero-padded tokens.
@@ -536,7 +586,8 @@ class BertEncoder(nn.Module):
                                              None,
                                              indices,
                                              attn_mask=attention_mask,
-                                             bias=alibi_attn_mask)
+                                             bias=alibi_attn_mask,
+                                             slopes=self.slopes)
                 if output_all_encoded_layers:
                     all_encoder_layers.append(hidden_states)
             subset_idx = torch.nonzero(subset_mask[attention_mask_bool],
@@ -547,7 +598,8 @@ class BertEncoder(nn.Module):
                                            subset_idx=subset_idx,
                                            indices=indices,
                                            attn_mask=attention_mask,
-                                           bias=alibi_attn_mask)
+                                           bias=alibi_attn_mask,
+                                           slopes=self.slopes)
 
         if not output_all_encoded_layers:
             all_encoder_layers.append(hidden_states)

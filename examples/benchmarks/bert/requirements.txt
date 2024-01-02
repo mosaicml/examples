@@ -1,8 +1,10 @@
 einops==0.5.0
-torch==1.13.1
-mosaicml[nlp,wandb]>=0.14.0,<0.15
-mosaicml-streaming==0.4.1
-omegaconf==2.2.3
-transformers==4.28.1
+torch==2.1.1
+composer[nlp,wandb]>=0.17.0,<0.18
+mosaicml-streaming<=0.7
+omegaconf==2.3.0
+transformers==4.35.2
+# need a newer version of FA2
+flash_attn>=2.4.2
 # need a newer version of triton
-triton==2.0.0.dev20221103
+#triton==2.0.0.dev20221103

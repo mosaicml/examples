@@ -69,9 +69,6 @@ class StreamingTextDataset(StreamingDataset):
         keep_zip (bool): Whether to keep or delete the compressed form when decompressing
             downloaded shards. If ``False``, keep iff remote is local or no remote. Defaults to
             `False``.
-        keep_raw (bool): Whether to keep or delete the decompressed form (or only form)
-            of shards after all their samples have been yielded this epoch. If ``False``, keep iff
-            remote is local or no remote and no compression. Defaults to ``True``.
         samples_per_epoch (int, optional): Provide this field iff you are weighting sub-datasets
             proportionally. Defaults to ``None``.
         predownload (int, optional): Target number of samples ahead to download the shards of while
@@ -99,7 +96,6 @@ class StreamingTextDataset(StreamingDataset):
                  download_timeout: float = 60,
                  validate_hash: Optional[str] = None,
                  keep_zip: bool = False,
-                 keep_raw: bool = True,
                  samples_per_epoch: Optional[int] = None,
                  predownload: int = 100_000,
                  partition_algo: str = 'orig',
@@ -140,7 +136,6 @@ class StreamingTextDataset(StreamingDataset):
             download_timeout=download_timeout,
             validate_hash=validate_hash,
             keep_zip=keep_zip,
-            keep_raw=keep_raw,
             samples_per_epoch=samples_per_epoch,
             predownload=predownload,
             partition_algo=partition_algo,
@@ -266,8 +261,6 @@ def build_text_dataloader(
                     cfg.dataset.get('validate_hash', None),
                     keep_zip=stream.get('keep_zip', None) or
                     cfg.dataset.get('keep_zip', False),
-                    keep_raw=stream.get('keep_raw', None) or
-                    cfg.dataset.get('keep_raw', True),
                 ))
 
     # build dataset potentially with streams
@@ -282,7 +275,6 @@ def build_text_dataloader(
         download_timeout=cfg.dataset.get('download_timeout', 60),
         validate_hash=cfg.dataset.get('validate_hash', None),
         keep_zip=cfg.dataset.get('keep_zip', False),
-        keep_raw=cfg.dataset.get('keep_raw', True),
         samples_per_epoch=cfg.dataset.get('samples_per_epoch', None),
         predownload=cfg.dataset.get('predownload', 100_000),
         partition_algo=cfg.dataset.get('partition_algo', 'orig'),
