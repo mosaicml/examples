@@ -44,6 +44,8 @@ from typing import List, Optional, Tuple, Union
 # Add folder root to path to allow us to use relative imports regardless of what directory the script is run from
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
+import importlib
+
 import bert_padding as bert_padding_module
 import torch
 import torch.nn as nn
@@ -56,7 +58,6 @@ from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
 IMPL_USE_FLASH2 = False
 try:
-    import importlib
 
     from flash_attn import flash_attn_qkvpacked_func
     installed_version = importlib.metadata.version('flash_attn')
@@ -249,10 +250,9 @@ class BertUnpadSelfAttention(nn.Module):
                 assert slopes.shape[
                     -1] == self.num_attention_heads, f'{slopes=}'
 
-                # Triton implementation only supports 0 attention dropout
                 convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
                 if convert_dtype:
-                    # Triton implementation only supports fp16 and bf16
+                    # FA2 implementation only supports fp16 and bf16
                     orig_dtype = qkv.dtype
                     qkv = qkv.to(torch.float16)
                     bias_dtype = bias.dtype
