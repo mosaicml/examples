@@ -39,6 +39,7 @@ import math
 import os
 import sys
 import warnings
+from functools import lru_cache
 from typing import List, Optional, Tuple, Union
 
 # Add folder root to path to allow us to use relative imports regardless of what directory the script is run from
@@ -77,6 +78,13 @@ except ImportError as e:
                       stacklevel=2)
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache
+def _get_half_dtype() -> torch.dtype:
+    if torch.cuda.is_bf16_supported():
+        return torch.bfloat16
+    return torch.float16
 
 
 class BertEmbeddings(nn.Module):
@@ -250,13 +258,15 @@ class BertUnpadSelfAttention(nn.Module):
                 assert slopes.shape[
                     -1] == self.num_attention_heads, f'{slopes=}'
 
-                convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
+                convert_dtype = qkv.dtype not in (torch.float16, torch.bfloat16)
                 if convert_dtype:
                     # FA2 implementation only supports fp16 and bf16
+                    # If FA2 is supported, bfloat16 must be supported
+                    # as of FA2 2.4.2. (Turing GPUs not supported)
                     orig_dtype = qkv.dtype
-                    qkv = qkv.to(torch.float16)
+                    qkv = qkv.to(torch.bfloat16)
                     bias_dtype = bias.dtype
-                    bias = bias.to(torch.float16)
+                    bias = bias.to(torch.bfloat16)
 
                     attention = flash_attn_qkvpacked_func(
                         qkv, dropout_p=self.p_dropout, alibi_slopes=slopes)
@@ -267,13 +277,15 @@ class BertUnpadSelfAttention(nn.Module):
                         qkv, dropout_p=self.p_dropout, alibi_slopes=slopes)
             else:
                 # Triton implementation only supports 0 attention dropout
-                convert_dtype = qkv.dtype not in [torch.float16, torch.bfloat16]
+                convert_dtype = qkv.dtype not in (torch.float16, torch.bfloat16)
                 if convert_dtype:
+                    half = _get_half_dtype()
+
                     # Triton implementation only supports fp16 and bf16
                     orig_dtype = qkv.dtype
-                    qkv = qkv.to(torch.float16)
+                    qkv = qkv.to(half)
                     bias_dtype = bias.dtype
-                    bias = bias.to(torch.float16)
+                    bias = bias.to(half)
                     attention = flash_attn_qkvpacked_func(qkv, bias)
                     attention = attention.to(orig_dtype)
                     bias = bias.to(bias_dtype)
