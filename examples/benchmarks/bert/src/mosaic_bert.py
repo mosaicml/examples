@@ -119,6 +119,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
             pretrained_model_name)
 
     metrics = [
+        # vocab size no longer arg in composer
         LanguageCrossEntropy(ignore_index=-100),
         MaskedAccuracy(ignore_index=-100)
     ]
