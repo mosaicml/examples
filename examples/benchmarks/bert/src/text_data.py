@@ -69,7 +69,7 @@ class StreamingTextDataset(StreamingDataset):
         keep_zip (bool): Whether to keep or delete the compressed form when decompressing
             downloaded shards. If ``False``, keep iff remote is local or no remote. Defaults to
             `False``.
-        samples_per_epoch (int, optional): Provide this field iff you are weighting sub-datasets
+        epoch_size (int, optional): Provide this field iff you are weighting sub-datasets
             proportionally. Defaults to ``None``.
         predownload (int, optional): Target number of samples ahead to download the shards of while
             iterating. Defaults to ``100_000``.
@@ -96,7 +96,7 @@ class StreamingTextDataset(StreamingDataset):
                  download_timeout: float = 60,
                  validate_hash: Optional[str] = None,
                  keep_zip: bool = False,
-                 samples_per_epoch: Optional[int] = None,
+                 epoch_size: Optional[int] = None,
                  predownload: int = 100_000,
                  partition_algo: str = 'orig',
                  num_canonical_nodes: Optional[int] = None,
@@ -136,7 +136,7 @@ class StreamingTextDataset(StreamingDataset):
             download_timeout=download_timeout,
             validate_hash=validate_hash,
             keep_zip=keep_zip,
-            samples_per_epoch=samples_per_epoch,
+            epoch_size=epoch_size,
             predownload=predownload,
             partition_algo=partition_algo,
             num_canonical_nodes=num_canonical_nodes,
@@ -275,7 +275,7 @@ def build_text_dataloader(
         download_timeout=cfg.dataset.get('download_timeout', 60),
         validate_hash=cfg.dataset.get('validate_hash', None),
         keep_zip=cfg.dataset.get('keep_zip', False),
-        samples_per_epoch=cfg.dataset.get('samples_per_epoch', None),
+        epoch_size=cfg.dataset.get('epoch_size', None),
         predownload=cfg.dataset.get('predownload', 100_000),
         partition_algo=cfg.dataset.get('partition_algo', 'orig'),
         num_canonical_nodes=cfg.dataset.get('num_canonical_nodes', 128),
