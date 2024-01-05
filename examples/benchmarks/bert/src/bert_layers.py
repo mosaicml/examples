@@ -63,8 +63,8 @@ from transformers.models.bert.modeling_bert import BertPreTrainedModel
 IMPL_USE_FLASH2 = False
 # Import Flash Attention 2, which supports ALiBi https://github.com/Dao-AILab/flash-attention
 try:
-    from flash_attn import flash_attn_qkvpacked_func # type: ignore
-    installed_version = importlib.metadata.version('flash_attn') # type: ignore
+    from flash_attn import flash_attn_qkvpacked_func  # type: ignore
+    installed_version = importlib.metadata.version('flash_attn')  # type: ignore
     if installed_version < '2.4.2':
         raise ImportError('newer version of flash_attn required (>= 2.4.2)')
     IMPL_USE_FLASH2 = True
@@ -278,7 +278,7 @@ class BertUnpadSelfAttention(nn.Module):
 
                     attention = flash_attn_qkvpacked_func(
                         qkv, dropout_p=self.p_dropout, alibi_slopes=slopes)
-                    attention = attention.to(orig_dtype) # type: ignore
+                    attention = attention.to(orig_dtype)  # type: ignore
                     bias = bias.to(bias_dtype)
                 else:
                     attention = flash_attn_qkvpacked_func(
@@ -302,14 +302,14 @@ class BertUnpadSelfAttention(nn.Module):
                     bias_dtype = bias.dtype
                     bias = bias.to(half)
                     attention = flash_attn_qkvpacked_func(qkv, bias)
-                    attention = attention.to(orig_dtype) # type: ignore
+                    attention = attention.to(orig_dtype)  # type: ignore
                     bias = bias.to(bias_dtype)
                 else:
                     attention = flash_attn_qkvpacked_func(qkv, bias)
 
         # attn_mask is 1 for attend and 0 for don't attend
         attention = bert_padding_module.unpad_input_only(
-            attention, # type: ignore
+            attention,  # type: ignore
             torch.squeeze(attn_mask) == 1)
         return rearrange(attention, 'nnz h d -> nnz (h d)')
 

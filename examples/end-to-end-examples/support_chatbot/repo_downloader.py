@@ -91,7 +91,9 @@ class RepoDownloader:
         return output_file
 
     def file_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a file in cloned repository, downloads it to a
+        """Given the file_path of a file in cloned repository, downloads it to
+        a.
+
         .txt file and saves it in the same directory structure in.
 
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
