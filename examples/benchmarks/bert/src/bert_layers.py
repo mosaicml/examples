@@ -58,8 +58,8 @@ from transformers.modeling_outputs import (MaskedLMOutput,
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
 IMPL_USE_FLASH2 = False
+# Import Flash Attention 2, which supports ALiBi https://github.com/Dao-AILab/flash-attention
 try:
-
     from flash_attn import flash_attn_qkvpacked_func
     installed_version = importlib.metadata.version('flash_attn')
     if installed_version < '2.4.2':
@@ -69,6 +69,7 @@ except ImportError as e:
     warnings.warn(
         f'Failed to import flash_attn. Will try to import triton implementation: {e}',
         stacklevel=2)
+    # Import custom Triton Flash Attention implementation that supports ALiBi
     try:
         import flash_attn_triton as flash_attn_triton
         flash_attn_qkvpacked_func = flash_attn_triton.flash_attn_qkvpacked_func
@@ -211,13 +212,14 @@ class BertUnpadSelfAttention(nn.Module):
                 slopes: torch.Tensor) -> torch.Tensor:
         """Perform self-attention.
 
-        If dropout is zero, then we can use the Triton kernel, so we do that. However, if not, we send through a standard PyTorch
-        implementation of self-attention.
+        There are three attention implementations supported: vanilla attention with ALiBi, 
+        Triton Flash Attention with ALibi, and Flash Attention 2 with ALiBi
+
+        In order to use the Triton kernel, dropout must be zero (i.e. attention_probs_dropout_prob = 0)
 
         The arguments are unpadded, and our implementations of attention require padded arguments,
         so we first call `pad_input`. Once we compute attention, we re-unpad our outputs for the other layers.
         The pad/unpad operations add overhead, but not sending pad tokens through ffs saves compute.
-        It is possible to write an unpadded implementation of attention (in Triton and PyTorch), which we will eventually do.
 
         Args:
             hidden_states: (total_nnz, dim)
@@ -239,6 +241,8 @@ class BertUnpadSelfAttention(nn.Module):
                         'b s (t h d) -> b s t h d',
                         t=3,
                         h=self.num_attention_heads)
+        
+        # Option 1: Vanilla Self Attention with ALiBi
         if (not IMPL_USE_FLASH2 and
                 self.p_dropout) or flash_attn_qkvpacked_func is None:
             # if we have nonzero attention dropout (e.g. during fine-tuning) or no Triton, compute attention in PyTorch
@@ -253,6 +257,7 @@ class BertUnpadSelfAttention(nn.Module):
             attention = torch.matmul(attention_probs, v).permute(0, 2, 1,
                                                                  3)  # b s h d
         else:
+            # Option 2: Flash Attention 2 with ALiBi
             if IMPL_USE_FLASH2:
                 assert 1 <= len(slopes.shape) <= 2, f'{slopes=}'
                 assert slopes.shape[
@@ -275,8 +280,14 @@ class BertUnpadSelfAttention(nn.Module):
                 else:
                     attention = flash_attn_qkvpacked_func(
                         qkv, dropout_p=self.p_dropout, alibi_slopes=slopes)
+            # Option 3: Triton Implementation of Flash Attention with ALiBi
             else:
                 # Triton implementation only supports 0 attention dropout
+                if self.p_dropout > 0.0:
+                    raise ValueError(
+                        f'dropout probability of the attention layer is ({self.p_dropout} '
+                        f'the Triton kernel for Flash Attention requires attention_probs_dropout_prob=0')
+
                 convert_dtype = qkv.dtype not in (torch.float16, torch.bfloat16)
                 if convert_dtype:
                     half = _get_half_dtype()
@@ -292,7 +303,7 @@ class BertUnpadSelfAttention(nn.Module):
                 else:
                     attention = flash_attn_qkvpacked_func(qkv, bias)
 
-        # attn_mask is 1 for attend and 0 for don't
+        # attn_mask is 1 for attend and 0 for don't attend
         attention = bert_padding_module.unpad_input_only(
             attention,
             torch.squeeze(attn_mask) == 1)
