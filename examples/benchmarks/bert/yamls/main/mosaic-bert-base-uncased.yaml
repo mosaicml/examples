@@ -8,7 +8,7 @@ data_remote: # If blank, files must be present in data_local
 
 max_seq_len: 128
 tokenizer_name: bert-base-uncased
-mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
+mlm_probability: 0.3 # MosaicBERT should use 30% masking for optimal performance
 
 # Run Name
 run_name: mosaic-bert-base-uncased
@@ -18,13 +18,13 @@ model:
   name: mosaic_bert
   pretrained_model_name: ${tokenizer_name}
   tokenizer_name: ${tokenizer_name}
-  # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
+  # MosaicBERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
   # Note: if using the pretrained_checkpoint argument to create a model from an existing checkpoint, make sure
   # the model_config settings match the architecture of the existing model
   model_config:
     num_attention_heads: 12 # bert-base default
     num_hidden_layers: 12 # bert-base default
-    attention_probs_dropout_prob: 0.0 # This must be 0 for Flash Attention with triton to work
+    attention_probs_dropout_prob: 0.0 # This can be non zero with Flash Attention 2
 
 # Dataloaders
 train_loader:

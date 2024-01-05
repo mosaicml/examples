@@ -9,7 +9,7 @@
 #   When ready, use `mcli run -f yamls/finetuning/mcloud_run.yaml` to launch
 
 name: finetune-mosaic-bert
-image: mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
+image: mosaicml/pytorch:2.1.1_cu121-python3.10-ubuntu20.04
 
 compute:
   gpus: 8  # Number of GPUs to use
@@ -21,7 +21,7 @@ compute:
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  git_branch: v0.0.4 # use your branch
+  git_branch: main # use your branch
   # git_commit: # OR use your commit hash
   pip_install: -e .[bert]
   ssh_clone: false # Should be true if using a private repo
