@@ -1,7 +1,7 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Implements a Mosaic BERT wrapper around a :class:`.ComposerTransformer`."""
+"""Implements a MosaicBERT wrapper around a :class:`.ComposerTransformer`."""
 
 from __future__ import annotations
 
@@ -31,12 +31,12 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                            tokenizer_name: Optional[str] = None,
                            gradient_checkpointing: Optional[bool] = False,
                            pretrained_checkpoint: Optional[str] = None):
-    """Mosaic BERT masked language model based on |:hugging_face:| Transformers.
+    """MosaicBERT masked language model based on |:hugging_face:| Transformers.
 
     For more information, see
     `Transformers. <https://huggingface.co/transformers/>`_.
 
-    This function creates a Mosaic BERT, which includes several throughput
+    This function creates a MosaicBERT, which includes several throughput
     optimizations not available in |:hugging_face:| BERT as well as
     architecture changes based on ALiBi and Gated Linear Units.
 
@@ -82,7 +82,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         "vocab_size": 30522
         }
 
-    To create a Mosaic BERT model for Masked Language Model pretraining:
+    To create a MosaicBERT model for Masked Language Model pretraining:
 
      .. testcode::
 
@@ -145,11 +145,11 @@ def create_mosaic_bert_classification(
         tokenizer_name: Optional[str] = None,
         gradient_checkpointing: Optional[bool] = False,
         pretrained_checkpoint: Optional[str] = None):
-    """Mosaic BERT classification model based on |:hugging_face:| Transformers.
+    """MosaicBERT classification model based on |:hugging_face:| Transformers.
 
     For more information, see `Transformers. <https://huggingface.co/transformers/>`_.
 
-    This function creates a Mosaic BERT, which includes several throughput
+    This function creates a MosaicBERT, which includes several throughput
     optimizations not available in |:hugging_face:| BERT as well as
     architecture changes based on ALiBi and Gated Linear Units.
 
@@ -207,7 +207,7 @@ def create_mosaic_bert_classification(
             "vocab_size": 30522
         }
 
-    To create a Mosaic BERT model for classification:
+    To create a MosaicBERT model for classification:
 
      .. testcode::
         from mosaic_bert import create_mosaic_bert_classification
@@ -229,8 +229,10 @@ def create_mosaic_bert_classification(
     if not model_config:
         model_config = {}
 
-    # By default, turn off attention dropout in Mosaic BERT
-    # (otherwise, Flash Attention will be off by default)
+    # By default, turn off attention dropout in MosaicBERT
+    # Flash Attention 2 supports dropout in the attention module
+    # while our previous Triton Flash Attention layer only works with 
+    # attention_probs_dropout_prob = 0.
     if 'attention_probs_dropout_prob' not in model_config:
         model_config['attention_probs_dropout_prob'] = 0.0
 
