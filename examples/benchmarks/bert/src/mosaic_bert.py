@@ -31,7 +31,7 @@ def create_mosaic_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
                            tokenizer_name: Optional[str] = None,
                            gradient_checkpointing: Optional[bool] = False,
                            pretrained_checkpoint: Optional[str] = None):
-    """MosaicBERT masked language model based on |:hugging_face:| Transformers.
+    """Mosaic BERT masked language model based on |:hugging_face:| Transformers.
 
     For more information, see
     `Transformers. <https://huggingface.co/transformers/>`_.
@@ -145,7 +145,7 @@ def create_mosaic_bert_classification(
         tokenizer_name: Optional[str] = None,
         gradient_checkpointing: Optional[bool] = False,
         pretrained_checkpoint: Optional[str] = None):
-    """MosaicBERT classification model based on |:hugging_face:| Transformers.
+    """Mosaic BERT classification model based on |:hugging_face:| Transformers.
 
     For more information, see `Transformers. <https://huggingface.co/transformers/>`_.
 
