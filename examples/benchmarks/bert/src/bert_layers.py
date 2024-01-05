@@ -1,9 +1,9 @@
-# Copyright 2022 MosaicML Examples authors
+# Copyright 2023 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
 # Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
 # Copyright (c) 2018-2021, NVIDIA CORPORATION.  All rights reserved.
-# Copyright (c) 2022, Tri Dao.
+# Copyright (c) 2023, Tri Dao.
 
 """Implements Mosaic BERT, with an eye towards the Hugging Face API.
 
@@ -16,20 +16,20 @@ of training with shorter sequence lengths by enabling extrapolation to longer se
 2. Gated Linear Units (GLU). This architectural change replaces the FFN component of the BERT layer
 to improve overall expressiveness, providing better convergence properties.
 
-3. Flash Attention. The Mosaic BERT's self-attention layer makes use of Flash Attention, which dramatically
+3. Flash Attention. The MosaicBERT's self-attention layer makes use of Flash Attention, which dramatically
 improves the speed of self-attention. Our implementation utilizes a bleeding edge implementation that
 supports attention biases, which allows us to use Flash Attention with ALiBi.
 
 4. Unpadding. Padding is often used to simplify batching across sequences of different lengths. Standard BERT
-implementations waste computation on padded tokens. Mosaic BERT internally unpads to reduce unnecessary computation
+implementations waste computation on padded tokens. MosaicBERT internally unpads to reduce unnecessary computation
 and improve speed. It does this without changing how the user interfaces with the model, thereby
 preserving the simple API of standard implementations.
 
 
-Currently, Mosaic BERT is available for masked language modeling :class:`BertForMaskedLM` and sequence
+Currently, MosaicBERT is available for masked language modeling :class:`BertForMaskedLM` and sequence
 classification :class:`BertForSequenceClassification`. We aim to expand this catalogue in future releases.
 
-See :file:`./mosaic_bert.py` for utilities to simplify working with Mosaic BERT in Composer, and for example usage
+See :file:`./mosaic_bert.py` for utilities to simplify working with MosaicBERT in Composer, and for example usage
 of the core Mosaic BERT classes.
 """
 
@@ -174,10 +174,10 @@ class BertEmbeddings(nn.Module):
 class BertUnpadSelfAttention(nn.Module):
     """Performs multi-headed self attention on a batch of unpadded sequences.
 
-    If Triton is installed, this module uses Flash Attention to greatly improve throughput.
-    The Flash Attention implementation used in Mosaic BERT supports arbitrary attention biases (which
-    we use to implement ALiBi), but does not support attention dropout. If either Triton is not installed
-    or `config.attention_probs_dropout_prob > 0`, the implementation will default to a
+    If Flash Attention 2 is installed, this module uses Flash Attention to greatly improve throughput.
+    The Flash Attention implementation used in MosaicBERT supports arbitrary attention biases (which
+    we use to implement ALiBi), but does not support attention dropout. If either Flash Attention 2 is 
+    not installed or `config.attention_probs_dropout_prob > 0`, the implementation will default to a
     math-equivalent pytorch version, which is much slower.
 
     See `forward` method for additional detail.
