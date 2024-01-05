@@ -37,7 +37,7 @@ You'll find in this folder:
 
 ### Deprecated 01/04/2024
 - `src/flash_attn_triton.py` - Source code for a custom [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in MosaicBERT that supports ALiBi. This is no longer necessary. Instead, MosaicBERT attention layers automatically
-use [Flash Attention 2](https://github.com/Dao-AILab/flash-attention) with ALiBi support 
+use [Flash Attention 2](https://github.com/Dao-AILab/flash-attention) with ALiBi support
 
 ## Quick start
 

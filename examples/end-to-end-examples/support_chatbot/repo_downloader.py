@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2022 MosaicML LLM Foundry authors
 # SPDX-License-Identifier: Apache-2.0
 
@@ -7,9 +10,10 @@ import sys
 
 from git.repo import Repo
 
+
 class RepoDownloader:
-    """Downloads .md, .py, and .YAML files in git repositories to text files that
-    land in /scripts/train/support_chatbot/retrieval_data/{REPOSITORY_NAME}
+    """Downloads .md, .py, and .YAML files in git repositories to text files
+    that land in /scripts/train/support_chatbot/retrieval_data/{REPOSITORY_NAME}
 
     Args:
         output_dir (str): The path of the directory where the downloaded repository will be saved
@@ -38,26 +42,25 @@ class RepoDownloader:
             downloader.download_repo()
     """
 
-    def __init__(self, 
-                 output_dir: str, 
-                 current_dir: str,
+    def __init__(self, output_dir: str, current_dir: str,
                  repo_url: str) -> None:
-        
+
         self.output_dir = output_dir
         self.repo_url = repo_url
         self.repo_name = repo_url.split('/')[-1]
         self.clone_dir = os.path.join(current_dir, self.repo_name)
 
         if os.path.exists(self.clone_dir):
-            raise ValueError(f"{self.clone_dir} already exists. Please choose a path that doesn't contain the repository name.")
-        
+            raise ValueError(
+                f"{self.clone_dir} already exists. Please choose a path that doesn't contain the repository name."
+            )
+
     def get_github_file_url(self, file_path: str) -> str:
         """Generate GitHub URL for a specific file in the repository."""
         relative_path = os.path.relpath(file_path, self.clone_dir)
         # Ensure that the base GitHub URL is always included
         github_file_url = f"https://github.com/{self.repo_url.split('/')[-2]}/{self.repo_name}/blob/main/{relative_path}"
         return github_file_url
-
 
     def prepare_output_file(self, file_path: str) -> str:
         """Given the .py, .md, or .YAML file_path of the cloned git repository
@@ -78,17 +81,19 @@ class RepoDownloader:
             raise ValueError(f'Unsupported file type: {ext}')
 
         github_url = self.get_github_file_url(file_path)
-        
-        # Convert the GitHub URL into the desired filename format
-        filename = github_url.replace("/", "{slash}").replace(".", "{dot}")
 
-        output_file = os.path.join(self.output_dir, self.repo_name, filename + '.txt')
+        # Convert the GitHub URL into the desired filename format
+        filename = github_url.replace('/', '{slash}').replace('.', '{dot}')
+
+        output_file = os.path.join(self.output_dir, self.repo_name,
+                                   filename + '.txt')
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         return output_file
 
     def file_to_txt(self, file_path: (str)) -> None:
-        """Given the file_path of a file in cloned repository, downloads it
-        to a .txt file and saves it in the same directory structure in
+        """Given the file_path of a file in cloned repository, downloads it to a
+        .txt file and saves it in the same directory structure in.
+
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Args:
@@ -102,7 +107,8 @@ class RepoDownloader:
 
     def download_repo(self) -> str:
         """Given a git repository url clone the repository, then download all
-        repository .yaml, .py, and .md files as .txt files and save them in
+        repository .yaml, .py, and .md files as .txt files and save them in.
+
         /scripts/train/support_chatbot/retrieval_data/{self.repo_name}
 
         Returns:
@@ -125,16 +131,19 @@ class RepoDownloader:
         shutil.rmtree(self.clone_dir)
         return os.path.join(self.output_dir, self.repo_name)
 
+
 def main() -> None:
     output_dir = 'retrieval_data'
     if len(sys.argv) < 2:
-        raise ValueError("At least one repository URL must be provided as an argument.")
-    
+        raise ValueError(
+            'At least one repository URL must be provided as an argument.')
+
     for repo_url in sys.argv[1:]:
-        downloader = RepoDownloader(output_dir, "", repo_url)
+        downloader = RepoDownloader(output_dir, '', repo_url)
         if os.path.exists(downloader.clone_dir):
             continue
         downloader.download_repo()
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()

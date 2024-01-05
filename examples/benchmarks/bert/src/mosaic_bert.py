@@ -231,7 +231,7 @@ def create_mosaic_bert_classification(
 
     # By default, turn off attention dropout in MosaicBERT
     # Flash Attention 2 supports dropout in the attention module
-    # while our previous Triton Flash Attention layer only works with 
+    # while our previous Triton Flash Attention layer only works with
     # attention_probs_dropout_prob = 0.
     if 'attention_probs_dropout_prob' not in model_config:
         model_config['attention_probs_dropout_prob'] = 0.0

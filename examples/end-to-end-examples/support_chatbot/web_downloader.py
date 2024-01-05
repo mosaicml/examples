@@ -1,9 +1,12 @@
-import urllib.request
-from bs4 import BeautifulSoup
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
+import html
 import os
 import re
-import html
+import urllib.request
 
+from bs4 import BeautifulSoup
 
 all_links = [
     'https://docs.mosaicml.com',
@@ -104,42 +107,45 @@ all_links = [
     'https://docs.mosaicml.com/projects/streaming/en/stable/examples/multiprocess_dataset_conversion.html',
 ]
 
+
 class WebScraper:
-    def __init__(self, 
-                 path: str,
-                 target_links: list[str] = all_links):
+
+    def __init__(self, path: str, target_links: list[str] = all_links):
         self.target_links = target_links
-        self.destination_folder =os.path.join(path, 'scraped')
-        
+        self.destination_folder = os.path.join(path, 'scraped')
+
         if not os.path.exists(self.destination_folder):
             os.makedirs(self.destination_folder)
 
     def _clean_text(self, text: str) -> str:
-        """
-        Cleans the extracted text by removing excessive newlines and spaces.
-        """
+        """Cleans the extracted text by removing excessive newlines and
+        spaces."""
         text = re.sub(r'\n+', '\n', text)
         text = text.strip()  # Remove starting and ending white spaces
         return text
 
     def _extract_codecells(self, soup: BeautifulSoup) -> list[str]:
         code_blocks = []
-        
-        for pre_tag in soup.find_all('pre', id=lambda x: x and x.startswith('codecell')):
+
+        for pre_tag in soup.find_all(
+                'pre', id=lambda x: x and x.startswith('codecell')):
             # Combining the text from each span within the pre tag
-            code_text = ''.join(span.get_text() for span in pre_tag.find_all('span'))
+            code_text = ''.join(
+                span.get_text() for span in pre_tag.find_all('span'))
             code_blocks.append(code_text)
 
         return code_blocks
 
     @staticmethod
     def url_to_filename(url: str) -> str:
-        return url.replace('/', '{slash}').replace('.', '{dot}').replace(':', '{colon}')
+        return url.replace('/',
+                           '{slash}').replace('.',
+                                              '{dot}').replace(':', '{colon}')
 
     def scrape(self) -> None:
         for link in self.target_links:
             self._save_content_from_link(link)
-    
+
     def _save_content_from_link(self, link: str) -> None:
         try:
             link_response = urllib.request.urlopen(link)
@@ -154,7 +160,8 @@ class WebScraper:
         link_content = link_response.read().decode('utf-8')
 
         # Detect content type based on file extension or MIME type
-        if link.endswith(".html") or "text/html" in link_response.headers.get('Content-Type', ''):
+        if link.endswith('.html') or 'text/html' in link_response.headers.get(
+                'Content-Type', ''):
             parser_type = 'html.parser'
         else:
             parser_type = 'xml'
@@ -165,11 +172,13 @@ class WebScraper:
         code_cells = self._extract_codecells(soup_content)
 
         # Extract relevant textual content
-        text_sections = soup_content.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'])
-        text_content = "\n".join(section.get_text() for section in text_sections)
+        text_sections = soup_content.find_all(
+            ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'])
+        text_content = '\n'.join(
+            section.get_text() for section in text_sections)
 
         # Add the highlights (code snippets) to the text content
-        text_content += "\n\n" + "\n\n".join(code_cells)
+        text_content += '\n\n' + '\n\n'.join(code_cells)
 
         # Clean the text content for better readability
         text_content = self._clean_text(text_content)
@@ -178,6 +187,7 @@ class WebScraper:
         if parser_type == 'html.parser':
             text_content = html.unescape(text_content)
 
-        filename = os.path.join(self.destination_folder, self.url_to_filename(link) + '.txt')
+        filename = os.path.join(self.destination_folder,
+                                self.url_to_filename(link) + '.txt')
         with open(filename, 'w') as file:
             file.write(text_content)

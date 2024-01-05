@@ -1,3 +1,6 @@
+# Copyright 2022 MosaicML Examples authors
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright 2023 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
@@ -177,7 +180,7 @@ class BertUnpadSelfAttention(nn.Module):
 
     If Flash Attention 2 is installed, this module uses Flash Attention to greatly improve throughput.
     The Flash Attention implementation used in MosaicBERT supports arbitrary attention biases (which
-    we use to implement ALiBi), but does not support attention dropout. If either Flash Attention 2 is 
+    we use to implement ALiBi), but does not support attention dropout. If either Flash Attention 2 is
     not installed or `config.attention_probs_dropout_prob > 0`, the implementation will default to a
     math-equivalent pytorch version, which is much slower.
 
@@ -212,7 +215,7 @@ class BertUnpadSelfAttention(nn.Module):
                 slopes: torch.Tensor) -> torch.Tensor:
         """Perform self-attention.
 
-        There are three attention implementations supported: vanilla attention with ALiBi, 
+        There are three attention implementations supported: vanilla attention with ALiBi,
         Triton Flash Attention with ALibi, and Flash Attention 2 with ALiBi
 
         In order to use the Triton kernel, dropout must be zero (i.e. attention_probs_dropout_prob = 0)
@@ -241,7 +244,7 @@ class BertUnpadSelfAttention(nn.Module):
                         'b s (t h d) -> b s t h d',
                         t=3,
                         h=self.num_attention_heads)
-        
+
         # Option 1: Vanilla Self Attention with ALiBi
         if (not IMPL_USE_FLASH2 and
                 self.p_dropout) or flash_attn_qkvpacked_func is None:
@@ -286,7 +289,8 @@ class BertUnpadSelfAttention(nn.Module):
                 if self.p_dropout > 0.0:
                     raise ValueError(
                         f'dropout probability of the attention layer is ({self.p_dropout} '
-                        f'the Triton kernel for Flash Attention requires attention_probs_dropout_prob=0')
+                        f'the Triton kernel for Flash Attention requires attention_probs_dropout_prob=0'
+                    )
 
                 convert_dtype = qkv.dtype not in (torch.float16, torch.bfloat16)
                 if convert_dtype:
