@@ -499,7 +499,6 @@ class BertEncoder(nn.Module):
             (1, self.num_attention_heads, self._current_alibi_size,
              self._current_alibi_size))
         self.rebuild_alibi_tensor(size=config.alibi_starting_size)
-        self.slopes = None
 
     def rebuild_alibi_tensor(self,
                              size: int,
