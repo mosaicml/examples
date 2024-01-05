@@ -580,7 +580,7 @@ class BertEncoder(nn.Module):
         elif self.alibi.device != hidden_states.device:
             # Device catch-up
             self.alibi = self.alibi.to(hidden_states.device)
-            self.slopes = self.slopes.to(hidden_states.device)
+            self.slopes = self.slopes.to(hidden_states.device) # type: ignore
         alibi_bias = self.alibi[:, :, :seqlen, :seqlen]
         attn_bias = extended_attention_mask[:, :, :seqlen, :seqlen]
         alibi_attn_mask = attn_bias + alibi_bias
