@@ -83,7 +83,7 @@ parameters:
 
   # Algorithms
   algorithms:
-    fused_layernorm: {}
+    low_precision_layernorm: {}
 
   # Task configuration
   tasks:
