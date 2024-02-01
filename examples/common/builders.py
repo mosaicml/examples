@@ -4,7 +4,7 @@ import os
 from typing import Union
 
 from composer import algorithms
-from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
+from composer.callbacks import (LRMonitor, MemoryMonitor,
                                 OptimizerMonitor, RuntimeEstimator,
                                 SpeedMonitor)
 from composer.core import Evaluator
