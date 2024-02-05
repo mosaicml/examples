@@ -10,4 +10,3 @@ omegaconf
 diffusers[torch]==0.11.1
 transformers[torch]==4.25.1
 datasets==2.14.6
-
