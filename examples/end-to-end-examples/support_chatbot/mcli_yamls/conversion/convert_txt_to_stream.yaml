@@ -11,7 +11,7 @@ integrations:
 # Clone the examples repository so that we have access to the code in sec_10k_qa
 - integration_type: git_repo
   git_repo: YOUR_GITHUB_USERNAME/examples
-  #git_branch: support-bot
+  # git_branch: support-bot
   ssh_clone: false # Should be true if using a private repo
   path: /workspace/examples # Tell MCLI what path to clone the repo to
 
