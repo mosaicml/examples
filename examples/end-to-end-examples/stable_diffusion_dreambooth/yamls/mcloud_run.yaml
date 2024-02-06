@@ -10,6 +10,7 @@ compute:
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
+  git_commit: fa3d60e71f1a9b10dc8b0c6b3933d55849234def
   ssh_clone: false
 
 command: |
