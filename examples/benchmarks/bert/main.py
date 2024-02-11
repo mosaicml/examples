@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import src.hf_bert as hf_bert_module
 import src.mosaic_bert as mosaic_bert_module
 import src.text_data as text_data_module
+import src.mlm_scheduling as mlm_scheduling_module
 from composer import Trainer, algorithms
 from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
                                 OptimizerMonitor, RuntimeEstimator,
@@ -49,6 +50,26 @@ def update_batch_size_info(cfg: DictConfig):
             cfg.device_eval_batch_size = 1
         else:
             cfg.device_eval_batch_size = cfg.device_train_microbatch_size
+    return cfg
+
+
+def update_mlm_schedule(cfg: DictConfig):
+
+    def convert_constant_rate(dataset_cfg: DictConfig):
+        mlm_schedule = dataset_cfg.get('mlm_schedule', None)
+        if mlm_schedule is None:
+            mlm_probability = dataset_cfg.mlm_probability
+            mlm_schedule = om.create({
+                'name': 'constant',
+                'initial_masking_rate': mlm_probability,
+                'final_masking_rate': mlm_probability,
+            })
+        return mlm_schedule
+
+    cfg.train_loader.dataset.mlm_schedule = convert_constant_rate(
+        cfg.train_loader.dataset)
+    cfg.eval_loader.dataset.mlm_schedule = convert_constant_rate(
+        cfg.eval_loader.dataset)
     return cfg
 
 
@@ -174,7 +195,7 @@ def main(cfg: DictConfig,
 
     # Dataloaders
     print('Building train loader...')
-    train_loader = build_dataloader(
+    train_loader, distributed_masking_rate = build_dataloader(
         cfg.train_loader,
         model.tokenizer,
         cfg.global_train_batch_size // dist.get_world_size(),
@@ -182,7 +203,7 @@ def main(cfg: DictConfig,
     print('Building eval loader...')
     global_eval_batch_size = cfg.get('global_eval_batch_size',
                                      cfg.global_train_batch_size)
-    eval_loader = build_dataloader(
+    eval_loader, _ = build_dataloader(
         cfg.eval_loader,
         model.tokenizer,
         global_eval_batch_size // dist.get_world_size(),
@@ -205,6 +226,9 @@ def main(cfg: DictConfig,
         build_callback(name, callback_cfg)
         for name, callback_cfg in cfg.get('callbacks', {}).items()
     ]
+    callbacks.append(
+        mlm_scheduling_module(cfg.train_loader.dataset.mlm_schedule,
+                              distributed_masking_rate))
 
     # Algorithms
     algorithms = [
@@ -265,5 +289,6 @@ if __name__ == '__main__':
         yaml_cfg = om.load(f)
     cli_cfg = om.from_cli(args_list)
     cfg = om.merge(yaml_cfg, cli_cfg)
+    cfg = update_mlm_schedule(cfg)
     cfg = cast(DictConfig, cfg)  # for type checking
     main(cfg)
