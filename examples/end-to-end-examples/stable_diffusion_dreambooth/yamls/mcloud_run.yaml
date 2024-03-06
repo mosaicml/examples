@@ -10,11 +10,12 @@ compute:
 integrations:
 - integration_type: git_repo
   git_repo: mosaicml/examples
-  pip_install: .[stable-diffusion-dreambooth]
+  git_commit: fa3d60e71f1a9b10dc8b0c6b3933d55849234def
   ssh_clone: false
 
 command: |
   cd examples/examples/stable_diffusion_dreambooth
+  pip install -r requirements.txt
   composer main.py /mnt/config/parameters.yaml
 parameters:
   # Name of the  training run used for checkpointing and other logging
