@@ -9,7 +9,7 @@ import torch
 from composer import Trainer
 from composer.algorithms import BlurPool, ChannelsLast, LabelSmoothing, MixUp
 from composer.callbacks import LRMonitor, MemoryMonitor, SpeedMonitor
-from composer.loggers import ProgressBarLogger, WandBLogger
+from composer.loggers import ProgressBarLogger, WandBLogger, MLFlowLogger
 from composer.optim import DecoupledSGDW, MultiStepWithWarmupScheduler
 from composer.utils import dist, reproducibility
 from omegaconf import OmegaConf
@@ -24,6 +24,8 @@ def build_logger(name: str, kwargs: Dict):
         return ProgressBarLogger()
     elif name == 'wandb':
         return WandBLogger(**kwargs)
+    elif name == 'mlflow':
+        return MLFlowLogger(**kwargs)
     else:
         raise ValueError(f'Not sure how to build logger: {name}')
 
