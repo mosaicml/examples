@@ -122,7 +122,7 @@ def build_optimizer(cfg, model):
     if cfg.name == 'decoupled_adamw':
         return DecoupledAdamW(model.parameters(),
                               lr=cfg.lr,
-                              betas=cfg.betas,
+                              betas=list(cfg.betas),
                               eps=cfg.eps,
                               weight_decay=cfg.weight_decay)
     else:
