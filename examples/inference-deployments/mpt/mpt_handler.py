@@ -13,7 +13,8 @@ from transformers import (AutoConfig, AutoModelForCausalLM, AutoTokenizer,
 class MPTModelHandler():
 
     DEFAULT_GENERATE_KWARGS = {
-        'max_length': 256,
+        'max_length': 256,  # Counts input + output tokens (deprecated)
+        'max_new_tokens': 256,  # Only counts output tokens
         'use_cache': True,
         'do_sample': True,
         'top_p': 0.95,
@@ -80,7 +81,7 @@ class MPTModelHandler():
         model_requests: List of dictionaries that contain forward pass inputs as well
         as other parameters, such as generate kwargs.
 
-        ex. [{'input': 'hello world!', 'parameters': {'max_length': 10}]
+        ex. [{'input': 'hello world!', 'parameters': {'max_new_tokens': 10}]
         """
         generate_inputs = []
         generate_kwargs = {}
