@@ -56,7 +56,7 @@ python -m venv examples-10k-venv
 source examples-10k-venv/bin/activate
 pip install -r requirements-cpu.txt
 # Your api token can be found by running `mcli config`. This token is set an environment variable for the langchain integration
-export MOSAICML_API_TOKEN=<your api token>
+export MOSAICML_API_KEY=<your api key>
 ```
 
 
