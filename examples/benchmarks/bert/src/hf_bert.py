@@ -101,8 +101,8 @@ def create_hf_bert_mlm(pretrained_model_name: str = 'bert-base-uncased',
         tokenizer = None
 
     metrics = [
-        LanguageCrossEntropy(ignore_index=-100,
-                             vocab_size=model.config.vocab_size),
+        # vocab_size no longer in composer
+        LanguageCrossEntropy(ignore_index=-100),
         MaskedAccuracy(ignore_index=-100)
     ]
     return HuggingFaceModel(model=model,

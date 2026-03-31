@@ -17,6 +17,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+*Update: 01-04-2024*
+This version of Triton Flash Attention is being deprecated in favor of Flash Attention 2,
+which now supports ALiBi natively https://github.com/Dao-AILab/flash-attention
+
 *Experimental* implementation of FlashAttention in Triton.
 We use the FlashAttention implementation from Phil Tillet a starting point.
 https://github.com/openai/triton/blob/master/python/tutorials/06-fused-attention.py

@@ -8,6 +8,7 @@ import os
 import random
 from argparse import ArgumentParser, Namespace
 from typing import Dict, Iterable, Optional
+
 from llmfoundry.data import ConcatTokensDataset  # type: ignore
 from streaming import MDSWriter
 from torch.utils.data import DataLoader, Dataset, get_worker_info
@@ -27,24 +28,21 @@ def parse_args() -> Namespace:
         default=64,
         required=False,
         help='The maximum number of workers to use for MDS writing')
-    
-    parser.add_argument(
-        '--out_root',
-        type=str,
-        required=True,
-        help='The folder to write output to')
-    
-    parser.add_argument(
-        '--in_root',
-        type=str,
-        required=True,
-        help='The folder to read input from')
 
-    parser.add_argument(
-        '--compression',
-        type=str,
-        default='zstd',
-        help='The compression algorithm to use for MDS writing')
+    parser.add_argument('--out_root',
+                        type=str,
+                        required=True,
+                        help='The folder to write output to')
+
+    parser.add_argument('--in_root',
+                        type=str,
+                        required=True,
+                        help='The folder to read input from')
+
+    parser.add_argument('--compression',
+                        type=str,
+                        default='zstd',
+                        help='The compression algorithm to use for MDS writing')
 
     parser.add_argument(
         '--concat_tokens',
@@ -53,29 +51,31 @@ def parse_args() -> Namespace:
         required=False,
         help='Convert text to tokens and concatenate up to this many tokens')
 
-    parser.add_argument(
-        '--tokenizer',
-        type=str,
-        default='mosaicml/mpt-30b',
-        required=False,
-        help='The name of the tokenizer to use')
+    parser.add_argument('--tokenizer',
+                        type=str,
+                        default='mosaicml/mpt-30b',
+                        required=False,
+                        help='The name of the tokenizer to use')
     parser.add_argument(
         '--bos_text',
         type=str,
         default=None,
         required=False,
-        help='The text to prepend to each example to separate concatenated examples')
+        help=
+        'The text to prepend to each example to separate concatenated examples')
     parser.add_argument(
         '--eos_text',
         type=str,
         default='<|endoftext|>',
         required=False,
-        help='The text to append to each example to separate concatenated examples')
+        help=
+        'The text to append to each example to separate concatenated examples')
     parser.add_argument(
         '--no_wrap',
         action='store_true',
         required=False,
-        help='Whether to let text examples wrap across multiple training examples')
+        help=
+        'Whether to let text examples wrap across multiple training examples')
 
     parsed = parser.parse_args()
 
@@ -93,14 +93,15 @@ def parse_args() -> Namespace:
     return parsed
 
 
-def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:	
-    return DataLoader(	
-        dataset=dataset,	
-        sampler=None,	
-        batch_size=batch_size,	
-        num_workers=8,	
-        prefetch_factor=2,	
+def build_dataloader(dataset: Dataset, batch_size: int) -> DataLoader:
+    return DataLoader(
+        dataset=dataset,
+        sampler=None,
+        batch_size=batch_size,
+        num_workers=8,
+        prefetch_factor=2,
     )
+
 
 def generate_samples(
         loader: DataLoader,
@@ -125,7 +126,9 @@ def generate_samples(
             n_samples += 1
             yield {k: v[idx] for k, v in batch.items()}
 
+
 class DatasetIterable:
+
     def __init__(self, dataset: list[str]):
         self.dataset = list(set(dataset))  # Remove duplicates
         print(f'Total files in the dataset: {len(self.dataset)}')
@@ -147,16 +150,9 @@ class DatasetIterable:
                 print(f'Error processing file: {file}. Error: {e}')
 
 
-def main(
-    input_folder: str,
-    output_folder: str,
-    tokenizer_name: str,
-    concat_tokens: int,
-    eos_text: str,
-    bos_text: str,
-    no_wrap: bool,
-    max_workers: int,
-    compression: str) -> None:
+def main(input_folder: str, output_folder: str, tokenizer_name: str,
+         concat_tokens: int, eos_text: str, bos_text: str, no_wrap: bool,
+         max_workers: int, compression: str) -> None:
     """Convert the generic txt dataset into MDS format.
 
     Args:
@@ -177,7 +173,9 @@ def main(
     columns = {'tokens': 'bytes'}
 
     files = os.listdir(input_folder)
-    txt_files = [os.path.join(input_folder, f) for f in files if f.endswith('.txt')]
+    txt_files = [
+        os.path.join(input_folder, f) for f in files if f.endswith('.txt')
+    ]
     random.shuffle(txt_files)
     num_files = len(txt_files)
 
@@ -186,7 +184,6 @@ def main(
         'validation': txt_files[int(num_files * 0.8):int(num_files * 0.9)],
         'test': txt_files[int(num_files * 0.9):]
     }
-
 
     for split in ['train', 'validation', 'test']:
         print(f'Processing {split}')
@@ -209,11 +206,11 @@ def main(
         # Write samples in MDS format
         print(f'Converting to MDS format...')
         with MDSWriter(out=os.path.join(output_folder, split),
-                        max_workers=max_workers,
-                        progress_bar=False,
-                        columns=columns,
-                        compression=compression) as out:
-            for sample in tqdm(samples): 
+                       max_workers=max_workers,
+                       progress_bar=False,
+                       columns=columns,
+                       compression=compression) as out:
+            for sample in tqdm(samples):
                 out.write(sample)
 
 
