@@ -1,15 +1,103 @@
-# Welcome!
+<html>
+<div class="highlight-clean" style="padding-bottom: 10px; padding-top: 10px;">
+            <h1 class="text-center">&#128640 MosaicBERT: A Bidirectional Encoder Optimized for Fast Pretraining</h1>
+        <div><p></p></div>
+        <div class="container" style="max-width: 768px;background:white;">
+            <div class="row">
+                <div class="col-md-12", style="padding: 10px;">
+                    <h4 class="text-center" style="margin: 0px;">
+                        <a class="text-center", href = https://jacobfulano.github.io>Jacob Portes*</a>, 
+                        <a class="text-center", href = https://twitter.com/alexrtrott>Alex Trott*</a>, 
+                        <a class="text-center">Sam Havens</a>, 
+                        <a class="text-center">Daniel King</a>, 
+                        <a class="text-center", href = https://twitter.com/abhi_venigalla>Abhinav Venigalla</a>, 
+                        <a class="text-center">Moin Nadeem</a>,
+                        <a class="text-center", href = https://nikhilsardana.github.io>Nikhil Sardana</a>,
+                        <a class="text-center">Daya Khudia</a>,
+                        <a class="text-center", href = http://www.jfrankle.com>Jonathan Frankle</a>
+                    </h4>
+                    <h5 class="text-center">MosaicML x Databricks</h5> 
+                    <h6 class="text-center">jacob.portes@databricks.com, *equal contribution</h6> 
+                </div>
+            </div>
+        </div> 
+        <div class="buttons" style="margin-bottom: 8px;">
+            <a class="btn btn-primary" role="button" href="https://www.mosaicml.com/blog/mosaicbert">Blogpost</a>
+            <a class="btn btn-primary" role="button" href="https://openreview.net/forum?id=5zipcfLC2Z">Paper</a>
+            <a class="btn btn-primary" role="button" href="https://github.com/mosaicml/examples/tree/main/examples/benchmarks/bert">GitHub</a>
+            <a class="btn btn-primary" role="button" href="https://huggingface.co/collections/mosaicml/mosaicbert-6564f20cfd712e8aa84c29e4">Hugging Face</a>
+        </div> 
+        <div><p></p></div>
+        <!-- Figure -->
+        <div><p></p></div>
+        <div class="container" style="max-width: 768px;" >
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>TLDR; How to Speed up Transformer Pretraining</h2>
+                  <h4>MosaicBERT is a custom BERT architecture optimized for fast pretraining. This study motivated many of the architecture choices around MosaicML's <a href=https://huggingface.co/mosaicml/mpt-7b>MPT-7B</a> and <a href=https://huggingface.co/mosaicml/mpt-30b>MPT-30B</a> models. Below are the main architectural modifications used by MosaicBERT for rapid pretraining:</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h5>These are the main architectural modifications used by MosaicBERT for rapid pretraining &#128071</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <ul>
+                        <li><a href="https://github.com/Dao-AILab/flash-attention">FlashAttention:</a> This is an efficient implementation of attention that has rapidly become the standard</li>
+                        <li><a href=https://github.com/ofirpress/attention_with_linear_biases>&#x1f978 ALiBi (Attention with Linear Biases):</a> ALiBi allows you to train short on shorter sequence lengths and then extrapolate to longer sequence lengths</li>
+                        <li><a href="https://docs.mosaicml.com/projects/composer/en/latest/method_cards/gated_linear_units.html">&#x26E9 Gated Linear Units</a></li>
+                        <li>&#128073 Unpad your inputs after the attention block! This avoids wasting compute on PAD tokens</li>
+                        <li><a href="https://docs.mosaicml.com/projects/composer/en/stable/method_cards/low_precision_layernorm.html">Low Precision LayerNorm:</a> set LayerNorm operation to bfloat16 precision instead of the typical float32 precision</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h5> And here are a few more efficiency tips used by MosaicBERT:</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <ul>
+                        <li>Change the Masked Language Modeling ratio to 30% (instead of the default 15%)</li>
+                        <li>Remove dropout from the attention module (dropout often slows things down)</li>
+                        <li>Use bfloat16!</li>
+                        <li>Make your vocab size as a multiple of 64 <a href="https://twitter.com/karpathy/status/1621578354024677377">(Andrej Karpathy says so!)</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h5>All modifications (except for MLM) can be applied to decoder architectures such as GPT and MPT.</h5>
+                </div>
+            </div>
+        </div>
+    </div> 
+</html>
 
-This benchmark covers both pre-training and fine-tuning a BERT model. With this starter code, you'll be able to do Masked Language Modeling (MLM) [pre-training](#mlm-pre-training) on the C4 dataset and classification [fine-tuning](#glue-fine-tuning) on GLUE benchmark tasks. We also provide the source code and recipe behind our [Mosaic BERT](#mosaic-bert) model, which you can train yourself using this repo.
+## Citation
+```
+@article{portes2023mosaicbert,
+  title={Mosaicbert: A bidirectional encoder optimized for fast pretraining},
+  author={Portes, Jacob and Trott, Alexander and Havens, Sam and King, Daniel and Venigalla, Abhinav and Nadeem, Moin and Sardana, Nikhil and Khudia, Daya and Frankle, Jonathan},
+  journal={Advances in Neural Information Processing Systems},
+  volume={36},
+  pages={3106--3130},
+  year={2023}
+}
+```
 
 ## Contents
+This benchmark covers both pre-training and fine-tuning a BERT model. With this starter code, you'll be able to do Masked Language Modeling (MLM) [pre-training](#mlm-pre-training) on the C4 dataset and classification [fine-tuning](#glue-fine-tuning) on GLUE benchmark tasks. We also provide the source code and recipe behind our [MosaicBERT](#mosaic-bert) model, which you can train yourself using this repo.
 
 You'll find in this folder:
 
 ### Pre-training
 
 - `main.py` — A straightforward script for parsing YAMLs, building a [Composer](https://github.com/mosaicml/composer) Trainer, and kicking off an MLM pre-training job, locally or on the MosaicML platform.
-- `yamls/main/` - Pre-baked configs for pre-training both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `main.py`.
+- `yamls/main/` - Pre-baked configs for pre-training both our sped-up MosaicBERT as well as the reference HuggingFace BERT. These are used when running `main.py`.
 - `yamls/test/main.yaml` - A config for quickly verifying that `main.py` runs.
 
 ### Fine-tuning
@@ -18,17 +106,17 @@ You'll find in this folder:
 - `glue.py` - A more complex script for parsing YAMLs and orchestrating the numerous fine-tuning training jobs across 8 GLUE tasks (we exclude the WNLI task here), locally or on the MosaicML platform.
 - `src/glue/data.py` - Datasets used by `glue.py` in GLUE fine-tuning.
 - `src/glue/finetuning_jobs.py` - Custom classes, one for each GLUE task, instantiated by `glue.py`. These handle individual fine-tuning jobs and task-specific hyperparameters.
-- `yamls/finetuning/` - Pre-baked configs for fine-tuning both our sped-up Mosaic BERT as well as the reference HuggingFace BERT. These are used when running `sequence_classification.py` and `glue.py`.
+- `yamls/finetuning/` - Pre-baked configs for fine-tuning both our sped-up MosaicBERT as well as the reference HuggingFace BERT. These are used when running `sequence_classification.py` and `glue.py`.
 - `yamls/test/sequence_classification.yaml` - A config for quickly verifying that `sequence_classification.py` runs.
 - `yamls/test/glue.yaml` - A config for quickly verifying that `glue.py` runs.
 
 ### Shared
 
 - `src/hf_bert.py` — HuggingFace BERT models for MLM (pre-training) or classification (GLUE fine-tuning), wrapped in [`ComposerModel`s](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.models.HuggingFaceModel.html) for compatibility with the [Composer Trainer](https://docs.mosaicml.com/en/stable/api_reference/generated/composer.Trainer.html#composer.Trainer).
-- `src/mosaic_bert.py` — Mosaic BERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [Mosaic BERT](#mosaic-bert) for more.
-- `src/bert_layers.py` — The Mosaic BERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
-- `src/bert_padding.py` — Utilities for Mosaic BERT that help avoid padding overhead.
-- `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in Mosaic BERT.
+- `src/mosaic_bert.py` — MosaicBERT models for MLM (pre-training) or classification (GLUE fine-tuning). See [MosaicBERT](#mosaic-bert) for more.
+- `src/bert_layers.py` — The MosaicBERT layers/modules with our custom speed up methods built in, with an eye towards HuggingFace API compatibility.
+- `src/bert_padding.py` — Utilities for MosaicBERT that help avoid padding overhead.
+- `src/flash_attn_triton.py` - Source code for the [FlashAttention](https://arxiv.org/abs/2205.14135) implementation used in MosaicBERT.
 - `src/text_data.py`- a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/) that can be used with a vanilla PyTorch dataloader.
 - `src/convert_dataset.py` - A script to convert a text dataset from HuggingFace to a [MosaicML streaming dataset](https://streaming.docs.mosaicml.com/en/stable/).
 - `requirements.txt` — All needed Python dependencies.
@@ -123,26 +211,26 @@ With our data prepared, we can now start training.
 ### Test pre-training
 
 To verify that pre-training runs correctly, first prepare a local copy of the C4 validation split (see the above section), and then run the `main.py` pre-training script twice using our testing config.
-First, with the baseline HuggingFace BERT. Second, with the Mosaic BERT.
+First, with the baseline HuggingFace BERT. Second, with the MosaicBERT.
 
 ```bash
 # Run the pre-training script with the test config and HuggingFace BERT
 composer main.py yamls/test/main.yaml
 
-# Run the pre-training script with the test config and Mosaic BERT
+# Run the pre-training script with the test config and MosaicBERT
 composer main.py yamls/test/main.yaml model.name=mosaic_bert
 ```
 
 ### Test fine-tuning
 
-To verify that fine-tuning runs correctly, run the fine-tuning script using our testing configs and both the HuggingFace and Mosaic BERT models.
-First, verify `sequence_classification.py` with the baseline HuggingFace BERT and again with the Mosaic BERT.
+To verify that fine-tuning runs correctly, run the fine-tuning script using our testing configs and both the HuggingFace and MosaicBERT models.
+First, verify `sequence_classification.py` with the baseline HuggingFace BERT and again with the MosaicBERT.
 
 ```bash
 # Run the fine-tuning script with the test config and HuggingFace BERT
 composer sequence_classification.py yamls/test/sequence_classification.yaml
 
-# Run the fine-tuning script with the test config and Mosaic BERT
+# Run the fine-tuning script with the test config and MosaicBERT
 composer sequence_classification.py yamls/test/sequence_classification.yaml model.name=mosaic_bert
 ```
 
@@ -152,7 +240,7 @@ Second, verify `glue.py` for both models.
 # Run the GLUE script with the test config and HuggingFace BERT
 python glue.py yamls/test/glue.yaml && rm -rf local-finetune-checkpoints
 
-# Run the GLUE script with the test config and Mosaic BERT
+# Run the GLUE script with the test config and MosaicBERT
 python glue.py yamls/test/glue.yaml model.name=mosaic_bert && rm -rf local-finetune-checkpoints
 ```
 
@@ -168,7 +256,7 @@ This is already done in the testing YAML `yamls/test/main.py`, which you can als
 
 ### MLM pre-training
 
-To get the most out of your pre-training budget, we recommend using **Mosaic BERT**! You can read more [below](#mosaic-bert).
+To get the most out of your pre-training budget, we recommend using **MosaicBERT**! You can read more [below](#mosaic-bert).
 
 We run the `main.py` pre-training script using our `composer` launcher, which generates N processes (1 process per GPU device).
 If training on a single node, the `composer` launcher will autodetect the number of devices.
@@ -178,7 +266,7 @@ If training on a single node, the `composer` launcher will autodetect the number
 # It takes about 11.5 hours on a single node with 8 A100_80g GPUs.
 composer main.py yamls/main/hf-bert-base-uncased.yaml
 
-# This will pre-train a Mosaic BERT that reaches the same downstream accuracy in roughly 1/3 the time.
+# This will pre-train a MosaicBERT that reaches the same downstream accuracy in roughly 1/3 the time.
 composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 ```
 
@@ -212,7 +300,7 @@ Once you have modified the YAMLs in `yamls/glue/` to reference your pre-trained 
 # This will run GLUE fine-tuning evaluation on your HuggingFace BERT
 python glue.py yamls/finetuning/glue/hf-bert-base-uncased.yaml
 
-# This will run GLUE fine-tuning evaluation on your Mosaic BERT
+# This will run GLUE fine-tuning evaluation on your MosaicBERT
 python glue.py yamls/finetuning/glue/mosaic-bert-base-uncased.yaml
 ```
 
@@ -247,7 +335,7 @@ Before using the configs in `yamls/main/` when running `main.py`, you'll need to
 
 Before using the configs in `yamls/finetuning/` when running `sequence_classification.py`, you'll need to fill in:
 
-- `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that. If you're fine-tuning a Mosaic BERT, this should not be left empty.
+- `load_path` (optional) - If you have a checkpoint that you'd like to start from, this is how you set that. If you're fine-tuning a MosaicBERT, this should not be left empty.
 - `save_folder` - This will determine where model checkpoints are saved. Note that it can depend on `run_name`. For example, if you set `save_folder` to `s3://mybucket/mydir/{run_name}/ckpt` it will replace `{run_name}` with the value of `run_name`. So you should avoid re-using the same run name across multiple training runs.
 - `loggers.wandb` (optional) - If you want to log to W&B, fill in the `project` and `entity` fields, or comment out the `wandb` block if you don't want to use this logger.
 - `algorithms` (optional) - Make sure to include any architecture-modifying algorithms that were applied to your starting checkpoint model before pre-training. For instance, if you turned on `gated_linear_units` in pre-training, make sure to do so during fine-tuning too!
@@ -337,10 +425,10 @@ composer main.py yamls/main/mosaic-bert-base-uncased.yaml
 You should see logs being printed to your terminal.
 You can also easily enable other experiment trackers like Weights and Biases or CometML by using [Composer's logging integrations](https://docs.mosaicml.com/en/stable/trainer/logging.html).
 
-## Mosaic BERT
+## MosaicBERT
 
-Our starter code supports both standard HuggingFace BERT models and our own **Mosaic BERT**. The latter incorporates numerous methods to improve throughput and training.
-Our goal in developing Mosaic BERT was to greatly reduce training time while making it easy for you to use on your own problems!
+Our starter code supports both standard HuggingFace BERT models and our own **MosaicBERT**. The latter incorporates numerous methods to improve throughput and training.
+Our goal in developing MosaicBERT was to greatly reduce training time while making it easy for you to use on your own problems!
 
 To do this, we employ a number of techniques from the literature:
 
@@ -352,10 +440,8 @@ To do this, we employ a number of techniques from the literature:
 
 ... and get them to work together! To our knowledge, many of these methods have never been combined before.
 
-If you're reading this, we're still profiling the exact speedup and performance gains offered by Mosaic BERT compared to comparable HuggingFace BERT models. Stay tuned for incoming results!
+If you're reading this, we're still profiling the exact speedup and performance gains offered by MosaicBERT compared to comparable HuggingFace BERT models. Stay tuned for incoming results!
 
 ## Contact Us
 
 If you run into any problems with the code, please file Github issues directly to this repo.
-
-If you want to train BERT-style models on MosaicML platform, reach out to us at [demo@mosaicml.com](mailto:demo@mosaicml.com)!
